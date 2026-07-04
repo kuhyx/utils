@@ -1,0 +1,12 @@
+[Unit]
+Description=guard-lib bind-mount enforcement for %i
+After=local-fs.target
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/guardctl file-guard bind-mount %i
+
+[Install]
+WantedBy=multi-user.target

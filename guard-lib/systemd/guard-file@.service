@@ -1,0 +1,6 @@
+[Unit]
+Description=guard-lib file-guard enforcement for %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/guardctl file-guard enforce %i

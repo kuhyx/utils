@@ -1,0 +1,12 @@
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = guard-lib: unlocking protected files before pacman transaction
+When = PreTransaction
+Exec = /bin/bash /etc/guard-lib/pacman-hooks/guard-lib-unlock-all.sh
+NeedsTargets
