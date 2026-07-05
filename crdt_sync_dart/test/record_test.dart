@@ -138,4 +138,35 @@ void main() {
       expect(Record.fromJson(record.toJson()), equals(record));
     });
   });
+
+  group('cross-language wire format', () {
+    // Pins the exact wire shape shared with crdt-sync's Python Record.
+    // These values are duplicated verbatim in the Python package's
+    // `test_record.py` (`TestCrossLanguageWireFormat`). If this test and
+    // that one both pass, the two languages agree on the wire format; if
+    // only one changes, the two suites diverge and at least one of them
+    // fails -- catching exactly the kind of key-naming mismatch
+    // (`deleted_hlc` vs `deletedHlc`) that neither language's own
+    // round-trip test can see on its own.
+    test('matches the fixture shared with the Python package', () {
+      final record = Record(
+        id: 'abc123',
+        fields: {
+          'text': ('hello', Hlc(wallTimeMs: 100, counter: 0, nodeId: 'pc')),
+        },
+        deleted: true,
+        deletedHlc: Hlc(wallTimeMs: 1000, counter: 0, nodeId: 'node-a'),
+      );
+      final expected = {
+        'id': 'abc123',
+        'fields': {
+          'text': ['hello', '1970-01-01T00:00:00.100Z-0000-pc'],
+        },
+        'deleted': true,
+        'deleted_hlc': '1970-01-01T00:00:01.000Z-0000-node-a',
+      };
+      expect(record.toJson(), equals(expected));
+      expect(Record.fromJson(expected), equals(record));
+    });
+  });
 }

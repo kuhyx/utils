@@ -12,9 +12,12 @@ const _defaultFilename = 'log.json';
 /// to `<pathPrefix>/<deviceId>/<filename>`.
 ///
 /// [encode] serializes a merged log for pushing. [decode] parses a remote
-/// device's pushed text back into a log; throwing [FormatException] is
-/// treated as a corrupt/unparsable push, and that device is skipped for
-/// this tick rather than aborting the whole sync.
+/// device's pushed text back into a log; throwing [FormatException] (bad
+/// JSON syntax) or [TypeError] (valid JSON, wrong shape -- e.g. a missing
+/// or mistyped field during [Record.fromJson]) is treated as a
+/// corrupt/unparsable push, and that device is skipped for this tick
+/// rather than aborting the whole sync. Mirrors the Python `sync_log`'s
+/// `(ValueError, KeyError, TypeError)` catch for the same reason.
 Future<Log> syncLog({
   required GitHubClient client,
   required String deviceId,
@@ -35,6 +38,8 @@ Future<Log> syncLog({
     try {
       mergedLog = mergeLogs(mergedLog, decode(text));
     } on FormatException {
+      continue;
+    } on TypeError {
       continue;
     }
   }

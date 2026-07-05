@@ -38,7 +38,9 @@ class Record {
       (name, field) => MapEntry(name, [field.$1, field.$2.toStr()]),
     ),
     'deleted': deleted,
-    'deletedHlc': deletedHlc?.toStr(),
+    // Wire key is snake_case to match crdt_sync's Python `Record.to_dict` --
+    // this is a cross-language wire format, not a Dart-idiomatic API.
+    'deleted_hlc': deletedHlc?.toStr(),
   };
 
   factory Record.fromJson(Map<String, dynamic> json) {
@@ -47,7 +49,7 @@ class Record {
       final pair = value as List<dynamic>;
       return MapEntry(name, (pair[0], Hlc.fromStr(pair[1] as String)));
     });
-    final deletedHlcStr = json['deletedHlc'] as String?;
+    final deletedHlcStr = json['deleted_hlc'] as String?;
     return Record(
       id: json['id'] as String,
       fields: fields,

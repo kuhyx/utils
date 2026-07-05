@@ -146,6 +146,31 @@ void main() {
       expect(putCalls, hasLength(1));
     });
 
+    test('skips a device whose pushed JSON has the wrong shape', () async {
+      // Valid JSON that isn't a record map (e.g. from an incompatible
+      // writer) must be skipped like corrupt JSON, not crash the whole
+      // sync -- this is what the `on TypeError` catch in `syncLog` is
+      // for, not just JSON syntax errors caught by `FormatException`.
+      final (:client, :putCalls) = _client(
+        contentResponses: {
+          'devices': _directoryOf(['phone']),
+          'devices/phone/log.json': _fileContaining('{"a": 5}'),
+        },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'pc',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+      );
+
+      expect(merged, isEmpty);
+      expect(putCalls, hasLength(1));
+    });
+
     test('merges in a remote device\'s entries', () async {
       final remoteLog = <String, Record>{
         'b': Record(id: 'b', fields: {'text': ('from phone', _make(100))}),
