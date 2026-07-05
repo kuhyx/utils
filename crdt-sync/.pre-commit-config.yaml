@@ -1,0 +1,125 @@
+# Pre-commit Configuration for crdt-sync
+# Install:  pre-commit install && pre-commit install --hook-type pre-push
+# Run:      pre-commit run --all-files
+# Update:   pre-commit autoupdate
+
+default_language_version:
+  python: python3
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: debug-statements
+      - id: name-tests-test
+        args: [--pytest-test-first]
+      - id: check-ast
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: requirements-txt-fixer
+
+  - repo: local
+    hooks:
+      - id: no-noqa
+        name: Block noqa comments
+        entry: '(?i)#\s*(noqa|type:\s*ignore)'
+        language: pygrep
+        types: [python]
+      - id: no-ruff-noqa
+        name: Block ruff noqa file-level comments
+        entry: '(?i)#\s*ruff:\s*noqa'
+        language: pygrep
+        types: [python]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.2
+    hooks:
+      - id: ruff
+        args: [--fix, --unsafe-fixes, --exit-non-zero-on-fix, --show-fixes]
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-requests
+        args:
+          - --ignore-missing-imports
+          - --no-error-summary
+          - --disable-error-code=no-untyped-def
+          - --disable-error-code=no-untyped-call
+          - --disable-error-code=var-annotated
+          - --disable-error-code=no-any-unimported
+          - --disable-error-code=type-arg
+          - --disable-error-code=no-any-return
+          - --disable-error-code=misc
+          - --disable-error-code=unused-ignore
+          - --disable-error-code=unreachable
+          - --disable-error-code=assignment
+          - --disable-error-code=no-redef
+          - --disable-error-code=attr-defined
+          - --disable-error-code=arg-type
+          - --disable-error-code=union-attr
+          - --disable-error-code=call-overload
+          - --disable-error-code=return-value
+          - --disable-error-code=redundant-cast
+          - --disable-error-code=empty-body
+          - --disable-error-code=list-item
+
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v3.3.2
+    hooks:
+      - id: pylint
+        args:
+          - --rcfile=pyproject.toml
+          - --fail-under=8.0
+          - --jobs=4
+        additional_dependencies:
+          - pytest
+          - requests
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args:
+          - -c
+          - pyproject.toml
+          - --severity-level=high
+          - --confidence-level=medium
+          - --skip=B113
+        additional_dependencies: ["bandit[toml]"]
+        exclude: ^(tests/|.*test.*\.py$)
+
+  - repo: local
+    hooks:
+      - id: pytest-coverage
+        name: pytest with coverage enforcement
+        entry: python -m pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-push]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args:
+          - --skip=*.json,*.lock,.git,__pycache__,.venv

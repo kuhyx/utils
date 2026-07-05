@@ -1,0 +1,150 @@
+[project]
+name = "crdt-sync"
+version = "0.1.0"
+description = "Shared CRDT merge scheme + GitHub-Contents-API sync transport for cross-device apps"
+requires-python = ">=3.10"
+dependencies = ["requests"]
+
+[tool.ruff]
+target-version = "py310"
+include = ["*.py", "**/*.py"]
+exclude = [".git", ".venv", "__pycache__", "build", "dist", ".eggs"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D203",
+    "D213",
+    "COM812",
+    "ISC001",
+    "S603",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+"**/test_*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+"crdt_sync/_sync.py" = ["PLR0913"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+known-first-party = ["crdt_sync"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "double"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+disallow_any_unimported = true
+disallow_any_explicit = false
+disallow_any_generics = true
+disallow_subclassing_any = true
+strict_equality = true
+extra_checks = true
+ignore_missing_imports = true
+show_error_codes = true
+color_output = true
+exclude = [".venv/"]
+
+[tool.pylint.main]
+analyse-fallback-blocks = true
+persistent = true
+jobs = 0
+py-version = "3.10"
+ignore = [".venv", "__pycache__"]
+ignore-patterns = [".*\\.pyi$"]
+
+[tool.pylint.messages_control]
+enable = "all"
+disable = []
+
+[tool.pylint.design]
+min-public-methods = 0
+max-module-lines = 1000
+max-attributes = 10
+
+[tool.pylint.typecheck]
+generated-members = [
+    ".*\\.assert_called_once_with",
+    ".*\\.assert_called_once",
+    ".*\\.assert_called",
+    ".*\\.assert_not_called",
+    ".*\\.assert_any_call",
+    ".*\\.call_args",
+    ".*\\.call_args_list",
+    ".*\\.call_count",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["crdt_sync/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=crdt_sync",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=lcov",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    "default::pytest.PytestUnraisableExceptionWarning",
+]
+
+[tool.coverage.run]
+source = ["crdt_sync"]
+branch = true
+omit = [
+    "*/__pycache__/*",
+    "*/tests/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "raise AssertionError",
+    "if TYPE_CHECKING:",
+    'if __name__ == "__main__":',
+]
+partial_branches = ["pragma: no branch"]
