@@ -109,3 +109,32 @@ class TestRecordDictRoundTrip:
     def test_round_trips_a_record_with_no_delete_clock(self) -> None:
         record = Record(id="x", fields={}, deleted=False, deleted_hlc=None)
         assert Record.from_dict(record.to_dict()) == record
+
+
+class TestCrossLanguageWireFormat:
+    """Pins the exact wire shape shared with crdt_sync_dart's Record.
+
+    Values chosen here are duplicated verbatim in crdt_sync_dart's
+    `test/record_test.dart` (see its ``TestCrossLanguageWireFormat``
+    group). If this test and that one both pass, the two languages agree
+    on the wire format; if only one changes, the two suites diverge and
+    at least one of them fails -- catching exactly the kind of
+    key-naming mismatch (``deleted_hlc`` vs ``deletedHlc``) that neither
+    language's own round-trip test can see on its own.
+    """
+
+    def test_matches_the_fixture_shared_with_the_dart_package(self) -> None:
+        record = Record(
+            id="abc123",
+            fields={"text": ("hello", Hlc(wall_time_ms=100, counter=0, node_id="pc"))},
+            deleted=True,
+            deleted_hlc=Hlc(wall_time_ms=1000, counter=0, node_id="node-a"),
+        )
+        expected = {
+            "id": "abc123",
+            "fields": {"text": ["hello", "1970-01-01T00:00:00.100Z-0000-pc"]},
+            "deleted": True,
+            "deleted_hlc": "1970-01-01T00:00:01.000Z-0000-node-a",
+        }
+        assert record.to_dict() == expected
+        assert Record.from_dict(expected) == record
