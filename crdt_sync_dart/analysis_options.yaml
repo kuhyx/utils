@@ -1,0 +1,11 @@
+# This file configures the analyzer for this pure-Dart package (no Flutter
+# dependency, so `package:lints` rather than `package:flutter_lints`).
+
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - unawaited_futures
