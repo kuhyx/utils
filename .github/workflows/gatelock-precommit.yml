@@ -1,0 +1,24 @@
+name: gatelock pre-commit
+
+on:
+  push:
+    branches: [main]
+    paths: ['gatelock/**']
+  pull_request:
+    branches: [main]
+    paths: ['gatelock/**']
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        working-directory: gatelock
+        run: pip install -r requirements.txt
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --config gatelock/.pre-commit-config.yaml --all-files

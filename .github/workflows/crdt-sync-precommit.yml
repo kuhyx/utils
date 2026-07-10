@@ -1,0 +1,24 @@
+name: crdt-sync pre-commit
+
+on:
+  push:
+    branches: [main]
+    paths: ['crdt-sync/**']
+  pull_request:
+    branches: [main]
+    paths: ['crdt-sync/**']
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        working-directory: crdt-sync
+        run: pip install -r requirements.txt
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --config crdt-sync/.pre-commit-config.yaml --all-files
