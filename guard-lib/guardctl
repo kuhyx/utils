@@ -1,0 +1,59 @@
+#!/bin/bash
+# guardctl - unified CLI for guard-lib's file-guard and package-block primitives.
+set -euo pipefail
+
+GUARD_LIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# When installed to /usr/local/bin, lib/ lives alongside it at
+# /usr/local/lib/guard-lib; fall back to the repo layout for local runs.
+if [[ -d "$GUARD_LIB_ROOT/lib" ]]; then
+    LIB_DIR="$GUARD_LIB_ROOT/lib"
+elif [[ -d "/usr/local/lib/guard-lib" ]]; then
+    LIB_DIR="/usr/local/lib/guard-lib"
+else
+    echo "guardctl: error: cannot locate lib/ directory" >&2
+    exit 1
+fi
+
+# shellcheck source=lib/common.sh
+source "$LIB_DIR/common.sh"
+# shellcheck source=lib/file_guard.sh
+source "$LIB_DIR/file_guard.sh"
+# shellcheck source=lib/package_block.sh
+source "$LIB_DIR/package_block.sh"
+
+usage() {
+    cat <<'EOF'
+Usage: guardctl <primitive> <subcommand> [args...]
+
+Primitives:
+  file-guard install <name> --target <path> [--canonical <path>] [--bind-mount] [--plugin <script>] [--also-watch <path>]...
+  file-guard enforce <name>
+  file-guard unlock <name>
+  file-guard uninstall <name> [--keep-canonical]
+  file-guard status <name>
+  file-guard canonical-path <name>
+  file-guard bind-mount <name>
+
+  package-block start <name> --package <pkg> --lock-file <path> --days <N>
+  package-block check <name>
+  package-block status <name>
+  package-block end <name>
+EOF
+}
+
+main() {
+    if [[ $# -lt 1 ]]; then
+        usage
+        exit 1
+    fi
+    local primitive="$1"
+    shift
+    case "$primitive" in
+        file-guard) file_guard_main "$@" ;;
+        package-block) package_block_main "$@" ;;
+        -h|--help) usage ;;
+        *) usage; die "unknown primitive '$primitive'" ;;
+    esac
+}
+
+main "$@"

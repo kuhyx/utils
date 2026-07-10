@@ -1,0 +1,10 @@
+[Unit]
+Description=guard-lib file-guard watcher for %i
+# PathModified= for this instance is supplied by a drop-in written at
+# `guardctl file-guard install` time, under guard-file@%i.path.d/override.conf.
+# This template unit is never started directly without that drop-in.
+
+[Path]
+
+[Install]
+WantedBy=multi-user.target

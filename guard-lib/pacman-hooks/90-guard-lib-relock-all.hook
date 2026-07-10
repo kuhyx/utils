@@ -1,0 +1,12 @@
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = guard-lib: re-locking protected files after pacman transaction
+When = PostTransaction
+Exec = /bin/bash /etc/guard-lib/pacman-hooks/guard-lib-relock-all.sh
+NeedsTargets
