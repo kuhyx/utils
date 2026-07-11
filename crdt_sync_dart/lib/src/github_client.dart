@@ -167,5 +167,35 @@ class GitHubClient {
     }
   }
 
+  /// Returns whether the configured token can read this repo.
+  ///
+  /// A lightweight connection test for a settings "Test connection" button: it
+  /// hits the bare repo endpoint, so it succeeds even before any file has been
+  /// pushed. Never throws -- a network failure or missing repo returns false.
+  Future<bool> canAccessRepo() => _repoExists();
+
+  /// Deletes the file at [path], resolving its current sha itself so callers
+  /// don't have to track it. A no-op if [path] does not exist.
+  Future<void> deleteFile(
+    String path, {
+    String message = 'crdt_sync: delete',
+  }) async {
+    final sha = await _existingSha(path);
+    if (sha == null) return;
+    late final http.Response res;
+    try {
+      res = await _http.delete(
+        _contentsUri(path),
+        headers: _headers,
+        body: jsonEncode({'message': message, 'sha': sha}),
+      );
+    } on http.ClientException catch (exc) {
+      throw GitHubSyncError('network error deleting $path: $exc');
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw GitHubSyncError('DELETE $path failed: ${res.statusCode}');
+    }
+  }
+
   void close() => _http.close();
 }

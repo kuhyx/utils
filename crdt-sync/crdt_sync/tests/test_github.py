@@ -168,3 +168,55 @@ class TestPutFileText:
             pytest.raises(GitHubSyncError),
         ):
             _client().put_file_text("devices/pc/log.json", "{}", message="m")
+
+
+class TestCanAccessRepo:
+    def test_true_when_repo_endpoint_ok(self) -> None:
+        with _patch_get(_response(200)):
+            assert _client().can_access_repo() is True
+
+    def test_false_when_repo_is_missing(self) -> None:
+        with _patch_get(_response(404)):
+            assert _client().can_access_repo() is False
+
+    def test_false_on_a_network_error(self) -> None:
+        with _patch_get_raises():
+            assert _client().can_access_repo() is False
+
+
+class TestDeleteFile:
+    def test_deletes_an_existing_file_resolving_its_own_sha(self) -> None:
+        with (
+            _patch_get(_response(200, {"sha": "abc123"})),
+            patch.object(_github.requests, "delete", return_value=_response(200)),
+        ):
+            _client().delete_file("devices/pc/log.json")
+
+    def test_is_a_no_op_when_the_file_is_absent(self) -> None:
+        # sha GET 404, repo-exists GET 200 -> None sha -> no DELETE sent.
+        with (
+            _patch_get(_response(404), _response(200)),
+            patch.object(_github.requests, "delete") as mock_delete,
+        ):
+            _client().delete_file("devices/pc/gone.json")
+            mock_delete.assert_not_called()
+
+    def test_raises_on_a_delete_non_2xx_response(self) -> None:
+        with (
+            _patch_get(_response(200, {"sha": "abc123"})),
+            patch.object(_github.requests, "delete", return_value=_response(500)),
+            pytest.raises(GitHubSyncError),
+        ):
+            _client().delete_file("devices/pc/log.json")
+
+    def test_raises_on_a_delete_network_error(self) -> None:
+        with (
+            _patch_get(_response(200, {"sha": "abc123"})),
+            patch.object(
+                _github.requests,
+                "delete",
+                side_effect=requests.ConnectionError("offline"),
+            ),
+            pytest.raises(GitHubSyncError),
+        ):
+            _client().delete_file("devices/pc/log.json")

@@ -192,3 +192,41 @@ class GitHubSyncClient:
             for item in data
             if isinstance(item, dict) and isinstance(item.get("name"), str)
         ]
+
+    def can_access_repo(self) -> bool:
+        """Return whether the token can read this repo (a connection test).
+
+        Hits the bare repo endpoint, so it succeeds even before any file has
+        been pushed. Never raises -- a network failure or missing repo is
+        reported as ``False``.
+        """
+        return self._repo_exists()
+
+    def delete_file(self, path: str, *, message: str = "crdt_sync: delete") -> None:
+        """Delete the file at ``path``, resolving its current sha itself.
+
+        A no-op if ``path`` does not exist, so a repeated cleanup is safe.
+
+        Args:
+            path: A repo-relative file path.
+            message: The commit message for the deletion.
+
+        Raises:
+            GitHubSyncError: On any non-2xx response or network error.
+        """
+        sha = self._existing_sha(path)
+        if sha is None:
+            return
+        try:
+            response = requests.delete(
+                self._contents_url(path),
+                headers=self._headers,
+                json={"message": message, "sha": sha},
+                timeout=self._timeout_seconds,
+            )
+        except requests.RequestException as exc:
+            msg = f"network error deleting {path}"
+            raise GitHubSyncError(msg) from exc
+        if not response.ok:
+            msg = f"DELETE {path} failed: {response.status_code}"
+            raise GitHubSyncError(msg)
