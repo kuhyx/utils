@@ -5,4 +5,5 @@ export 'src/github_client.dart';
 export 'src/hlc.dart';
 export 'src/log.dart';
 export 'src/record.dart';
+export 'src/store.dart';
 export 'src/sync.dart';

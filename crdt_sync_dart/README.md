@@ -66,6 +66,42 @@ final merged = await syncLog(
 `<pathPrefix>/<other-device-id>/...`, merges each into the local log with
 `mergeLogs`, then pushes this device's own merged result back up.
 
+## Local persistence (`LogStore`)
+
+The merge scheme above is in-memory only. For an app that needs to keep its
+`Log` on disk and drive a live UI off it, this package also ships a
+domain-agnostic `LogStore`:
+
+```dart
+import 'package:crdt_sync/crdt_sync.dart';
+import 'package:crdt_sync/crdt_sync_io.dart'; // FileLogPersistence (dart:io)
+
+final store = LogStore(
+  persistence: FileLogPersistence(File('$docsDir/notes.json')),
+  nodeId: 'phone',
+);
+await store.load();
+
+// Reactive read: re-derive a domain view whenever anything changes. Filtering,
+// sorting and search live here, in the app -- the store is field-agnostic.
+final Stream<List<Record>> visible = store.changes.map(
+  (_) => store.values.where((r) => !r.deleted).toList(),
+);
+
+await store.upsert(Record(id: 'n1', fields: {'text': ('hi', store.nextHlc())}));
+await store.delete('n1'); // sticky tombstone, not a hard remove
+
+// After a sync tick, swap in the merged result:
+await store.replaceAll(await syncLog(/* ... */, localLog: store.snapshot()));
+```
+
+`LogStore` is pure Dart (import it from the main barrel); the filesystem-backed
+`FileLogPersistence` lives behind the separate `crdt_sync_io.dart` entrypoint so
+the core stays web-safe. Querying is deliberately **not** in the library — a
+`Record`'s fields are an opaque map, so the app filters `store.values` itself.
+The Python side mirrors the on-disk format via `crdt_sync.dump_log`/`read_log`
+(load/save only; no reactive stream — that's a Dart/Flutter convenience).
+
 ## Development
 
 ```bash

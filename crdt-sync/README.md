@@ -90,6 +90,26 @@ pull-all/merge/push-own pattern diet_guard's `_sync.py` already used, made
 domain-agnostic via the `encode`/`decode` callbacks so callers keep their own
 on-disk JSON shape instead of `crdt-sync` dictating one.
 
+## Local persistence
+
+For persisting a `Log` to disk, `crdt_sync` ships load/save helpers that share
+a canonical on-disk JSON shape with the Dart `crdt_sync_dart.LogStore`, so a log
+written by one language parses in the other:
+
+```python
+from crdt_sync import dump_log, load_log, read_log, write_log
+
+write_log(path, log)          # atomic temp-file-then-rename
+log = read_log(path)          # empty on a missing or corrupt file
+text = dump_log(log)          # -> canonical JSON string
+log = load_log(text)          # <- parse it back
+```
+
+These are load/save only. The Dart side additionally offers a *reactive*
+`LogStore` (a change stream to drive a live UI); that's a Flutter-only
+convenience and has no Python equivalent by design — Python consumers here are
+headless sync ticks.
+
 ## Development
 
 ```bash
