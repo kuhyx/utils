@@ -8,8 +8,9 @@ formerly-standalone repo, folded in here with full commit history preserved
 
 Dart/Flutter CRDT sync library (pub package name: `crdt_sync`, not published
 to pub.dev — consumed via a git dependency). Mirrors `crdt-sync` (below)
-module-for-module and test-for-test. Not yet consumed by any app; planned
-for screen-locker's workout sync.
+module-for-module and test-for-test. Consumed by `diet_guard`'s app,
+screen-locker's `workout_app`, `wake_alarm`'s `phone_app`, and `todo` (whose
+notes are stored in the v0.2.0 `LogStore`).
 
 Consume via:
 ```yaml
@@ -17,7 +18,7 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.1.0
+      ref: crdt_sync_dart-v0.2.0
       path: crdt_sync_dart
 ```
 
@@ -25,11 +26,11 @@ dependencies:
 
 Python CRDT sync library (package: `crdt_sync`, not published to PyPI). Same
 design as `crdt_sync_dart` (HLC clocks, per-field LWW, sticky-delete
-tombstones). Not yet consumed by any app.
+tombstones). Consumed by `diet-guard` and `screen-locker`.
 
 Consume via:
 ```
-crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.1.0#subdirectory=crdt-sync
+crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.2.0#subdirectory=crdt-sync
 ```
 
 ## guard-lib/

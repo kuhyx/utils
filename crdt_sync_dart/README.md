@@ -27,14 +27,15 @@ for the concrete convergence-property tests.
 
 ## Install
 
-Pin to a tag once this is pushed:
+Consume via a git dependency on the `utils` monorepo:
 
 ```yaml
 dependencies:
   crdt_sync:
     git:
-      url: https://github.com/kuhyx/crdt_sync_dart
-      ref: v0.1.0
+      url: https://github.com/kuhyx/utils
+      ref: crdt_sync_dart-v0.2.0
+      path: crdt_sync_dart
 ```
 
 ## Usage

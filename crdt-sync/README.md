@@ -58,7 +58,7 @@ what makes it actually shared, rather than shaped around one app's schema.
 ## Install
 
 ```bash
-pip install "crdt-sync @ git+https://github.com/kuhyx/crdt-sync@v0.1.0"
+pip install "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.2.0#subdirectory=crdt-sync"
 ```
 
 ## Usage

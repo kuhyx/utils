@@ -18,7 +18,7 @@ now lives.
 ## Install
 
 ```bash
-pip install "gatelock @ git+https://github.com/kuhyx/gatelock@v0.1.0"
+pip install "gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.1.0#subdirectory=gatelock"
 ```
 
 ## Usage
