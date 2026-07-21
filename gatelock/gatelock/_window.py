@@ -60,6 +60,27 @@ class LockConfig:
             grab) -- there is no give-up/fallback in that case.
         grab_log_every: Log a warning every N failed retry-forever attempts.
         bg: Background color for the root window.
+        fg: Primary (near-white) text color.
+        muted: Secondary/caption text color.
+        field_bg: Background for "raised" surfaces (entry/spinbox fields,
+            input wells) -- one step lighter than ``bg``.
+        accent: The shared brand accent (buttons, primary actions).
+        success: Positive/on-track status color.
+        warning: Caution/pending status color.
+        danger: Negative/error status color.
+        on_fill: Text/icon color for anything drawn on top of a filled
+            accent/success/warning/danger surface (e.g. a button's label) --
+            NOT ``fg``. All four fills sit in the same mid-light band, so
+            near-white text under-contrasts on every one of them; callers
+            must pick ``fg`` vs. ``on_fill`` based on the widget's own
+            background, never hardcode one for all buttons.
+        font_family: Default font family for lock-window widgets.
+
+    All color/font defaults come from the ``unified-design-system`` skill
+    (``~/.claude/skills/unified-design-system/references/tokens.md``) -- the
+    same palette used by every one of kuhy's apps, Flutter and web included.
+    screen-locker, wake_alarm, and diet_guard should read these fields
+    instead of re-hardcoding their own hex/font literals.
     """
 
     mode: LockMode = "hard"
@@ -68,7 +89,16 @@ class LockConfig:
     disable_vt: bool | None = None
     grab_retry_ms: int | None = None
     grab_log_every: int = 25
-    bg: str = "#1a1a1a"
+    bg: str = "#211D1B"
+    fg: str = "#ECEAE9"
+    muted: str = "#AAA09A"
+    field_bg: str = "#2B2624"
+    accent: str = "#B8862E"
+    success: str = "#8A9A3C"
+    warning: str = "#E0A63C"
+    danger: str = "#E2585F"
+    on_fill: str = "#211D1B"
+    font_family: str = "Arial"
 
     def resolved_overrideredirect(self) -> bool:
         """Return the effective overrideredirect setting."""

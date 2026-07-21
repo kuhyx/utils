@@ -1,6 +1,6 @@
 [project]
 name = "gatelock"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shared fullscreen lock-window + HMAC log-integrity backend for blocking-overlay apps"
 requires-python = ">=3.10"
 dependencies = []  # pure stdlib — tkinter is bundled with Python
