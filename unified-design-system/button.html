@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Button — unified-design-system</title>
+<style>
+  :root {
+    --ink: #211d1b; --ink-r1: #2b2624; --ink-r2: #38312e;
+    --line-dark: #463e3a; --text-dark: #ecEae9; --muted-dark: #aaa09a;
+
+    --paper: #f6f4f3; --paper-r: #fcfbfb;
+    --line-light: #e0dad7; --text-light: #211d1b; --muted-light: #70625b;
+
+    --accent: #b8862e; --success: #8a9a3c; --warning: #e0a63c; --danger: #e2585f;
+    --on-fill: #211d1b;
+
+    --bg: var(--paper); --surface-1: var(--paper-r); --surface-2: var(--paper-r);
+    --border: var(--line-light); --text: var(--text-light); --text-muted: var(--muted-light);
+
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --sp-6: 48px;
+
+    --sans: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", monospace;
+
+    --arrow: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: var(--ink); --surface-1: var(--ink-r1); --surface-2: var(--ink-r2);
+      --border: var(--line-dark); --text: var(--text-dark); --text-muted: var(--muted-dark);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--ink); --surface-1: var(--ink-r1); --surface-2: var(--ink-r2);
+    --border: var(--line-dark); --text: var(--text-dark); --text-muted: var(--muted-dark);
+  }
+  :root[data-theme="light"] {
+    --bg: var(--paper); --surface-1: var(--paper-r); --surface-2: var(--paper-r);
+    --border: var(--line-light); --text: var(--text-light); --text-muted: var(--muted-light);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 16px; line-height: 1.5;
+  }
+  .page { max-width: 40rem; margin: 0 auto; padding: var(--sp-6) var(--sp-4) var(--sp-6); }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 var(--sp-2);
+  }
+  .eyebrow::before {
+    content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent);
+    flex: none;
+  }
+  h1 {
+    font-size: 32px; letter-spacing: -0.2px; text-wrap: balance;
+    margin: 0 0 var(--sp-1); font-weight: 650;
+  }
+  .dek { color: var(--text-muted); margin: 0 0 var(--sp-6); max-width: 34rem; }
+
+  h2 {
+    font-size: 20px; margin: 0 0 var(--sp-3); font-weight: 600;
+    border-top: 1px solid var(--border); padding-top: var(--sp-4);
+  }
+  section + section { margin-top: var(--sp-5); }
+
+  /* ---- annotated diagram ---- */
+  .diagram-wrap { overflow-x: auto; }
+  .diagram {
+    position: relative; min-width: 620px; height: 420px;
+    margin: var(--sp-4) 0;
+  }
+  .diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .diagram svg path {
+    fill: none; stroke: var(--arrow); stroke-width: 1.5;
+    marker-end: url(#arrowhead);
+  }
+
+  .btn-primary {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: var(--accent); color: var(--on-fill); border: none;
+    border-radius: var(--radius-sm); padding: 12px 24px;
+    font: inherit; font-size: 16px; cursor: default;
+  }
+
+  .callout {
+    position: absolute; width: 200px;
+    font-size: 14px; color: var(--text-muted);
+  }
+  .callout b { color: var(--text); font-weight: 600; }
+  .callout code {
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent);
+  }
+  .c-tl { left: 0;   top: 0; }
+  .c-tr { right: 0;  top: 0;   text-align: right; }
+  .c-bl { left: 0;   bottom: 0; }
+  .c-br { right: 0;  bottom: 0; text-align: right; }
+
+  /* ---- variants row ---- */
+  .variants {
+    display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap;
+    margin: var(--sp-3) 0 var(--sp-2);
+  }
+  .variant { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; }
+  .variant .label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+  .btn-ghost {
+    background: var(--surface-1); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 24px; font: inherit; font-size: 16px;
+  }
+  .btn-disabled {
+    background: var(--accent); color: var(--on-fill); opacity: 0.5;
+    border: none; border-radius: var(--radius-sm); padding: 12px 24px; font: inherit; font-size: 16px;
+  }
+
+  .flag {
+    display: flex; gap: var(--sp-2); align-items: flex-start;
+    background: color-mix(in srgb, var(--success) 12%, var(--surface-1));
+    border: 1px solid color-mix(in srgb, var(--success) 40%, var(--border));
+    border-radius: var(--radius-sm); padding: var(--sp-3); font-size: 14px;
+    margin-top: var(--sp-3);
+  }
+  .flag b { color: var(--text); }
+
+  /* ---- spec table ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: var(--sp-2) var(--sp-2); border-bottom: 1px solid var(--border); }
+  th { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  td code, td span.val { font-family: var(--mono); font-size: 13px; }
+  .table-wrap { overflow-x: auto; }
+
+  footer {
+    margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+    font-size: 14px; color: var(--text-muted);
+  }
+  footer strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <p class="eyebrow">unified-design-system · format check</p>
+  <h1>Button</h1>
+  <p class="dek">
+    One component, every decision named, one sentence of why each. This is
+    the format for the exhaustive design doc — confirm it before the
+    remaining components (card, input, chip, dialog, switch, divider,
+    checkbox, snack&nbsp;bar) get written the same way.
+  </p>
+
+  <section>
+    <h2>Annotated</h2>
+    <div class="diagram-wrap">
+      <div class="diagram" id="diagram">
+        <svg viewBox="0 0 620 420" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="var(--arrow)" />
+            </marker>
+          </defs>
+          <path d="M 150,70  C 220,110 260,150 292,182" />
+          <path d="M 470,70  C 400,110 372,150 350,175" />
+          <path d="M 150,350 C 220,310 260,270 292,240" />
+          <path d="M 470,350 C 400,310 372,270 350,240" />
+        </svg>
+
+        <p class="callout c-tl">
+          <b>Radius: <code>radius-sm</code>, 8px.</b>
+          Same token as inputs and chips — reads as one family of
+          interactive elements, not a size picked for buttons alone.
+        </p>
+        <p class="callout c-tr">
+          <b>Padding: 24px / 12px.</b>
+          Horizontal is exactly 2× vertical (rule 22) — never tuned
+          per component.
+        </p>
+        <button class="btn-primary" type="button">Log meal</button>
+        <p class="callout c-bl">
+          <b>Label: 16px, <code>body</code>.</b>
+          A button is read, not decorative chrome, so it never drops
+          below the 16px floor.
+        </p>
+        <p class="callout c-br">
+          <b>Fill only, no shadow.</b>
+          Dark surfaces never carry a shadow — weight comes from the
+          accent fill itself.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Variants</h2>
+    <div class="variants">
+      <div class="variant">
+        <span class="label">Secondary</span>
+        <button class="btn-ghost" type="button">Add item</button>
+      </div>
+      <div class="variant">
+        <span class="label">Disabled</span>
+        <button class="btn-disabled" type="button" disabled>Log meal</button>
+      </div>
+    </div>
+    <p style="font-size:14px;color:var(--text-muted);margin-top:var(--sp-2)">
+      Fill vs. border-only is the only weight distinction — never two
+      filled buttons on one screen, so <code style="font-family:var(--mono)">Log meal</code>
+      (primary action) and <code style="font-family:var(--mono)">Add item</code>
+      (secondary) read as different weight at a glance.
+    </p>
+    <div class="flag">
+      <span>✓</span>
+      <span><b>Fixed:</b> label is now <code style="font-family:var(--mono)">on-fill</code>
+      (<code style="font-family:var(--mono)">#211d1b</code>, dark), not
+      near-white — near-white measured ≈3.2:1 on this fill, below the 4.5:1
+      body-text target (true for every semantic fill, not just accent: all
+      four cluster in the same mid-light band). Dark text passes 5.8–9.7:1
+      on all four; it's a closed rule, not a per-color pick. <code style="font-family:var(--mono)">on-fill</code>
+      is distinct from the near-white used on dark scrim overlays — see
+      <code style="font-family:var(--mono)">tokens.md</code>.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spec table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Property</th><th>Value</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>Corner radius</td><td><span class="val">8px</span></td><td>shared with inputs/chips</td></tr>
+          <tr><td>Padding</td><td><span class="val">12px 24px</span></td><td>rule 22 — 2× ratio</td></tr>
+          <tr><td>Label size</td><td><span class="val">16px</span></td><td>rule 20 — body floor</td></tr>
+          <tr><td>Depth</td><td><span class="val">fill / border only</span></td><td>shadow policy</td></tr>
+          <tr><td>Primary fill</td><td><span class="val">accent #b8862e</span></td><td>tokens.md</td></tr>
+          <tr><td>Primary label</td><td><span class="val">on-fill #211d1b</span></td><td>4.5:1+ on all 4 fills</td></tr>
+          <tr><td>Secondary</td><td><span class="val">surface-1 + 1px border</span></td><td>tokens.md</td></tr>
+          <tr><td>Disabled</td><td><span class="val">opacity 0.5</span></td><td>no separate muted token</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Content is real: <strong>Log meal</strong> / <strong>Add item</strong> are
+    diet-guard's <code style="font-family:var(--mono)">meal_builder_screen.dart</code>
+    buttons — the exact pair flagged earlier as indistinguishable in weight.
+    If this format works, say go and the rest get written the same way.
+  </footer>
+</div>
+
+</body>
+</html>

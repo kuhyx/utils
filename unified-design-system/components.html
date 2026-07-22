@@ -1,0 +1,483 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Components — unified-design-system</title>
+<style>
+  :root {
+    --ink: #211d1b; --ink-r1: #2b2624; --ink-r2: #38312e;
+    --line-dark: #463e3a; --text-dark: #eceae9; --muted-dark: #aaa09a;
+
+    --paper: #f6f4f3; --paper-r: #fcfbfb;
+    --line-light: #e0dad7; --text-light: #211d1b; --muted-light: #70625b;
+
+    --accent: #b8862e; --success: #8a9a3c; --warning: #e0a63c; --danger: #e2585f;
+    --on-fill: #211d1b; --on-scrim: #eceae9;
+
+    --bg: var(--paper); --surface-1: var(--paper-r); --surface-2: var(--paper-r);
+    --border: var(--line-light); --text: var(--text-light); --text-muted: var(--muted-light);
+
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --sp-6: 48px;
+
+    --sans: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", monospace;
+
+    --arrow: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: var(--ink); --surface-1: var(--ink-r1); --surface-2: var(--ink-r2);
+      --border: var(--line-dark); --text: var(--text-dark); --text-muted: var(--muted-dark);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--ink); --surface-1: var(--ink-r1); --surface-2: var(--ink-r2);
+    --border: var(--line-dark); --text: var(--text-dark); --text-muted: var(--muted-dark);
+  }
+  :root[data-theme="light"] {
+    --bg: var(--paper); --surface-1: var(--paper-r); --surface-2: var(--paper-r);
+    --border: var(--line-light); --text: var(--text-light); --text-muted: var(--muted-light);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 16px; line-height: 1.5;
+  }
+  .page { max-width: 42rem; margin: 0 auto; padding: var(--sp-6) var(--sp-4) var(--sp-6); }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 var(--sp-2);
+  }
+  .eyebrow::before {
+    content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--accent);
+    flex: none;
+  }
+  h1 {
+    font-size: 32px; letter-spacing: -0.2px; text-wrap: balance;
+    margin: 0 0 var(--sp-1); font-weight: 650;
+  }
+  .dek { color: var(--text-muted); margin: 0 0 var(--sp-4); max-width: 36rem; }
+
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2);
+    margin: 0 0 var(--sp-6); padding: var(--sp-3);
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  nav.toc a {
+    font-size: 13px; color: var(--text-muted); text-decoration: none;
+    padding: 4px var(--sp-2); border-radius: var(--radius-sm);
+    font-family: var(--mono);
+  }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--text); background: var(--surface-2); outline: none; }
+  nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .component { scroll-margin-top: var(--sp-4); }
+  .component + .component { margin-top: var(--sp-6); padding-top: var(--sp-5); border-top: 1px solid var(--border); }
+
+  h2 {
+    display: flex; align-items: baseline; gap: var(--sp-2);
+    font-size: 20px; margin: 0 0 var(--sp-1); font-weight: 600;
+  }
+  h2 .n { font-family: var(--mono); font-size: 13px; color: var(--text-muted); font-weight: 400; }
+  .status {
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 999px; font-weight: 600;
+  }
+  .status.live { color: var(--success); background: color-mix(in srgb, var(--success) 16%, transparent); }
+  .status.spec { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+  .from { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--sp-3); font-family: var(--mono); }
+
+  section.body { margin-top: var(--sp-3); }
+  section.body + section.body { margin-top: var(--sp-4); }
+
+  /* ---- annotated diagram ---- */
+  .diagram-wrap { overflow-x: auto; }
+  .diagram { position: relative; min-width: 560px; margin: var(--sp-3) 0; }
+  .diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .diagram svg path { fill: none; stroke: var(--arrow); stroke-width: 1.5; marker-end: url(#arrowhead); }
+  .diagram svg path.danger-arrow { stroke: var(--danger); }
+
+  .callout { position: absolute; width: 190px; font-size: 13.5px; color: var(--text-muted); }
+  .callout b { color: var(--text); font-weight: 600; }
+  .callout code { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .callout.bad code { color: var(--danger); }
+  .c-tl { left: 0; top: 0; } .c-tr { right: 0; top: 0; text-align: right; }
+  .c-bl { left: 0; bottom: 0; } .c-br { right: 0; bottom: 0; text-align: right; }
+  .c-ml { left: 0; top: 50%; transform: translateY(-50%); }
+  .c-mr { right: 0; top: 50%; transform: translateY(-50%); text-align: right; }
+
+  .stage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+
+  /* ---- shared control styles ---- */
+  button { font: inherit; }
+  .btn-primary {
+    background: var(--accent); color: var(--on-fill); border: none;
+    border-radius: var(--radius-sm); padding: 12px 24px; font-size: 16px; cursor: default;
+  }
+  .btn-ghost {
+    background: var(--surface-1); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 24px; font-size: 16px;
+  }
+  .btn-disabled { background: var(--accent); color: var(--on-fill); opacity: 0.5; border: none; border-radius: var(--radius-sm); padding: 12px 24px; font-size: 16px; }
+
+  .variants { display: flex; gap: var(--sp-4); align-items: flex-start; flex-wrap: wrap; margin: var(--sp-3) 0 var(--sp-2); }
+  .variant { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; }
+  .variant .label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+
+  .flag {
+    display: flex; gap: var(--sp-2); align-items: flex-start;
+    border-radius: var(--radius-sm); padding: var(--sp-3); font-size: 14px; margin-top: var(--sp-3);
+  }
+  .flag.ok { background: color-mix(in srgb, var(--success) 12%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--success) 40%, var(--border)); }
+  .flag.warn { background: color-mix(in srgb, var(--warning) 12%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border)); }
+  .flag.bad { background: color-mix(in srgb, var(--danger) 12%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border)); }
+  .flag b { color: var(--text); }
+  .flag code { font-family: var(--mono); font-size: 12.5px; }
+
+  p.note { font-size: 14px; color: var(--text-muted); margin: var(--sp-2) 0 0; }
+  p.note code { font-family: var(--mono); font-size: 13px; color: var(--text); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 6px var(--sp-2); border-bottom: 1px solid var(--border); }
+  th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  td .val { font-family: var(--mono); font-size: 12.5px; }
+  .table-wrap { overflow-x: auto; margin-top: var(--sp-2); }
+
+  footer { margin-top: var(--sp-6); padding-top: var(--sp-4); border-top: 1px solid var(--border); font-size: 14px; color: var(--text-muted); }
+  footer strong { color: var(--text); }
+  footer code { font-family: var(--mono); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <p class="eyebrow">unified-design-system · component spec</p>
+  <h1>Components</h1>
+  <p class="dek">
+    One decision, one sentence of why, per component — grounded in real
+    screens (diet-guard, dufs-cloud, screen-locker), not invented examples.
+    Where a component isn't built yet, that's stated rather than faked.
+  </p>
+
+  <nav class="toc" aria-label="Components">
+    <a href="#button">button</a><a href="#card">card</a><a href="#input">input</a>
+    <a href="#chip">chip</a><a href="#dialog">dialog</a><a href="#switch">switch</a>
+    <a href="#divider">divider</a><a href="#checkbox">checkbox</a><a href="#snackbar">snackbar</a>
+  </nav>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 Z" fill="var(--arrow)" />
+      </marker>
+    </defs>
+  </svg>
+
+  <!-- ============ BUTTON ============ -->
+  <article class="component" id="button">
+    <h2>Button <span class="n">01</span> <span class="status live">live</span></h2>
+    <p class="from">diet-guard/app/lib/screens/meal_builder_screen.dart</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:380px">
+          <svg viewBox="0 0 560 380" preserveAspectRatio="none">
+            <path d="M 130,60  C 200,100 240,140 272,172" />
+            <path d="M 430,60  C 360,100 332,140 310,165" />
+            <path d="M 130,320 C 200,280 240,240 272,220" />
+            <path d="M 430,320 C 360,280 332,240 310,220" />
+          </svg>
+          <p class="callout c-tl"><b>Radius: <code>radius-sm</code>, 8px.</b> Same token as inputs and chips — one family of interactive elements, not a size picked for buttons alone.</p>
+          <p class="callout c-tr"><b>Padding: 24px / 12px.</b> Horizontal is exactly 2× vertical (rule 22) — never tuned per component.</p>
+          <button class="btn-primary stage" type="button">Log meal</button>
+          <p class="callout c-bl"><b>Label: 16px, <code>body</code>.</b> A button is read, not decorative chrome — never below the 16px floor.</p>
+          <p class="callout c-br"><b>Fill only, no shadow.</b> Dark surfaces never carry a shadow — weight comes from the fill itself.</p>
+        </div>
+      </div>
+
+      <div class="variants">
+        <div class="variant"><span class="label">Secondary</span><button class="btn-ghost" type="button">Add item</button></div>
+        <div class="variant"><span class="label">Disabled</span><button class="btn-disabled" type="button" disabled>Log meal</button></div>
+      </div>
+      <p class="note">Fill vs. border-only is the only weight distinction — never two filled buttons on one screen, so <code>Log meal</code> (primary) and <code>Add item</code> (secondary) read as different weight at a glance.</p>
+
+      <div class="flag ok">
+        <span>✓</span>
+        <span><b>Fixed this session:</b> label is <code>on-fill</code> (<code>#211d1b</code>, dark), not near-white — near-white measured ≈3.2:1 on this fill, below the 4.5:1 floor. Dark text passes 5.8–9.7:1 on all four semantic fills; it's a closed rule, not a per-color pick.</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Value</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Radius</td><td><span class="val">8px</span></td><td>shared with inputs/chips</td></tr>
+            <tr><td>Padding</td><td><span class="val">12px 24px</span></td><td>rule 22 — 2× ratio</td></tr>
+            <tr><td>Label</td><td><span class="val">16px on-fill</span></td><td>rule 20 floor + on-fill</td></tr>
+            <tr><td>Depth</td><td><span class="val">fill / border only</span></td><td>shadow policy</td></tr>
+            <tr><td>Disabled</td><td><span class="val">opacity 0.5</span></td><td>no separate muted token</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+
+  <!-- ============ CARD ============ -->
+  <article class="component" id="card">
+    <h2>Card <span class="n">02</span> <span class="status live">live</span></h2>
+    <p class="from">diet-guard/app/lib/widgets/day_status_calendar.dart</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:300px">
+          <svg viewBox="0 0 560 300" preserveAspectRatio="none">
+            <path d="M 110,50  C 170,90 200,110 226,128" />
+            <path d="M 450,50  C 390,90 360,110 334,128" />
+            <path d="M 110,250 C 170,210 200,190 226,175" />
+            <path d="M 450,250 C 390,210 360,190 334,175" />
+          </svg>
+          <div class="stage" style="width:280px;height:150px;background:var(--surface-1);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;">
+            <div style="width:28px;height:28px;border-radius:6px;background:var(--surface-2);"></div>
+            <div style="width:28px;height:28px;border-radius:6px;background:var(--success);color:var(--on-fill);display:grid;place-items:center;font-size:11px;font-family:var(--mono)">✓</div>
+            <div style="width:28px;height:28px;border-radius:6px;background:var(--danger);color:var(--on-fill);display:grid;place-items:center;font-size:11px;font-family:var(--mono)">!</div>
+          </div>
+          <p class="callout c-tl"><b>Radius: <code>radius-md</code>, 12px.</b> One step up from a button's 8px — a card contains interactive elements, so it must read as a larger unit than they are.</p>
+          <p class="callout c-tr"><b>Elevation: fill step, not shadow.</b> <code>surface-1</code> against the page background — dark surfaces never use a shadow for depth.</p>
+          <p class="callout c-bl"><b>Nested radius: 6px.</b> Rule 24 — inner cell radius = outer (12px) − the gap to its edge (≈6px), not a reused constant.</p>
+          <p class="callout c-br"><b>Status cells use <code>on-fill</code>.</b> The ✓/! cells sit directly on <code>success</code>/<code>danger</code> — this is the one place in the app that already got the on-fill rule right.</p>
+        </div>
+      </div>
+      <p class="note">The status colors sit at mid brightness, so <code>ink</code> gives strong on-palette contrast — this is the real code comment in <code>day_status_calendar.dart</code>, written before today's <code>on-fill</code> token existed to name the pattern.</p>
+    </section>
+  </article>
+
+  <!-- ============ INPUT ============ -->
+  <article class="component" id="input">
+    <h2>Input <span class="n">03</span> <span class="status live">live</span></h2>
+    <p class="from">diet-guard/app/lib/widgets/macro_input_row.dart · screen-locker/_ui_widgets.py</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:220px">
+          <svg viewBox="0 0 560 220" preserveAspectRatio="none">
+            <path class="danger-arrow" d="M 120,40 C 180,70 220,90 252,105" />
+            <path class="danger-arrow" d="M 440,40 C 380,70 340,90 308,105" />
+          </svg>
+          <div class="stage" style="width:260px;">
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Protein (g)</label>
+            <div style="height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-1);"></div>
+          </div>
+          <p class="callout c-tl bad"><b>Not yet themed.</b> No <code>InputDecorationTheme</code> is set in <code>theme.dart</code> — every <code>TextField</code> renders M3's default indigo focus color, off-palette.</p>
+          <p class="callout c-tr bad"><b>Tkinter side too.</b> <code>gatelock</code>'s <code>tk.Entry</code> sets <code>bg</code>/<code>fg</code> but no <code>relief</code>/<code>bd</code> — Tk's default sunken bevel border, not the flat <code>line-dark</code> outline.</p>
+        </div>
+      </div>
+      <div class="flag bad">
+        <span>⚠</span>
+        <span><b>Open finding, not fixed:</b> the input shown above is the <em>target</em> spec (radius-sm, flat 1px border, no bevel) — the actual rendered app still falls back to each toolkit's own default. Queued with the pilot-code palette migration, same class of bug as the Chip finding below.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Value</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Radius</td><td><span class="val">8px</span></td><td>shared with buttons/chips</td></tr>
+            <tr><td>Border</td><td><span class="val">1px line-dark</span></td><td>flat, no bevel</td></tr>
+            <tr><td>Label</td><td><span class="val">12px caption</span></td><td>chrome, not read content</td></tr>
+            <tr><td>Fill on focus</td><td><span class="val">surface-1 → surface-2</span></td><td>fill step, not a shadow/glow</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+
+  <!-- ============ CHIP ============ -->
+  <article class="component" id="chip">
+    <h2>Chip <span class="n">04</span> <span class="status live">live</span></h2>
+    <p class="from">diet-guard/app/lib/widgets/slot_selector_row.dart</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:260px">
+          <svg viewBox="0 0 560 260" preserveAspectRatio="none">
+            <path d="M 100,40 C 140,70 160,90 182,108" />
+            <path class="danger-arrow" d="M 460,40 C 420,70 400,90 378,108" />
+          </svg>
+          <div class="stage" style="display:flex;gap:14px;align-items:center;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:color-mix(in srgb, var(--success) 15%, transparent);border:1px solid color-mix(in srgb, var(--success) 40%, transparent);color:var(--success);font-size:14px;">
+              <span style="opacity:.72">✓</span>9am
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:transparent;border:1px solid #fff;color:var(--text);font-size:14px;">
+              🍎 Snack
+            </span>
+          </div>
+          <p class="callout c-tl"><b>Fill/border at 15%/40% alpha of the status color.</b> Not a fixed chip palette — <code>logged</code>/<code>due</code>/<code>upcoming</code> reuse <code>success</code>/<code>danger</code>/<code>muted</code>, so a chip's meaning matches the calendar's.</p>
+          <p class="callout c-br bad"><b>Bug, still open:</b> the <code>Snack</code> chip sets no <code>backgroundColor</code>/<code>side</code> at all, so it falls through to Flutter's own default — a literal pure-white <code>#FFFFFF</code> border, the one banned value in the whole system.</p>
+        </div>
+      </div>
+      <p class="note">The hour chips (left) do this correctly: icon at 72% opacity of the status color (rule 28), selected border 2px vs. unselected 1px at 40% alpha. <code>Snack</code> just needs the same three properties applied — not a new pattern, a missed one.</p>
+    </section>
+  </article>
+
+  <!-- ============ DIALOG ============ -->
+  <article class="component" id="dialog">
+    <h2>Dialog <span class="n">05</span> <span class="status live">live</span></h2>
+    <p class="from">dufs-cloud/web/src/index.css · screen-locker/_manual_workout_dialog.py</p>
+
+    <section class="body">
+      <div class="variants">
+        <div class="variant">
+          <span class="label">Web (floating over content)</span>
+          <div style="width:220px;padding:18px;border-radius:var(--radius-md);background:var(--surface-1);border:1px solid var(--border);box-shadow:0 4px 8px rgba(33,29,27,0.16);">
+            <div style="font-size:14px;margin-bottom:10px;">Delete 3 files?</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <span style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);font-size:13px;">Cancel</span>
+              <span style="padding:6px 12px;border-radius:6px;background:var(--danger);color:var(--on-fill);font-size:13px;">Delete</span>
+            </div>
+          </div>
+        </div>
+        <div class="variant">
+          <span class="label">Tkinter (the whole screen)</span>
+          <div style="width:220px;padding:18px;border-radius:var(--radius-md);background:var(--ink);border:1px solid var(--line-dark);">
+            <div style="font-size:14px;margin-bottom:10px;color:var(--text-dark)">Log Manual Workout</div>
+            <span style="padding:6px 12px;border-radius:6px;background:var(--accent);color:var(--on-fill);font-size:13px;">SUBMIT</span>
+          </div>
+        </div>
+      </div>
+      <p class="note">Same radius (<code>radius-md</code>), different depth technique, and that's <em>correct</em>, not inconsistent: the web dialog floats over other content (shadow allowed, per policy), the screen-locker dialog fills the entire lock screen — there's nothing behind it to cast a shadow onto, so it's fill/border only, same as every other dark surface.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Value</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Radius</td><td><span class="val">12px</span></td><td>radius-md, one step above buttons</td></tr>
+            <tr><td>Web shadow</td><td><span class="val">0 4px 8px rgba(ink,.16)</span></td><td>level 2 — bigger than a dropdown's level 1</td></tr>
+            <tr><td>Actions</td><td><span class="val">right-aligned, 8px gap</span></td><td>space-2 on the spacing scale</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+
+  <!-- ============ SWITCH ============ -->
+  <article class="component" id="switch">
+    <h2>Switch <span class="n">06</span> <span class="status spec">spec only</span></h2>
+    <p class="from">no live usage yet — locking the values in before the first one gets built</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:180px">
+          <svg viewBox="0 0 560 180" preserveAspectRatio="none">
+            <path d="M 110,30 C 170,55 200,70 226,84" />
+            <path d="M 450,30 C 390,55 360,70 334,84" />
+          </svg>
+          <div class="stage" style="display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:26px;border-radius:999px;background:var(--accent);position:relative;">
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--on-fill);position:absolute;top:3px;right:3px;"></div>
+            </div>
+          </div>
+          <p class="callout c-tl"><b>Track = accent, thumb = on-fill.</b> Same fill/on-fill pairing as a button — a switch is a tiny filled control, not a new color relationship to invent.</p>
+          <p class="callout c-tr"><b>Fully rounded track.</b> The one place in this system a pill shape is correct: an on/off track has no other elements to stay visually consistent with, unlike a button.</p>
+        </div>
+      </div>
+      <p class="note">Off state: track becomes <code>surface-2</code>, thumb becomes <code>muted</code> — a fill-step change, matching how every other "inactive" state in this system works (never a separate grey palette).</p>
+    </section>
+  </article>
+
+  <!-- ============ DIVIDER ============ -->
+  <article class="component" id="divider">
+    <h2>Divider <span class="n">07</span> <span class="status live">live</span></h2>
+    <p class="from">diet-guard/app/lib/screens/settings_screen.dart · dufs-cloud/web/src/index.css</p>
+
+    <section class="body">
+      <div class="variants">
+        <div class="variant">
+          <span class="label">dufs-cloud (correct)</span>
+          <div style="width:220px;padding-bottom:10px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-muted)">.topbar</div>
+        </div>
+        <div class="variant">
+          <span class="label">diet-guard (open finding)</span>
+          <div style="width:220px;padding-bottom:10px;border-bottom:1px solid #fff;font-size:13px;color:var(--text-muted)"><code style="font-family:var(--mono)">const Divider()</code></div>
+        </div>
+      </div>
+      <div class="flag bad">
+        <span>⚠</span>
+        <span><b>Open finding, not fixed:</b> <code>settings_screen.dart</code> uses <code>const Divider()</code> with no <code>dividerTheme</code> set app-wide — same missing-theme pattern as Input above, this time landing on Material's default grey rather than <code>line-dark</code>.</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Value</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Weight</td><td><span class="val">1px</span></td><td>hairline — never a filled bar</td></tr>
+            <tr><td>Color</td><td><span class="val">line-dark / line-light</span></td><td>same border token as cards/inputs</td></tr>
+            <tr><td>Spacing</td><td><span class="val">space-3 (16px) each side</span></td><td>never touches adjacent text</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+
+  <!-- ============ CHECKBOX ============ -->
+  <article class="component" id="checkbox">
+    <h2>Checkbox <span class="n">08</span> <span class="status live">live</span></h2>
+    <p class="from">dufs-cloud/web/src/index.css — <code>.tile-select</code></p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:180px">
+          <svg viewBox="0 0 560 180" preserveAspectRatio="none">
+            <path d="M 120,30 C 170,55 200,70 224,84" />
+            <path class="danger-arrow" d="M 440,30 C 390,55 360,70 336,84" />
+          </svg>
+          <div class="stage" style="width:32px;height:32px;border-radius:var(--radius-sm);background:rgba(33,29,27,0.45);display:grid;place-items:center;">
+            <input type="checkbox" checked style="margin:0;" />
+          </div>
+          <p class="callout c-tl"><b>Chip sits on a scrim, not a fill.</b> <code>rgba(ink,0.45)</code> over a photo thumbnail — this is <code>on-scrim</code> territory, not <code>on-fill</code>, since the thumbnail behind it varies.</p>
+          <p class="callout c-tr bad"><b>Open finding:</b> the checkbox itself is an unstyled native <code>&lt;input type="checkbox"&gt;</code> — its checked-state color is the browser's default blue, off-palette. No custom checkbox styling exists yet.</p>
+        </div>
+      </div>
+      <p class="note">The 8px-radius scrim chip behind it is deliberately correct (matches <code>radius-sm</code>, dark translucent per the scrim rule) — only the checkbox glyph inside it is unstyled.</p>
+    </section>
+  </article>
+
+  <!-- ============ SNACKBAR ============ -->
+  <article class="component" id="snackbar">
+    <h2>Snack bar / toast <span class="n">09</span> <span class="status spec">spec only</span></h2>
+    <p class="from">no live usage yet — no repo has a toast/snackbar today</p>
+
+    <section class="body">
+      <div class="diagram-wrap">
+        <div class="diagram" style="height:200px">
+          <svg viewBox="0 0 560 200" preserveAspectRatio="none">
+            <path d="M 100,30 C 160,55 190,75 220,95" />
+            <path d="M 460,30 C 400,55 370,75 340,95" />
+          </svg>
+          <div class="stage" style="width:280px;padding:14px 16px;border-radius:var(--radius-md);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span style="font-size:14px;">Upload failed — connection lost</span>
+            <span style="font-size:13px;color:var(--accent);white-space:nowrap;">Retry</span>
+          </div>
+          <p class="callout c-tl"><b>Never <code>danger</code>-filled.</b> A toast is transient chrome, not a status cell — <code>surface-2</code> + <code>danger</code>-colored icon/text reads as urgent without becoming a full alert box.</p>
+          <p class="callout c-tr"><b>One action max.</b> <code>Retry</code> here, styled as text, not a button — a toast disappears on its own; a second filled button would compete with the page's real primary action.</p>
+        </div>
+      </div>
+      <p class="note">Copy above is realistic (a dufs-cloud upload failure), not a placeholder — written to spec the tone (states what broke, offers the one useful next step) alongside the visual values.</p>
+    </section>
+  </article>
+
+  <footer>
+    9 of 9 components from the original punch list. <strong>Live</strong> means
+    grounded in a real screen — several of those also carry an open finding
+    (Input, Chip, Divider, Checkbox) that this doc surfaced but didn't
+    silently fix. <strong>Spec only</strong> (Switch, Snack bar) means no
+    usage exists yet; values are derived from the closed token rules, not
+    guessed. Next: apply the frozen warm palette + <code>on-fill</code>/<code>on-scrim</code>
+    split to the 3 pilots, then work the open findings above.
+  </footer>
+</div>
+
+</body>
+</html>
