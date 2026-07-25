@@ -1,9 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "gatelock"
-version = "0.1.1"
-description = "Shared fullscreen lock-window + HMAC log-integrity backend for blocking-overlay apps"
+version = "0.2.0"
+description = "Shared per-output lock-window + HMAC log-integrity backend for blocking-overlay apps"
 requires-python = ">=3.10"
 dependencies = []  # pure stdlib — tkinter is bundled with Python
+
+[project.optional-dependencies]
+# python-xlib buys instant RandR change events. Without it the lock still
+# detects output changes via Tk <Configure> and xrandr polling, just less
+# promptly — so this must stay OPTIONAL: a locker that refuses to start
+# because a dependency is missing is itself a way to end up unlocked.
+# Consumers' install scripts install it unconditionally all the same.
+randr = ["python-xlib>=0.33"]
+
+[tool.setuptools.packages.find]
+include = ["gatelock*"]
 
 [tool.ruff]
 target-version = "py310"
@@ -18,6 +33,12 @@ ignore = [
     "COM812",
     "ISC001",
     "S603",
+    # Optional dependencies (python-xlib) are imported inside functions on
+    # purpose. A module-scope try/except ImportError resolves at import time,
+    # which makes the except arm permanently unreachable for branch coverage --
+    # and that arm is the degradation path we must keep tested. Per-line
+    # suppressions are banned here, so the rule is disabled repo-wide.
+    "PLC0415",
 ]
 fixable = ["ALL"]
 unfixable = []

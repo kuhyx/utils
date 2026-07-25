@@ -58,8 +58,14 @@ class TestSetup:
             window.setup()
 
         mock_root.overrideredirect.assert_called_once_with(boolean=True)
-        mock_root.attributes.assert_any_call(fullscreen=True)
-        mock_root.attributes.assert_any_call(topmost=True)
+        # No attributes(fullscreen=True): that is an EWMH request an
+        # override-redirect window is invisible to, and where it does apply it
+        # snaps to one monitor or the whole bounding box. Per-output surfaces
+        # use explicit geometry instead.
+        assert not any(
+            call.kwargs.get("fullscreen") or "-fullscreen" in call.args
+            for call in mock_root.attributes.call_args_list
+        )
         mock_disable.assert_called_once()
         assert window._vt_disabled is True
 
@@ -84,7 +90,11 @@ class TestSetup:
 
         window.setup()
 
-        mock_root.configure.assert_called_once_with(bg="#000000", cursor="arrow")
+        # Soft mode with no grab needs no backdrop, so the root is left to the
+        # window manager and only the surfaces carry the colour.
+        assert window.surfaces.infos()
+        topmost_on = True
+        mock_root.attributes.assert_any_call("-topmost", topmost_on)
 
 
 class TestGrabInput:
@@ -100,7 +110,7 @@ class TestGrabInput:
             window.grab_input()
 
         mock_acquire.assert_called_once_with(attempt=1)
-        mock_root.after.assert_called_once_with(100, window._notify_focus_ready)
+        mock_root.after.assert_any_call(100, window._notify_focus_ready)
 
     def test_local_grab_calls_grab_set(self, mock_root: MagicMock) -> None:
         """grab="local" calls grab_set directly, no retry logic."""
@@ -144,7 +154,7 @@ class TestAcquireGlobalGrab:
 
         mock_root.grab_set_global.assert_called_once_with()
         mock_root.focus_force.assert_called_once_with()
-        hooks.on_focus_ready.assert_called_once_with()
+        hooks.on_focus_ready.assert_called_once_with(None)
 
     def test_success_swallows_tclerror_from_focus(self, mock_root: MagicMock) -> None:
         """A TclError while focusing after a successful grab is swallowed."""
@@ -248,7 +258,7 @@ class TestNotifyFocusReady:
 
         window._notify_focus_ready()
 
-        hooks.on_focus_ready.assert_called_once_with()
+        hooks.on_focus_ready.assert_called_once_with(None)
 
     def test_swallows_tclerror_from_hook(self, mock_root: MagicMock) -> None:
         """A TclError raised by the hook (widget already destroyed) is swallowed."""
