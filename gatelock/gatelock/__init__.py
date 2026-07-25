@@ -18,6 +18,12 @@ from gatelock._arbiter import (
     grab_strength,
 )
 from gatelock._detect import OutputChangeDetector
+from gatelock._escape import (
+    EscapeDraft,
+    EscapeHistory,
+    EscapePolicy,
+    EscapeTracker,
+)
 from gatelock._guards import assert_not_under_pytest, wait_for_x_server
 from gatelock._outputs import (
     Output,
@@ -48,6 +54,10 @@ __all__ = [
     "Arbiter",
     "ArbiterVerdict",
     "Claim",
+    "EscapeDraft",
+    "EscapeHistory",
+    "EscapePolicy",
+    "EscapeTracker",
     "GateRoot",
     "LockConfig",
     "LockWindow",
