@@ -133,7 +133,7 @@ class TestParseXrandrQuery:
         assert output.rect is None
 
     def test_garbage_and_empty(self) -> None:
-        """Unparseable input yields no outputs rather than raising."""
+        """Unparsable input yields no outputs rather than raising."""
         assert parse_xrandr_query(XRANDR_GARBAGE) == ()
         assert parse_xrandr_query("") == ()
 

@@ -1,0 +1,17 @@
+# Python build/test artifacts, across every subproject in this monorepo.
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Coverage output. Each subproject writes these next to its own pyproject.toml,
+# and a run from the repo root drops a pair here too.
+.coverage
+.coverage.*
+coverage.lcov
+htmlcov/

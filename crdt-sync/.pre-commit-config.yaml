@@ -3,6 +3,14 @@
 # Run:      pre-commit run --all-files
 # Update:   pre-commit autoupdate
 
+# NOTE: this subproject lives inside the ~/utils monorepo, whose git root is
+# one level up. pre-commit always runs hooks from the git root, so every path
+# below is written relative to THAT, not to this directory, and the top-level
+# `files` key keeps these hooks off the sibling subprojects. CI invokes this
+# config exactly the same way:
+#   pre-commit run --config crdt-sync/.pre-commit-config.yaml --all-files
+files: ^crdt-sync/
+
 default_language_version:
   python: python3
 default_stages: [pre-commit]
@@ -32,6 +40,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: subproject-scope
+        name: subproject scope regex still matches
+        entry: scripts/check_subproject_scope.sh crdt-sync
+        language: script
+        # always_run so the top-level `files` filter cannot skip the one hook
+        # whose job is to notice that filter has stopped matching anything.
+        always_run: true
+        pass_filenames: false
       - id: no-noqa
         name: Block noqa comments
         entry: '(?i)#\s*(noqa|type:\s*ignore)'
@@ -86,7 +102,7 @@ repos:
     hooks:
       - id: pylint
         args:
-          - --rcfile=pyproject.toml
+          - --rcfile=crdt-sync/pyproject.toml
           - --fail-under=8.0
           - --jobs=4
         additional_dependencies:
@@ -94,24 +110,24 @@ repos:
           - requests
 
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.10
+    rev: 1.9.4
     hooks:
       - id: bandit
         args:
           - -c
-          - pyproject.toml
+          - crdt-sync/pyproject.toml
           - --severity-level=high
           - --confidence-level=medium
           - --skip=B113
         additional_dependencies: ["bandit[toml]"]
-        exclude: ^(tests/|.*test.*\.py$)
+        exclude: ^(crdt-sync/crdt_sync/tests/|.*test.*\.py$)
 
   - repo: local
     hooks:
       - id: pytest-coverage
         name: pytest with coverage enforcement
-        entry: python -m pytest
-        language: system
+        entry: scripts/run_subproject_tests.sh crdt-sync
+        language: script
         types: [python]
         pass_filenames: false
         require_serial: true

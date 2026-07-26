@@ -90,6 +90,7 @@ class RecoveryLoop:
         self._ticks = 0
         self._drain_job: str | None = None
         self._verify_job: str | None = None
+        self._last_grab_warning: str | None = None
 
     @property
     def ticks(self) -> int:
@@ -126,15 +127,32 @@ class RecoveryLoop:
 
     def _drain(self) -> None:
         """Run a full tick only if a push signal arrived. Cheap otherwise."""
-        if self._detector.take_pending():
-            _logger.debug("output-change signal received; re-asserting the lock")
-            self.tick()
-        self._schedule_drain()
+        try:
+            if self._detector.take_pending():
+                _logger.debug("output-change signal received; re-asserting the lock")
+                self.tick()
+        # Same fail-open reasoning as _verify.
+        except Exception:
+            _logger.exception("drain tick raised; the lock loop keeps running")
+        finally:
+            self._schedule_drain()
 
     def _verify(self) -> None:
-        """Run a full tick unconditionally."""
-        self.tick()
-        self._schedule_verify()
+        """Run a full tick unconditionally.
+
+        The reschedule is in ``finally`` because it is the only thing keeping
+        the loop alive: a Tk ``after`` callback that raises just logs and
+        returns, so scheduling *after* ``tick()`` meant one unexpected
+        exception silently ended all re-assertion of coverage, grab and VT for
+        the rest of the lock. Fail-open is the one outcome this module exists
+        to prevent, so a broken tick must still leave the next one queued.
+        """
+        try:
+            self.tick()
+        except Exception:
+            _logger.exception("verify tick raised; the lock loop keeps running")
+        finally:
+            self._schedule_verify()
 
     def tick(self) -> RecoveryReport:
         """Re-assert coverage, placement, grab and VT. Never weakens any of them.
@@ -198,7 +216,7 @@ class RecoveryLoop:
         """
         if self._config.resolved_grab() != "global":
             return False
-        if self._holds_grab():
+        if self.holds_grab():
             return False
         with contextlib.suppress(tk.TclError):
             self._root.grab_set_global()
@@ -206,13 +224,59 @@ class RecoveryLoop:
             return True
         return False
 
-    def _holds_grab(self) -> bool:
-        """Whether our root still owns the grab."""
+    def holds_grab(self) -> bool:
+        """Whether the grab is held by a window this application owns.
+
+        Deliberately *not* ``grab_current() is self._root``. Our own transient
+        children take the grab for themselves: a posted Tk menu grabs the menu
+        window, and the old identity test read that as "the grab was lost" and
+        called ``grab_set_global()`` a second later, stealing it back off our
+        own widget mid-interaction. That is what made the screen-locker sport
+        selector unusable while locked on 2026-07-26. Any window we own still
+        means the lock has the pointer and keyboard.
+
+        ``grab_current`` resolves the name Tcl gives it against our own widget
+        map, so anything that does not resolve -- a Tcl-created popdown such as
+        a ``ttk.Combobox``'s, or a stale name -- raises ``KeyError`` and is NOT
+        provably ours. That counts as lost and the grab is re-taken: fail
+        closed, because this module exists to keep the lock, and losing a
+        popdown beats believing we hold a grab we do not.
+
+        Known limitation: a second ``tk.Tk()`` in the same process reports its
+        root as ``"."`` too, which is indistinguishable from ours. The old
+        identity test had exactly the same blind spot. ``_heat_skip``'s
+        throwaway root is the only other one in screen-locker, and it is
+        destroyed before the lock window exists.
+
+        Public so an embedder (or a verification harness) can ask the same
+        question the loop asks, rather than re-implementing it and drifting.
+        """
         try:
-            current = self._root.grab_current()
-        except tk.TclError:
+            held = self._root.grab_current() is not None
+        except KeyError as exc:
+            self._warn_once(
+                f"the grab is held by {exc.args[0]!r}, not one of our windows"
+            )
             return False
-        return current is self._root
+        except tk.TclError:
+            self._warn_once("could not read the current grab")
+            return False
+        if held:
+            self._last_grab_warning = None
+        return held
+
+    def _warn_once(self, reason: str) -> None:
+        """Warn about a lost grab, but only when the reason changes.
+
+        These states can persist for the whole lock (a dark display, a popdown
+        that keeps re-grabbing), and this runs once a second -- warning every
+        tick would push a line per second into the journal for as long as it
+        lasts. Silence is not the alternative: the first occurrence and every
+        change of cause are still logged at WARNING.
+        """
+        if reason != self._last_grab_warning:
+            _logger.warning("%s; treating it as lost and re-taking it", reason)
+            self._last_grab_warning = reason
 
     def _reassert_vt(self) -> bool:
         """Periodically re-disable VT switching. Never re-enables it.

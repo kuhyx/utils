@@ -8,6 +8,7 @@ lock never weakens, and per-branch coverage.
 from __future__ import annotations
 
 import ast
+import logging
 from pathlib import Path
 import tkinter as tk
 from unittest.mock import MagicMock, patch
@@ -190,6 +191,57 @@ class TestGrabReassertion:
         mock_root.grab_current.return_value = mock_root
         assert recovery.tick().grab_reasserted is False
 
+    def test_noop_when_our_own_child_holds_the_grab(
+        self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet], mock_root: MagicMock
+    ) -> None:
+        """A posted menu owns the grab; we must not steal it back.
+
+        Regression: the old ``grab_current() is root`` test read a Tk menu's
+        own grab as "lost" and re-grabbed a second later, which made the
+        screen-locker sport selector unusable while locked.
+        """
+        recovery, enumerator, _surfaces = loop
+        enumerator.scan.return_value = BOTH
+        mock_root.grab_current.return_value = MagicMock(name="posted menu")
+        assert recovery.tick().grab_reasserted is False
+        mock_root.grab_set_global.assert_not_called()
+
+    def test_reasserts_when_the_holder_is_not_one_of_our_windows(
+        self,
+        loop: tuple[RecoveryLoop, MagicMock, SurfaceSet],
+        mock_root: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Fail closed: a name we cannot resolve is not provably ours.
+
+        A ``ttk.Combobox`` popdown is a Tcl-created toplevel absent from
+        Tkinter's widget map, so ``nametowidget`` raises ``KeyError``. Keeping
+        the lock beats keeping a banned widget's popdown.
+        """
+        recovery, enumerator, _surfaces = loop
+        enumerator.scan.return_value = BOTH
+        mock_root.grab_current.side_effect = KeyError("!popdown")
+        with caplog.at_level(logging.WARNING):
+            assert recovery.tick().grab_reasserted is True
+        mock_root.grab_set_global.assert_called()
+        assert "not one of our windows" in caplog.text
+
+    def test_a_persistent_lost_grab_warns_once_not_once_per_tick(
+        self,
+        loop: tuple[RecoveryLoop, MagicMock, SurfaceSet],
+        mock_root: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A state that lasts the whole lock must not stream to the journal."""
+        recovery, enumerator, _surfaces = loop
+        enumerator.scan.return_value = BOTH
+        mock_root.grab_current.side_effect = tk.TclError("gone")
+        with caplog.at_level(logging.WARNING):
+            for _ in range(5):
+                recovery.tick()
+        lost = [r for r in caplog.records if "current grab" in r.message]
+        assert len(lost) == 1, f"warned {len(lost)} times over 5 ticks"
+
     def test_tclerror_while_regrabbing_is_swallowed(
         self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet], mock_root: MagicMock
     ) -> None:
@@ -200,7 +252,7 @@ class TestGrabReassertion:
         mock_root.grab_set_global.side_effect = tk.TclError("held")
         assert recovery.tick().grab_reasserted is False
 
-    def test_grab_current_tclerror(
+    def test_grab_query_tclerror(
         self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet], mock_root: MagicMock
     ) -> None:
         """A TclError querying the grab counts as not holding it."""
@@ -285,6 +337,37 @@ class TestScheduling:
         recovery._running = True
         recovery._verify()
         assert recovery.ticks == 1
+
+    def test_verify_reschedules_even_when_the_tick_raises(
+        self,
+        loop: tuple[RecoveryLoop, MagicMock, SurfaceSet],
+        mock_root: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """A broken tick must not end the loop -- that would fail open."""
+        recovery, enumerator, _surfaces = loop
+        enumerator.scan.side_effect = RuntimeError("boom")
+        recovery._running = True
+        with caplog.at_level(logging.ERROR):
+            recovery._verify()
+        mock_root.after.assert_called_once()
+        assert "verify tick raised" in caplog.text
+
+    def test_drain_reschedules_even_when_the_tick_raises(
+        self,
+        loop: tuple[RecoveryLoop, MagicMock, SurfaceSet],
+        mock_root: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Same for the cheap cadence."""
+        recovery, enumerator, _surfaces = loop
+        enumerator.scan.side_effect = RuntimeError("boom")
+        recovery._detector.take_pending.return_value = True
+        recovery._running = True
+        with caplog.at_level(logging.ERROR):
+            recovery._drain()
+        mock_root.after.assert_called_once()
+        assert "drain tick raised" in caplog.text
 
     def test_stop_cancels_and_halts(
         self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet], mock_root: MagicMock
