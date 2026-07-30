@@ -25,6 +25,7 @@ from gatelock._escape import (
     EscapeTracker,
 )
 from gatelock._guards import assert_not_under_pytest, wait_for_x_server
+from gatelock._keyboard import bind_activate, bind_cancel, escape_text_tab_trap
 from gatelock._outputs import (
     Output,
     OutputEnumerator,
@@ -36,6 +37,7 @@ from gatelock._outputs import (
 )
 from gatelock._recovery import RecoveryLoop, RecoveryReport
 from gatelock._root import GateRoot
+from gatelock._scrollable import ScrollableSurface
 from gatelock._surfaces import (
     SurfaceBuilder,
     SurfaceDelta,
@@ -70,14 +72,18 @@ __all__ = [
     "RandrBackend",
     "RecoveryLoop",
     "RecoveryReport",
+    "ScrollableSurface",
     "SurfaceBuilder",
     "SurfaceDelta",
     "SurfaceInfo",
     "SurfaceSet",
     "assert_not_under_pytest",
+    "bind_activate",
+    "bind_cancel",
     "default_runtime_dir",
     "disable_vt_switching",
     "enumerate_outputs",
+    "escape_text_tab_trap",
     "grab_strength",
     "mirror_text_widgets",
     "needs_backdrop_root",

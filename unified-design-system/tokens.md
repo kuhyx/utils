@@ -98,6 +98,26 @@ contexts only.
 Line length (rule 21): prose/paragraph blocks capped at `max-width: 40rem`
 (~640px, ~65–70 characters).
 
+### The sizes above are **pixels**. On Tk that means a negative number.
+
+Tk encodes the unit in the *sign* of the font size: **positive = points,
+negative = pixels**. So `("Arial", 16)` is 16 **points**, not 16 pixels, and
+renders ~37% larger than this scale specifies. Measured:
+
+| Spec | `size=16` (points) | `size=-16` (pixels) |
+| ---- | ------------------ | ------------------- |
+| `linespace` | 26px | 19px |
+| `ascent`    | 21px | 15px |
+
+Always write the negative form in Tk — `font=(family, -16)` for `body`. Passing
+the positive px value straight through inflates every string in the app by a
+third, which is enough on its own to push a 768px-tall layout off-screen (it
+did: it was the root cause of the diet-guard meal gate needing 974px in a 724px
+pane). This is a silent failure — nothing errors, the text is just wrong-sized —
+so it is checked by the gate rather than left to review.
+
+Flutter `fontSize` and CSS `px` are already pixels; no sign convention there.
+
 ## Buttons
 
 Horizontal padding = 2× vertical (rule 22). Canonical: vertical `12px`,
@@ -121,3 +141,85 @@ at the same z-level.
 
 Icons adjacent to text render at ~72% opacity of the text's color, or use the
 `muted` role instead of the full-strength text role — never equal contrast.
+
+## Pointer-free operability (required)
+
+**Every action must be reachable and activatable with the keyboard alone.** No
+mouse, no touchpad, no touch. This is not an accessibility nicety here: several
+of these apps are *lockers* that hold a global input grab with VT switching
+disabled, so a control only a pointer can reach is not an inconvenience — it is
+a bricked machine.
+
+Six things must hold on every surface:
+
+1. **No pointer-only handler.** Any `onTap`/`onLongPress`/`<Button-1>`/click
+   handler needs a keyboard-reachable equivalent on the same action. A bare
+   `GestureDetector` and an `onLongPress`-only destructive action are both
+   defects. Long-press in particular has *no* keyboard analogue — never make it
+   the only path to an action.
+2. **Everything interactive is a focus stop.** Widgets that opt out of the focus
+   ring (`takefocus=0`, which Tk's `Menubutton`/`OptionMenu` default to) are
+   unreachable. Verify by walking the real ring, not by reading the code.
+3. **Focus is visible.** See the focus-ring token below — the platform default
+   is a black ring, which vanishes on `ink`.
+4. **Focus never lands somewhere invisible.** If a container scrolls, focus
+   entering a clipped child must scroll it into view. Clipping does not remove a
+   widget from the focus ring, so this is the default failure, not an edge case.
+5. **Scrolling is keyboard-driven.** A scroll container needs `PageUp`/`PageDown`
+   and arrow keys, not just a draggable thumb and a wheel.
+6. **Confirm/submit and cancel/back have accelerators.** `Enter` submits, `Escape`
+   cancels. On Tk, note `Enter` does **not** activate a `tk.Button` on X11 (only
+   `Space` does) and is bound to nothing on `Entry`/`Spinbox` — you must bind it.
+
+### The focus-ring token
+
+| Token        | Value      | Notes                                        |
+| ------------ | ---------- | -------------------------------------------- |
+| `focus-ring` | `#B8862E` (= `accent`) | 2px, offset 1px. |
+
+Platform defaults are wrong on this palette: Tk ships
+`highlightcolor="#000000"` with `highlightthickness=1`, i.e. a black ring on
+`ink` (`#211D1B`) — invisible. Set `focus-ring` explicitly. Never
+`highlightthickness=0` on something focusable.
+
+⚠️ On Tk, `highlightbackground` is the **unfocused** ring and `highlightcolor`
+is the **focused** one. Setting only `highlightbackground` inverts the
+affordance — the widget outlines when it is *not* focused and goes black when it
+*is*. Set `highlightcolor`.
+
+### Escape hatches vs. deliberate gating
+
+Some apps intentionally resist dismissal (an alarm you must solve a challenge to
+silence, a meal gate you must log a meal to clear). That gating is a feature and
+this rule does not override it. What the rule requires is that the *sanctioned*
+paths — solve the challenge, use the budgeted escape hatch, submit the form — are
+fully keyboard-operable. Making a gate keyboard-reachable is not weakening it.
+
+## Screen size (required)
+
+| Target | Requirement |
+| ------ | ----------- |
+| **1366x768** | Fully usable. Nothing clipped, nothing unreachable. This is the primary machine. |
+| **1024x600** | Degrades gracefully — scrolls rather than clips. No hard minimum size above this. |
+
+Rules:
+
+1. **Budget the height, don't assume it.** 768px is the design target, not 1080.
+   Mixing a proportional content area with fixed chrome (`height = 0.7·H` above a
+   fixed-height button row) silently works at 1080 and fails at 768 — compute the
+   content budget as `available − measured chrome`.
+2. **Any view that can grow must scroll.** Lists, forms, anything whose height
+   depends on data (a day's log, an error string, accumulated history). An
+   unbounded error message is a real overflow source.
+3. **Never centre unscrollable content that can overflow.** A centre-anchored
+   container clips **symmetrically** when it is too tall — losing the header *and*
+   the submit button, with no scrollbar and no indication anything is missing.
+   Top-anchor it inside a scroll container instead.
+4. **Clamp width as well.** Prose stays at the 40rem/640px cap (rule 21) and
+   single-purpose inputs get a sensible max — a 4-digit number field stretched to
+   1334px is a violation even though nothing is clipped.
+5. **Don't let text scale break layout.** Rows that must not overflow use `Wrap`/
+   `Flexible` rather than a bare `Row`.
+
+`1366x768` and `1024x600` are landscape and *short*. Phone-portrait test sizes do
+not exercise either constraint, so both belong in the test matrix explicitly.

@@ -49,6 +49,8 @@ _logger = logging.getLogger(__name__)
 
 GrabKind = Literal["none", "local", "global"]
 LockMode = Literal["soft", "hard"]
+TypeRole = Literal["display", "title", "subtitle", "body", "label", "caption"]
+SpaceStep = Literal["xs", "sm", "md", "lg", "xl", "xxl"]
 
 # Periodic no-op so a grabbed, event-starved loop keeps handing control back
 # to Python, letting SIGTERM/SIGINT be serviced promptly.
@@ -105,10 +107,20 @@ class LockConfig:
             must pick ``fg`` vs. ``on_fill`` based on the widget's own
             background, never hardcode one for all buttons.
         font_family: Default font family for lock-window widgets.
+        focus_ring: Color of the *focused* widget's highlight ring. Defaults to
+            ``accent``, because Tk's own default is black -- invisible against
+            ``bg``. Pass to ``highlightcolor``; note ``highlightbackground`` is
+            the *unfocused* ring, so setting that one inverts the affordance.
+        focus_thickness: Ring width in px. Never set 0 on a focusable widget.
+        type_display, type_title, type_subtitle, type_body, type_label,
+            type_caption: The type scale, in **pixels**. Do not pass these to
+            Tk directly -- use :meth:`font`, which applies the sign convention.
+        space_xs, space_sm, space_md, space_lg, space_xl, space_xxl: The 4px
+            spacing scale, in pixels. Use for ``padx``/``pady``/``ipadx``.
 
-    All color/font defaults come from the ``unified-design-system`` skill
-    (``~/.claude/skills/unified-design-system/references/tokens.md``) -- the
-    same palette used by every one of kuhy's apps, Flutter and web included.
+    All color/font defaults come from the ``unified-design-system`` docs
+    (``~/utils/unified-design-system/tokens.md``) -- the same palette used by
+    every one of kuhy's apps, Flutter and web included.
     """
 
     mode: LockMode = "hard"
@@ -131,6 +143,78 @@ class LockConfig:
     danger: str = "#E2585F"
     on_fill: str = "#211D1B"
     font_family: str = "Arial"
+    focus_ring: str = "#B8862E"
+    focus_thickness: int = 2
+    # Type scale in PIXELS (unified-design-system tokens.md). Convert via
+    # font(); a raw positive value handed to Tk means *points*, ~37% bigger.
+    type_display: int = 32
+    type_title: int = 24
+    type_subtitle: int = 20
+    type_body: int = 16
+    type_label: int = 14
+    type_caption: int = 12
+    # 4px spacing scale, in pixels.
+    space_xs: int = 4
+    space_sm: int = 8
+    space_md: int = 16
+    space_lg: int = 24
+    space_xl: int = 32
+    space_xxl: int = 48
+
+    def type_px(self, role: TypeRole = "body") -> int:
+        """Return the type-scale size for ``role``, in pixels."""
+        return int(getattr(self, f"type_{role}"))
+
+    def space(self, step: SpaceStep = "md") -> int:
+        """Return the spacing-scale value for ``step``, in pixels."""
+        return int(getattr(self, f"space_{step}"))
+
+    def font(
+        self,
+        role: TypeRole = "body",
+        *,
+        bold: bool = False,
+        family: str | None = None,
+        scale: float = 1.0,
+    ) -> tuple[str, int] | tuple[str, int, str]:
+        """Return a Tk font tuple for a type-scale role, sized in **pixels**.
+
+        Tk encodes the unit in the *sign* of the size: positive means points,
+        negative means pixels. The design-system scale is in pixels, so passing
+        e.g. ``type_body`` (16) straight to Tk yields 16 *points* -- about 37%
+        larger than intended (measured: linespace 26px vs 19px). Inflating
+        every string by a third is enough on its own to push a layout off a
+        768px-tall screen, which is exactly what happened to the diet_guard
+        meal gate. Always build lock-window fonts through this method.
+
+        Args:
+            role: Type-scale role.
+            bold: Append Tk's ``"bold"`` weight.
+            family: Override the font family. Defaults to ``font_family``.
+            scale: Multiplier for display-only emphasis (e.g. an oversized
+                countdown). Kept explicit so outliers are visible rather than
+                hidden behind a fresh literal.
+
+        Returns:
+            A Tk font tuple with a negative (pixel) size.
+        """
+        px = max(1, round(self.type_px(role) * scale))
+        name = family if family is not None else self.font_family
+        return (name, -px, "bold") if bold else (name, -px)
+
+    def focus_kwargs(self) -> dict[str, str | int]:
+        """Return widget kwargs that make focus visible on this palette.
+
+        ``highlightcolor`` is the *focused* ring; ``highlightbackground`` is the
+        unfocused one. Both are set so the widget shows a subdued edge when
+        unfocused and the accent ring when focused -- rather than Tk's default
+        black-on-``bg``, which reads as no ring at all.
+        """
+        return {
+            "highlightcolor": self.focus_ring,
+            "highlightbackground": self.bg,
+            "highlightthickness": self.focus_thickness,
+        }
 
     def resolved_overrideredirect(self) -> bool:
         """Return the effective overrideredirect setting."""
