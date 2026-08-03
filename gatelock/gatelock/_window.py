@@ -32,6 +32,7 @@ import signal
 import tkinter as tk
 from typing import TYPE_CHECKING, Literal, Protocol
 
+from gatelock import _density
 from gatelock._arbiter import RANK_SCREEN_LOCKER
 from gatelock._detect import OutputChangeDetector
 from gatelock._outputs import OutputEnumerator
@@ -162,12 +163,21 @@ class LockConfig:
     space_xxl: int = 48
 
     def type_px(self, role: TypeRole = "body") -> int:
-        """Return the type-scale size for ``role``, in pixels."""
-        return int(getattr(self, f"type_{role}"))
+        """Return the type-scale size for ``role``, in pixels.
+
+        Compacted on short displays -- see :mod:`gatelock._density`. The scale
+        is authored for 1080p; a 768px panel gets 0.8 of it, because a lock
+        surface has to fit one screen and cannot scroll its way out of being
+        too tall.
+        """
+        return _density.scale_type(int(getattr(self, f"type_{role}")))
 
     def space(self, step: SpaceStep = "md") -> int:
-        """Return the spacing-scale value for ``step``, in pixels."""
-        return int(getattr(self, f"space_{step}"))
+        """Return the spacing-scale value for ``step``, in pixels.
+
+        Compacted on short displays, exactly like :meth:`type_px`.
+        """
+        return _density.scale_space(int(getattr(self, f"space_{step}")))
 
     def font(
         self,

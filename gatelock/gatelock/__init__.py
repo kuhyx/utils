@@ -24,6 +24,7 @@ from gatelock._escape import (
     EscapePolicy,
     EscapeTracker,
 )
+from gatelock._fitcheck import FitResult, measure_fit, report_fit
 from gatelock._guards import assert_not_under_pytest, wait_for_x_server
 from gatelock._keyboard import bind_activate, bind_cancel, escape_text_tab_trap
 from gatelock._outputs import (
@@ -47,7 +48,13 @@ from gatelock._surfaces import (
     needs_backdrop_root,
 )
 from gatelock._vt import disable_vt_switching, restore_vt_switching
-from gatelock._window import LockConfig, LockWindow, LockWindowHooks
+from gatelock._window import (
+    LockConfig,
+    LockWindow,
+    LockWindowHooks,
+    SpaceStep,
+    TypeRole,
+)
 
 __all__ = [
     "RANK_DIET_GUARD",
@@ -60,6 +67,7 @@ __all__ = [
     "EscapeHistory",
     "EscapePolicy",
     "EscapeTracker",
+    "FitResult",
     "GateRoot",
     "LockConfig",
     "LockWindow",
@@ -73,10 +81,12 @@ __all__ = [
     "RecoveryLoop",
     "RecoveryReport",
     "ScrollableSurface",
+    "SpaceStep",
     "SurfaceBuilder",
     "SurfaceDelta",
     "SurfaceInfo",
     "SurfaceSet",
+    "TypeRole",
     "assert_not_under_pytest",
     "bind_activate",
     "bind_cancel",
@@ -85,9 +95,11 @@ __all__ = [
     "enumerate_outputs",
     "escape_text_tab_trap",
     "grab_strength",
+    "measure_fit",
     "mirror_text_widgets",
     "needs_backdrop_root",
     "parse_xrandr_query",
+    "report_fit",
     "restore_vt_switching",
     "wait_for_x_server",
 ]
