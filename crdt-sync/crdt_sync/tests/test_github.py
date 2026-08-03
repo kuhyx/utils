@@ -13,7 +13,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from crdt_sync import GitHubSyncClient, GitHubSyncError, RepoNotFoundError, _github
+from crdt_sync import (
+    GitHubSyncClient,
+    GitHubSyncError,
+    RemoteNotFoundError,
+    RemoteStore,
+    RemoteSyncError,
+    RepoNotFoundError,
+    _github,
+)
 
 
 def _response(status_code: int = 200, json_data: object = None) -> MagicMock:
@@ -182,6 +190,37 @@ class TestCanAccessRepo:
     def test_false_on_a_network_error(self) -> None:
         with _patch_get_raises():
             assert _client().can_access_repo() is False
+
+
+class TestCanAccessRemote:
+    """The ``RemoteStore`` spelling must behave exactly like the legacy name."""
+
+    def test_true_when_repo_endpoint_ok(self) -> None:
+        with _patch_get(_response(200)):
+            assert _client().can_access_remote() is True
+
+    def test_false_when_repo_is_missing(self) -> None:
+        with _patch_get(_response(404)):
+            assert _client().can_access_remote() is False
+
+    def test_false_on_a_network_error(self) -> None:
+        with _patch_get_raises():
+            assert _client().can_access_remote() is False
+
+
+class TestRemoteStoreContract:
+    """The seam sync talks through must actually be satisfied by the client."""
+
+    def test_github_client_is_a_remote_store(self) -> None:
+        assert isinstance(_client(), RemoteStore)
+
+    def test_repo_not_found_is_catchable_as_either_error(self) -> None:
+        # Backend-neutral callers catch RemoteNotFoundError; existing GitHub
+        # callers catch GitHubSyncError. One exception must satisfy both.
+        error = RepoNotFoundError("gone")
+        assert isinstance(error, GitHubSyncError)
+        assert isinstance(error, RemoteNotFoundError)
+        assert isinstance(error, RemoteSyncError)
 
 
 class TestDeleteFile:

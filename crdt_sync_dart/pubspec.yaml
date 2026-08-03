@@ -2,13 +2,14 @@ name: crdt_sync
 description: >-
   Shared CRDT merge scheme + GitHub-Contents-API sync transport for
   cross-device apps. Pure Dart, no Flutter dependency.
-version: 0.3.0
+version: 0.4.0
 publish_to: 'none'
 
 environment:
   sdk: ^3.12.2
 
 dependencies:
+  crypto: ^3.0.7
   http: ^1.6.0
 
 dev_dependencies:

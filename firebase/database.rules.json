@@ -1,0 +1,6 @@
+{
+  "rules": {
+    ".read": "auth != null && auth.uid === 'YOUR_FIREBASE_UID'",
+    ".write": "auth != null && auth.uid === 'YOUR_FIREBASE_UID'"
+  }
+}

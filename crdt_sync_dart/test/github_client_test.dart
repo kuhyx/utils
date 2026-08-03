@@ -213,6 +213,41 @@ void main() {
     });
   });
 
+  group('canAccessRemote', () {
+    // The RemoteStore spelling must behave exactly like the legacy name.
+    test('is true when the repo endpoint returns 2xx', () async {
+      expect(await _client([_response(200)]).canAccessRemote(), isTrue);
+    });
+
+    test('is false when the repo is missing (404)', () async {
+      expect(await _client([_response(404)]).canAccessRemote(), isFalse);
+    });
+
+    test('is false on a network error', () async {
+      expect(await _client([_networkError]).canAccessRemote(), isFalse);
+    });
+  });
+
+  group('RemoteStore contract', () {
+    test('GitHubClient is a RemoteStore', () {
+      expect(_client([]), isA<RemoteStore>());
+    });
+
+    test('RepoNotFoundError is catchable as either error type', () {
+      // Backend-neutral callers catch RemoteNotFoundError; existing GitHub
+      // callers catch GitHubSyncError. One exception must satisfy both.
+      final error = RepoNotFoundError('gone');
+      expect(error, isA<GitHubSyncError>());
+      expect(error, isA<RemoteNotFoundError>());
+      expect(error, isA<RemoteSyncError>());
+    });
+
+    test('errors stringify as their own type', () {
+      expect(GitHubSyncError('boom').toString(), 'GitHubSyncError: boom');
+      expect(RepoNotFoundError('gone').toString(), 'RepoNotFoundError: gone');
+    });
+  });
+
   group('deleteFile', () {
     test('deletes an existing file (resolves its own sha)', () async {
       final client = _client(

@@ -13,22 +13,28 @@ import base64
 
 import requests
 
+from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
+
 _API_BASE = "https://api.github.com"
 _HTTP_NOT_FOUND = 404
 _DEFAULT_TIMEOUT_SECONDS = 15
 
 
-class GitHubSyncError(Exception):
+class GitHubSyncError(RemoteSyncError):
     """Raised for a GitHub API failure the caller must not silently ignore."""
 
 
-class RepoNotFoundError(GitHubSyncError):
+class RepoNotFoundError(GitHubSyncError, RemoteNotFoundError):
     """Raised when the configured repo itself is unreachable.
 
     Distinguished from a path-404 (nothing pushed to that path yet, which is
     benign -- it just means no other device has synced before) so the caller
     can tell "the repo name is wrong or the token isn't scoped to it" apart
     from "no other device has synced yet".
+
+    Derives from both so existing ``except GitHubSyncError`` handlers still
+    cover it *and* backend-neutral callers can catch "the remote itself is
+    missing" without naming GitHub.
     """
 
 
@@ -199,6 +205,17 @@ class GitHubSyncClient:
         Hits the bare repo endpoint, so it succeeds even before any file has
         been pushed. Never raises -- a network failure or missing repo is
         reported as ``False``.
+
+        The GitHub-era name for :meth:`can_access_remote`; kept because app
+        settings screens call it. Both do the same probe.
+        """
+        return self._repo_exists()
+
+    def can_access_remote(self) -> bool:
+        """Return whether the token can reach the remote (a connection test).
+
+        The :class:`crdt_sync.RemoteStore` spelling of
+        :meth:`can_access_repo`.
         """
         return self._repo_exists()
 

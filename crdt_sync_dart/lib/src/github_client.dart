@@ -2,17 +2,14 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'remote_store.dart';
+
 const _apiBase = 'https://api.github.com';
 const _httpNotFound = 404;
 
 /// Raised for a GitHub API failure the caller must not silently ignore.
-class GitHubSyncError implements Exception {
-  GitHubSyncError(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'GitHubSyncError: $message';
+class GitHubSyncError extends RemoteSyncError {
+  GitHubSyncError(super.message);
 }
 
 /// Raised when the configured repo itself is unreachable.
@@ -21,7 +18,12 @@ class GitHubSyncError implements Exception {
 /// benign -- it just means no other device has synced before) so the caller
 /// can tell "the repo name is wrong or the token isn't scoped to it" apart
 /// from "no other device has synced yet".
-class RepoNotFoundError extends GitHubSyncError {
+///
+/// Extends [GitHubSyncError] so existing `on GitHubSyncError` catches still
+/// cover it, and implements [RemoteNotFoundError] so backend-neutral callers
+/// can catch "the remote itself is missing" without naming GitHub. Dart's
+/// single inheritance is why one is `extends` and the other `implements`.
+class RepoNotFoundError extends GitHubSyncError implements RemoteNotFoundError {
   RepoNotFoundError(super.message);
 }
 
@@ -36,7 +38,7 @@ class RepoNotFoundError extends GitHubSyncError {
 /// `<pathPrefix>/<deviceId>/<filename>` layout needs to discover device
 /// *subdirectories*; and [putFileText] resolves its own current SHA rather
 /// than requiring the caller to track it.
-class GitHubClient {
+class GitHubClient implements RemoteStore {
   GitHubClient({
     required this.owner,
     required this.repo,
@@ -94,6 +96,7 @@ class GitHubClient {
   ///
   /// Includes both files and subdirectories -- see the class doc for why
   /// this differs from a plain "list files" helper.
+  @override
   Future<List<String>> listDirectory(String path) async {
     final res = await _get(path);
     if (res.statusCode == _httpNotFound) {
@@ -113,6 +116,7 @@ class GitHubClient {
   }
 
   /// Returns the decoded text content at [path], or null if unused.
+  @override
   Future<String?> getFileText(String path) async {
     final res = await _get(path);
     if (res.statusCode == _httpNotFound) {
@@ -141,6 +145,7 @@ class GitHubClient {
   }
 
   /// Creates or updates the file at [path] with [text].
+  @override
   Future<void> putFileText(
     String path,
     String text, {
@@ -172,10 +177,17 @@ class GitHubClient {
   /// A lightweight connection test for a settings "Test connection" button: it
   /// hits the bare repo endpoint, so it succeeds even before any file has been
   /// pushed. Never throws -- a network failure or missing repo returns false.
+  ///
+  /// The GitHub-era name for [canAccessRemote]; kept because app settings
+  /// screens call it. Both do the same probe.
   Future<bool> canAccessRepo() => _repoExists();
+
+  @override
+  Future<bool> canAccessRemote() => _repoExists();
 
   /// Deletes the file at [path], resolving its current sha itself so callers
   /// don't have to track it. A no-op if [path] does not exist.
+  @override
   Future<void> deleteFile(
     String path, {
     String message = 'crdt_sync: delete',
@@ -197,5 +209,6 @@ class GitHubClient {
     }
   }
 
+  @override
   void close() => _http.close();
 }
