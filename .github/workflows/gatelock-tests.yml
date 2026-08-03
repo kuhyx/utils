@@ -3,10 +3,12 @@ name: gatelock tests
 on:
   push:
     branches: [main]
-    paths: ['gatelock/**']
+    # The workflow's own file counts as gatelock: editing only this file used
+    # to trigger nothing, so a fix to the job itself could never prove itself.
+    paths: ['gatelock/**', '.github/workflows/gatelock-tests.yml']
   pull_request:
     branches: [main]
-    paths: ['gatelock/**']
+    paths: ['gatelock/**', '.github/workflows/gatelock-tests.yml']
 
 jobs:
   test:
