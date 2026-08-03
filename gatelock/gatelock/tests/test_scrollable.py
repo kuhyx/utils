@@ -276,3 +276,54 @@ def test_paging_degrades_to_the_canvas_without_a_toplevel(
     surface.canvas.event_generate("<Next>", when="now")
     surface.canvas.update()
     assert _offset(surface) > 0.0
+
+
+def test_a_second_finalize_does_not_stack_handlers(
+    surface: ScrollableSurface,
+) -> None:
+    """finalize() is documented idempotent, and a repaint calls it again.
+
+    An earlier version re-bound <FocusIn> on every call, so handlers piled up
+    one per repaint across the ~19 repaint sites of a single lock session.
+    """
+    bound_once = set(surface._focus_bound)
+
+    surface.finalize()
+
+    assert set(surface._focus_bound) == bound_once
+
+
+def test_scroll_into_view_does_nothing_when_everything_fits() -> None:
+    """Nothing to reveal on a screen that is fully visible already."""
+    root = tk.Tk()
+    try:
+        root.geometry(f"400x{_VIEWPORT_H}+0+0")
+        root.focus_force()
+        root.update_idletasks()
+        made = ScrollableSurface(root, LockConfig())
+        made.container.place(relx=0, rely=0, relwidth=1, relheight=1)
+        entry = tk.Entry(made.content)
+        entry.pack()
+        made.finalize()
+        root.update()
+
+        made.scroll_into_view(entry)
+        assert made.canvas.yview() == (0.0, 1.0)
+    finally:
+        root.destroy()
+
+
+def test_scroll_into_view_holds_still_for_a_widget_in_the_middle(
+    surface: ScrollableSurface,
+) -> None:
+    """A widget already fully on screen is not dragged to an edge.
+
+    The margin logic has three outcomes -- scroll up, scroll down, hold -- and
+    "hold" is the one a viewport that jitters would get wrong.
+    """
+    middle = surface.content.winfo_children()[3]
+    before = _offset(surface)
+
+    surface.scroll_into_view(middle)
+
+    assert _offset(surface) == before

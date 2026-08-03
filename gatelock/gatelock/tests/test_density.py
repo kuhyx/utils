@@ -185,3 +185,23 @@ def test_forced_restores_a_pre_existing_override(
     with _density.forced(0.5):
         assert _density.density() == 0.5
     assert _density.density() == 0.9
+
+
+def test_an_existing_root_is_asked_rather_than_a_new_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With a root already up, the factor comes from it -- no second Tk.
+
+    The apps that build their LockConfig lazily hit this path, and creating a
+    throwaway Tk alongside a live lock window is not something to do casually.
+    """
+    destroyed: list[bool] = []
+    stub = types.SimpleNamespace(
+        _default_root=_StubRoot(768, destroyed),
+        Tk=None,
+        TclError=tk.TclError,
+    )
+    monkeypatch.setattr(_density, "tk", stub)
+
+    assert _density._screen_height() == 768
+    assert destroyed == []

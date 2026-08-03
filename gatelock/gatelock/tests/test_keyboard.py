@@ -100,3 +100,13 @@ def test_shift_tab_goes_back_out_of_a_text_box(root: tk.Tk) -> None:
     root.update()
 
     assert root.focus_get() is before
+
+
+def test_a_non_callable_cancel_is_rejected_at_bind_time(root: tk.Tk) -> None:
+    """Fail where the mistake is, not on the keypress that needed to work.
+
+    Escape is a lock's sanctioned way back; a binding that raises only when
+    the user finally presses it fails at the worst possible moment.
+    """
+    with pytest.raises(TypeError, match="callback must be callable"):
+        bind_cancel(root, "not a function")
