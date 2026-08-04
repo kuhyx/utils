@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'log.dart';
 import 'record.dart';
 import 'remote_store.dart';
+import 'store.dart';
 
 const _defaultFilename = 'log.json';
 
@@ -64,6 +65,57 @@ class InMemorySyncStateStore implements SyncStateStore {
 
   @override
   Future<void> save(SyncState state) async => _state = state;
+}
+
+/// A [SyncStateStore] that persists through a [LogPersistence] port.
+///
+/// This is the mobile counterpart to Python's `FileSyncStateStore`, and it is
+/// what makes the revision saving real on a phone: an app is a fresh process
+/// after every cold start, so an [InMemorySyncStateStore] would forget every
+/// peer revision and re-download all of them on each launch -- the exact
+/// traffic the revision scheme exists to avoid.
+///
+/// Takes the pure-Dart [LogPersistence] port rather than a `File` so it works
+/// on web (where `dart:io` is unavailable) and is trivially faked in tests.
+/// On mobile and desktop, pass a `FileLogPersistence` from
+/// `package:crdt_sync/crdt_sync_io.dart`, which already writes atomically.
+///
+/// **Store this next to the log it describes and clear the two together.**
+/// Skipping an unchanged peer is only sound because that peer's records are
+/// already merged into the local log; state that outlived its log would skip
+/// peers whose data had been lost. See [SyncState].
+class PersistedSyncStateStore implements SyncStateStore {
+  /// Persists state through [persistence].
+  PersistedSyncStateStore(this._persistence);
+
+  final LogPersistence _persistence;
+
+  /// Returns the stored state, or a default one if absent or unreadable.
+  ///
+  /// A corrupt or half-written file degrades to "remember nothing", which
+  /// costs one tick of extra traffic rather than failing the sync -- the same
+  /// fail-safe choice the Python side makes.
+  @override
+  Future<SyncState> load() async {
+    final String? text;
+    try {
+      text = await _persistence.read();
+    } on Exception {
+      return const SyncState();
+    }
+    if (text == null || text.isEmpty) return const SyncState();
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is! Map<String, dynamic>) return const SyncState();
+      return SyncState.fromJson(decoded);
+    } on FormatException {
+      return const SyncState();
+    }
+  }
+
+  @override
+  Future<void> save(SyncState state) async =>
+      _persistence.write(jsonEncode(state.toJson()));
 }
 
 /// The revision of a serialized log: a content hash, not a clock reading.
@@ -161,11 +213,7 @@ Future<Log> syncLog({
     if (stateStore != null) {
       // Published after the log, never before: a peer that cached "seen rev
       // X" against a log it never received would skip it forever.
-      await client.putFileText(
-        '$revs/$deviceId',
-        rev,
-        message: commitMessage,
-      );
+      await client.putFileText('$revs/$deviceId', rev, message: commitMessage);
     }
   }
   await stateStore?.save(SyncState(pushedRev: rev, peerRevs: seenRevs));

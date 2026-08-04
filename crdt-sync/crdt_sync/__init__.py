@@ -2,6 +2,16 @@
 
 from __future__ import annotations
 
+from crdt_sync._config import (
+    CONFIG_DIR,
+    CONFIG_FILE,
+    PASSWORD_FILE,
+    ConfigError,
+    FirebaseConfig,
+    credential_store_for,
+    firebase_client_for,
+    mirror_client_for,
+)
 from crdt_sync._firebase import (
     DatabaseNotFoundError,
     FirebaseSyncClient,
@@ -33,12 +43,17 @@ from crdt_sync._sync import (
 )
 
 __all__ = [
+    "CONFIG_DIR",
+    "CONFIG_FILE",
+    "PASSWORD_FILE",
+    "ConfigError",
     "CredentialStore",
     "DatabaseNotFoundError",
     "Field",
     "FileCredentialStore",
     "FileSyncStateStore",
     "FirebaseAuthError",
+    "FirebaseConfig",
     "FirebaseCredentials",
     "FirebaseSyncClient",
     "FirebaseSyncError",
@@ -57,12 +72,15 @@ __all__ = [
     "RepoNotFoundError",
     "SyncState",
     "SyncStateStore",
+    "credential_store_for",
     "default_revs_path",
     "dump_log",
+    "firebase_client_for",
     "load_log",
     "merge_field",
     "merge_logs",
     "merge_record",
+    "mirror_client_for",
     "read_log",
     "revision_of",
     "sync_log",

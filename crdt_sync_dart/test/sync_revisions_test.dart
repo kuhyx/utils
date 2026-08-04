@@ -99,8 +99,7 @@ class _FakeRemoteWithoutBulkRead implements RemoteStore {
   List<String> get writes => _inner.writes;
 
   @override
-  Future<List<String>> listDirectory(String path) =>
-      _inner.listDirectory(path);
+  Future<List<String>> listDirectory(String path) => _inner.listDirectory(path);
 
   @override
   Future<String?> getFileText(String path) => _inner.getFileText(path);
@@ -151,7 +150,10 @@ void main() {
 
   group('defaultRevsPath', () {
     test('is a sibling of the device directory', () {
-      expect(defaultRevsPath('diet-guard-sync/devices'), 'diet-guard-sync/revs');
+      expect(
+        defaultRevsPath('diet-guard-sync/devices'),
+        'diet-guard-sync/revs',
+      );
       expect(defaultRevsPath('todo-sync/notes'), 'todo-sync/revs');
     });
 
@@ -184,10 +186,7 @@ void main() {
       final remote = _FakeRemote({});
       final store = InMemorySyncStateStore();
       await _tick(remote, store, local: _log('a', '1'));
-      expect(remote.writes, [
-        'ns/devices/pc/log.json',
-        'ns/revs/pc',
-      ]);
+      expect(remote.writes, ['ns/devices/pc/log.json', 'ns/revs/pc']);
     });
 
     test('a second unchanged tick writes nothing at all', () async {
@@ -217,10 +216,10 @@ void main() {
       final local = _log('a', '1');
       await _tick(remote, null, local: local);
       await _tick(remote, null, local: local);
-      expect(
-        remote.writes,
-        ['ns/devices/pc/log.json', 'ns/devices/pc/log.json'],
-      );
+      expect(remote.writes, [
+        'ns/devices/pc/log.json',
+        'ns/devices/pc/log.json',
+      ]);
       // No state store means no revision publishing either.
       expect(remote.writes.where((w) => w.startsWith('ns/revs')), isEmpty);
     });
@@ -357,4 +356,96 @@ void main() {
       expect(remote.files['ns/revs/phone'], 'peer-rev');
     });
   });
+
+  group('PersistedSyncStateStore', () {
+    test('round-trips state through persistence', () async {
+      final persistence = _FakePersistence();
+      const state = SyncState(
+        pushedRev: 'rev-local',
+        peerRevs: {'phone': 'rev-phone'},
+      );
+
+      await PersistedSyncStateStore(persistence).save(state);
+      final loaded = await PersistedSyncStateStore(persistence).load();
+
+      // A *separate* store instance reads it back: that is the whole point --
+      // surviving the cold start that an in-memory store does not.
+      expect(loaded.pushedRev, 'rev-local');
+      expect(loaded.peerRevs, {'phone': 'rev-phone'});
+    });
+
+    test('survives a cold start, so peers are not re-downloaded', () async {
+      // The free-tier claim on mobile rests on this: a fresh process must
+      // still skip an unchanged peer.
+      final persistence = _FakePersistence();
+      final remote = _FakeRemote({
+        'ns/devices/phone/log.json': _encode(_log('a', '1')),
+        'ns/revs/phone': revisionOf(_encode(_log('a', '1'))),
+      });
+
+      await _tick(remote, PersistedSyncStateStore(persistence));
+      remote.reads.clear();
+      await _tick(remote, PersistedSyncStateStore(persistence));
+
+      expect(remote.reads, isNot(contains('ns/devices/phone/log.json')));
+    });
+
+    test('reports nothing remembered when absent', () async {
+      final loaded = await PersistedSyncStateStore(_FakePersistence()).load();
+
+      expect(loaded.pushedRev, isNull);
+      expect(loaded.peerRevs, isEmpty);
+    });
+
+    test('degrades to remembering nothing when empty', () async {
+      final loaded = await PersistedSyncStateStore(
+        _FakePersistence(text: ''),
+      ).load();
+
+      expect(loaded.pushedRev, isNull);
+    });
+
+    test('degrades to remembering nothing when corrupt', () async {
+      // Costs one tick of extra traffic rather than failing the sync.
+      final loaded = await PersistedSyncStateStore(
+        _FakePersistence(text: 'not json{'),
+      ).load();
+
+      expect(loaded.pushedRev, isNull);
+    });
+
+    test('degrades to remembering nothing when not an object', () async {
+      final loaded = await PersistedSyncStateStore(
+        _FakePersistence(text: '["a list"]'),
+      ).load();
+
+      expect(loaded.pushedRev, isNull);
+    });
+
+    test('degrades to remembering nothing when the read throws', () async {
+      // An unreadable file must not fail the tick.
+      final loaded = await PersistedSyncStateStore(
+        _FakePersistence(readThrows: true),
+      ).load();
+
+      expect(loaded.pushedRev, isNull);
+    });
+  });
+}
+
+/// A [LogPersistence] fake with injectable failure modes.
+class _FakePersistence implements LogPersistence {
+  _FakePersistence({this.text, this.readThrows = false});
+
+  String? text;
+  final bool readThrows;
+
+  @override
+  Future<String?> read() async {
+    if (readThrows) throw const FormatException('unreadable');
+    return text;
+  }
+
+  @override
+  Future<void> write(String value) async => text = value;
 }

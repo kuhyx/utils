@@ -3,6 +3,7 @@ library;
 
 export 'src/firebase_auth_rest.dart';
 export 'src/firebase_client.dart';
+export 'src/firebase_config.dart';
 export 'src/github_client.dart';
 export 'src/hlc.dart';
 export 'src/log.dart';
