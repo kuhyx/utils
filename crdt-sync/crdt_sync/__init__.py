@@ -12,6 +12,7 @@ from crdt_sync._config import (
     firebase_client_for,
     mirror_client_for,
 )
+from crdt_sync._device import DeviceIdentity, load_device_identity
 from crdt_sync._firebase import (
     DatabaseNotFoundError,
     FirebaseSyncClient,
@@ -49,6 +50,7 @@ __all__ = [
     "ConfigError",
     "CredentialStore",
     "DatabaseNotFoundError",
+    "DeviceIdentity",
     "Field",
     "FileCredentialStore",
     "FileSyncStateStore",
@@ -76,6 +78,7 @@ __all__ = [
     "default_revs_path",
     "dump_log",
     "firebase_client_for",
+    "load_device_identity",
     "load_log",
     "merge_field",
     "merge_logs",

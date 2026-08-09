@@ -105,6 +105,58 @@ void main() {
       expect(putCalls, hasLength(1));
     });
 
+    test('skips its legacy device id as well as its current one', () async {
+      // The old path holds a record this device pushed before migrating.
+      // Pulling it back would re-merge its own history as a peer's.
+      final legacyLog = _encode({
+        'stale': Record(id: 'stale', fields: {'text': ('old', _make(1))}),
+      });
+      final (:client, :putCalls) = _client(
+        contentResponses: {
+          'devices': _directoryOf(['pc', 'new-uuid']),
+          'devices/pc/log.json': _fileContaining(legacyLog),
+        },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'new-uuid',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+        legacyDeviceId: 'pc',
+      );
+
+      expect(merged, isEmpty);
+      expect(putCalls.single.path, 'devices/new-uuid/log.json');
+    });
+
+    test('pulls the old path when no legacy id is declared', () async {
+      // Negative control for the test above: absent legacyDeviceId, the old
+      // path really is treated as a peer.
+      final legacyLog = _encode({
+        'stale': Record(id: 'stale', fields: {'text': ('old', _make(1))}),
+      });
+      final (:client, :putCalls) = _client(
+        contentResponses: {
+          'devices': _directoryOf(['pc', 'new-uuid']),
+          'devices/pc/log.json': _fileContaining(legacyLog),
+        },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'new-uuid',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+      );
+
+      expect(merged.keys, contains('stale'));
+    });
+
     test('skips a device with no pushed file yet', () async {
       final (:client, :putCalls) = _client(
         contentResponses: {

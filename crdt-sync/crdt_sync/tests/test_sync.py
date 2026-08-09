@@ -79,6 +79,46 @@ class TestSyncLog:
 
         client.get_file_text.assert_called_once_with("devices/phone/log.json")
 
+    def test_skips_its_legacy_device_id_as_well_as_its_current_one(self) -> None:
+        """A migrated device must not re-merge its own pre-migration log.
+
+        Without this the old path looks like a peer, so the device pulls
+        back everything it pushed under its former id every single tick.
+        """
+        client = _mock_client(
+            devices=("pc", "new-uuid", "phone"),
+            files={"devices/phone/log.json": "{}"},
+        )
+
+        sync_log(
+            client=client,
+            device_id="new-uuid",
+            path_prefix="devices",
+            local_log={},
+            encode=_encode,
+            decode=_decode,
+            legacy_device_id="pc",
+        )
+
+        client.get_file_text.assert_called_once_with("devices/phone/log.json")
+
+    def test_pulls_the_old_path_when_no_legacy_id_is_declared(self) -> None:
+        """Sanity check the previous test: absent the legacy id, it *is* pulled."""
+        client = _mock_client(
+            devices=("pc", "new-uuid"), files={"devices/pc/log.json": "{}"}
+        )
+
+        sync_log(
+            client=client,
+            device_id="new-uuid",
+            path_prefix="devices",
+            local_log={},
+            encode=_encode,
+            decode=_decode,
+        )
+
+        client.get_file_text.assert_called_once_with("devices/pc/log.json")
+
     def test_skips_a_device_with_no_pushed_file_yet(self) -> None:
         client = _mock_client(devices=("phone",), files={})
 

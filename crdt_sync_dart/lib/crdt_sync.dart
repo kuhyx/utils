@@ -1,6 +1,7 @@
 /// Shared CRDT merge scheme + pluggable remote sync transports.
 library;
 
+export 'src/device.dart';
 export 'src/firebase_auth_rest.dart';
 export 'src/firebase_client.dart';
 export 'src/firebase_config.dart';

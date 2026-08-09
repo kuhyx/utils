@@ -155,6 +155,12 @@ String revisionOf(String encodedLog) =>
 /// after which those peers would look permanently unchanged and never be
 /// fetched again. Per-device keys make that failure impossible rather than
 /// merely avoided.
+///
+/// Pass [legacyDeviceId] on a device that has migrated from a fixed role id
+/// (`phone`, `pc`, `desktop`) to a persisted uuid: the old path is then
+/// treated as this device's own rather than as a peer's, so its
+/// pre-migration log is not pulled back and re-merged every tick. Pass null
+/// once that path has been reclaimed.
 Future<Log> syncLog({
   required RemoteStore client,
   required String deviceId,
@@ -166,6 +172,7 @@ Future<Log> syncLog({
   String commitMessage = 'crdt_sync: update log',
   SyncStateStore? stateStore,
   String? revsPath,
+  String? legacyDeviceId,
 }) async {
   final revs = revsPath ?? defaultRevsPath(pathPrefix);
   final state = await stateStore?.load() ?? const SyncState();
@@ -173,10 +180,15 @@ Future<Log> syncLog({
       ? const <String, String>{}
       : await _remoteRevs(client, revs);
 
+  // A set rather than one id: a device that has migrated from a role
+  // constant to a persisted uuid still owns the log it pushed under the old
+  // id. Matching only the current id would pull that file back and re-merge
+  // this device's own pre-migration history as though a peer wrote it.
+  final ownIds = <String>{deviceId, ?legacyDeviceId};
   var mergedLog = Map<String, Record>.from(localLog);
   final seenRevs = <String, String>{};
   for (final otherDeviceId in await client.listDirectory(pathPrefix)) {
-    if (otherDeviceId == deviceId) continue;
+    if (ownIds.contains(otherDeviceId)) continue;
     final remoteRev = remoteRevs[otherDeviceId];
     if (remoteRev != null && remoteRev == state.peerRevs[otherDeviceId]) {
       // Unchanged since we last merged it, and that merge is already part of

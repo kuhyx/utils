@@ -204,7 +204,7 @@ def _remote_revs(client: RemoteStore, revs_path: str) -> dict[str, str]:
 
 def _pull_remote_logs(
     client: RemoteStore,
-    device_id: str,
+    own_ids: frozenset[str],
     path_prefix: str,
     filename: str,
     decode: Callable[[str], Log],
@@ -219,12 +219,18 @@ def _pull_remote_logs(
     the remote is an external system boundary, and one bad device's file must
     not stall merging in every other device's.
 
+    ``own_ids`` is a *set* rather than a single id because a device that has
+    migrated from a role constant to a persisted uuid still owns the log it
+    pushed under the old id. Matching only the current id would pull that
+    file back and re-merge this device's own pre-migration history as though
+    a peer had written it -- idempotent, but pure wasted transfer.
+
     Records into ``seen_revs`` which peers are now merged in, so the next
     tick can skip them.
     """
     remote_logs: list[Log] = []
     for other_device_id in client.list_directory(path_prefix):
-        if other_device_id == device_id:
+        if other_device_id in own_ids:
             continue
         remote_rev = remote_revs.get(other_device_id)
         if remote_rev is not None and remote_rev == state.peer_revs.get(
@@ -265,6 +271,7 @@ def sync_log(
     commit_message: str = "crdt_sync: update log",
     state_store: SyncStateStore | None = None,
     revs_path: str | None = None,
+    legacy_device_id: str | None = None,
 ) -> Log:
     """Run one full sync tick: pull every other device's log, merge, push.
 
@@ -295,6 +302,11 @@ def sync_log(
             always did: fetch everything, push unconditionally.
         revs_path: Where revisions live; defaults to
             :func:`default_revs_path`.
+        legacy_device_id: The id this device pushed under before migrating to
+            a persisted uuid. Treated as this device's own for skip-own
+            purposes, so its pre-migration log is not pulled back and
+            re-merged as a peer's. Pass ``None`` once the old path has been
+            reclaimed.
 
     Returns:
         The merged log, as pushed.
@@ -311,11 +323,14 @@ def sync_log(
     state = state_store.load() if state_store is not None else SyncState()
     remote_revs = _remote_revs(client, revs) if state_store is not None else {}
 
+    own_ids = frozenset(
+        {device_id} if legacy_device_id is None else {device_id, legacy_device_id}
+    )
     merged = dict(local_log)
     seen_revs: dict[str, str] = {}
     for remote_log in _pull_remote_logs(
         client,
-        device_id,
+        own_ids,
         path_prefix,
         filename,
         decode,
