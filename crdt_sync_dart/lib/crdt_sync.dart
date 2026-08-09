@@ -2,6 +2,7 @@
 library;
 
 export 'src/device.dart';
+export 'src/firebase_account_provisioning.dart';
 export 'src/firebase_auth_rest.dart';
 export 'src/firebase_client.dart';
 export 'src/firebase_config.dart';
