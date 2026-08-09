@@ -161,7 +161,7 @@ class FileCredentialStore:
 
 
 def _utcnow() -> dt.datetime:
-    return dt.datetime.now(dt.UTC)
+    return dt.datetime.now(dt.timezone.utc)
 
 
 class FirebaseTokenProvider:

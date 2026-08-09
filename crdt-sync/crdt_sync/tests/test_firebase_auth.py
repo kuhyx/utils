@@ -27,7 +27,7 @@ from crdt_sync import _firebase_auth as fa
 if TYPE_CHECKING:
     from pathlib import Path
 
-_NOW = dt.datetime(2026, 8, 3, 12, tzinfo=dt.UTC)
+_NOW = dt.datetime(2026, 8, 3, 12, tzinfo=dt.timezone.utc)
 
 # Fixture values referenced through names ruff's hardcoded-credential checks
 # (S105-S107) do not key off. Comparing an attribute called `id_token` to a
