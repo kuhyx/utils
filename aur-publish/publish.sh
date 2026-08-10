@@ -31,11 +31,13 @@ readonly AUR_HOST="aur.archlinux.org"
 readonly SSH_KEY="$HOME/.ssh/aur"
 readonly AUR_ROOT="$HOME/aur"
 
-# package:repo:pubspec-subdir:binary-name:expected-startup-string
+# package:repo:wrapper-process:cli-name:expected-startup-string
+# The wrapper process name is NOT derivable from the package name
+# (diet-guard-app runs diet_guard_desktop), so it is listed explicitly.
 readonly PACKAGES=(
-    "todo-flutter:$HOME/todo:.:todo:serving on http://localhost:8730"
-    "habit-stack:$HOME/habit_stack:.:habit-stack:serving on http://localhost:8731"
-    "diet-guard-app:$HOME/diet-guard:app:diet-guard-app:serving on http://localhost:8732"
+    "todo-flutter:$HOME/todo:todo_desktop:todo:serving on http://localhost:8730"
+    "habit-stack:$HOME/habit_stack:habit_stack_desktop:habit-stack:serving on http://localhost:8731"
+    "diet-guard-app:$HOME/diet-guard:diet_guard_desktop:diet-guard-app:serving on http://localhost:8732"
 )
 
 POLL_SECONDS=300
@@ -192,15 +194,57 @@ newest_tag() {
 }
 
 verify_installed() {
-    local binary="$1" expected="$2" output
+    local binary="$1" expected="$2" wrapper="$3" output
+
+    # An instance left over from a previous run would make the wrapper print
+    # "already running" and hand off, which passes trivially and turns the
+    # strongest gate in this script into the weakest. Clear it first so the
+    # check always exercises a real cold start.
+    #
+    # Resolved through /proc/<pid>/exe rather than any form of name or
+    # command-line matching. Every argv-based approach selects the wrong
+    # processes here:
+    #   * `pkill -x` compares against the kernel's 15-character comm field, and
+    #     two of these wrappers are longer (habit_stack_desktop is 19), so a
+    #     name match would silently never fire.
+    #   * `pkill -f`, and equally `ps -eo args` piped through a pattern, match
+    #     any process whose command line merely *mentions* the path — this
+    #     script, the shell running it, and the matching tool itself all
+    #     qualify, so the run kills its own shell instead of the app. A
+    #     $$/$PPID guard does not cover it, because the offending shell is
+    #     often a more distant ancestor.
+    # /proc/<pid>/exe is a kernel-maintained symlink to the binary actually
+    # being executed, so it cannot collide with an incidental mention.
+    # The wrapper name is unique per app, so the /opt/<pkg>/ segment is left as
+    # a glob instead of threading the package name through another parameter.
+    #
+    # The link is read without `-f`: it is already fully resolved, and by the
+    # time this runs `pacman -U` has replaced the binary, so a leftover process
+    # points at an unlinked inode that the kernel reports with a " (deleted)"
+    # suffix. That suffix has to be stripped or the match silently misses the
+    # one process this exists to kill.
+    local pid exe killed=()
+    for pid in /proc/[0-9]*; do
+        pid="${pid#/proc/}"
+        exe="$(readlink "/proc/$pid/exe" 2>/dev/null)" || continue
+        exe="${exe% (deleted)}"
+        [[ "$exe" == /opt/*/bin/"$wrapper" ]] || continue
+        kill -TERM "$pid" 2>/dev/null && killed+=("$pid")
+    done
+    if ((${#killed[@]})); then
+        info "stopped a running instance so the launch check is meaningful"
+        # `kill` only reports that the signal was sent. Waiting for the process
+        # to actually go keeps a slow exit from failing the cold start below on
+        # a port that is still bound.
+        local waited=0
+        while ((waited < 100)) && kill -0 "${killed[@]}" 2>/dev/null; do
+            sleep 0.1
+            ((waited++))
+        done
+    fi
+
     output="$(timeout 15 "/usr/bin/$binary" 2>&1 | head -3 || true)"
     if grep -qF "$expected" <<<"$output"; then
-        return 0
-    fi
-    # A wrapper that finds its own instance already running is still a healthy
-    # binary, so treat that as a pass rather than a false failure.
-    if grep -qiE 'already running' <<<"$output"; then
-        info "already running — treating as healthy"
         return 0
     fi
     warn "unexpected startup output: $output"
@@ -248,7 +292,7 @@ check_aur_rules() {
 }
 
 publish_one() {
-    local pkg="$1" repo="$2" binary="$4" expected="$5"
+    local pkg="$1" repo="$2" wrapper="$3" binary="$4" expected="$5"
     local dir="$AUR_ROOT/$pkg"
     local version
 
@@ -290,7 +334,7 @@ publish_one() {
     info "installing and launching"
     sudo pacman -U --noconfirm "$built" >/dev/null 2>&1 \
         || { warn "$pkg: pacman -U failed"; return 1; }
-    verify_installed "$binary" "$expected" || { warn "$pkg: launch check failed"; return 1; }
+    verify_installed "$binary" "$expected" "$wrapper" || { warn "$pkg: launch check failed"; return 1; }
 
     # Generated before the rule check, which verifies it matches the PKGBUILD.
     makepkg --printsrcinfo > .SRCINFO
@@ -355,11 +399,11 @@ main() {
         wait_for_ssh
     fi
 
-    local entry pkg repo sub binary expected
+    local entry pkg repo wrapper binary expected
     for entry in "${PACKAGES[@]}"; do
-        IFS=: read -r pkg repo sub binary expected <<<"$entry"
+        IFS=: read -r pkg repo wrapper binary expected <<<"$entry"
         [[ -z "$ONLY" || "$ONLY" == "$pkg" ]] || continue
-        if ! publish_one "$pkg" "$repo" "$sub" "$binary" "$expected"; then
+        if ! publish_one "$pkg" "$repo" "$wrapper" "$binary" "$expected"; then
             FAILED+=("$pkg")
         fi
     done
