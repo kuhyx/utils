@@ -203,7 +203,13 @@ class TestReads:
         assert client.get_file_text("ns/pc/log.json") is None
         assert failures == ["get_file_text ns/pc/log.json"]
 
-    def test_a_primary_read_failure_fails_the_tick(self) -> None:
+    def test_a_primary_read_failure_with_nothing_in_the_mirror_raises(
+        self,
+    ) -> None:
+        # Named for what it actually exercises: the primary raises AND the
+        # mirror does not hold the file, so neither side has an answer. A
+        # primary failure alone no longer fails the read -- see
+        # TestPrimaryReadFallback.
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.get_file_text("ns/pc/log.json")
@@ -231,10 +237,80 @@ class TestListDirectory:
         assert client.list_directory("ns") == ["pc"]
         assert failures == ["list_directory ns"]
 
-    def test_a_primary_failure_fails_the_tick(self) -> None:
-        client, _, _, _ = _mirror(primary_failing=True)
+    def test_a_primary_failure_degrades_to_the_mirror_list(self) -> None:
+        # READS are resilient on both sides: a Firebase outage must not hide
+        # the mirror's devices. This used to raise, which made a primary
+        # outage look like "no devices exist" -- the union read silently
+        # degrading to nothing, precisely when the fallback was needed.
+        client, _, _, _ = _mirror(
+            primary_failing=True, mirror_files={"ns/phone/log.json": "{}"}
+        )
+        assert client.list_directory("ns") == ["phone"]
+
+    def test_both_backends_failing_raises(self) -> None:
+        # With no answer from either side, fail closed: an empty list is
+        # indistinguishable from "no devices", and callers act on that.
+        client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
         with pytest.raises(RemoteSyncError):
             client.list_directory("ns")
+
+
+class TestPrimaryReadFallback:
+    """A failing primary must never hide data the mirror can still serve."""
+
+    def test_get_file_text_falls_back_to_the_mirror(self) -> None:
+        client, _, _, _ = _mirror(
+            primary_failing=True, mirror_files={"ns/phone/log.json": "{}"}
+        )
+        assert client.get_file_text("ns/phone/log.json") == "{}"
+
+    def test_get_file_text_raises_when_both_fail(self) -> None:
+        client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
+        with pytest.raises(RemoteSyncError):
+            client.get_file_text("ns/phone/log.json")
+
+    def test_get_file_text_raises_when_primary_fails_and_mirror_lacks_it(
+        self,
+    ) -> None:
+        # A reachable mirror that simply does not hold the file is not an
+        # answer either, since the primary's copy was never read.
+        client, _, _, _ = _mirror(primary_failing=True)
+        with pytest.raises(RemoteSyncError):
+            client.get_file_text("ns/phone/log.json")
+
+    def test_revision_map_falls_back_to_the_mirror(self) -> None:
+        client, _, _, _ = _mirror(
+            primary_failing=True, mirror_files={"ns/revs/phone": "r1"}
+        )
+        assert client.get_string_map("ns/revs") == {"phone": "r1"}
+
+    def test_revision_map_raises_when_both_fail(self) -> None:
+        client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
+        with pytest.raises(RemoteSyncError):
+            client.get_string_map("ns/revs")
+
+    def test_revision_map_tolerates_a_mirror_that_cannot_bulk_read(
+        self,
+    ) -> None:
+        # A mirror with no bulk-read capability (GitHub) contributes nothing,
+        # but that is not a failure -- it simply has no revisions to add, so a
+        # working primary's map must still come back. Matches the Dart side,
+        # where the capability check runs inside the guarded closure.
+        client = MirrorSyncClient(
+            FakeStore({"ns/revs/pc": "r1"}),
+            FakeStoreWithoutBulkRead(),
+            on_mirror_failure=lambda *_: None,
+        )
+        assert client.get_string_map("ns/revs") == {"pc": "r1"}
+
+    def test_writes_stay_fail_closed_on_a_primary_failure(self) -> None:
+        # The read fix must NOT loosen writes: an unaccepted write has not
+        # happened, so it must still fail the tick.
+        client, _, _, _ = _mirror(primary_failing=True)
+        with pytest.raises(RemoteSyncError):
+            client.put_file_text("ns/pc/log.json", "{}", message="m")
+        with pytest.raises(RemoteSyncError):
+            client.delete_file("ns/pc/log.json")
 
 
 class TestRevisionMaps:

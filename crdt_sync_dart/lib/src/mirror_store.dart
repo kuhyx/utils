@@ -8,8 +8,7 @@ library;
 import 'remote_store.dart';
 
 /// Called when the mirror backend fails, so the failure is loud but survivable.
-typedef MirrorFailureHandler =
-    void Function(String operation, Object error);
+typedef MirrorFailureHandler = void Function(String operation, Object error);
 
 /// Writes to both backends; reads from both and prefers the primary.
 ///
@@ -24,11 +23,19 @@ typedef MirrorFailureHandler =
 /// primary failure fails the tick (fail-closed), while a mirror failure is
 /// reported through [onMirrorFailure] and otherwise tolerated. Once the
 /// mirror is retired, the old backend going away must not break sync.
+///
+/// **Reads are resilient on BOTH sides; writes are not.** A read is only
+/// fail-closed when neither backend can answer. Reads used to call the
+/// primary unguarded, so a Firebase outage produced no data at all and the
+/// mirror was never consulted -- the union read silently degraded to nothing,
+/// contradicting the paragraph above. Writes keep the asymmetry: a write the
+/// primary did not accept has not happened, so it must fail the tick.
 class MirrorStore implements RemoteStore, BulkMapReader {
   MirrorStore({
     required this.primary,
     required this.mirror,
     this.onMirrorFailure,
+    this.onPrimaryReadFailure,
   });
 
   /// The authoritative backend. Its failures fail the tick.
@@ -41,25 +48,49 @@ class MirrorStore implements RemoteStore, BulkMapReader {
   /// the fallback rot unnoticed until the day it was needed.
   final MirrorFailureHandler? onMirrorFailure;
 
+  /// Notified when a primary READ fails and the mirror is used instead.
+  ///
+  /// Separate from [onMirrorFailure] so "the backend we are migrating TO is
+  /// down" is distinguishable from "the backend we are retiring is down".
+  final MirrorFailureHandler? onPrimaryReadFailure;
+
   @override
   Future<List<String>> listDirectory(String path) async {
-    final names = <String>{...await primary.listDirectory(path)};
-    await _tryMirror('listDirectory $path', () async {
+    // A reachable primary that lists nothing is a real answer; a primary that
+    // THROWS is not. Reads are the half of this class that exists to be
+    // resilient, so a primary failure degrades to the mirror's entries rather
+    // than failing the read -- returning nothing because one side is down
+    // breaks the union promise exactly when the fallback is most needed.
+    final names = <String>{};
+    final primaryOk = await _tryPrimaryRead('listDirectory $path', () async {
+      names.addAll(await primary.listDirectory(path));
+    });
+    final mirrorOk = await _tryMirror('listDirectory $path', () async {
       names.addAll(await mirror.listDirectory(path));
     });
+    if (!primaryOk && !mirrorOk) {
+      _raiseBothFailed('listDirectory $path');
+    }
     return names.toList();
   }
 
   @override
   Future<String?> getFileText(String path) async {
-    final text = await primary.getFileText(path);
-    if (text != null) return text;
+    String? text;
+    final primaryOk = await _tryPrimaryRead('getFileText $path', () async {
+      text = await primary.getFileText(path);
+    });
+    if (primaryOk && text != null) return text;
     // Absent from the primary means "this device has not migrated yet", not
-    // "no data" -- so fall through rather than reporting nothing.
+    // "no data" -- so fall through rather than reporting nothing. A primary
+    // that threw falls through for the same reason.
     String? fallback;
-    await _tryMirror('getFileText $path', () async {
+    final mirrorOk = await _tryMirror('getFileText $path', () async {
       fallback = await mirror.getFileText(path);
     });
+    if (!primaryOk && (!mirrorOk || fallback == null)) {
+      _raiseBothFailed('getFileText $path');
+    }
     return fallback;
   }
 
@@ -104,14 +135,21 @@ class MirrorStore implements RemoteStore, BulkMapReader {
     // Pattern binds rather than `is` promotion: BulkMapReader is not a
     // subtype of RemoteStore, and Dart only promotes to subtypes of the
     // declared type, so the intersection has to be named explicitly.
-    await _tryMirror('getStringMap $path', () async {
+    final mirrorOk = await _tryMirror('getStringMap $path', () async {
       if (mirror case final BulkMapReader reader) {
         merged.addAll(await reader.getStringMap(path));
       }
     });
-    // Primary applied last so its entries win on conflict.
-    if (primary case final BulkMapReader reader) {
-      merged.addAll(await reader.getStringMap(path));
+    // Primary applied last so its entries win on conflict. Like the other
+    // reads, a primary failure degrades to the mirror: revisions are a cache,
+    // and losing them re-reads data rather than losing it.
+    final primaryOk = await _tryPrimaryRead('getStringMap $path', () async {
+      if (primary case final BulkMapReader reader) {
+        merged.addAll(await reader.getStringMap(path));
+      }
+    });
+    if (!primaryOk && !mirrorOk) {
+      _raiseBothFailed('getStringMap $path');
     }
     return merged;
   }
@@ -123,11 +161,43 @@ class MirrorStore implements RemoteStore, BulkMapReader {
   }
 
   /// Runs a mirror operation, reporting rather than propagating its failure.
-  Future<void> _tryMirror(String operation, Future<void> Function() run) async {
+  ///
+  /// Returns whether it succeeded, so a read can tell "the mirror had nothing"
+  /// from "the mirror could not be reached".
+  Future<bool> _tryMirror(String operation, Future<void> Function() run) async {
     try {
       await run();
+      return true;
     } on RemoteSyncError catch (error) {
       onMirrorFailure?.call(operation, error);
+      return false;
     }
+  }
+
+  /// Runs a primary READ, reporting rather than propagating its failure.
+  ///
+  /// Reads only -- writes stay fail-closed, since a write the primary did not
+  /// accept has not happened and must fail the tick.
+  Future<bool> _tryPrimaryRead(
+    String operation,
+    Future<void> Function() run,
+  ) async {
+    try {
+      await run();
+      return true;
+    } on RemoteSyncError catch (error) {
+      onPrimaryReadFailure?.call(operation, error);
+      return false;
+    }
+  }
+
+  /// Fails closed when neither backend could answer a read.
+  ///
+  /// An empty result is indistinguishable from "no data", and callers act on
+  /// that by treating remote state as absent.
+  Never _raiseBothFailed(String operation) {
+    throw RemoteSyncError(
+      'both primary and mirror backends failed during $operation',
+    );
   }
 }
