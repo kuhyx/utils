@@ -184,6 +184,134 @@ void main() {
       client.close();
     });
 
+    test('signs in with Google when a token is available', () async {
+      // The one-tap path: a fresh install with no password typed anywhere.
+      final store = InMemoryCredentialStore();
+      final sentTo = <String>[];
+      final mock = http_testing.MockClient((request) async {
+        sentTo.add(request.url.path);
+        return http.Response(
+          jsonEncode({
+            'idToken': 'id',
+            'refreshToken': 'refresh',
+            'expiresIn': '3600',
+            'localId': _valid['uid'],
+          }),
+          200,
+        );
+      });
+
+      final client = await firebaseClientFor(
+        config: FirebaseConfig.parse(jsonEncode(_valid)),
+        store: store,
+        googleIdToken: () async => 'google-token',
+        httpClient: mock,
+      );
+
+      expect(sentTo.single, contains('signInWithIdp'));
+      expect(await store.load(), isNotNull, reason: 'session must persist');
+      client.close();
+    });
+
+    test('prefers Google over the password when both are available', () async {
+      // Google is the credential the user did not have to type, so on a device
+      // offering both it should win.
+      final sentTo = <String>[];
+      final mock = http_testing.MockClient((request) async {
+        sentTo.add(request.url.path);
+        return http.Response(
+          jsonEncode({
+            'idToken': 'id',
+            'refreshToken': 'refresh',
+            'expiresIn': '3600',
+            // Firebase always returns localId; the config carries a uid, so
+            // omitting it here would trip the wrong-account guard.
+            'localId': _valid['uid'],
+          }),
+          200,
+        );
+      });
+
+      final client = await firebaseClientFor(
+        config: FirebaseConfig.parse(jsonEncode(_valid)),
+        store: InMemoryCredentialStore(),
+        password: 'hunter2',
+        googleIdToken: () async => 'google-token',
+        httpClient: mock,
+      );
+
+      expect(sentTo.single, contains('signInWithIdp'));
+      client.close();
+    });
+
+    test('refuses a Google account that is not the configured uid', () async {
+      // End of the chain the phone actually walks: a mis-tapped account in the
+      // picker must fail here rather than storing a session that the security
+      // rules then deny on every read and write.
+      final store = InMemoryCredentialStore();
+      final mock = http_testing.MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'idToken': 'id',
+            'refreshToken': 'refresh',
+            'expiresIn': '3600',
+            'localId': 'a-different-persons-uid',
+          }),
+          200,
+        ),
+      );
+
+      await expectLater(
+        firebaseClientFor(
+          config: FirebaseConfig.parse(jsonEncode(_valid)),
+          store: store,
+          googleIdToken: () async => 'token-for-the-wrong-account',
+          httpClient: mock,
+        ),
+        throwsA(isA<FirebaseAuthError>()),
+      );
+      expect(await store.load(), isNull);
+    });
+
+    test('falls back to the password when Google returns null', () async {
+      // Desktop and headless: the provider is wired but nobody is signed in
+      // with Google, so the machine credential has to still work.
+      final sentTo = <String>[];
+      final mock = http_testing.MockClient((request) async {
+        sentTo.add(request.url.path);
+        return http.Response(
+          jsonEncode({
+            'idToken': 'id',
+            'refreshToken': 'refresh',
+            'expiresIn': '3600',
+          }),
+          200,
+        );
+      });
+
+      final client = await firebaseClientFor(
+        config: FirebaseConfig.parse(jsonEncode(_valid)),
+        store: InMemoryCredentialStore(),
+        password: 'hunter2',
+        googleIdToken: () async => null,
+        httpClient: mock,
+      );
+
+      expect(sentTo.single, contains('signInWithPassword'));
+      client.close();
+    });
+
+    test('refuses to build when Google returns null and no password', () async {
+      await expectLater(
+        firebaseClientFor(
+          config: FirebaseConfig.parse(jsonEncode(_valid)),
+          store: InMemoryCredentialStore(),
+          googleIdToken: () async => null,
+        ),
+        throwsA(isA<ConfigException>()),
+      );
+    });
+
     test('reuses a stored session without a password', () async {
       final store = InMemoryCredentialStore();
       await store.save(

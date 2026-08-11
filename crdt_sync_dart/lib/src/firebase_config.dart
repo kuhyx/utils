@@ -104,10 +104,20 @@ class FirebaseConfig {
 /// The common path costs no authentication round trip: [store] holds the
 /// refresh token between launches. Pass the platform-appropriate store --
 /// `flutter_secure_storage` on Android, a 0600 file on desktop.
+/// Supplies a Google ID token for the account to sign in as, or null when the
+/// user is not signed in with Google on this device.
+///
+/// A closure rather than a dependency: `google_sign_in` is Android/iOS/web
+/// only, and this package must keep working on Linux desktop and headless
+/// under systemd. The app owns the plugin; the library only wants the token.
+typedef GoogleIdTokenProvider = Future<String?> Function();
+
 Future<FirebaseRestClient> firebaseClientFor({
   required FirebaseConfig config,
   required FirebaseCredentialStore store,
   String? password,
+  GoogleIdTokenProvider? googleIdToken,
+  String? expectedUid,
   http.Client? httpClient,
 }) async {
   final auth = FirebaseTokenProvider(
@@ -116,13 +126,25 @@ Future<FirebaseRestClient> firebaseClientFor({
     httpClient: httpClient,
   );
   if (await store.load() == null) {
-    if (password == null) {
+    // Google first: it is the one-tap path, and on a fresh install it is the
+    // only credential the user has not had to type. Password stays as the
+    // fallback, and is the only option on desktop and headless.
+    final google = await googleIdToken?.call();
+    if (google != null) {
+      // config.uid is empty on the app path (FirebaseProject.configFor leaves
+      // it blank), in which case signInWithGoogle skips the comparison rather
+      // than failing every sign-in against ''. Apps that know their uid should
+      // pass expectedUid so a mis-tapped account picker is caught here instead
+      // of turning into a silently denied sync.
+      await auth.signInWithGoogle(idToken: google, expectedUid: expectedUid ?? config.uid);
+    } else if (password != null) {
+      await auth.signIn(email: config.email, password: password);
+    } else {
       throw ConfigException(
-        'no stored session for ${config.email} and no password given; '
-        'sign in once from the settings screen',
+        'no stored session for ${config.email}, no Google sign-in and no '
+        'password given; sign in once from the settings screen',
       );
     }
-    await auth.signIn(email: config.email, password: password);
   }
   return FirebaseRestClient(
     databaseUrl: config.databaseUrl,
@@ -143,12 +165,16 @@ Future<MirrorStore> mirrorStoreFor({
   required FirebaseCredentialStore store,
   required RemoteStore githubClient,
   String? password,
+  GoogleIdTokenProvider? googleIdToken,
+  String? expectedUid,
   http.Client? httpClient,
 }) async => MirrorStore(
   primary: await firebaseClientFor(
     config: config,
     store: store,
     password: password,
+    googleIdToken: googleIdToken,
+    expectedUid: expectedUid,
     httpClient: httpClient,
   ),
   mirror: githubClient,

@@ -164,6 +164,26 @@ def _utcnow() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+#: Reasons that mean the refresh token is permanently dead. Only these clear
+#: the session: a network error or a 5xx must not, because a device that signs
+#: itself out whenever the wifi drops needs a manual sign-in to recover, which
+#: is a worse failure than the stale banner this guards against.
+_TERMINAL_AUTH_REASONS = (
+    "TOKEN_EXPIRED",
+    "USER_DISABLED",
+    "USER_NOT_FOUND",
+    "INVALID_REFRESH_TOKEN",
+    "INVALID_GRANT_TYPE",
+    "MISSING_REFRESH_TOKEN",
+)
+
+
+def _is_revoked(error: FirebaseAuthError) -> bool:
+    """Return whether ``error`` means the refresh token is permanently dead."""
+    message = str(error)
+    return any(reason in message for reason in _TERMINAL_AUTH_REASONS)
+
+
 class FirebaseTokenProvider:
     """Signs in and keeps a valid ID token available, refreshing as needed.
 
@@ -214,6 +234,59 @@ class FirebaseTokenProvider:
             expires_in_seconds=body["expiresIn"],
         )
 
+    def sign_in_with_google(self, id_token: str, expected_uid: str = "") -> str:
+        """Exchange a Google ID token for a session and persist it.
+
+        Mirrors ``crdt_sync_dart``'s ``signInWithGoogle``. Used to reseed a
+        machine's session after the sync account moved to Google-only sign-in:
+        the refresh token this stores is what keeps a headless job working
+        between runs, so the browser flow is needed once per machine, not once
+        per tick.
+
+        Deliberately *not* a service-account key. That would authenticate as
+        an admin and bypass the security rules entirely, so the pinned-uid
+        rule that protects this data would stop applying to every PC write.
+
+        Args:
+            id_token: A Google ID token whose audience is this project.
+            expected_uid: When given, asserted against the uid Firebase
+                returns. A mismatch raises without storing anything -- an
+                unlinked Google identity is *signed up* rather than refused,
+                and that session would then be denied every read and write.
+
+        Returns:
+            The email Firebase reports for the account.
+
+        Raises:
+            FirebaseAuthError: If the token is rejected, or resolves to a uid
+                other than ``expected_uid``.
+        """
+        body = self._post(
+            f"{_SIGN_IN_BASE}/accounts:signInWithIdp?key={self._api_key}",
+            {
+                # The IdP credential travels form-encoded, not as JSON -- an
+                # identitytoolkit quirk. Sending it as a field returns
+                # INVALID_IDP_RESPONSE, which reads like a bad token.
+                "postBody": f"id_token={id_token}&providerId=google.com",
+                "requestUri": "http://localhost",
+                "returnSecureToken": True,
+            },
+            "sign in with Google",
+        )
+        uid = body.get("localId", "")
+        if expected_uid and uid != expected_uid:
+            msg = (
+                f"signed in as the wrong account: Google resolved to uid "
+                f"{uid!r}, but this data belongs to {expected_uid!r}"
+            )
+            raise FirebaseAuthError(msg)
+        self._adopt(
+            id_token=body["idToken"],
+            refresh_token=body["refreshToken"],
+            expires_in_seconds=body["expiresIn"],
+        )
+        return str(body.get("email", ""))
+
     def id_token(self) -> str:
         """Return a currently-valid ID token, refreshing if needed.
 
@@ -252,11 +325,19 @@ class FirebaseTokenProvider:
         return self._cached
 
     def _refresh(self, refresh_token: str) -> str:
-        body = self._post(
-            f"{_REFRESH_BASE}/token?key={self._api_key}",
-            {"grant_type": "refresh_token", "refresh_token": refresh_token},
-            "refresh the session",
-        )
+        try:
+            body = self._post(
+                f"{_REFRESH_BASE}/token?key={self._api_key}",
+                {"grant_type": "refresh_token", "refresh_token": refresh_token},
+                "refresh the session",
+            )
+        except FirebaseAuthError as error:
+            # A revoked refresh token never becomes valid again, so keeping it
+            # is what let a dead device report "connected" and then fail every
+            # sync with TOKEN_EXPIRED. Drop it so has_session() is honest.
+            if _is_revoked(error):
+                self.sign_out()
+            raise
         return self._adopt(
             id_token=body["id_token"],
             # A refresh may hand back a rotated token; keep the new one.
