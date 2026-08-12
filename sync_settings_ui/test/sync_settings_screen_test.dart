@@ -190,6 +190,13 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Sign in with Google'), findsOneWidget);
+        // The password form is collapsed behind its ExpansionTile when
+        // Google is offered -- only the field labels prove that; the tile's
+        // own title text is present either way.
+        expect(
+          find.widgetWithText(TextField, 'Sync account email'),
+          findsNothing,
+        );
         await tester.tap(find.text('Sign in with Google'));
         await tester.pumpAndSettle();
 
