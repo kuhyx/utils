@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from gatelock._detect import OutputChangeDetector
     from gatelock._outputs import OutputEnumerator
     from gatelock._surfaces import SurfaceDelta, SurfaceSet
-    from gatelock._window import LockConfig
+    from gatelock._window import LockConfig, LockWindowHooks
 
 _logger = logging.getLogger(__name__)
 
@@ -69,23 +69,32 @@ class RecoveryReport:
     blind: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class RecoveryCollaborators:
+    """The pieces one tick re-asserts over.
+
+    Bundled to keep the loop's constructor at one object instead of a
+    growing, unbounded arg list.
+    """
+
+    config: LockConfig
+    surfaces: SurfaceSet
+    enumerator: OutputEnumerator
+    detector: OutputChangeDetector
+    hooks: LockWindowHooks
+
+
 class RecoveryLoop:
     """Re-asserts the lock's coverage on a timer and on change events."""
 
-    def __init__(
-        self,
-        root: tk.Misc,
-        config: LockConfig,
-        surfaces: SurfaceSet,
-        enumerator: OutputEnumerator,
-        detector: OutputChangeDetector,
-    ) -> None:
+    def __init__(self, root: tk.Misc, collaborators: RecoveryCollaborators) -> None:
         """Wire the loop to the pieces it re-asserts over."""
         self._root = root
-        self._config = config
-        self._surfaces = surfaces
-        self._enumerator = enumerator
-        self._detector = detector
+        self._config = collaborators.config
+        self._surfaces = collaborators.surfaces
+        self._enumerator = collaborators.enumerator
+        self._detector = collaborators.detector
+        self._hooks = collaborators.hooks
         self._running = False
         self._ticks = 0
         self._drain_job: str | None = None
@@ -176,6 +185,8 @@ class RecoveryLoop:
         corrected = self._surfaces.enforce()
         grab_reasserted = self._reassert_grab()
         vt_reasserted = self._reassert_vt()
+        if delta.created:
+            self._reassert_focus()
 
         if delta.unverified:
             _logger.error(
@@ -264,6 +275,24 @@ class RecoveryLoop:
         if held:
             self._last_grab_warning = None
         return held
+
+    def _reassert_focus(self) -> None:
+        """Re-focus the preferred surface after any output came back live.
+
+        ``LockWindow.grab_input()`` only focuses the entry once, on first
+        acquisition (:meth:`LockWindow._notify_focus_ready` is one-shot). A
+        surface that is rebuilt later -- an output going dark and returning,
+        which a flaky monitor does routinely -- gets a brand new widget that
+        nothing ever focuses. The lock keeps its grab, so no other window can
+        take focus either: the entry renders correctly but is permanently
+        keyboard-dead until the process restarts. Re-running the same
+        focus_surface(preferred_focus_index()) call LockWindow makes on
+        startup, here, whenever a surface was just (re)created, is what keeps
+        that widget the actual Tk focus target.
+        """
+        with contextlib.suppress(tk.TclError):
+            index = self._surfaces.preferred_focus_index()
+            self._hooks.on_focus_ready(self._surfaces.focus_surface(index))
 
     def _warn_once(self, reason: str) -> None:
         """Warn about a lost grab, but only when the reason changes.

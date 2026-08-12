@@ -36,7 +36,7 @@ from gatelock import _density
 from gatelock._arbiter import RANK_SCREEN_LOCKER
 from gatelock._detect import OutputChangeDetector
 from gatelock._outputs import OutputEnumerator
-from gatelock._recovery import RecoveryLoop
+from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
 from gatelock._surfaces import SurfaceSet, needs_backdrop_root
 from gatelock._vt import disable_vt_switching, restore_vt_switching
 
@@ -314,7 +314,14 @@ class LockWindow:
         self._enumerator = OutputEnumerator(root)
         self._detector = OutputChangeDetector(root)
         self._recovery = RecoveryLoop(
-            root, config, self._surfaces, self._enumerator, self._detector
+            root,
+            RecoveryCollaborators(
+                config=config,
+                surfaces=self._surfaces,
+                enumerator=self._enumerator,
+                detector=self._detector,
+                hooks=hooks,
+            ),
         )
 
     @property

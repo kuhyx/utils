@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from gatelock._outputs import Output, OutputRect, OutputScan
-from gatelock._recovery import RecoveryLoop
+from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
 from gatelock._surfaces import SurfaceSet
 from gatelock._window import LockConfig
 
@@ -48,11 +48,21 @@ def symbols(module: str) -> set[str]:
 def loop(mock_root: MagicMock) -> tuple[RecoveryLoop, MagicMock, SurfaceSet]:
     """A recovery loop over mocked surroundings."""
     config = LockConfig(mode="hard")
-    surfaces = SurfaceSet(mock_root, config, MagicMock())
+    hooks = MagicMock()
+    surfaces = SurfaceSet(mock_root, config, hooks)
     enumerator = MagicMock()
     detector = MagicMock()
     return (
-        RecoveryLoop(mock_root, config, surfaces, enumerator, detector),
+        RecoveryLoop(
+            mock_root,
+            RecoveryCollaborators(
+                config=config,
+                surfaces=surfaces,
+                enumerator=enumerator,
+                detector=detector,
+                hooks=hooks,
+            ),
+        ),
         enumerator,
         surfaces,
     )
@@ -267,8 +277,66 @@ class TestGrabReassertion:
         surfaces = SurfaceSet(mock_root, config, MagicMock())
         enumerator = MagicMock()
         enumerator.scan.return_value = BOTH
-        recovery = RecoveryLoop(mock_root, config, surfaces, enumerator, MagicMock())
+        recovery = RecoveryLoop(
+            mock_root,
+            RecoveryCollaborators(
+                config=config,
+                surfaces=surfaces,
+                enumerator=enumerator,
+                detector=MagicMock(),
+                hooks=MagicMock(),
+            ),
+        )
         assert recovery.tick().grab_reasserted is False
+
+
+class TestFocusReassertion:
+    """Re-focusing a surface that was (re)built after the first tick.
+
+    Regression coverage for the 2026-08 bug: a monitor blip tears down and
+    rebuilds a surface's widgets mid-lock, but ``LockWindow`` only ever
+    focuses the entry once, on first grab acquisition. Without this, the new
+    widget renders correctly but is never the Tk focus target, and the held
+    global grab means nothing else can take focus either -- a silent,
+    permanent input dead end that looks identical to a working lock.
+    """
+
+    def test_refocuses_when_a_surface_is_recreated(
+        self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet]
+    ) -> None:
+        """A surface coming back live re-triggers on_focus_ready."""
+        recovery, enumerator, surfaces = loop
+        hooks = surfaces._builder
+        enumerator.scan.return_value = BOTH
+        recovery.tick()
+        hooks.on_focus_ready.reset_mock()
+        enumerator.scan.return_value = DEAD_PRIMARY
+        recovery.tick()
+        enumerator.scan.return_value = BOTH
+        recovery.tick()
+        hooks.on_focus_ready.assert_called_once()
+
+    def test_no_refocus_when_nothing_was_created(
+        self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet]
+    ) -> None:
+        """A tick with no new surfaces must not fight the user mid-typing."""
+        recovery, enumerator, surfaces = loop
+        hooks = surfaces._builder
+        enumerator.scan.return_value = BOTH
+        recovery.tick()
+        hooks.on_focus_ready.reset_mock()
+        recovery.tick()
+        hooks.on_focus_ready.assert_not_called()
+
+    def test_tclerror_during_refocus_is_swallowed(
+        self, loop: tuple[RecoveryLoop, MagicMock, SurfaceSet], mock_root: MagicMock
+    ) -> None:
+        """A focus call on a half-torn-down widget must not crash the tick."""
+        recovery, enumerator, surfaces = loop
+        hooks = surfaces._builder
+        hooks.on_focus_ready.side_effect = tk.TclError("gone")
+        enumerator.scan.return_value = BOTH
+        recovery.tick()
 
 
 class TestVtReassertion:
@@ -291,7 +359,16 @@ class TestVtReassertion:
         surfaces = SurfaceSet(mock_root, config, MagicMock())
         enumerator = MagicMock()
         enumerator.scan.return_value = BOTH
-        recovery = RecoveryLoop(mock_root, config, surfaces, enumerator, MagicMock())
+        recovery = RecoveryLoop(
+            mock_root,
+            RecoveryCollaborators(
+                config=config,
+                surfaces=surfaces,
+                enumerator=enumerator,
+                detector=MagicMock(),
+                hooks=MagicMock(),
+            ),
+        )
         assert all(not recovery.tick().vt_reasserted for _ in range(31))
 
 
