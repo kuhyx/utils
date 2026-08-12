@@ -18,8 +18,28 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.2.0
+      ref: crdt_sync_dart-v0.10.0
       path: crdt_sync_dart
+```
+
+## sync_settings_ui/
+
+Shared Flutter "Sync settings" screen (pub package name: `sync_settings_ui`,
+not published to pub.dev). Firebase sync (primary) plus an optional local
+backup slot — no GitHub mirror UI. Pure UI + a `FirebaseSyncController`
+service layer over injected closures (keystore/Google-plugin access stays
+in each consuming app, exactly as before this package existed). Consumed by
+`todo`, `diet_guard_app`, `workout_app`, `wake_alarm/phone_app`, and
+`home_inventory`'s dedicated "Sync settings" route.
+
+Consume via:
+```yaml
+dependencies:
+  sync_settings_ui:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: sync_settings_ui-v0.1.0
+      path: sync_settings_ui
 ```
 
 ## crdt-sync/

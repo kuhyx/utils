@@ -1,0 +1,36 @@
+name: sync_settings_ui tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['sync_settings_ui/**']
+  pull_request:
+    branches: [main]
+    paths: ['sync_settings_ui/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sync_settings_ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce 100% line coverage
+        run: scripts/check_coverage.sh coverage/lcov.info 100

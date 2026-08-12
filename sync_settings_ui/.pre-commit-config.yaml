@@ -1,0 +1,61 @@
+# Pre-commit Configuration for sync_settings_ui
+# Install:  pre-commit install && pre-commit install --hook-type pre-push
+# Run:      pre-commit run --all-files
+
+# NOTE: this subproject lives inside the ~/utils monorepo, whose git root is
+# one level up. pre-commit always runs hooks from the git root, so every path
+# below is written relative to THAT, not to this directory, and the top-level
+# `files` key keeps these hooks off the sibling subprojects. CI invokes this
+# config exactly the same way:
+#   pre-commit run --config sync_settings_ui/.pre-commit-config.yaml --all-files
+files: ^sync_settings_ui/
+
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      - id: subproject-scope
+        name: subproject scope regex still matches
+        entry: scripts/check_subproject_scope.sh sync_settings_ui
+        language: script
+        # always_run so the top-level `files` filter cannot skip the one hook
+        # whose job is to notice that filter has stopped matching anything.
+        always_run: true
+        pass_filenames: false
+      - id: no-crdt-sync-override
+        name: no local dependency_overrides on a utils git dependency
+        entry: scripts/check_no_crdt_sync_override.sh sync_settings_ui/pubspec.yaml
+        language: script
+        pass_filenames: false
+      - id: dart-format
+        name: dart format --set-exit-if-changed
+        entry: bash -c 'cd sync_settings_ui && dart format --set-exit-if-changed lib test'
+        language: system
+        pass_filenames: false
+      - id: flutter-analyze
+        name: flutter analyze
+        entry: bash -c 'cd sync_settings_ui && flutter analyze'
+        language: system
+        pass_filenames: false
+      - id: flutter-test-coverage
+        name: flutter test --coverage with 100% line-coverage gate
+        entry: >-
+          bash -c 'cd sync_settings_ui && flutter test --coverage &&
+          scripts/check_coverage.sh coverage/lcov.info 100'
+        language: system
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-push]

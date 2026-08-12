@@ -1,0 +1,32 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Promote key lints to errors so they fail CI, not just warn.
+    missing_required_param: error
+    unnecessary_null_comparison: error
+    dead_code: error
+    invalid_annotation_target: error
+  exclude:
+    - build/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "test/**"
+
+linter:
+  rules:
+    # very_good_analysis enables most rules; add extras it doesn't include.
+    always_use_package_imports: true
+    avoid_print: true
+    avoid_relative_lib_imports: true
+    cancel_subscriptions: true
+    close_sinks: true
+    comment_references: false  # conflicts with typical Flutter API docs style
+    directives_ordering: true
+    lines_longer_than_80_chars: true
+    public_member_api_docs: true
+    unawaited_futures: true
