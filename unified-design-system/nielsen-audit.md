@@ -62,6 +62,26 @@ two-repo extraction criterion, which most of them currently fail.
 
 Proof consumers `todo` and `untools` are migrated, verified and pushed.
 
+### Which exports have a live consumer
+
+An extracted component with no importer is the failure mode this audit
+exists to prevent, so the honest status per export:
+
+| Export | Live consumers |
+|---|---|
+| tokens, palette, themes | todo, untools |
+| `confirmDestructive` | todo (2 sites) |
+| `showToast` / `showError` | todo (3 sites) |
+| `SectionHeader` | untools (2 sites) |
+| `EmptyState` | **none yet** — donor is home_inventory (3 sites), unmigrated |
+| `AppStatusColors` | **none yet** — 4 donors, all unmigrated |
+
+The last two ship ahead of their consumers. That is defensible (both have
+real donors waiting, and `AppStatusColors` must exist for `showError` to read
+the danger hue off the theme) but it is not *validated*, and it should be
+called that way until home_inventory or one of the status-color donors
+migrates.
+
 ### Corrections to the original plan, found by measuring
 
 The plan's figures were mostly right but three were not, and the difference
