@@ -1,0 +1,22 @@
+name: design_system
+description: >-
+  The shared component layer for kuhy's Flutter apps: the frozen palette,
+  spacing/radius/type scales, theme builders, and the small set of widgets and
+  helpers that were each reimplemented in three or more repos. Owns the tokens
+  -- consumers import them rather than transcribing the token table by hand.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.2.0
+
+flutter:
