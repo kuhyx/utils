@@ -1,0 +1,201 @@
+# Nielsen coverage audit
+
+Jakob Nielsen's ["10 GUI Design Elements Build Every User
+Interface"](https://jakobnielsenphd.substack.com/p/gui-widgets) argues that
+essentially every UI is assembled from ~10 standardized elements, and that the
+value comes from *reusing* those conventions rather than re-inventing them.
+Re-implementing the same button in eight repos is the private version of the
+convention erosion he describes.
+
+This file is the **audit grid**, not a build list. Shipping a widget nobody
+imports is the failure mode to avoid — 183 imported agent definitions were
+invoked zero times in 432 sessions. A component gets built only where **two or
+more repos already contain a structurally similar implementation**.
+
+Written 2026-08-14, alongside `design_system` v0.1.0.
+
+## Scope
+
+Fourteen Flutter repos, seven web repos, four Python/Tk guard apps. Out of
+scope, verified rather than assumed: Unity (zero `.uxml`/`.uss` files exist
+anywhere), games (their repeated identifiers are game constants like
+`FORGE_MAX_C`, not UI), and the locker gate windows (their X-grab/input-hijack
+invariants make the *window* non-reusable, though its leaf widgets are fair
+game).
+
+`~/testsAndMisc/pomodoro_app` and `horatio` no longer exist. **`workout_app`
+does not exist either** — it is named in the source plan and in several skill
+docs, but no directory under `~` matches `*workout*`. Anything citing it as a
+consumer is stale.
+
+## The grid
+
+| # | Nielsen element | Flutter | Web | Python/Tk |
+|---|---|---|---|---|
+| 1 | Buttons | ⚠️ themed only | ❌ 7 vocabularies | ⚠️ 4 factories, see Phase 2 |
+| 2 | Input fields / forms | ✅ `inputDecorationTheme` | ❌ | ⚠️ |
+| 3 | Menus | ❌ not specced | ❌ | ❌ |
+| 4 | Links | ❌ not specced | ❌ | n/a |
+| 5 | Dialogs | ✅ `confirmDestructive()` | ❌ | ⚠️ |
+| 6 | Alerts / notifications | ✅ `showToast`/`showError` | ❌ | ❌ |
+| 7 | Icons | ❌ not specced | ❌ | ❌ |
+| 8 | Checkboxes / radio buttons | ⚠️ themed only | ❌ | ❌ |
+| 9 | Tabs | ❌ not specced | ❌ | ❌ |
+| 10 | Search | ❌ not specced | ⚠️ `FilterBar` ×2 | n/a |
+
+`components.html` specs 9 components but says nothing about **menus, links,
+icons, radio buttons, tabs, or search** — six of Nielsen's ten. That is the
+documentation gap; whether any of them deserves *code* still depends on the
+two-repo extraction criterion, which most of them currently fail.
+
+## What v0.1.0 closed
+
+| Export | Replaced |
+|---|---|
+| `AppPalette` + scales | 10 divergent `theme.dart` copies; ~318 raw color literals |
+| `buildLightTheme` / `buildDarkTheme` | the same, per repo |
+| `AppStatusColors` | 4 hand-rolled `ThemeExtension`s with inconsistent fields |
+| `confirmDestructive()` | ~35 inlined `AlertDialog`s |
+| `showToast` / `showError` | ~38 raw `SnackBar` sites, zero helpers |
+| `EmptyState` | 4 variants, one reusable |
+| `SectionHeader` | 3 near-identical private widgets |
+
+Proof consumers `todo` and `untools` are migrated, verified and pushed.
+
+### Corrections to the original plan, found by measuring
+
+The plan's figures were mostly right but three were not, and the difference
+changes what is worth doing next:
+
+- **The "343 raw literals" are not spread through call sites.** They are
+  concentrated in the hand-copied theme files. todo had 35, *all 35* inside
+  `theme.dart`; untools had 36, of which 35 were in `theme.dart` and the last
+  was `Colors.transparent` in `keyboard.dart` — a sentinel, not a palette
+  value. Deleting the theme file removes essentially all of them. There was no
+  call-site sweep to do in either proof consumer, and the same is true of
+  home_inventory, habit_stack, diet-guard, wake-alarm, macro-cam and kuhylog,
+  which all have **zero** literals outside their token file. The repos with
+  genuine call-site leakage are `billsplit` (16, all ad hoc `Colors.red`/
+  `teal`/`black54`), `epopeja_karta` (14, palette inlined in `app.dart`) and
+  `focus_owner` (8).
+- **There are 4 `AppStatusColors`, not 5**, and they disagree about their own
+  shape: home_inventory and diet-guard have `success` + `warning`, habit_stack
+  has `success` only, wake-alarm has both; home_inventory and habit_stack ship
+  `light` *and* `dark` statics, the other two `dark` only. The package's
+  version is a superset (`success`/`warning`/`danger`/`info`/`onStatus`), so
+  every consumer can adopt it without losing a field.
+- **There are 3 section headers, not 5**, and no `_SectionLabel` exists. Two
+  agreed on `titleMedium` and were reconciled into `SectionHeader`;
+  `epopeja_karta`'s is a *different element* — `labelSmall` + primary color +
+  letter-spacing, i.e. an eyebrow, not a section title. It was deliberately
+  not folded in.
+
+## Deferred clusters
+
+Actionable later; each line is repo + path + size, so none of this needs
+rediscovering.
+
+### Flutter — large reconciliations
+
+| Cluster | Where | Size |
+|---|---|---|
+| `GitHubMirrorScreen` ×5 | todo, diet-guard, +3 | ~1551 lines, 586 differing between two copies |
+| `SettingsScreen` ×6 | fleet-wide | — |
+| List tiles | ~20 classes fleet-wide | — |
+| Filter sheets | todo, dufs-cloud, +1 | **name collision, not duplicates** — dufs-cloud's uses no chips at all; judge structurally |
+| Steppers, badges | fleet-wide | — |
+
+The five `GitHubMirrorScreen` copies each carry a near-verbatim "kept
+app-local rather than folded into `sync_settings_ui`" comment. That decision
+deserves revisiting **on its own**, not smuggled into a component extraction.
+
+### Flutter — palette drift to correct
+
+Standing decision (2026-08-14): every app uses **exactly** the frozen palette;
+where copies disagree, the most popular wins. That is unambiguous — 9 of 10
+theme files use the gold `#B8862E` family.
+
+| Repo | Drift | Fix |
+|---|---|---|
+| `testsAndMisc/focus_owner` | **entirely off-palette**: cool `#5B9DD9` accent, `#1B1D21` field, `#D9776B` danger, `#E8EAED` text. Its doc comment claims it matches the other `com.kuhy.*` apps; it does not. Worse, the same six constants are **duplicated verbatim** in `main.dart:16-21` as `_kField`…`_kDanger` — the file says they were "lifted out of main.dart", but the originals were never deleted. | adopt `design_system`; delete both copies |
+| `kuhylog` | the only repo using `ColorScheme.fromSeed` (seed `#3B82F6`, blue) — the opposite of the convention every other theme file explicitly documents. Also has `scoreColor(ColorScheme, int)`, which is `AppStatusColors`' job done as a function. | adopt `design_system` + `AppStatusColors` |
+| `epopeja_karta` | no `theme.dart` at all; `ColorScheme` inlined in `app.dart:12-20` | adopt `design_system` |
+| `billsplit` | `ColorScheme.fromSeed(seedColor: Colors.teal)` in `main.dart:31`, plus 16 ad hoc literals | adopt `design_system` |
+| `diet-guard`, `macro-cam` | scales drifted from the six-repo consensus | adopt `design_system` |
+
+`focus_owner` is a live enforcement surface, so its visual change wants a
+human look rather than a blind migration — it is the one item here that is
+deferred for a reason beyond time.
+
+### Remaining Flutter adopters
+
+`home_inventory`, `dufs-cloud`, `habit_stack`, `diet-guard`, `macro-cam`,
+`wake-alarm/phone_app`, `kuhylog`, `epopeja_karta`, `billsplit`,
+`focus_owner`. Each drops its local `theme.dart` for the tag-pinned dep, as
+todo and untools now do.
+
+### Phase 2 — Python/Tk (`~/utils/gatelock`), not started
+
+Not a new package: gatelock already owns the tokens (`LockConfig`), the Tk
+plumbing and 4 consumers. Add composite widgets, which is where its scope
+currently stops.
+
+1. `widgets.py::make_button` — canonical is diet-guard's
+   `_gatelock_buttons.py::make_button`, whose `variant` API picks text color
+   *from* the fill and so structurally prevents the `fg`-vs-`on_fill` contrast
+   bug. leetcode-guard's `_button` (no `<Return>` binding) and screen-locker's
+   inline `tk.Button` are the regressions being retired.
+2. `widgets.py::heading()` / `row()` — from `leetcode_guard/_status_sections.py`.
+3. **Export the existing `ScrollableSurface`** and delete
+   `leetcode_guard/status_view.py::_scrollable`, a hand-rolled reimplementation
+   that lost `takefocus` and the focus ring. Straight accessibility repair.
+4. `widget_group.py::WidgetGroup` — the per-output fan-out reimplemented 4×
+   (~916 lines: screen-locker 173, leetcode-guard 105, diet-guard 309,
+   wake-alarm 329). Highest line-count win on this stack.
+
+Proof consumers: `diet-guard` and `leetcode-guard` (donor and worst offender).
+Bump **only those two**; leave screen-locker and wake-alarm on their current
+pin — Phase 2 is additive, and restarting live services is blast radius for no
+gain.
+
+> **Verification gate — non-negotiable.** gatelock backs live systemd
+> services. After any change: `/usr/bin/python3 -c "import gatelock"` against
+> the real interpreter, not a dev venv. Do not touch the gate window's grab
+> path. Then launch each gate under `xvfb-run -s "-screen 0 1366x768x24"` and
+> confirm buttons render and **`<Return>` activates** them.
+
+### Phase 3 — TypeScript (`~/utils/web_ui`), not started
+
+Lowest confirmed duplication (2 components, 2 repos) and the only stack needing
+a brand-new consumption mechanism, so it carries the worst effort-to-payoff
+ratio — sequenced last on purpose.
+
+1. `tokens.css` — one `:root` block. Fixes the worst fork found: **7 repos
+   define 7 different vocabularies for the same palette** (`--surface-1` vs
+   `--panel` vs `--card`; `--text` vs `--ink` vs `--fg` vs `--bone`; spacing as
+   `--space-N` vs `--sp-N` vs `--sp-xs`). europe-county-map and iron-and-anvil
+   have **zero** custom properties.
+2. `RangeSlider` — canonical is dufs-cloud's, whose pure
+   `fractionFromPointer(rect, clientX)` is testable without layout (jsdom has
+   none). awesome-mcp-explorer's copy has drifted 196 lines.
+3. `FilterBar` + `filter-sort.ts` — reconcile dufs-cloud (174) vs
+   awesome-mcp-explorer (225).
+
+**Consumption mechanism (decided 2026-08-14):** a git dep
+`"@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.1.0"`, matching the Dart/Python
+tag convention rather than introducing npm workspaces — but shipping a
+**prebuilt `dist/`** (tsc → ESM + `.d.ts`) committed in the tag. Raw `.tsx` in
+`node_modules` would need per-repo bundler config, since Vite does not
+transpile dependencies by default; a committed `dist/` keeps consumers at zero
+config.
+
+Proof consumers: `dufs-cloud` and `awesome-mcp-explorer`.
+
+## Standing risks
+
+- **Version churn.** Each new tag needs a `pubspec.yaml` bump in every
+  consumer. `habit_stack` is already **7 minor versions stale** on `crdt_sync`
+  (v0.3.0 vs v0.10.0); the same drift will hit this package.
+- **Reconciliation is judgement.** Where copies diverged, a "best-of" choice
+  can regress a consumer that depended on its local variant. Migrating proof
+  consumers first exists to surface that early.
