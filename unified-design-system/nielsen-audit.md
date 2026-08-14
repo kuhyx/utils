@@ -76,6 +76,9 @@ exists to prevent, so the honest status per export:
 | `EmptyState` | **none yet** — donor is home_inventory (3 sites), unmigrated |
 | `AppStatusColors` | **none yet** — 4 donors, all unmigrated |
 
+Palette/token consumers beyond the two proof apps, added the same day:
+`focus_owner`, `kuhylog`, `epopeja_karta` (tokens only) and `billsplit`.
+
 The last two ship ahead of their consumers. That is defensible (both have
 real donors waiting, and `AppStatusColors` must exist for `showError` to read
 the danger hue off the theme) but it is not *validated*, and it should be
@@ -129,30 +132,46 @@ The five `GitHubMirrorScreen` copies each carry a near-verbatim "kept
 app-local rather than folded into `sync_settings_ui`" comment. That decision
 deserves revisiting **on its own**, not smuggled into a component extraction.
 
-### Flutter — palette drift to correct
+### Flutter — palette drift: DONE 2026-08-14
 
-Standing decision (2026-08-14): every app uses **exactly** the frozen palette;
-where copies disagree, the most popular wins. That is unambiguous — 9 of 10
-theme files use the gold `#B8862E` family.
+Standing decision: every app uses **exactly** the frozen palette; where copies
+disagree, the most popular wins. That was unambiguous — 9 of 10 theme files
+already used the gold `#B8862E` family. All four drifted repos are migrated.
 
-| Repo | Drift | Fix |
+| Repo | Drift that was fixed | How |
 |---|---|---|
-| `testsAndMisc/focus_owner` | **entirely off-palette**: cool `#5B9DD9` accent, `#1B1D21` field, `#D9776B` danger, `#E8EAED` text. Its doc comment claims it matches the other `com.kuhy.*` apps; it does not. Worse, the same six constants are **duplicated verbatim** in `main.dart:16-21` as `_kField`…`_kDanger` — the file says they were "lifted out of main.dart", but the originals were never deleted. | adopt `design_system`; delete both copies |
-| `kuhylog` | the only repo using `ColorScheme.fromSeed` (seed `#3B82F6`, blue) — the opposite of the convention every other theme file explicitly documents. Also has `scoreColor(ColorScheme, int)`, which is `AppStatusColors`' job done as a function. | adopt `design_system` + `AppStatusColors` |
-| `epopeja_karta` | no `theme.dart` at all; `ColorScheme` inlined in `app.dart:12-20` | adopt `design_system` |
-| `billsplit` | `ColorScheme.fromSeed(seedColor: Colors.teal)` in `main.dart:31`, plus 16 ad hoc literals | adopt `design_system` |
-| `diet-guard`, `macro-cam` | scales drifted from the six-repo consensus | adopt `design_system` |
+| `testsAndMisc/focus_owner` | **entirely off-palette**: cool `#5B9DD9` accent, `#1B1D21` field, `#D9776B` danger. Its doc comment claimed it matched the other `com.kuhy.*` apps; it did not. The same six constants were also **duplicated verbatim** in `main.dart:16-21` — the file said they had been "lifted out", but the originals were never deleted. | `theme.dart` now aliases `AppPalette`, so the ~80 call sites keep their names; both copies gone. Literals 15 → 2 (`Colors.transparent`). Verified on the Pixel 6a. |
+| `kuhylog` | the only repo using `ColorScheme.fromSeed` (blue `#3B82F6`) — the opposite of what every other theme file documents. | `KuhylogTheme.of()` delegates to `buildLightTheme`/`buildDarkTheme`. Kept as a wrapper for its `visualDensity`, flat `cardTheme` and `scoreColor`. Literals 1 → 0. |
+| `epopeja_karta` | `ColorScheme` inlined in `app.dart`, no `theme.dart`. | Imports **tokens only** — see below. Literals 9 → 0. |
+| `billsplit` | `ColorScheme.fromSeed(Colors.teal)` plus 15 ad hoc literals that mostly bypassed the theme entirely. | `buildLightTheme()`; error family → `error`/`onError`/`errorContainer`, muted text → `onSurfaceVariant`. Literals 15 → 4. |
+| `diet-guard`, `macro-cam` | scales drifted from the six-repo consensus | **still outstanding** — adopt `design_system` |
 
-`focus_owner` is a live enforcement surface, so its visual change wants a
-human look rather than a blind migration — it is the one item here that is
-deferred for a reason beyond time.
+Two deliberate exceptions, so nobody "fixes" them back:
+
+- **`epopeja_karta` adopts `AppPalette`, not `buildDarkTheme()`.** Its nine
+  slots were already byte-identical to the frozen palette, so only the
+  transcription was local. It is one dense screen with a test asserting
+  nothing scrolls, and the shared theme's larger type scale plus
+  `dividerTheme.space` overflows it by 34px. Typography there is a product
+  decision; colour is the identity, and colour is what the system owns.
+  Importing tokens leaves the rendered `ThemeData` identical, so the no-scroll
+  test passes by construction rather than by hitting a pixel target.
+- **`billsplit` keeps its four category-dot colours** (`deepOrange`/`amber`/
+  `blueGrey`/`teal` for alcohol/mixer/deposit/other). They encode *category
+  identity*, not a theme role, and a single-accent system has no four distinct
+  hues to lend. Folding them into `primary`/`secondary`/`tertiary` would make
+  the categories stop being distinguishable, which is their only job. **This
+  is the open categorical-ramp question** — the design system currently has no
+  answer for "N mutually distinguishable hues", and it needs one before any
+  chart, tag or category UI can be built on it.
 
 ### Remaining Flutter adopters
 
 `home_inventory`, `dufs-cloud`, `habit_stack`, `diet-guard`, `macro-cam`,
-`wake-alarm/phone_app`, `kuhylog`, `epopeja_karta`, `billsplit`,
-`focus_owner`. Each drops its local `theme.dart` for the tag-pinned dep, as
-todo and untools now do.
+`wake-alarm/phone_app`. Each drops its local `theme.dart` for the tag-pinned
+dep, as todo, untools, focus_owner, kuhylog, epopeja_karta and billsplit now
+do. These six were never off-palette — they transcribe the right values by
+hand — so this is duplication cleanup, not a visual fix.
 
 ### Phase 2 — Python/Tk (`~/utils/gatelock`), not started
 
