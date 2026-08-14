@@ -1,0 +1,36 @@
+name: design_system tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['design_system/**']
+  pull_request:
+    branches: [main]
+    paths: ['design_system/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: design_system
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce 100% line coverage
+        run: scripts/check_coverage.sh coverage/lcov.info 100

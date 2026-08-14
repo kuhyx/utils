@@ -2,16 +2,15 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<void> _pumpEmptyState(WidgetTester tester, {Widget? action}) {
+Future<void> _pumpEmptyState(WidgetTester tester) {
   return tester.pumpWidget(
     MaterialApp(
       theme: buildDarkTheme(),
-      home: Scaffold(
+      home: const Scaffold(
         body: EmptyState(
           icon: Icons.inbox_outlined,
           title: 'Nothing here yet',
           message: 'Add your first item to get started.',
-          action: action,
         ),
       ),
     ),
@@ -49,17 +48,11 @@ void main() {
     expect(title.style?.color, isNot(scheme.onSurfaceVariant));
   });
 
-  testWidgets('omits the action slot by default', (tester) async {
+  testWidgets('is a pure placeholder with no action', (tester) async {
+    // Deliberate: no donor had an action slot, so adding one would be
+    // speculative surface on a widget that has no consumer yet.
     await _pumpEmptyState(tester);
-    expect(find.byType(ElevatedButton), findsNothing);
-  });
-
-  testWidgets('renders an action when one is given', (tester) async {
-    await _pumpEmptyState(
-      tester,
-      action: ElevatedButton(onPressed: () {}, child: const Text('Add item')),
-    );
-    expect(find.text('Add item'), findsOneWidget);
+    expect(find.byType(ButtonStyleButton), findsNothing);
   });
 
   testWidgets('stays centred and shrink-wrapped', (tester) async {

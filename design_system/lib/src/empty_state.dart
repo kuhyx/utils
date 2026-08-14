@@ -14,7 +14,6 @@ class EmptyState extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
-    this.action,
     super.key,
   });
 
@@ -27,15 +26,14 @@ class EmptyState extends StatelessWidget {
   /// One line explaining what to do about it.
   final String message;
 
-  /// Optional call to action below the message — usually the button that
-  /// creates the first item. Omit it where the empty state is a *filter*
-  /// result rather than an empty collection: there is nothing to create.
-  final Widget? action;
+  // Deliberately no `action` slot. No donor had one: home_inventory's three
+  // call sites are pure placeholders, and kuhylog's action-bearing `_empty`
+  // is a different element. Adding one here would be speculative surface --
+  // the widget nobody imports, one parameter down.
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final action = this.action;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -57,10 +55,6 @@ class EmptyState extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              action,
-            ],
           ],
         ),
       ),
