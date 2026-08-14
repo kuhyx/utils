@@ -55,13 +55,26 @@ from gatelock._window import (
     SpaceStep,
     TypeRole,
 )
+from gatelock.widget_group import WidgetGroup
+from gatelock.widgets import (
+    DEFAULT_WRAP,
+    ButtonStyle,
+    ButtonVariant,
+    RowStyle,
+    heading,
+    make_button,
+    row,
+)
 
 __all__ = [
+    "DEFAULT_WRAP",
     "RANK_DIET_GUARD",
     "RANK_SCREEN_LOCKER",
     "RANK_WAKE_ALARM",
     "Arbiter",
     "ArbiterVerdict",
+    "ButtonStyle",
+    "ButtonVariant",
     "Claim",
     "EscapeDraft",
     "EscapeHistory",
@@ -80,6 +93,7 @@ __all__ = [
     "RandrBackend",
     "RecoveryLoop",
     "RecoveryReport",
+    "RowStyle",
     "ScrollableSurface",
     "SpaceStep",
     "SurfaceBuilder",
@@ -87,6 +101,7 @@ __all__ = [
     "SurfaceInfo",
     "SurfaceSet",
     "TypeRole",
+    "WidgetGroup",
     "assert_not_under_pytest",
     "bind_activate",
     "bind_cancel",
@@ -95,11 +110,14 @@ __all__ = [
     "enumerate_outputs",
     "escape_text_tab_trap",
     "grab_strength",
+    "heading",
+    "make_button",
     "measure_fit",
     "mirror_text_widgets",
     "needs_backdrop_root",
     "parse_xrandr_query",
     "report_fit",
     "restore_vt_switching",
+    "row",
     "wait_for_x_server",
 ]
