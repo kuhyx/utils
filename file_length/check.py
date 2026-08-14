@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -61,14 +62,45 @@ def exempt_reason(path: Path, lines: int) -> str | None:
     return None
 
 
+def git_ignored(paths: list[Path], root: Path) -> set[Path]:
+    """The subset of `paths` that git ignores, empty if root is not a repo.
+
+    Git-ignored files are build output or generated data the repo does not
+    own -- an app's own export (todo's BACKLOG.md), a log, a scratch dump.
+    They are rewritten wholesale by whatever produces them, so splitting one
+    is meaningless: the next run restores the original. Pre-commit never sees
+    them either (they cannot be staged), so skipping them makes --all agree
+    with the hook instead of failing on files no commit could ever fix.
+    """
+    if not paths:
+        return set()
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "check-ignore", "--stdin"],
+            input="\n".join(str(p) for p in paths),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:  # git not installed
+        return set()
+    # 0 = some ignored, 1 = none ignored, 128 = not a repo.
+    if result.returncode not in (0, 1):
+        return set()
+    return {Path(line) for line in result.stdout.splitlines() if line}
+
+
 def iter_all(root: Path):
-    """Every file under root, skipping excluded directories."""
+    """Every file under root, skipping excluded and git-ignored files."""
+    found: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIRS]
         for name in filenames:
             candidate = Path(dirpath) / name
             if not candidate.is_symlink():
-                yield candidate
+                found.append(candidate)
+    ignored = git_ignored(found, root)
+    return [path for path in found if path not in ignored]
 
 
 def main() -> int:
@@ -89,7 +121,13 @@ def main() -> int:
     if args.all:
         targets = list(iter_all(Path.cwd()))
     elif args.paths:
-        targets = args.paths
+        # Explicitly-named paths get the same git-ignore skip as --all, so
+        # naming a file directly cannot report a violation the hook never
+        # would. Without this the two modes disagree on exactly the files
+        # no commit could ever fix (todo's exported BACKLOG.md, logs).
+        existing = [p for p in args.paths if p.is_file()]
+        ignored = git_ignored(existing, Path.cwd())
+        targets = [p for p in existing if p not in ignored]
     else:
         parser.error("give file paths or --all")
 
@@ -118,9 +156,7 @@ def main() -> int:
     for path, lines in sorted(violations, key=lambda item: -item[1]):
         over = lines - MAX_LINES
         print(f"  {path}: {lines} lines (over by {over})", file=sys.stderr)
-    print(
-        "\nSplit them, or see refactor_claude_todo.md in this repo.", file=sys.stderr
-    )
+    print("\nSplit them, or see refactor_claude_todo.md in this repo.", file=sys.stderr)
     return 1
 
 

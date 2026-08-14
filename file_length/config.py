@@ -121,6 +121,10 @@ EXCLUDED_DIRS = frozenset(
         ".ci-mirror-venv",
         ".hippo",
         ".build-deps",
+        # Where CI checks out the shared gate itself (kuhyx/utils). Without
+        # this, a repo's lint job fails on utils' own long files -- a gate
+        # that fails for reasons the repo being gated cannot fix.
+        ".utils",
     }
 )
 
@@ -142,7 +146,17 @@ VENDORED_SUBPATHS = {
         "plugins",
         "ide",
     ),
+    # Agent skill bundles vendored from Anthropic (todo: commit f91311f).
+    # A SKILL.md is a fixed-name file with frontmatter; detail belongs in a
+    # sibling references/ dir, so splitting one into SKILL.part2.md would
+    # break the format rather than improve readability.
+    "todo": (".agents/skills",),
 }
+
+#: Directory names that mark a vendored agent-skill tree wherever they appear.
+#: Keyed by name rather than repo because these bundles get dropped into any
+#: repo that wants them, not just the one they were first seen in.
+VENDORED_ANYWHERE = ("/.agents/skills/", "/.claude/skills/")
 
 #: Whole repos under ~ that are third-party clones, not kuhy's work.
 #: Verified 2026-08-14 by `git remote get-url origin` + commit authors.
@@ -195,7 +209,13 @@ def is_vendored(path: Path) -> bool:
     parts = path.parts
     if any(part in EXCLUDED_DIRS for part in parts):
         return True
+    # Pre-commit passes paths relative to the repo root ('.agents/skills/x'),
+    # while --all walks absolute ones ('/home/kuhy/todo/.agents/skills/x').
+    # Compare against a leading-slash form so one rule covers both modes.
     posix = path.as_posix()
+    anchored = posix if posix.startswith("/") else f"/{posix}"
+    if any(marker in anchored for marker in VENDORED_ANYWHERE):
+        return True
     for repo, subs in VENDORED_SUBPATHS.items():
         for sub in subs:
             if f"/{repo}/{sub}/" in posix or posix.startswith(f"{repo}/{sub}/"):
