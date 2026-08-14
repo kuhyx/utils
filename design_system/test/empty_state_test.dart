@@ -2,15 +2,21 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Built at runtime rather than inlined as a literal, so the `EmptyState`
+/// below cannot be const-folded: a const invocation is evaluated at compile
+/// time, so the constructor never executes and coverage silently drops.
+/// Real call sites interpolate runtime state into these strings anyway.
+String _message(int count) => 'Add your first item to get started ($count).';
+
 Future<void> _pumpEmptyState(WidgetTester tester) {
   return tester.pumpWidget(
     MaterialApp(
       theme: buildDarkTheme(),
-      home: const Scaffold(
+      home: Scaffold(
         body: EmptyState(
           icon: Icons.inbox_outlined,
           title: 'Nothing here yet',
-          message: 'Add your first item to get started.',
+          message: _message(0),
         ),
       ),
     ),
@@ -22,7 +28,7 @@ void main() {
     await _pumpEmptyState(tester);
     expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
     expect(find.text('Nothing here yet'), findsOneWidget);
-    expect(find.text('Add your first item to get started.'), findsOneWidget);
+    expect(find.text(_message(0)), findsOneWidget);
   });
 
   testWidgets('draws the icon at the shared size in the muted color', (
@@ -39,7 +45,7 @@ void main() {
     final scheme = buildDarkTheme().colorScheme;
 
     final message = tester.widget<Text>(
-      find.text('Add your first item to get started.'),
+      find.text(_message(0)),
     );
     expect(message.style?.color, scheme.onSurfaceVariant);
     expect(message.textAlign, TextAlign.center);
