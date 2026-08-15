@@ -1,0 +1,10 @@
+# dist/ is deliberately NOT ignored here: consumers pull this package as a git
+# dep and Vite does not transpile dependencies, so the built ESM + .d.ts must be
+# committed in the tag. See README.md. The repo root ignores `dist/` globally,
+# so this un-ignores it for this subtree only — without it, `git add web_ui`
+# silently skips the build and the tag ships a package with no code in it.
+!dist/
+!dist/**
+node_modules/
+coverage/
+*.tsbuildinfo

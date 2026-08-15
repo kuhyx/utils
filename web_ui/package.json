@@ -1,0 +1,51 @@
+{
+  "name": "@kuhyx/web-ui",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "The shared token + component layer for kuhy's web apps: the frozen palette, spacing/radius/type scales as CSS custom properties, and the components that were each reimplemented in two or more repos.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tokens.css": "./dist/tokens.css",
+    "./range-slider.css": "./dist/range-slider.css"
+  },
+  "scripts": {
+    "build": "tsc -b && cp src/tokens.css src/range-slider.css dist/",
+    "lint": "tsc --noEmit && eslint src",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.7.0",
+    "jsdom": "^29.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.64.0",
+    "vitest": "^4.1.10"
+  }
+}

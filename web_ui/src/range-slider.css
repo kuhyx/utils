@@ -1,0 +1,68 @@
+/*
+ * Styling for the shared RangeSlider. Imported separately from tokens.css:
+ *   import "@kuhyx/web-ui/tokens.css";
+ *   import "@kuhyx/web-ui/range-slider.css";
+ *
+ * Every value routes through a token — no literals.
+ */
+
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+}
+
+.slider-value {
+  /* Tabular figures so a dragging readout does not reflow the row. */
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-track {
+  position: relative;
+  height: 22px;
+  margin-top: var(--space-1);
+  /* Let the element own the gesture instead of the page scrolling under it. */
+  touch-action: none;
+}
+
+.slider-track::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  right: 0;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.slider-fill {
+  position: absolute;
+  top: 9px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  padding: 0;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+/* The thumbs are the keyboard target, so the ring must be unmistakable. The
+ * global :focus-visible rule in tokens.css already colours it; the wider offset
+ * here keeps it clear of the 14px circle. */
+.slider-thumb:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
