@@ -34,7 +34,7 @@ dependencies:
   github_device_auth:
     git:
       url: https://github.com/kuhyx/utils
-      ref: github_device_auth-v0.2.0
+      ref: github_device_auth-v0.3.0
       path: github_device_auth
 ```
 
@@ -57,6 +57,19 @@ them at all. diet-guard's desktop web build does exactly that, which is why
 this knob exists — it was in diet-guard's local copy and would have been lost
 had the package shipped only todo's simpler version.
 
+## Transient-network retry
+
+`pollForToken` retries on `ClientException` rather than failing. GitHub can
+close the connection at the exact moment the user authorizes, and a phone can
+drop its network mid-poll — losing an approved grant to a socket blip is a real
+bug wake-alarm had already hit and fixed locally. The other three copies had
+not, so they inherit the fix here.
+
+`ClientException` alone is enough and `dart:io` is deliberately *not* imported:
+this package is used by a web build, and `package:http` wraps a dead socket as
+`_ClientSocketException`, which implements `ClientException` — verified, not
+assumed.
+
 ## One behaviour change from the extracted copies
 
 The dialog now catches `on Object`, not `on Exception`.
@@ -72,7 +85,7 @@ pins it with a mock that throws an `Error` rather than an `Exception`.
 
 ```bash
 flutter pub get
-flutter test              # 23 tests
+flutter test              # 24 tests
 flutter test --coverage   # 100% of lines
 flutter analyze           # very_good_analysis, clean
 ```

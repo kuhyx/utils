@@ -135,15 +135,35 @@ class GitHubDeviceAuth {
 
     while (DateTime.now().isBefore(deadline)) {
       await _delay(Duration(seconds: intervalSeconds));
-      final res = await _http.post(
-        Uri.parse(tokenUrl),
-        headers: const {'Accept': 'application/json'},
-        body: {
-          'client_id': clientId,
-          'device_code': device.deviceCode,
-          'grant_type': _grantType,
-        },
-      );
+      final http.Response res;
+      try {
+        res = await _http.post(
+          Uri.parse(tokenUrl),
+          headers: const {'Accept': 'application/json'},
+          body: {
+            'client_id': clientId,
+            'device_code': device.deviceCode,
+            'grant_type': _grantType,
+          },
+        );
+      }
+      // A transient network failure is not terminal: GitHub can close the
+      // connection at the very moment the user authorizes, and a phone can
+      // drop its network mid-poll. Keep polling until the device code
+      // actually expires -- otherwise an approved grant is lost to a socket
+      // blip. (wake-alarm had learned this the hard way; the other three
+      // copies had not.)
+      //
+      // `ClientException` alone is enough, and deliberately so: this package
+      // is imported by a **web** build (diet-guard's desktop wrapper), where
+      // importing `dart:io` to name `SocketException` would break
+      // compilation. Verified that no dart:io type escapes -- package:http
+      // wraps a dead socket as `_ClientSocketException`, which *is* a
+      // `ClientException` (it implements both), so this catch covers the IO
+      // case too.
+      on http.ClientException catch (_) {
+        continue;
+      }
       final json = jsonDecode(res.body) as Map<String, dynamic>;
 
       final token = json['access_token'] as String?;

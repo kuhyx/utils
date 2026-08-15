@@ -233,6 +233,24 @@ void main() {
       );
     });
 
+    test('retries a transient network failure instead of giving up', () async {
+      // GitHub can close the connection at the moment the user authorizes,
+      // and a phone can drop its network mid-poll. Losing an approved grant
+      // to a socket blip is the bug this retry exists to prevent.
+      var calls = 0;
+      final auth = authWith(
+        MockClient((_) async {
+          calls += 1;
+          if (calls == 1) {
+            throw http.ClientException('Connection closed before full header');
+          }
+          return http.Response(jsonEncode({'access_token': 'tok'}), 200);
+        }),
+      );
+      expect(await auth.pollForToken(device), 'tok');
+      expect(calls, 2);
+    });
+
     test('gives up once the device code has expired', () async {
       const expired = DeviceCodeResponse(
         deviceCode: 'dc',
