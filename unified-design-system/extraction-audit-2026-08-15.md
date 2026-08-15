@@ -4,15 +4,19 @@ Answers "are all the components we actually use extracted?" across all three
 shared packages, after Phases 1–3 shipped. Companion to `nielsen-audit.md`
 (the grid) and `phase3-record.md` (Phase 3's verdicts).
 
-**Short answer: yes, with one leftover — now fixed — and one clear miss.**
+**Short answer: everything is extracted now.** The audit found one leftover
+donor copy and two genuinely-missed clusters; all three were resolved on
+2026-08-15. The pre-existing extractions held up — no shipped component was a
+false positive.
 
-The three packages' extractions hold up. No shipped component turned out to be
-a false positive, and the reverse check (did the donor copies actually get
-deleted?) is clean except for one case.
+One repo is outstanding: **sims3-clone** still has its own RNG copy, skipped
+because another session had uncommitted work in it.
 
 ## There is a fourth shared package
 
-The phase briefs name three. There are four:
+The phase briefs name three. There were four; this pass added two more, so
+there are now six — one per stack per concern, all in the `kuhyx/utils`
+monorepo:
 
 | Package | Stack | Consumers |
 | --- | --- | --- |
@@ -20,6 +24,8 @@ The phase briefs name three. There are four:
 | `gatelock` | Python/Tk | 4 guard apps (2 bumped) |
 | `web_ui` | TS/React | dufs-cloud, awesome-mcp-explorer |
 | **`sync_settings_ui`** | Dart/Flutter | todo, home_inventory, diet-guard, wake-alarm |
+| `ts_core` *(new)* | TS, framework-free | konbini-67, iron-and-anvil, europe-county-map |
+| `github_device_auth` *(new)* | Dart/Flutter | todo, home_inventory, diet-guard, wake-alarm |
 
 `sync_settings_ui` (`backup_slot.dart`, `firebase_sync_controller.dart`,
 `sync_settings_screen.dart`) changes the coverage answer for the whole sync
@@ -38,48 +44,80 @@ The union shipped; this donor was never deleted. Retired in
 
 (untools' `_SectionHeading`, the other named donor, *was* correctly deleted.)
 
-## The one clear miss — `DeviceCodeDialog` ×3
+## RESOLVED — `DeviceCodeDialog` + `GitHubDeviceAuth` ×4
 
-The strongest finding. A modal showing a GitHub device-flow user code:
-copies to clipboard, launches the verification URL, polls for the token,
-pops with it or renders an error.
+**Extracted 2026-08-15** into `~/utils/github_device_auth` (v0.3.0). All four
+apps migrated, local copies deleted, all four suites green, all four release
+APKs installed on the phone.
 
-| Repo | Path | Lines |
+The extraction found two real behaviours that existed in only one copy each,
+and would have been *deleted* by a naive "take the canonical one" extraction:
+
+- **diet-guard**: configurable `deviceCodeUrl`/`tokenUrl`. Its desktop web
+  build must route through a local CORS proxy, because GitHub's device-flow
+  endpoints send no CORS headers. Verified by `flutter build web` passing.
+- **wake-alarm**: transient-network retry in `pollForToken`. GitHub can close
+  the connection at the moment the user authorizes; without the retry an
+  approved grant is lost.
+
+Both are now in the shared package, so all four apps have both. Plus one bug
+fixed for everyone: the dialog caught `on Exception`, which misses
+`ArgumentError` and leaves it spinning forever — the same trap that killed
+the Firebase sync tick in 2026-08.
+
+**Lesson for the next extraction:** "byte-identical" applied to the *dialogs*,
+not the *clients*. Diff every copy before picking a donor; the odd one out may
+be the one that learned something.
+
+## What the four GitHub copies looked like (historical)
+
+| Repo | Client | Dialog |
 | --- | --- | --- |
-| todo | `lib/ui/device_code_dialog.dart` | 110 (public) |
-| wake-alarm | `phone_app/lib/screens/github_mirror_screen.dart:157-240` | ~84 (private) |
-| diet-guard | `app/lib/screens/github_mirror_screen.dart:398-481` | ~84 (private) |
+| todo | `lib/sync/github_device_auth.dart` (154) | `lib/ui/device_code_dialog.dart` (110, public) |
+| home_inventory | same file, **byte-identical** (154) | — |
+| diet-guard | `app/lib/services/…` (175, configurable URLs) | inline (~84) |
+| wake-alarm | `phone_app/lib/services/…` (166, socket retry) | inline (~84, **byte-identical** to diet-guard's) |
 
-**The wake-alarm and diet-guard copies are byte-for-byte identical** (`diff`
-returns empty). todo's differs only by being public/keyed with doc comments.
-Same domain types (`DeviceCodeResponse`, `GitHubDeviceAuth`), same props, same
-`String? _error` state, same `initState`→`_poll` lifecycle.
+`GitHubMirrorScreen` ×4 itself stays app-local — each copy carries the
+"connecting here also triggers an actual sync" comment. Only the leaf
+extracted.
 
-**Belongs in `sync_settings_ui`, not `design_system`** — it depends on GitHub
-auth types, so it is not a generic widget. Not yet extracted.
+## RESOLVED — `Clock` + mulberry32 RNG
 
-Note this is a *leaf* of the `GitHubMirrorScreen` ×4 cluster, which is
-deliberately app-local (each copy carries the "connecting here also triggers
-an actual sync" comment). The screen stays local; the dialog need not.
+**Extracted 2026-08-15** into `~/utils/ts_core` (`@kuhyx/ts-core` v0.1.0).
+konbini-67, iron-and-anvil and europe-county-map migrated; all three green.
 
-## True duplicates outside every package's remit
+Deliberately its own package, not part of `web_ui`: that ships `tokens.css`
+and React components, and making a game install a UI package to get a seeded
+RNG is the coupling that causes vendoring in the first place.
 
-Real duplication, but none of it is UI, so no existing package owns it.
-**These are not a reason to widen `web_ui`'s remit** — it is a UI package, and
-the games were explicitly out of Phase 3 scope. A separate shared utility
-module would be the vehicle, in a future phase.
+The RNG exports **two** interfaces rather than one reconciled shape, because
+the *sequence* is the contract — these repos guarantee "same seed → identical
+world", so changing how many times a helper advances the generator re-rolls
+every saved world. konbini-67 additionally keeps a local exclusive-max
+`nextInt` adapter, verified identical over 10,500 draws.
+
+`hotline3d` is deliberately NOT a consumer: its generator uses `%`/`Math.trunc`
+where mulberry32 uses `>>>`, and measurably emits a different sequence.
+
+**This forced all four game repos from npm to pnpm** — npm cannot install a
+subdirectory of a git repo, so an npm repo is structurally locked out of every
+shared package in this monorepo. sims3-clone is the one repo still pending:
+another session had uncommitted work in it.
+
+## Remaining true duplicates outside every package's remit
+
+What is left after this pass. Neither is UI, so `web_ui` is still the wrong
+home for both — `ts_core` took the TypeScript utilities, and the Dart one
+belongs to `crdt_sync_dart`.
 
 - **`_PrefsPersistence` ×3** — todo, home_inventory, diet-guard, all
   `implements LogPersistence`, all at the identical line number. Belongs to
   `crdt_sync_dart`'s remit.
-- **`Clock` / `createRealClock` / `createManualClock` ×2** — konbini-67 (59
-  lines) and iron-and-anvil (49). Same interface, same `realClock` shared
-  instance with the same rationale, doc comments near-verbatim.
-- **mulberry32 seeded RNG ×4** — konbini-67, sims3-clone, europe-county-map,
-  hotline3d. Identical `0x6d2b79f5` core in all four, but the *interfaces*
-  genuinely differ (closure-returning-methods vs mutable-state-plus-free-
-  functions; `float`/`next` naming; `chance` in only one). Extractable, but
-  it is an API reconciliation, not a lift-and-shift.
+- **mulberry32 RNG in `sims3-clone`** — the one consumer not yet migrated to
+  `@kuhyx/ts-core`, skipped because another session had uncommitted work in
+  that repo. Its interface (`next`/`int`/`pick`) maps onto `createSeededRng`
+  directly; the migration is a seam file plus an npm→pnpm move.
 
 ## Correctly not extracted (name collisions)
 
