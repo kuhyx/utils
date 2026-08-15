@@ -25,6 +25,10 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
+        # tsconfig*.json are JSONC -- TypeScript allows comments, and this file
+        # uses them to explain why the lint config exists. package.json and the
+        # lockfile are the real JSON worth validating.
+        exclude: ^web_ui/tsconfig.*\.json$
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: [--fix=lf]

@@ -13,7 +13,7 @@ this package is its executable form for the web.
 ```jsonc
 // package.json — pnpm only, see "Why the &path: suffix" below.
 "dependencies": {
-  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.3.0&path:/web_ui"
+  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.3.1&path:/web_ui"
 }
 ```
 
