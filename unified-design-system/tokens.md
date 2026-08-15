@@ -59,6 +59,53 @@ an image) — those stay `text-on-dark` (near-white), fixed regardless of
 page theme, since the scrim itself is always dark. `on-fill` only applies to
 the four *opaque* semantic fills above.
 
+## Categorical ramp
+
+For **charts, tags and category dots** — anything that needs N mutually
+distinguishable colours with no inherent meaning. Never for semantic state:
+success/warning/danger still own that, and mixing the two vocabularies is what
+makes a "red" category read as an error.
+
+| Token   | Hex       | L\* |
+| ------- | --------- | --- |
+| `cat-1` | `#C57293` | 58  |
+| `cat-2` | `#398FC0` | 56  |
+| `cat-3` | `#C85A32` | 52  |
+| `cat-4` | `#228736` | 49  |
+| `cat-5` | `#8D58BB` | 47  |
+| `cat-6` | `#686D2C` | 44  |
+
+**This ramp deliberately leaves the warm wedge**, and it is the only token group
+that does. Accent/success/warning/danger cluster in red-orange-yellow-olive and
+are separated mainly by lightness — a tradeoff that works when meaning carries
+the signal. A categorical ramp has no meaning to lean on, so hue separation *is*
+the requirement. Treating this as drift and "correcting" it back toward the
+wedge would destroy the only property it has.
+
+Chosen by search under four hard constraints, not by eye
+(`unified-design-system/scripts/ramp_check.py` re-runs the proof):
+
+1. **Pairwise CIE ΔE ≥ 20** between every pair — measured under normal vision
+   *and* simulated deuteranopia, protanopia and tritanopia. Worst observed: 34.6
+   normal, 26.0 deuteranopia, 25.6 protanopia, 27.4 tritanopia.
+2. **≥ 3:1 contrast against both backgrounds** (`ink` and `paper`), since the
+   ramp is theme-independent — it does not flip with `prefers-color-scheme`.
+   This is the binding constraint: colours legible on both a near-black and a
+   near-white field only exist in L\* ≈ 44–59, which is why the ramp is
+   mid-toned throughout rather than spanning light to dark.
+3. **Monotonically decreasing lightness** (58 → 44), so hue and lightness encode
+   redundantly. The ramp therefore still reads as an ordinal scale in greyscale
+   or under severe CVD, which is what lets `cat-1…6` carry an ordered scale
+   (grades A→F) as well as an unordered one.
+4. **Muted saturation**, to sit with the rest of the palette rather than
+   vibrating against it.
+
+Use them **in order** for ordered data, and *by position* for unordered data —
+never pick "the green one" because green means good, which is the semantic
+vocabulary leaking back in. Need a seventh category? That is a signal to group
+the tail into "other", not to extend the ramp: a 7th hue cannot clear ΔE 20
+against all six under CVD within the L\* 44–59 band.
+
 ## Spacing scale (4px base)
 
 `xs 4 · sm 8 · md 16 · lg 24 · xl 32 · xxl 48`
@@ -197,29 +244,6 @@ fully keyboard-operable. Making a gate keyboard-reachable is not weakening it.
 
 ## Screen size (required)
 
-| Target | Requirement |
-| ------ | ----------- |
-| **1366x768** | Fully usable. Nothing clipped, nothing unreachable. This is the primary machine. |
-| **1024x600** | Degrades gracefully — scrolls rather than clips. No hard minimum size above this. |
-
-Rules:
-
-1. **Budget the height, don't assume it.** 768px is the design target, not 1080.
-   Mixing a proportional content area with fixed chrome (`height = 0.7·H` above a
-   fixed-height button row) silently works at 1080 and fails at 768 — compute the
-   content budget as `available − measured chrome`.
-2. **Any view that can grow must scroll.** Lists, forms, anything whose height
-   depends on data (a day's log, an error string, accumulated history). An
-   unbounded error message is a real overflow source.
-3. **Never centre unscrollable content that can overflow.** A centre-anchored
-   container clips **symmetrically** when it is too tall — losing the header *and*
-   the submit button, with no scrollbar and no indication anything is missing.
-   Top-anchor it inside a scroll container instead.
-4. **Clamp width as well.** Prose stays at the 40rem/640px cap (rule 21) and
-   single-purpose inputs get a sensible max — a 4-digit number field stretched to
-   1334px is a violation even though nothing is clipped.
-5. **Don't let text scale break layout.** Rows that must not overflow use `Wrap`/
-   `Flexible` rather than a bare `Row`.
-
-`1366x768` and `1024x600` are landscape and *short*. Phone-portrait test sizes do
-not exercise either constraint, so both belong in the test matrix explicitly.
+Moved to `screen-size.md` (250-line cap): the 1366x768 / 1024x600 targets, the
+height-budgeting rules, and why centring unscrollable content clips
+symmetrically. Still part of this spec — read it for any layout work.

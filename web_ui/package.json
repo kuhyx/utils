@@ -1,6 +1,6 @@
 {
   "name": "@kuhyx/web-ui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
   "description": "The shared token + component layer for kuhy's web apps: the frozen palette, spacing/radius/type scales as CSS custom properties, and the components that were each reimplemented in two or more repos.",

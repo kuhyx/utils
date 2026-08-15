@@ -13,7 +13,7 @@ this package is its executable form for the web.
 ```jsonc
 // package.json — pnpm only, see "Why the &path: suffix" below.
 "dependencies": {
-  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.1.0&path:/web_ui"
+  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.2.0&path:/web_ui"
 }
 ```
 
@@ -50,6 +50,21 @@ whose `dist/` is stale ships old code to every consumer with no error.
 | `range-slider.css` | Its styling, entirely in tokens. |
 | `quantile.ts` helpers | `nth`, `clamp01`, `quantileValue`, `valueQuantile`, `fractionFromPointer`. |
 | `fuzzyMatch` | Case-insensitive subsequence match. |
+
+### The categorical ramp
+
+`--cat-1` … `--cat-6` are for charts, tags and category dots — N mutually
+distinguishable colours with **no** inherent meaning. Never use them for
+semantic state; `--success`/`--warning`/`--danger` own that.
+
+They deliberately leave the warm wedge the rest of the palette sits in, because
+hue separation is the whole point of a categorical scale. The values were chosen
+by search under a ≥20 CIE ΔE floor across normal vision *and* deuteranopia,
+protanopia and tritanopia, ≥3:1 contrast on **both** backgrounds, and a
+monotonic lightness staircase so the ramp survives greyscale. Re-run the proof
+with `python3 ~/utils/unified-design-system/scripts/ramp_check.py` — it exits
+non-zero if an edit breaks any of it. A seventh hue is not available: the best
+candidate reaches only ΔE 17.9. Group the tail into "other" instead.
 
 `fractionFromPointer` is deliberately pure geometry: it makes the slider's
 behaviour testable without layout, which jsdom does not implement.

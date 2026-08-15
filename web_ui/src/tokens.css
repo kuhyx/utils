@@ -33,6 +33,27 @@
    * because the scrim itself is always dark. */
   --on-scrim: #eceae9;
 
+  /* Categorical ramp ------------------------------------------------------ */
+  /* For charts, tags and category dots — N mutually distinguishable colours
+   * with no inherent meaning. NEVER for semantic state; that stays
+   * success/warning/danger. Use them in ramp order for ordered data and by
+   * position for unordered data — never "the green one because green means
+   * good", which is the semantic vocabulary leaking back in.
+   *
+   * These deliberately leave the warm wedge every other token sits in: a
+   * categorical ramp has no meaning to lean on, so hue separation IS the
+   * requirement. Chosen by search under a >=20 CIE dE floor across normal
+   * vision and all three CVD types, >=3:1 on BOTH backgrounds, and a monotonic
+   * lightness staircase (58 -> 44) so the ramp survives greyscale. Do not edit
+   * a value here without re-running unified-design-system/scripts/ramp_check.py.
+   * They do not flip with prefers-color-scheme — they must hold on both. */
+  --cat-1: #c57293;
+  --cat-2: #398fc0;
+  --cat-3: #c85a32;
+  --cat-4: #228736;
+  --cat-5: #8d58bb;
+  --cat-6: #686d2c;
+
   /* Corner radius --------------------------------------------------------- */
   --radius-sm: 8px; /* buttons, inputs, chips */
   --radius-md: 12px; /* cards */
