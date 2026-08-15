@@ -1,0 +1,36 @@
+name: github_device_auth tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['github_device_auth/**']
+  pull_request:
+    branches: [main]
+    paths: ['github_device_auth/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: github_device_auth
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce 100% line coverage
+        run: scripts/check_coverage.sh coverage/lcov.info 100

@@ -1,0 +1,23 @@
+name: github_device_auth
+description: >-
+  GitHub OAuth Device Flow for kuhy's Flutter apps: the auth client and the
+  modal that drives it. Extracted from four apps that each carried a copy,
+  two of them byte-identical.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.2.0
+
+flutter:
