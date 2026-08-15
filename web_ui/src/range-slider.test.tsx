@@ -136,7 +136,7 @@ describe("RangeSlider", () => {
       ["ArrowUp", 10],
     ])("%s steps the low thumb up", (key, expected) => {
       const { onChange } = renderSlider();
-      fireEvent.keyDown(thumbs()[0] as HTMLElement, { key });
+      fireEvent.keyDown(thumbs()[0]!, { key });
       expect(onChange).toHaveBeenCalledWith(expected, 90);
     });
 
@@ -145,58 +145,61 @@ describe("RangeSlider", () => {
       ["ArrowDown", 80],
     ])("%s steps the high thumb down", (key, expected) => {
       const { onChange } = renderSlider();
-      fireEvent.keyDown(thumbs()[1] as HTMLElement, { key });
+      fireEvent.keyDown(thumbs()[1]!, { key });
       expect(onChange).toHaveBeenCalledWith(0, expected);
     });
 
     it("PageUp jumps ten samples", () => {
       const { onChange } = renderSlider({ lo: 0 });
-      fireEvent.keyDown(thumbs()[0] as HTMLElement, { key: "PageUp" });
+      fireEvent.keyDown(thumbs()[0]!, { key: "PageUp" });
       expect(onChange).toHaveBeenCalledWith(90, 90);
     });
 
     it("PageDown jumps ten samples down", () => {
       const { onChange } = renderSlider({ hi: 90 });
-      fireEvent.keyDown(thumbs()[1] as HTMLElement, { key: "PageDown" });
+      fireEvent.keyDown(thumbs()[1]!, { key: "PageDown" });
       expect(onChange).toHaveBeenCalledWith(0, 0);
     });
 
     it("Home sends a thumb to the floor", () => {
       const { onChange } = renderSlider({ lo: 50 });
-      fireEvent.keyDown(thumbs()[0] as HTMLElement, { key: "Home" });
+      fireEvent.keyDown(thumbs()[0]!, { key: "Home" });
       expect(onChange).toHaveBeenCalledWith(0, 90);
     });
 
     it("End sends a thumb to the ceiling", () => {
       const { onChange } = renderSlider({ hi: 50 });
-      fireEvent.keyDown(thumbs()[1] as HTMLElement, { key: "End" });
+      fireEvent.keyDown(thumbs()[1]!, { key: "End" });
       expect(onChange).toHaveBeenCalledWith(0, 90);
     });
 
     it("ignores keys it does not handle", () => {
       const { onChange } = renderSlider();
-      fireEvent.keyDown(thumbs()[0] as HTMLElement, { key: "a" });
+      fireEvent.keyDown(thumbs()[0]!, { key: "a" });
       expect(onChange).not.toHaveBeenCalled();
     });
 
     it("does not let the low thumb cross the high one", () => {
       const { onChange } = renderSlider({ hi: 10, lo: 10 });
-      fireEvent.keyDown(thumbs()[0] as HTMLElement, { key: "ArrowRight" });
+      fireEvent.keyDown(thumbs()[0]!, { key: "ArrowRight" });
       expect(onChange).toHaveBeenCalledWith(10, 10);
     });
 
     it("does not let the high thumb cross the low one", () => {
       const { onChange } = renderSlider({ hi: 10, lo: 10 });
-      fireEvent.keyDown(thumbs()[1] as HTMLElement, { key: "ArrowLeft" });
+      fireEvent.keyDown(thumbs()[1]!, { key: "ArrowLeft" });
       expect(onChange).toHaveBeenCalledWith(10, 10);
     });
   });
 
   describe("pointer", () => {
     function track(): HTMLElement {
-      // eslint-disable-next-line testing-library/no-node-access -- the track is
-      // presentational; there is no role or text to query it by.
-      return document.querySelector(".slider-track") as HTMLElement;
+      // Queried by class rather than by role: the track is presentational, so
+      // it has neither a role nor text to find it by. (The consumers run
+      // eslint-plugin-testing-library, which flags this; this package does not
+      // install that plugin, so a disable comment here would itself be an
+      // unknown-rule error.)
+      return document.querySelector(".slider-track")!;
     }
 
     it("grabs the nearer thumb when pressed anywhere on the track", () => {

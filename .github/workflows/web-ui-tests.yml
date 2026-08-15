@@ -1,0 +1,52 @@
+name: web_ui tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['web_ui/**']
+  pull_request:
+    branches: [main]
+    paths: ['web_ui/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web_ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Run tests with the 100% coverage gate
+        run: pnpm coverage
+
+      # The tag ships a prebuilt dist/ because Vite does not transpile
+      # dependencies. A committed dist/ that does not match src/ would ship
+      # stale code to every consumer with no error anywhere, so rebuild and
+      # fail if the result differs from what is checked in.
+      - name: dist/ is in sync with src/
+        run: |
+          pnpm build
+          if ! git diff --exit-code -- dist; then
+            echo "::error::dist/ is stale — run 'pnpm build' in web_ui and commit the result."
+            exit 1
+          fi
+
+      - name: Categorical ramp still passes its constraints
+        working-directory: .
+        run: python3 unified-design-system/scripts/ramp_check.py
