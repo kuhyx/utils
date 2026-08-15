@@ -3,8 +3,14 @@
 The web counterpart to Phase 1's Dart `design_system`. Companion to
 `nielsen-audit.md`, which holds the grid and the deferred clusters.
 
-Shipped as `web_ui-v0.3.0`, consumed by **dufs-cloud** and
+Shipped as `web_ui-v0.3.1`, consumed by **dufs-cloud** and
 **awesome-mcp-explorer**.
+
+Gated like Phase 1: `web_ui/.pre-commit-config.yaml` +
+`.github/workflows/web-ui-tests.yml` run lint, the 100% coverage bar, the ramp
+proof, and a **dist/-is-fresh check** — that last one caught a stale build on
+its very first run, which is the one failure mode a committed `dist/`
+introduces.
 
 ## What shipped
 
@@ -81,7 +87,12 @@ was nearly indistinguishable under deuteranopia.
    "same hex values everywhere" invariant holds. Deliberately not done here:
    Phase 1 is tagged with six consumers, and that retag is its own change.
 2. **Python/Tk side** likewise has no ramp (no consumer needs one yet).
-3. **npm cannot consume this package.** `utils` has no root `package.json`, and
+3. **`eslint-plugin-testing-library` is not installed here**, so the one
+   query-by-class in the slider test carries a prose comment instead of a
+   disable directive (an unknown-rule disable is itself an error). If more
+   component tests land, installing the plugin to match the consumers is the
+   tidier answer.
+4. **npm cannot consume this package.** `utils` has no root `package.json`, and
    npm's `github:` shorthand has no subdirectory syntax — it clones the root and
    fails with `ENOENT` (verified, npm 11.16). pnpm's `&path:/web_ui` works, so
    both consumers are pnpm. A future npm-only consumer needs either its own repo
