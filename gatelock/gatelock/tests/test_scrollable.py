@@ -327,3 +327,37 @@ def test_scroll_into_view_holds_still_for_a_widget_in_the_middle(
     surface.scroll_into_view(middle)
 
     assert _offset(surface) == before
+
+
+def test_the_wheel_scrolls_from_over_the_content(surface: ScrollableSurface) -> None:
+    """Wheel-over-text scrolls, which is the only way anyone uses a mouse here.
+
+    Tk dispatches through *bindtags*, not the parent chain: a child's tags are
+    ``(itself, its class, the toplevel, "all")``, so a binding on ``content``
+    is never consulted for an event over a Label sitting on top of it. Content
+    that fills the viewport covers that frame entirely, so binding the wheel
+    only on the canvas and the content frame makes wheel scrolling dead
+    everywhere the user would actually point.
+    """
+    child = surface.content.winfo_children()[10]
+    before = surface.canvas.yview()[0]
+
+    child.event_generate("<Button-5>")
+    surface.canvas.update()
+
+    assert surface.canvas.yview()[0] > before
+
+
+def test_the_wheel_scrolls_back_up_from_over_the_content(
+    surface: ScrollableSurface,
+) -> None:
+    """The up notch is bound on descendants too, not just the down one."""
+    child = surface.content.winfo_children()[10]
+    child.event_generate("<Button-5>")
+    surface.canvas.update()
+    scrolled = surface.canvas.yview()[0]
+
+    child.event_generate("<Button-4>")
+    surface.canvas.update()
+
+    assert surface.canvas.yview()[0] < scrolled

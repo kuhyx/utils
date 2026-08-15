@@ -344,16 +344,28 @@ class ScrollableSurface:
         self.canvas.yview_moveto(1.0)
 
     def _track_focus(self, parent: tk.Misc) -> None:
-        """Bind <FocusIn> on every descendant, each exactly once.
+        """Bind <FocusIn> and the wheel on every descendant, each exactly once.
 
         A repaint destroys and rebuilds the widgets, so this re-runs per
         screen; the WeakSet is what keeps a second :meth:`finalize` on the
         *same* widgets from stacking a second handler on each of them, and
         drops entries as the widgets are destroyed.
+
+        The wheel has to be bound per descendant because Tk dispatches through
+        *bindtags*, not the parent chain: a child's tags are ``(itself, its
+        class, the toplevel, "all")``, so an event over a Label never reaches
+        a binding on ``content``. Content that fills its viewport covers that
+        frame completely, which means wheel-over-text -- the only way anyone
+        actually scrolls with a mouse -- would do nothing. The donor this
+        replaced reached for ``bind_all`` instead, which works but installs
+        the handler on *every* widget in the application, including other
+        windows' scroll regions.
         """
         for child in parent.winfo_children():
             if child not in self._focus_bound:
                 child.bind("<FocusIn>", self._on_descendant_focus, add="+")
+                child.bind(_WHEEL_UP, self._line_up, add="+")
+                child.bind(_WHEEL_DOWN, self._line_down, add="+")
                 self._focus_bound.add(child)
             self._track_focus(child)
 
