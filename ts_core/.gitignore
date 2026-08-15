@@ -1,0 +1,9 @@
+# dist/ is deliberately NOT ignored here: consumers pull this package as a git
+# dependency and Vite does not transpile dependencies, so the build must be
+# committed in the tag. See README.md. The repo root ignores `dist/` globally,
+# hence the negation below.
+node_modules/
+coverage/
+*.tsbuildinfo
+!dist/
+!dist/**

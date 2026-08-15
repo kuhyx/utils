@@ -1,0 +1,39 @@
+{
+  "name": "@kuhyx/ts-core",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Framework-free TypeScript utilities shared across kuhy's games and web apps: an injectable Clock and a seeded mulberry32 RNG. Deliberately no React and no CSS -- see @kuhyx/web-ui for the UI layer.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "tsc --noEmit -p tsconfig.lint.json && eslint .",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.7.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.64.0",
+    "vitest": "^4.1.10"
+  }
+}

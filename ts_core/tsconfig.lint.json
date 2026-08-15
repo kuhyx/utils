@@ -1,0 +1,13 @@
+{
+  // tsconfig.json excludes tests so they never land in the published dist/.
+  // Type-aware linting still needs them in a project, so this config widens
+  // the include for eslint and `tsc --noEmit` only. It emits nothing.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src", "*.config.ts"],
+  "exclude": []
+}
