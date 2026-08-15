@@ -80,6 +80,39 @@ void main() {
       expect(device.userCode, 'UC');
     });
 
+    test('defaults to GitHub s own endpoints', () {
+      final auth = GitHubDeviceAuth(clientId: 'cid')..close();
+      expect(auth.deviceCodeUrl, githubDeviceCodeUrl);
+      expect(auth.tokenUrl, githubTokenUrl);
+    });
+
+    test('honours an overridden endpoint', () async {
+      // diet-guard's desktop web build routes both endpoints through a local
+      // proxy, because GitHub's device-flow endpoints send no CORS headers
+      // and a page cannot call them at all.
+      late Uri seen;
+      final auth = GitHubDeviceAuth(
+        clientId: 'cid',
+        deviceCodeUrl: 'http://127.0.0.1:9/gh/auth/device/start',
+        httpClient: MockClient((req) async {
+          seen = req.url;
+          return http.Response(
+            jsonEncode({
+              'device_code': 'dc',
+              'user_code': 'UC',
+              'verification_uri': 'u',
+            }),
+            200,
+          );
+        }),
+        delay: noDelay,
+      );
+
+      await auth.requestDeviceCode();
+
+      expect(seen.toString(), 'http://127.0.0.1:9/gh/auth/device/start');
+    });
+
     test('throws with the status code on a non-200', () async {
       final auth = authWith(MockClient((_) async => http.Response('bad', 503)));
       await expectLater(
@@ -227,5 +260,30 @@ void main() {
   test('constructs with a real http client and default scope', () {
     final auth = GitHubDeviceAuth(clientId: 'cid')..close();
     expect(auth.scope, 'repo');
+  });
+
+  test('polls the overridden token endpoint', () async {
+    late Uri seen;
+    final auth = GitHubDeviceAuth(
+      clientId: 'cid',
+      tokenUrl: 'http://127.0.0.1:9/gh/auth/device/poll',
+      httpClient: MockClient((req) async {
+        seen = req.url;
+        return http.Response(jsonEncode({'access_token': 'tok'}), 200);
+      }),
+      delay: noDelay,
+    );
+
+    await auth.pollForToken(
+      const DeviceCodeResponse(
+        deviceCode: 'dc',
+        userCode: 'UC',
+        verificationUri: 'u',
+        interval: 1,
+        expiresIn: 60,
+      ),
+    );
+
+    expect(seen.toString(), 'http://127.0.0.1:9/gh/auth/device/poll');
   });
 }

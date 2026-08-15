@@ -3,6 +3,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+/// GitHub's device-code endpoint. The default for [GitHubDeviceAuth].
+const githubDeviceCodeUrl = 'https://github.com/login/device/code';
+
+/// GitHub's device-flow token endpoint. The default for [GitHubDeviceAuth].
+const githubTokenUrl = 'https://github.com/login/oauth/access_token';
+
 /// First-stage response of the GitHub OAuth Device Flow: the code the user
 /// types on github.com and the URL to type it into.
 class DeviceCodeResponse {
@@ -72,6 +78,8 @@ class GitHubDeviceAuth {
   GitHubDeviceAuth({
     required this.clientId,
     this.scope = 'repo',
+    this.deviceCodeUrl = githubDeviceCodeUrl,
+    this.tokenUrl = githubTokenUrl,
     http.Client? httpClient,
     Future<void> Function(Duration)? delay,
   }) : _http = httpClient ?? http.Client(),
@@ -84,17 +92,27 @@ class GitHubDeviceAuth {
   /// OAuth scope requested. `repo` is required for private-repo contents.
   final String scope;
 
+  /// Endpoint asked for a device + user code.
+  ///
+  /// Defaults to GitHub's own URL, which is right for mobile and desktop.
+  /// A **web** build must point this (and [tokenUrl]) at a local proxy
+  /// instead: GitHub's device-flow endpoints send no CORS headers, so a page
+  /// cannot call them at all. diet-guard's desktop web build does exactly
+  /// that — see its `desktop/github_proxy.dart`.
+  final String deviceCodeUrl;
+
+  /// Endpoint polled for the access token. See [deviceCodeUrl].
+  final String tokenUrl;
+
   final http.Client _http;
   final Future<void> Function(Duration) _delay;
 
-  static const _deviceCodeUrl = 'https://github.com/login/device/code';
-  static const _tokenUrl = 'https://github.com/login/oauth/access_token';
   static const _grantType = 'urn:ietf:params:oauth:grant-type:device_code';
 
   /// Step 1: ask GitHub for a device + user code.
   Future<DeviceCodeResponse> requestDeviceCode() async {
     final res = await _http.post(
-      Uri.parse(_deviceCodeUrl),
+      Uri.parse(deviceCodeUrl),
       headers: const {'Accept': 'application/json'},
       body: {'client_id': clientId, 'scope': scope},
     );
@@ -118,7 +136,7 @@ class GitHubDeviceAuth {
     while (DateTime.now().isBefore(deadline)) {
       await _delay(Duration(seconds: intervalSeconds));
       final res = await _http.post(
-        Uri.parse(_tokenUrl),
+        Uri.parse(tokenUrl),
         headers: const {'Accept': 'application/json'},
         body: {
           'client_id': clientId,

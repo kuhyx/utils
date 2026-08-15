@@ -34,7 +34,7 @@ dependencies:
   github_device_auth:
     git:
       url: https://github.com/kuhyx/utils
-      ref: github_device_auth-v0.1.0
+      ref: github_device_auth-v0.2.0
       path: github_device_auth
 ```
 
@@ -47,6 +47,15 @@ final token = await showDialog<String>(
 );
 auth.close();
 ```
+
+## Configurable endpoints (web builds)
+
+`deviceCodeUrl` / `tokenUrl` default to GitHub's own URLs, which is right for
+mobile and desktop. A **web** build must point both at a local proxy instead:
+GitHub's device-flow endpoints send no CORS headers, so a page cannot call
+them at all. diet-guard's desktop web build does exactly that, which is why
+this knob exists — it was in diet-guard's local copy and would have been lost
+had the package shipped only todo's simpler version.
 
 ## One behaviour change from the extracted copies
 
@@ -63,7 +72,7 @@ pins it with a mock that throws an `Error` rather than an `Exception`.
 
 ```bash
 flutter pub get
-flutter test              # 20 tests
+flutter test              # 23 tests
 flutter test --coverage   # 100% of lines
 flutter analyze           # very_good_analysis, clean
 ```

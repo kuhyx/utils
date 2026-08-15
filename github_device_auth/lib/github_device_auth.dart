@@ -18,5 +18,10 @@
 library;
 
 export 'src/device_auth.dart'
-    show DeviceAuthException, DeviceCodeResponse, GitHubDeviceAuth;
+    show
+        DeviceAuthException,
+        DeviceCodeResponse,
+        GitHubDeviceAuth,
+        githubDeviceCodeUrl,
+        githubTokenUrl;
 export 'src/device_code_dialog.dart' show DeviceCodeDialog;
