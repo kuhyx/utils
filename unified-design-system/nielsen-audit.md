@@ -14,6 +14,11 @@ more repos already contain a structurally similar implementation**.
 
 Written 2026-08-14, alongside `design_system` v0.1.0.
 
+**Phase 3 (web, `@kuhyx/web-ui`) is recorded in `phase3-record.md`** — including
+why `FilterBar` was *not* extracted (structurally disjoint despite the shared
+name) and the new categorical ramp. Read it before re-proposing any web
+component.
+
 ## Scope
 
 Fourteen Flutter repos, seven web repos, four Python/Tk guard apps. Out of
