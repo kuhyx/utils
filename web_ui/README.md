@@ -77,13 +77,19 @@ arrow keys is an ARIA role that lies — so the shared version adds:
 
 | Key | Effect |
 | --- | --- |
-| `←` `↓` / `→` `↑` | Step one sample through the distribution |
-| `PageDown` / `PageUp` | Step ten samples |
+| `←` `↓` / `→` `↑` | Step to the next **distinct** value |
+| `PageDown` / `PageUp` | Step ten distinct values |
 | `Home` / `End` | Jump to the distribution's bounds |
 
 Pass `label` **and** `format` to get the built-in head (name + value readout);
 omit them for a bare track when the caller draws its own chrome, as
 dufs-cloud's `SizeRange`/`DurationRange` wrappers do.
+
+Stepping targets the next *distinct* value, not the next index. Real
+distributions are lumpy — ~1500 of awesome-mcp-explorer's ~2981 star counts are
+`0` — and an index step inside a run of equal values moves the index while
+leaving the value, the thumb and the filter untouched. That reads as a dead
+arrow key, and jsdom's evenly-spaced fixtures do not catch it.
 
 ## Development
 
