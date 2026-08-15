@@ -1,0 +1,33 @@
+name: palette drift
+
+# Deliberately NOT path-filtered. Every other workflow here scopes itself to
+# one package, which is right for tests but wrong for this check: drift is a
+# disagreement *between* packages, so editing design_system alone has to be
+# able to fail it. A `paths:` filter would let exactly the edit that causes
+# drift be the one that skips the check.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  palette:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Compares tokens.md (prose freeze), web_ui/src/tokens.css,
+      # design_system tokens.dart and gatelock's LockConfig. Fails on a hex
+      # that disagrees across stacks, and on a colour token that no stack's
+      # map accounts for.
+      - name: One palette across all four token sources
+        run: python3 unified-design-system/scripts/palette_check.py
+
+      - name: Categorical ramp still passes its constraints
+        run: python3 unified-design-system/scripts/ramp_check.py

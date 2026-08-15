@@ -3,7 +3,18 @@
 Concrete instantiation of `safe-design-rules`' 28 rules. One identical
 palette across every repo/stack (Flutter, web, Python/Tkinter) — not just
 shared rules, the same hex values everywhere, including Flutter launcher-icon
-glyphs (`app-icon` skill). Anchored on the shared icon charcoal `#211D1B` so
+glyphs (`app-icon` skill).
+
+> **This table is checked, not trusted.**
+> `scripts/palette_check.py` parses all four token sources — this file,
+> `web_ui/src/tokens.css`, `design_system/lib/src/tokens.dart` and gatelock's
+> `LockConfig` — and fails on any hex that disagrees across them, *including a
+> hex edited only here*. It also fails on a colour token that no stack's map
+> accounts for, so adding a token to one stack and forgetting the others is a
+> CI failure rather than silent drift. Runs in `.github/workflows/palette-drift.yml`,
+> deliberately with no `paths:` filter: drift is a disagreement *between*
+> packages, so a path-scoped trigger would skip exactly the edit that causes it.
+> Editing any value below means editing it in all four places. Anchored on the shared icon charcoal `#211D1B` so
 the UI palette and the icon family cohere instead of adding a second
 "near-black." Warm-tinted throughout (rule 10) — superseded from an earlier
 cool-tinted draft; every neutral is a byte-reversed (RRGGBB→BBGGRR) mirror of
