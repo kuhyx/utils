@@ -42,7 +42,7 @@ Primary:
 
 Theme (local hand-copy, **no `design_system` dependency**):
 - `app/lib/ui/theme.dart` — `buildAppTheme()` ~:12, `AppStatusColors`
-  ThemeExtension ~:89, re-declared `AppSpacing` ~:124, `AppRadius` ~:146,
+  ThemeExtension ~:89, redeclared `AppSpacing` ~:124, `AppRadius` ~:146,
   `AppTextSize`, plus an `AppWidth` class the shared package does not have.
 
 Settings (for the sound opt-out in step 2):

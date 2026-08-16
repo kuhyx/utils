@@ -69,6 +69,45 @@ Ranked by value-over-effort from the survey data:
    the `assets:` block and the VIBRATE permission are **already present**. Only
    the call is missing.
 
+## Distributed copies, and the completion protocol
+
+Each prompt is **also copied into the repo it acts on**, at
+`<repo>/prompts/dopamine-ux-*.md`, so you can open a repo and say
+"do dopamine-ux-<name>" without going hunting. **This directory stays the source
+of truth** — if a prompt needs correcting, fix it here and re-distribute.
+
+| Prompt | Distributed to |
+|---|---|
+| 01 | `~/utils/prompts/dopamine-ux-01-motion-tokens.md` |
+| 02 | `~/utils/prompts/dopamine-ux-02-structural-check.md` |
+| 03 | `~/diet-guard/prompts/dopamine-ux-diet-guard.md` |
+| 04 | `~/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |
+| 05 | `~/screen-locker/prompts/dopamine-ux-05-workout-app.md` |
+| 06 | `~/todo/prompts/dopamine-ux-todo.md` |
+| 07 | `~/dufs-cloud/prompts/dopamine-ux-07-theme.md` |
+| 08 | `~/dufs-cloud/prompts/dopamine-ux-08-motion.md` |
+| 09 | `~/wake-alarm/prompts/dopamine-ux-wake-alarm.md` |
+
+When a session finishes a prompt it **deletes its repo copy** (in the same
+commit as the implementation) and **appends a row below**. A finished prompt left
+in a repo is indistinguishable from a pending one, and the next session re-runs
+it. Partial completion is never recorded as DONE — the file is edited to state
+what remains instead.
+
+### Completion log
+
+| Prompt | Status | Impl commit | Note |
+|---|---|---|---|
+| 01-motion-tokens.md | not started | — | — |
+| 02-structural-check.md | not started | — | — |
+| 03-diet-guard.md | not started | — | — |
+| 04-screen-locker.md | not started | — | — |
+| 05-workout-app.md | not started | — | — |
+| 06-todo.md | not started | — | — |
+| 07-dufs-theme.md | not started | — | — |
+| 08-dufs-motion.md | not started | — | — |
+| 09-wake-alarm.md | not started | — | — |
+
 ## Keeping these prompts honest
 
 Every path and symbol cited across these files is machine-checked:
