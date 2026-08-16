@@ -7,8 +7,8 @@ is what lets a gate and a survey silently disagree.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
+import re
 
 #: Hard cap. Files above this fail the gate. Code and prose alike.
 MAX_LINES = 250
@@ -158,6 +158,18 @@ VENDORED_SUBPATHS = {
 #: repo that wants them, not just the one they were first seen in.
 VENDORED_ANYWHERE = ("/.agents/skills/", "/.claude/skills/")
 
+#: Frozen records of past agent sessions: an implementation plan or an
+#: append-only session log describes what was done at one moment. Splitting one
+#: rewrites a historical record for no reading benefit -- nobody navigates them,
+#: they are read whole or not at all. Same category as generated files.
+#:
+#: Deliberately NOT the whole of docs/superpowers/: `specs/` and `contracts/`
+#: stay capped, because those are living documents that get re-read and edited.
+SESSION_ARTIFACTS_ANYWHERE = (
+    "/docs/superpowers/plans/",
+    "/docs/superpowers/sessions/",
+)
+
 #: Whole repos under ~ that are third-party clones, not kuhy's work.
 #: Verified 2026-08-14 by `git remote get-url origin` + commit authors.
 THIRD_PARTY_REPOS = frozenset(
@@ -205,19 +217,35 @@ def is_data_text(path: Path, lines: int, size: int) -> bool:
 
 
 def is_vendored(path: Path) -> bool:
-    """True if the path sits under a known vendored subtree or excluded dir."""
+    """True if the path sits under a known vendored subtree or excluded dir.
+
+    Callers must pass an absolute path (see `check.absolutize`). Every rule
+    below needs the repo-name context that a repo-relative path has already
+    thrown away: '/.claude/skills/' cannot match 'skills/x.md', so a relative
+    path would quietly skip the exemption instead of applying it.
+    """
     parts = path.parts
     if any(part in EXCLUDED_DIRS for part in parts):
         return True
-    # Pre-commit passes paths relative to the repo root ('.agents/skills/x'),
-    # while --all walks absolute ones ('/home/kuhy/todo/.agents/skills/x').
-    # Compare against a leading-slash form so one rule covers both modes.
     posix = path.as_posix()
-    anchored = posix if posix.startswith("/") else f"/{posix}"
-    if any(marker in anchored for marker in VENDORED_ANYWHERE):
+    if any(marker in posix for marker in VENDORED_ANYWHERE):
         return True
     for repo, subs in VENDORED_SUBPATHS.items():
         for sub in subs:
-            if f"/{repo}/{sub}/" in posix or posix.startswith(f"{repo}/{sub}/"):
+            if f"/{repo}/{sub}/" in posix:
                 return True
     return any(f"/{repo}/" in posix for repo in THIRD_PARTY_REPOS)
+
+
+def is_session_artifact(path: Path) -> bool:
+    """True for a frozen agent-session record (a plan or a session log).
+
+    Kept separate from `is_vendored` so the gate reports why a file is exempt:
+    these are kuhy's own files, not third-party code.
+
+    Callers must pass an absolute path (see `check.absolutize`), for the same
+    reason `is_vendored` does -- a repo-relative path has already dropped the
+    leading directory these markers match on.
+    """
+    posix = path.as_posix()
+    return any(marker in posix for marker in SESSION_ARTIFACTS_ANYWHERE)

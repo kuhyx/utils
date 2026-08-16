@@ -11,19 +11,20 @@ from __future__ import annotations
 
 import argparse
 import os
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 if __package__ in (None, ""):  # invoked as a plain script
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from file_length.config import (  # noqa: E402
+from file_length.config import (
     CAPPED_EXTENSIONS,
     EXCLUDED_DIRS,
     MAX_LINES,
     is_data_text,
     is_generated,
+    is_session_artifact,
     is_vendored,
 )
 
@@ -45,12 +46,30 @@ def count_lines(path: Path) -> int | None:
         return None
 
 
+def absolutize(path: Path) -> Path:
+    """`path` anchored at the cwd, without resolving symlinks.
+
+    The exemption rules are written against full paths ('/.claude/skills/'),
+    but pre-commit passes paths relative to the repo root ('skills/x.md') while
+    --all walks absolute ones. Matching a relative path against those rules
+    silently drops the repo-name context, so the same file passed the gate one
+    way and failed it the other.
+
+    Deliberately NOT `Path.resolve()`: build and asset dirs here are symlinks
+    out to ../testsAndMisc_builds/, and resolving would move those paths
+    outside the repo and change which exemptions match.
+    """
+    return path if path.is_absolute() else Path.cwd() / path
+
+
 def exempt_reason(path: Path, lines: int) -> str | None:
     """Why this file is not subject to the cap, or None if it is subject."""
     if path.suffix.lower() not in CAPPED_EXTENSIONS:
         return "not a capped extension"
-    if is_vendored(path):
+    if is_vendored(absolutize(path)):
         return "vendored / third-party"
+    if is_session_artifact(absolutize(path)):
+        return "frozen session artifact"
     if is_generated(path):
         return "generated"
     try:
