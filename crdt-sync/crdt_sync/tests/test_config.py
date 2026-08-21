@@ -20,7 +20,7 @@ from crdt_sync import (
     credential_store_for,
     mirror_client_for,
 )
-from crdt_sync._config import firebase_client_for
+from crdt_sync._config import _DEFAULT_TIMEOUT_SECONDS, firebase_client_for
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -283,3 +283,46 @@ def test_client_loads_the_shared_config_when_none_is_given(
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
 
     assert firebase_client_for("wake_alarm") is not None
+
+
+def _client_with_stub_auth(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    **kwargs: float,
+) -> FirebaseSyncClient:
+    """Return a client built with stubbed auth, forwarding ``kwargs``."""
+    config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
+
+    class _Auth:
+        def __init__(self, api_key: str, _store: object) -> None:
+            """Record the key; the credential store is irrelevant here."""
+            self.api_key = api_key
+
+        def has_session(self) -> bool:
+            """Pretend a cached session exists, so no sign-in is attempted."""
+            return True
+
+    monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
+    return firebase_client_for("diet_guard", config=config, **kwargs)
+
+
+def test_client_uses_the_requested_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A caller's timeout must reach the client, not just the GitHub half."""
+    # A keyword with a default adds no branch, so coverage alone cannot tell
+    # whether it is actually threaded through to the client.
+    client = _client_with_stub_auth(tmp_path, monkeypatch, timeout_seconds=3)
+
+    assert client._timeout_seconds == 3
+
+
+def test_client_timeout_defaults_to_the_shared_value(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Omitting the keyword keeps the library-wide default."""
+    client = _client_with_stub_auth(tmp_path, monkeypatch)
+
+    assert client._timeout_seconds == _DEFAULT_TIMEOUT_SECONDS
