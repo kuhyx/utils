@@ -11,9 +11,15 @@ from __future__ import annotations
 
 import base64
 
-import requests
+import requests as _requests
 
+from crdt_sync._http import new_session
 from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
+
+# Bound to the name ``requests`` so the call sites below -- and the tests
+# that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.
+requests = new_session()
+
 
 _API_BASE = "https://api.github.com"
 _HTTP_NOT_FOUND = 404
@@ -68,14 +74,14 @@ class GitHubSyncClient:
     def _contents_url(self, path: str) -> str:
         return f"{_API_BASE}/repos/{self._owner}/{self._repo}/contents/{path}"
 
-    def _get(self, path: str) -> requests.Response:
+    def _get(self, path: str) -> _requests.Response:
         try:
             return requests.get(
                 self._contents_url(path),
                 headers=self._headers,
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error reading {path}"
             raise GitHubSyncError(msg) from exc
 
@@ -86,7 +92,7 @@ class GitHubSyncClient:
                 headers=self._headers,
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException:
+        except _requests.RequestException:
             return False
         return response.ok
 
@@ -166,7 +172,7 @@ class GitHubSyncClient:
                 json=payload,
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error pushing {path}"
             raise GitHubSyncError(msg) from exc
         if not response.ok:
@@ -241,7 +247,7 @@ class GitHubSyncClient:
                 json={"message": message, "sha": sha},
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error deleting {path}"
             raise GitHubSyncError(msg) from exc
         if not response.ok:

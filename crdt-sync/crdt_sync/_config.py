@@ -26,7 +26,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from crdt_sync._firebase import FirebaseSyncClient
+from crdt_sync._firebase import _DEFAULT_TIMEOUT_SECONDS, FirebaseSyncClient
 from crdt_sync._firebase_auth import FileCredentialStore, FirebaseTokenProvider
 from crdt_sync._mirror import MirrorSyncClient
 
@@ -141,6 +141,7 @@ def firebase_client_for(
     app_name: str,
     *,
     config: FirebaseConfig | None = None,
+    timeout_seconds: float = _DEFAULT_TIMEOUT_SECONDS,
 ) -> FirebaseSyncClient:
     """Return a signed-in client for ``app_name``.
 
@@ -151,6 +152,9 @@ def firebase_client_for(
     Args:
         app_name: Names the credential cache, e.g. ``"diet_guard"``.
         config: Overrides the on-disk config; for tests.
+        timeout_seconds: Per-request network timeout. Without this the
+            client fell back to its own default and a caller's tighter
+            budget reached the GitHub backend only.
 
     Raises:
         ConfigError: If the shared config is unusable.
@@ -160,7 +164,9 @@ def firebase_client_for(
     auth = FirebaseTokenProvider(resolved.api_key, credential_store_for(app_name))
     if not auth.has_session():
         auth.sign_in(resolved.email, resolved.read_password())
-    return FirebaseSyncClient(resolved.database_url, auth)
+    return FirebaseSyncClient(
+        resolved.database_url, auth, timeout_seconds=timeout_seconds
+    )
 
 
 def mirror_client_for(

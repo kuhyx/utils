@@ -17,9 +17,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import requests
+import requests as _requests
 
+from crdt_sync._http import new_session
 from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
+
+# Bound to the name ``requests`` so the call sites below -- and the tests
+# that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.
+requests = new_session()
+
 
 if TYPE_CHECKING:
     from crdt_sync._firebase_auth import FirebaseTokenProvider
@@ -163,7 +169,7 @@ class FirebaseSyncClient:
     def _params(self, **extra: str) -> dict[str, str]:
         return {"auth": self.auth.id_token(), **extra}
 
-    def _raise(self, what: str, response: requests.Response) -> None:
+    def _raise(self, what: str, response: _requests.Response) -> None:
         """Raise the right error type for a non-2xx response.
 
         401/403 mean the rules rejected this uid or the token is bad.
@@ -184,14 +190,14 @@ class FirebaseSyncClient:
         msg = f"{what} failed: HTTP {response.status_code} {detail}"
         raise FirebaseSyncError(msg)
 
-    def _get(self, path: str, **params: str) -> requests.Response:
+    def _get(self, path: str, **params: str) -> _requests.Response:
         try:
             return requests.get(
                 self._url(path),
                 params=self._params(**params),
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error reading {path}"
             raise FirebaseSyncError(msg) from exc
 
@@ -257,7 +263,7 @@ class FirebaseSyncClient:
                 json=text,
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error writing {path}"
             raise FirebaseSyncError(msg) from exc
         if not response.ok:
@@ -302,7 +308,7 @@ class FirebaseSyncClient:
                 params=self._params(),
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error deleting {path}"
             raise FirebaseSyncError(msg) from exc
         if not response.ok:
@@ -321,7 +327,7 @@ class FirebaseSyncClient:
                 params=self._params(shallow="true"),
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException:
+        except _requests.RequestException:
             return False
         except RemoteSyncError:
             # Includes FirebaseAuthError: "cannot get a token" is exactly

@@ -17,9 +17,15 @@ import datetime as dt
 import json
 from typing import TYPE_CHECKING, Protocol
 
-import requests
+import requests as _requests
 
+from crdt_sync._http import new_session
 from crdt_sync._remote import RemoteSyncError
+
+# Bound to the name ``requests`` so the call sites below -- and the tests
+# that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.
+requests = new_session()
+
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -373,7 +379,7 @@ class FirebaseTokenProvider:
                 json=payload,
                 timeout=self._timeout_seconds,
             )
-        except requests.RequestException as exc:
+        except _requests.RequestException as exc:
             msg = f"network error trying to {what}"
             raise FirebaseAuthError(msg) from exc
         if not response.ok:
@@ -383,7 +389,7 @@ class FirebaseTokenProvider:
         return response.json()
 
 
-def _reason(response: requests.Response) -> str:
+def _reason(response: _requests.Response) -> str:
     """Return Google's machine-readable error reason, in parentheses.
 
     Pulls ``INVALID_PASSWORD`` / ``TOKEN_EXPIRED`` / ``USER_DISABLED`` out of
