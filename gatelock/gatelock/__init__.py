@@ -36,6 +36,13 @@ from gatelock._outputs import (
     enumerate_outputs,
     parse_xrandr_query,
 )
+from gatelock._queue import (
+    QUEUE_DEADLINE_SECONDS,
+    QUEUE_POLL_SECONDS,
+    QueueResult,
+    stronger_claims,
+    wait_for_turn,
+)
 from gatelock._recovery import RecoveryLoop, RecoveryReport
 from gatelock._root import GateRoot
 from gatelock._scrollable import ScrollableSurface
@@ -68,6 +75,8 @@ from gatelock.widgets import (
 
 __all__ = [
     "DEFAULT_WRAP",
+    "QUEUE_DEADLINE_SECONDS",
+    "QUEUE_POLL_SECONDS",
     "RANK_DIET_GUARD",
     "RANK_SCREEN_LOCKER",
     "RANK_WAKE_ALARM",
@@ -90,6 +99,7 @@ __all__ = [
     "OutputEnumerator",
     "OutputRect",
     "OutputScan",
+    "QueueResult",
     "RandrBackend",
     "RecoveryLoop",
     "RecoveryReport",
@@ -119,5 +129,7 @@ __all__ = [
     "report_fit",
     "restore_vt_switching",
     "row",
+    "stronger_claims",
+    "wait_for_turn",
     "wait_for_x_server",
 ]
