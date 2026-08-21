@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import queue
+import signal
 from unittest.mock import MagicMock, patch
 
-from gatelock._arbiter import RANK_DIET_GUARD, Claim
+from gatelock._arbiter import RANK_DIET_GUARD, RANK_SCREEN_LOCKER, Claim
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
 from gatelock._window import LockConfig
@@ -61,6 +62,15 @@ class TestGrabBlockedLogging:
     def test_names_the_holding_gatelock_app(self, mock_root: MagicMock) -> None:
         """The 2026-07-25 diagnosis, available immediately."""
         arbiter = MagicMock()
+        arbiter.claim = Claim(
+            app="screen_locker",
+            rank=RANK_SCREEN_LOCKER,
+            pid=1,
+            started="2026-07-25T12:49:40+00:00",
+            grab="global",
+            disable_vt=True,
+            instance_id="ours",
+        )
         arbiter.describe_holder.return_value = Claim(
             app="diet_guard",
             rank=RANK_DIET_GUARD,
@@ -70,7 +80,9 @@ class TestGrabBlockedLogging:
             disable_vt=True,
             instance_id="t",
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(
+            mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=False)
+        )
         window._arbiter = arbiter
         with patch("gatelock._window._logger") as logger:
             window._log_grab_blocked(25)
@@ -94,6 +106,123 @@ class TestGrabBlockedLogging:
         with patch("gatelock._window._logger") as logger:
             window._log_grab_blocked(50)
         assert "fullscreen game" in str(logger.warning.call_args)
+
+
+class TestPreemptWeakerHolder:
+    """A weaker incumbent must not block a stronger claim indefinitely."""
+
+    def _arbiter_with(
+        self, *, our_rank: int, holder_rank: int, holder_pid: int
+    ) -> MagicMock:
+        arbiter = MagicMock()
+        arbiter.claim = Claim(
+            app="ours",
+            rank=our_rank,
+            pid=1,
+            started="2026-08-21T12:00:00+00:00",
+            grab="global",
+            disable_vt=True,
+            instance_id="ours",
+        )
+        arbiter.describe_holder.return_value = Claim(
+            app="holder",
+            rank=holder_rank,
+            pid=holder_pid,
+            started="2026-08-21T07:04:07+00:00",
+            grab="global",
+            disable_vt=True,
+            instance_id="theirs",
+        )
+        return arbiter
+
+    def test_signals_a_weaker_holder(self, mock_root: MagicMock) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
+        )
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with patch("gatelock._window.os.kill") as kill:
+            window._log_grab_blocked(25)
+        kill.assert_called_once_with(4075, signal.SIGTERM)
+
+    def test_never_signals_a_stronger_holder(self, mock_root: MagicMock) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_DIET_GUARD, holder_rank=RANK_SCREEN_LOCKER, holder_pid=4137
+        )
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with patch("gatelock._window.os.kill") as kill:
+            window._log_grab_blocked(25)
+        kill.assert_not_called()
+
+    def test_signals_the_same_holder_only_once(self, mock_root: MagicMock) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
+        )
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with patch("gatelock._window.os.kill") as kill:
+            window._log_grab_blocked(25)
+            window._log_grab_blocked(50)
+        kill.assert_called_once_with(4075, signal.SIGTERM)
+
+    def test_disabled_by_config(self, mock_root: MagicMock) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
+        )
+        window, _hooks = make_window(
+            mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=False)
+        )
+        window._arbiter = arbiter
+        with patch("gatelock._window.os.kill") as kill:
+            window._log_grab_blocked(25)
+        kill.assert_not_called()
+
+    def test_no_arbiter_means_no_preemption(self, mock_root: MagicMock) -> None:
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        with patch("gatelock._window.os.kill") as kill:
+            window._maybe_preempt(
+                Claim(
+                    app="holder",
+                    rank=RANK_DIET_GUARD,
+                    pid=4075,
+                    started="2026-08-21T07:04:07+00:00",
+                    grab="global",
+                    disable_vt=True,
+                    instance_id="theirs",
+                )
+            )
+        kill.assert_not_called()
+
+    def test_a_holder_that_is_already_gone_is_reported_at_info(
+        self, mock_root: MagicMock
+    ) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
+        )
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with (
+            patch("gatelock._window.os.kill", side_effect=ProcessLookupError),
+            patch("gatelock._window._logger") as logger,
+        ):
+            window._log_grab_blocked(25)
+        assert logger.info.called
+
+    def test_an_unsignalable_holder_is_reported_not_raised(
+        self, mock_root: MagicMock
+    ) -> None:
+        arbiter = self._arbiter_with(
+            our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
+        )
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with (
+            patch("gatelock._window.os.kill", side_effect=OSError("nope")),
+            patch("gatelock._window._logger") as logger,
+        ):
+            window._log_grab_blocked(25)
+        assert logger.exception.called
 
 
 class TestFocusNotifiedOnce:

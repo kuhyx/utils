@@ -28,6 +28,7 @@ import atexit
 import contextlib
 from dataclasses import dataclass
 import logging
+import os
 import signal
 import tkinter as tk
 from typing import TYPE_CHECKING, Literal, Protocol
@@ -43,7 +44,7 @@ from gatelock._vt import disable_vt_switching, restore_vt_switching
 if TYPE_CHECKING:
     from types import FrameType
 
-    from gatelock._arbiter import Arbiter
+    from gatelock._arbiter import Arbiter, Claim
     from gatelock._surfaces import SurfaceInfo
 
 _logger = logging.getLogger(__name__)
@@ -86,6 +87,12 @@ class LockConfig:
             fails. 0 means "try once, then fall back to a local grab". Left
             unset (None), a "global" grab retries forever every 200ms.
         grab_log_every: Log a warning every N failed retry-forever attempts.
+        preempt_weaker_holder: SIGTERM a lower-ranked incumbent that is
+            blocking our grab, instead of retrying against it forever. Only
+            the *direction* the arbiter's own ranking already sanctions: we
+            never signal a holder that outranks us. SIGTERM (not SIGKILL) so
+            the holder's own signal handler runs its normal close() path --
+            same teardown as a clean dismiss, just triggered externally.
         app_name: This app's name, used in arbitration logs so a blocked app
             can say who is actually holding the screen.
         rank: Arbitration priority; higher wins. See the ``RANK_*`` constants
@@ -130,6 +137,7 @@ class LockConfig:
     disable_vt: bool | None = None
     grab_retry_ms: int | None = None
     grab_log_every: int = 25
+    preempt_weaker_holder: bool = True
     app_name: str = "gatelock"
     rank: int = RANK_SCREEN_LOCKER
     recovery_tick_ms: int = 1000
@@ -310,6 +318,7 @@ class LockWindow:
         self._vt_disabled = False
         self._closed = False
         self._focus_notified = False
+        self._preempted_pids: set[int] = set()
         self._surfaces = SurfaceSet(root, config, hooks)
         self._enumerator = OutputEnumerator(root)
         self._detector = OutputChangeDetector(root)
@@ -419,6 +428,13 @@ class LockWindow:
         v0.1.1 always blamed "a fullscreen game". On 2026-07-25 the holder was
         the other locker, and that guess sent the diagnosis in the wrong
         direction for the length of the outage.
+
+        A holder that outranks us is left alone entirely -- retrying is the
+        correct behavior there, matching :func:`gatelock.wait_for_turn`'s own
+        rule for an app that has not armed yet. A *weaker* holder is preempted
+        below, once per pid, rather than left to block us for as long as it
+        takes to finish on its own (diet_guard held the grab for ~3 minutes
+        against a higher-ranked screen_locker on 2026-08-21).
         """
         holder = self._arbiter.describe_holder() if self._arbiter else None
         if holder is None:
@@ -437,6 +453,41 @@ class LockWindow:
             holder.pid,
             holder.started,
         )
+        self._maybe_preempt(holder)
+
+    def _maybe_preempt(self, holder: Claim) -> None:
+        """SIGTERM a weaker holder once, so it stands down instead of blocking.
+
+        SIGTERM (not SIGKILL): the holder's own signal handler
+        (``LockWindow._install_signal_handlers``) raises ``SystemExit(0)``,
+        which unwinds through its ``run()``'s ``finally`` into its own
+        ``close()`` -- the identical teardown a clean dismiss gets (VT
+        restored, arbiter claim released, app-specific ``on_close`` hook
+        run), just triggered externally instead of by the user.
+        """
+        if not self._config.preempt_weaker_holder or self._arbiter is None:
+            return
+        if holder.rank >= self._arbiter.claim.rank:
+            return
+        if holder.pid in self._preempted_pids:
+            return
+        self._preempted_pids.add(holder.pid)
+        _logger.warning(
+            "preempting weaker holder %r (rank %d, pid %d) so rank %d can arm",
+            holder.app,
+            holder.rank,
+            holder.pid,
+            self._arbiter.claim.rank,
+        )
+        try:
+            os.kill(holder.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            _logger.info(
+                "holder pid %d was already gone by the time we signalled it",
+                holder.pid,
+            )
+        except OSError:
+            _logger.exception("could not signal holder pid %d", holder.pid)
 
     def _notify_focus_ready(self) -> None:
         """Tell the app it can focus its first input widget now.
