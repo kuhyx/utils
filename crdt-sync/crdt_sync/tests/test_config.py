@@ -41,10 +41,12 @@ class _StubRemote:
     accepts it without a suppression.
     """
 
-    def list_directory(self, path: str) -> list[str]:
+    def list_directory(self, _path: str) -> list[str]:
+        """Report an empty remote directory."""
         return []
 
-    def get_file_text(self, path: str) -> str | None:
+    def get_file_text(self, _path: str) -> str | None:
+        """Report the file as absent."""
         return None
 
     def put_file_text(self, path: str, text: str, *, message: str) -> None:
@@ -54,6 +56,7 @@ class _StubRemote:
         """Accept and discard a delete."""
 
     def can_access_remote(self) -> bool:
+        """Report the remote as reachable."""
         return True
 
 
@@ -64,6 +67,7 @@ def _write(path: Path, data: object) -> Path:
 
 
 def test_loads_a_valid_config(tmp_path: Path) -> None:
+    """Loads a valid config."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
 
     assert config.api_key == "AIzaSyExample"
@@ -83,11 +87,13 @@ def test_ignores_the_scaffold_comment_keys(tmp_path: Path) -> None:
 
 
 def test_reports_a_missing_file(tmp_path: Path) -> None:
+    """Reports a missing file."""
     with pytest.raises(ConfigError, match="does not exist"):
         FirebaseConfig.load(tmp_path / "absent.json")
 
 
 def test_reports_unreadable_json(tmp_path: Path) -> None:
+    """Reports unreadable JSON."""
     path = tmp_path / "firebase.json"
     path.write_text("{not json", encoding="utf-8")
 
@@ -96,6 +102,7 @@ def test_reports_unreadable_json(tmp_path: Path) -> None:
 
 
 def test_reports_a_non_object_document(tmp_path: Path) -> None:
+    """Reports a non object document."""
     with pytest.raises(ConfigError, match="must contain a JSON object"):
         FirebaseConfig.load(_write(tmp_path / "firebase.json", ["a list"]))
 
@@ -110,6 +117,7 @@ def test_reports_an_unreadable_path(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("field", sorted(_VALID))
 def test_names_a_missing_field(tmp_path: Path, field: str) -> None:
+    """Names a missing field."""
     incomplete = {k: v for k, v in _VALID.items() if k != field}
 
     with pytest.raises(ConfigError, match=field):
@@ -117,6 +125,7 @@ def test_names_a_missing_field(tmp_path: Path, field: str) -> None:
 
 
 def test_names_an_empty_field(tmp_path: Path) -> None:
+    """Names an empty field."""
     with pytest.raises(ConfigError, match="uid"):
         FirebaseConfig.load(_write(tmp_path / "firebase.json", {**_VALID, "uid": "  "}))
 
@@ -130,6 +139,7 @@ def test_names_an_unfilled_placeholder(tmp_path: Path) -> None:
 
 
 def test_reads_a_password(tmp_path: Path) -> None:
+    """Reads a password."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
     password = tmp_path / "password"
     password.write_text("hunter2", encoding="utf-8")
@@ -147,6 +157,7 @@ def test_strips_a_trailing_newline_from_the_password(tmp_path: Path) -> None:
 
 
 def test_rejects_an_empty_password(tmp_path: Path) -> None:
+    """Rejects an empty password."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
     password = tmp_path / "password"
     password.write_text("   ", encoding="utf-8")
@@ -156,6 +167,7 @@ def test_rejects_an_empty_password(tmp_path: Path) -> None:
 
 
 def test_rejects_a_placeholder_password(tmp_path: Path) -> None:
+    """Rejects a placeholder password."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
     password = tmp_path / "password"
     password.write_text("PASTE_SYNC_ACCOUNT_PASSWORD_HERE", encoding="utf-8")
@@ -165,6 +177,7 @@ def test_rejects_a_placeholder_password(tmp_path: Path) -> None:
 
 
 def test_reports_an_unreadable_password(tmp_path: Path) -> None:
+    """Reports an unreadable password."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
     (tmp_path / "password").mkdir()
 
@@ -191,13 +204,15 @@ def test_client_signs_in_only_without_a_cached_session(
     sign_ins: list[tuple[str, str]] = []
 
     class _Auth:
-        def __init__(self, api_key: str, store: object) -> None:
+        def __init__(self, api_key: str, _store: object) -> None:
             self.api_key = api_key
 
         def has_session(self) -> bool:
+            """Pretend a cached session exists."""
             return True
 
         def sign_in(self, email: str, password: str) -> None:
+            """Record the sign-in attempt."""
             sign_ins.append((email, password))  # pragma: no cover - must not run
 
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
@@ -211,6 +226,7 @@ def test_client_signs_in_when_there_is_no_session(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Client signs in when there is no session."""
     config = FirebaseConfig.load(_write(tmp_path / "firebase.json", _VALID))
     password = tmp_path / "password"
     password.write_text("hunter2", encoding="utf-8")
@@ -218,13 +234,15 @@ def test_client_signs_in_when_there_is_no_session(
     sign_ins: list[tuple[str, str]] = []
 
     class _Auth:
-        def __init__(self, api_key: str, store: object) -> None:
+        def __init__(self, api_key: str, _store: object) -> None:
             self.api_key = api_key
 
         def has_session(self) -> bool:
+            """Pretend no cached session exists."""
             return False
 
         def sign_in(self, email: str, password_value: str) -> None:
+            """Record the credentials the caller signed in with."""
             sign_ins.append((email, password_value))
 
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
@@ -242,13 +260,15 @@ def test_mirror_client_makes_firebase_primary(
     github = _StubRemote()
 
     class _Auth:
-        def __init__(self, api_key: str, store: object) -> None:
+        def __init__(self, api_key: str, _store: object) -> None:
             self.api_key = api_key
 
         def has_session(self) -> bool:
+            """Pretend a cached session exists."""
             return True
 
         def sign_in(self, email: str, password: str) -> None:
+            """Record the sign-in attempt."""
             raise AssertionError  # pragma: no cover - must not run
 
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
@@ -271,13 +291,15 @@ def test_client_loads_the_shared_config_when_none_is_given(
     )
 
     class _Auth:
-        def __init__(self, api_key: str, store: object) -> None:
+        def __init__(self, api_key: str, _store: object) -> None:
             self.api_key = api_key
 
         def has_session(self) -> bool:
+            """Pretend a cached session exists."""
             return True
 
         def sign_in(self, email: str, password: str) -> None:
+            """Record the sign-in attempt."""
             raise AssertionError  # pragma: no cover - must not run
 
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)

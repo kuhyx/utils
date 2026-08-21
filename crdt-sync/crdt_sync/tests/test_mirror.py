@@ -144,7 +144,10 @@ def _mirror(
 
 
 class TestWrites:
+    """Writes."""
+
     def test_go_to_both_backends(self) -> None:
+        """Go to both backends."""
         client, primary, mirror, _ = _mirror()
         client.put_file_text("ns/pc/log.json", "{}", message="m")
         assert primary.writes == ["ns/pc/log.json"]
@@ -153,17 +156,20 @@ class TestWrites:
     def test_a_primary_failure_fails_the_tick(self) -> None:
         # Fail-closed: the primary is authoritative, so a sync that could not
         # write it must not be reported as successful.
+        """A primary failure fails the tick."""
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.put_file_text("ns/pc/log.json", "{}", message="m")
 
     def test_a_mirror_failure_is_loud_but_survivable(self) -> None:
+        """A mirror failure is loud but survivable."""
         client, primary, _, failures = _mirror(mirror_failing=True)
         client.put_file_text("ns/pc/log.json", "{}", message="m")
         assert primary.writes == ["ns/pc/log.json"]
         assert failures == ["put_file_text ns/pc/log.json"]
 
     def test_deletes_behave_the_same_way(self) -> None:
+        """Deletes behave the same way."""
         client, primary, _, failures = _mirror(
             primary_files={"ns/pc/log.json": "{}"},
             mirror_files={"ns/pc/log.json": "{}"},
@@ -174,13 +180,17 @@ class TestWrites:
         assert failures == ["delete_file ns/pc/log.json"]
 
     def test_a_primary_delete_failure_fails_the_tick(self) -> None:
+        """A primary delete failure fails the tick."""
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.delete_file("ns/pc/log.json")
 
 
 class TestReads:
+    """Reads."""
+
     def test_prefer_the_primary_when_it_has_the_file(self) -> None:
+        """Prefer the primary when it has the file."""
         client, _, _, _ = _mirror(
             primary_files={"ns/pc/log.json": "from-primary"},
             mirror_files={"ns/pc/log.json": "from-mirror"},
@@ -191,14 +201,17 @@ class TestReads:
         # Why reads are not primary-only: a migrated PC must still see an
         # un-migrated phone's writes, or convergence silently becomes
         # one-directional with no error raised.
+        """Fall back to the mirror for an unmigrated device."""
         client, _, _, _ = _mirror(mirror_files={"ns/phone/log.json": "from-mirror"})
         assert client.get_file_text("ns/phone/log.json") == "from-mirror"
 
     def test_return_none_when_neither_backend_has_the_file(self) -> None:
+        """Return none when neither backend has the file."""
         client, _, _, _ = _mirror()
         assert client.get_file_text("ns/nobody/log.json") is None
 
     def test_a_mirror_read_failure_degrades_to_the_primary(self) -> None:
+        """A mirror read failure degrades to the primary."""
         client, _, _, failures = _mirror(mirror_failing=True)
         assert client.get_file_text("ns/pc/log.json") is None
         assert failures == ["get_file_text ns/pc/log.json"]
@@ -210,13 +223,17 @@ class TestReads:
         # mirror does not hold the file, so neither side has an answer. A
         # primary failure alone no longer fails the read -- see
         # TestPrimaryReadFallback.
+        """A primary read failure with nothing in the mirror raises."""
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.get_file_text("ns/pc/log.json")
 
 
 class TestListDirectory:
+    """List directory."""
+
     def test_unions_devices_from_both_backends(self) -> None:
+        """Unions devices from both backends."""
         client, _, _, _ = _mirror(
             primary_files={"ns/pc/log.json": "{}"},
             mirror_files={"ns/phone/log.json": "{}"},
@@ -224,6 +241,7 @@ class TestListDirectory:
         assert sorted(client.list_directory("ns")) == ["pc", "phone"]
 
     def test_does_not_duplicate_a_device_present_in_both(self) -> None:
+        """Does not duplicate a device present in both."""
         client, _, _, _ = _mirror(
             primary_files={"ns/pc/log.json": "{}"},
             mirror_files={"ns/pc/log.json": "{}"},
@@ -231,6 +249,7 @@ class TestListDirectory:
         assert client.list_directory("ns") == ["pc"]
 
     def test_a_mirror_failure_degrades_to_the_primary_list(self) -> None:
+        """A mirror failure degrades to the primary list."""
         client, _, _, failures = _mirror(
             primary_files={"ns/pc/log.json": "{}"}, mirror_failing=True
         )
@@ -242,6 +261,7 @@ class TestListDirectory:
         # the mirror's devices. This used to raise, which made a primary
         # outage look like "no devices exist" -- the union read silently
         # degrading to nothing, precisely when the fallback was needed.
+        """A primary failure degrades to the mirror list."""
         client, _, _, _ = _mirror(
             primary_failing=True, mirror_files={"ns/phone/log.json": "{}"}
         )
@@ -250,6 +270,7 @@ class TestListDirectory:
     def test_both_backends_failing_raises(self) -> None:
         # With no answer from either side, fail closed: an empty list is
         # indistinguishable from "no devices", and callers act on that.
+        """Both backends failing raises."""
         client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
         with pytest.raises(RemoteSyncError):
             client.list_directory("ns")
@@ -259,12 +280,14 @@ class TestPrimaryReadFallback:
     """A failing primary must never hide data the mirror can still serve."""
 
     def test_get_file_text_falls_back_to_the_mirror(self) -> None:
+        """Get file text falls back to the mirror."""
         client, _, _, _ = _mirror(
             primary_failing=True, mirror_files={"ns/phone/log.json": "{}"}
         )
         assert client.get_file_text("ns/phone/log.json") == "{}"
 
     def test_get_file_text_raises_when_both_fail(self) -> None:
+        """Get file text raises when both fail."""
         client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
         with pytest.raises(RemoteSyncError):
             client.get_file_text("ns/phone/log.json")
@@ -274,17 +297,20 @@ class TestPrimaryReadFallback:
     ) -> None:
         # A reachable mirror that simply does not hold the file is not an
         # answer either, since the primary's copy was never read.
+        """Get file text raises when primary fails and mirror lacks it."""
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.get_file_text("ns/phone/log.json")
 
     def test_revision_map_falls_back_to_the_mirror(self) -> None:
+        """Revision map falls back to the mirror."""
         client, _, _, _ = _mirror(
             primary_failing=True, mirror_files={"ns/revs/phone": "r1"}
         )
         assert client.get_string_map("ns/revs") == {"phone": "r1"}
 
     def test_revision_map_raises_when_both_fail(self) -> None:
+        """Revision map raises when both fail."""
         client, _, _, _ = _mirror(primary_failing=True, mirror_failing=True)
         with pytest.raises(RemoteSyncError):
             client.get_string_map("ns/revs")
@@ -296,6 +322,7 @@ class TestPrimaryReadFallback:
         # but that is not a failure -- it simply has no revisions to add, so a
         # working primary's map must still come back. Matches the Dart side,
         # where the capability check runs inside the guarded closure.
+        """Revision map tolerates a mirror that cannot bulk read."""
         client = MirrorSyncClient(
             FakeStore({"ns/revs/pc": "r1"}),
             FakeStoreWithoutBulkRead(),
@@ -306,6 +333,7 @@ class TestPrimaryReadFallback:
     def test_writes_stay_fail_closed_on_a_primary_failure(self) -> None:
         # The read fix must NOT loosen writes: an unaccepted write has not
         # happened, so it must still fail the tick.
+        """Writes stay fail closed on a primary failure."""
         client, _, _, _ = _mirror(primary_failing=True)
         with pytest.raises(RemoteSyncError):
             client.put_file_text("ns/pc/log.json", "{}", message="m")
@@ -314,7 +342,10 @@ class TestPrimaryReadFallback:
 
 
 class TestRevisionMaps:
+    """Revision maps."""
+
     def test_merge_both_backends_with_the_primary_winning(self) -> None:
+        """Merge both backends with the primary winning."""
         client, _, _, _ = _mirror(
             primary_files={"ns/revs/pc": "primary-rev"},
             mirror_files={"ns/revs/pc": "mirror-rev", "ns/revs/phone": "old"},
@@ -328,6 +359,7 @@ class TestRevisionMaps:
         }
 
     def test_a_mirror_failure_degrades_to_primary_revisions(self) -> None:
+        """A mirror failure degrades to primary revisions."""
         client, _, _, failures = _mirror(
             primary_files={"ns/revs/pc": "primary-rev"}, mirror_failing=True
         )
@@ -335,6 +367,7 @@ class TestRevisionMaps:
         assert failures == ["get_string_map ns/revs"]
 
     def test_a_backend_without_bulk_reads_contributes_nothing(self) -> None:
+        """A backend without bulk reads contributes nothing."""
         client = MirrorSyncClient(
             FakeStore({"ns/revs/pc": "primary-rev"}),
             FakeStoreWithoutBulkRead({"ns/revs/phone": "ignored"}),
@@ -342,6 +375,7 @@ class TestRevisionMaps:
         assert client.get_string_map("ns/revs") == {"pc": "primary-rev"}
 
     def test_is_empty_when_neither_backend_has_bulk_reads(self) -> None:
+        """Is empty when neither backend has bulk reads."""
         client = MirrorSyncClient(
             FakeStoreWithoutBulkRead(), FakeStoreWithoutBulkRead()
         )
@@ -349,9 +383,12 @@ class TestRevisionMaps:
 
 
 class TestLifecycle:
+    """Lifecycle."""
+
     def test_can_access_remote_reports_only_the_primary(self) -> None:
         # A Test-connection button must not report success because the
         # backend being retired happens to answer.
+        """Can access remote reports only the primary."""
         broken, _, _, _ = _mirror(primary_failing=True)
         assert broken.can_access_remote() is False
         healthy, _, _, _ = _mirror(mirror_failing=True)
@@ -361,19 +398,24 @@ class TestLifecycle:
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """A mirror failure with no handler is logged not raised."""
         client = MirrorSyncClient(FakeStore(), FakeStore(failing=True))
         client.put_file_text("ns/pc/log.json", "{}", message="m")
         assert "Mirror backend failed" in caplog.text
 
     def test_satisfies_the_remote_store_contract(self) -> None:
+        """Satisfies the remote store contract."""
         client, _, _, _ = _mirror()
         assert isinstance(client, RemoteStore)
 
 
 class TestEndToEndThroughSyncLog:
+    """End to end through sync log."""
+
     def test_a_half_migrated_pair_still_converges_both_ways(self) -> None:
         # phone has not migrated and still writes only to GitHub; pc is on
         # Firebase with the GitHub mirror. Both must see both records.
+        """A half migrated pair still converges both ways."""
         github = FakeStore()
         firebase = FakeStore()
 

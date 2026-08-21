@@ -81,27 +81,36 @@ def _patch_post(*responses: MagicMock) -> object:
 
 
 class TestFirebaseCredentials:
+    """Firebase credentials."""
+
     def test_round_trips_through_json(self) -> None:
+        """Round trips through JSON."""
         original = _credentials()
         restored = FirebaseCredentials.from_json(original.to_json())
         assert restored == original
 
     def test_is_not_expired_inside_its_lifetime(self) -> None:
+        """Is not expired inside its lifetime."""
         assert _credentials().is_expired_at(_NOW) is False
 
     def test_is_expired_once_past_expiry(self) -> None:
+        """Is expired once past expiry."""
         stale = _credentials(valid_for=dt.timedelta(minutes=-1))
         assert stale.is_expired_at(_NOW) is True
 
     def test_is_expired_inside_the_refresh_skew(self) -> None:
         # A tick starting now would outlive a token with 2 minutes left, so
         # it must count as already expired.
+        """Is expired inside the refresh skew."""
         soon = _credentials(valid_for=dt.timedelta(minutes=2))
         assert soon.is_expired_at(_NOW) is True
 
 
 class TestSignIn:
+    """Sign in."""
+
     def test_stores_the_session(self) -> None:
+        """Stores the session."""
         store = MemoryCredentialStore()
         body = {"idToken": _ID_1, "refreshToken": _REFRESH_1, "expiresIn": "3600"}
         with _patch_post(_response(200, body)):
@@ -113,6 +122,7 @@ class TestSignIn:
         assert saved.expires_at == _NOW + dt.timedelta(hours=1)
 
     def test_reports_googles_reason_for_a_rejected_password(self) -> None:
+        """Reports googles reason for a rejected password."""
         body = {"error": {"message": "INVALID_LOGIN_CREDENTIALS"}}
         with (
             _patch_post(_response(400, body)),
@@ -121,6 +131,7 @@ class TestSignIn:
             _provider().sign_in("me@example.com", "wrong")
 
     def test_reports_a_string_shaped_error_body(self) -> None:
+        """Reports a string shaped error body."""
         with (
             _patch_post(_response(400, {"error": "BAD_REQUEST"})),
             pytest.raises(FirebaseAuthError, match="BAD_REQUEST"),
@@ -128,6 +139,7 @@ class TestSignIn:
             _provider().sign_in("a@b.c", "x")
 
     def test_survives_an_error_body_with_no_error_key(self) -> None:
+        """Survives an error body with no error key."""
         with (
             _patch_post(_response(400, {"unexpected": "shape"})),
             pytest.raises(FirebaseAuthError, match="HTTP 400"),
@@ -135,6 +147,7 @@ class TestSignIn:
             _provider().sign_in("a@b.c", "x")
 
     def test_survives_a_non_dict_error_body(self) -> None:
+        """Survives a non dict error body."""
         with (
             _patch_post(_response(400, ["not", "a", "dict"])),
             pytest.raises(FirebaseAuthError, match="HTTP 400"),
@@ -142,6 +155,7 @@ class TestSignIn:
             _provider().sign_in("a@b.c", "x")
 
     def test_survives_a_non_json_error_body(self) -> None:
+        """Survives a non JSON error body."""
         response = _response(502)
         response.json = MagicMock(side_effect=ValueError("not json"))
         with (
@@ -151,6 +165,7 @@ class TestSignIn:
             _provider().sign_in("a@b.c", "x")
 
     def test_turns_a_network_failure_into_an_auth_error(self) -> None:
+        """Turns a network failure into an auth error."""
         with (
             patch.object(
                 fa.requests, "post", side_effect=requests.ConnectionError("offline")
@@ -161,6 +176,8 @@ class TestSignIn:
 
 
 class TestSignInWithGoogle:
+    """Sign in with google."""
+
     @staticmethod
     def _google_body(**overrides: object) -> dict[str, object]:
         body: dict[str, object] = {
@@ -174,6 +191,7 @@ class TestSignInWithGoogle:
         return body
 
     def test_stores_the_session(self) -> None:
+        """Stores the session."""
         store = MemoryCredentialStore()
         with _patch_post(_response(200, self._google_body())):
             _provider(store).sign_in_with_google("google-jwt")
@@ -184,6 +202,7 @@ class TestSignInWithGoogle:
         assert saved.expires_at == _NOW + dt.timedelta(hours=1)
 
     def test_returns_the_account_email(self) -> None:
+        """Returns the account email."""
         with _patch_post(_response(200, self._google_body())):
             email = _provider().sign_in_with_google("google-jwt")
         assert email == "me@example.com"
@@ -192,6 +211,7 @@ class TestSignInWithGoogle:
         # Firebase leaves `email` out when the Google account has no verified
         # address. That is not a failure -- the uid check is what matters --
         # so the caller gets "" rather than a KeyError.
+        """Returns an empty email when google omits one."""
         body = self._google_body()
         del body["email"]
         with _patch_post(_response(200, body)):
@@ -200,6 +220,7 @@ class TestSignInWithGoogle:
     def test_sends_the_credential_form_encoded_in_post_body(self) -> None:
         # identitytoolkit rejects the IdP credential as a JSON field with
         # INVALID_IDP_RESPONSE, which reads like a bad token; pin the shape.
+        """Sends the credential form encoded in post body."""
         post = MagicMock(return_value=_response(200, self._google_body()))
         with patch.object(fa.requests, "post", post):
             _provider().sign_in_with_google("google-jwt")
@@ -208,6 +229,7 @@ class TestSignInWithGoogle:
         assert "signInWithIdp" in post.call_args.args[0]
 
     def test_accepts_the_uid_the_data_belongs_to(self) -> None:
+        """Accepts the uid the data belongs to."""
         store = MemoryCredentialStore()
         with _patch_post(_response(200, self._google_body())):
             _provider(store).sign_in_with_google("google-jwt", expected_uid=_UID)
@@ -218,6 +240,7 @@ class TestSignInWithGoogle:
         # omits `idToken`, so an unlinked Google account is signed *up* before
         # the uid is known. What this guarantees is that no such session is
         # persisted locally, where it would be denied every read and write.
+        """Rejects and stores nothing for a different uid."""
         store = MemoryCredentialStore()
         body = self._google_body(localId="someone-else")
         with (
@@ -228,6 +251,7 @@ class TestSignInWithGoogle:
         assert store.load() is None
 
     def test_reports_googles_reason_for_a_rejected_token(self) -> None:
+        """Reports googles reason for a rejected token."""
         body = {"error": {"message": "INVALID_IDP_RESPONSE"}}
         with (
             _patch_post(_response(400, body)),
@@ -237,18 +261,23 @@ class TestSignInWithGoogle:
 
 
 class TestIdToken:
+    """Id token."""
+
     def test_fails_loudly_when_not_signed_in(self) -> None:
         # Never returns None or a stale token: a sync that quietly stops
         # syncing is the failure mode this design exists to prevent.
+        """Fails loudly when not signed in."""
         with pytest.raises(FirebaseAuthError, match="not signed in"):
             _provider().id_token()
 
     def test_returns_the_stored_token_without_a_network_call(self) -> None:
+        """Returns the stored token without a network call."""
         provider = _provider(MemoryCredentialStore(_credentials()))
         with patch.object(fa.requests, "post", side_effect=AssertionError("no HTTP")):
             assert provider.id_token() == _ID_1
 
     def test_refreshes_an_expired_token_and_keeps_the_rotated_one(self) -> None:
+        """Refreshes an expired token and keeps the rotated one."""
         store = MemoryCredentialStore(_credentials(valid_for=dt.timedelta(minutes=-5)))
         body = {
             "id_token": _ID_2,
@@ -262,6 +291,7 @@ class TestIdToken:
         assert saved.refresh_token == _REFRESH_2
 
     def test_fails_loudly_when_the_refresh_token_was_revoked(self) -> None:
+        """Fails loudly when the refresh token was revoked."""
         store = MemoryCredentialStore(_credentials(valid_for=dt.timedelta(minutes=-5)))
         with (
             _patch_post(_response(400, {"error": {"message": "TOKEN_EXPIRED"}})),
@@ -303,6 +333,7 @@ class TestIdToken:
         assert store.load() is not None
 
     def test_a_server_error_keeps_the_session(self) -> None:
+        """A server error keeps the session."""
         store = MemoryCredentialStore(_credentials(valid_for=dt.timedelta(minutes=-5)))
         provider = _provider(store)
         with (
@@ -314,7 +345,10 @@ class TestIdToken:
 
 
 class TestSessionLifecycle:
+    """Session lifecycle."""
+
     def test_has_session_is_false_before_sign_in_and_true_after(self) -> None:
+        """Has session is false before sign in and true after."""
         store = MemoryCredentialStore()
         provider = _provider(store)
         assert provider.has_session() is False
@@ -324,6 +358,7 @@ class TestSessionLifecycle:
         assert provider.has_session() is True
 
     def test_sign_out_clears_the_store(self) -> None:
+        """Sign out clears the store."""
         store = MemoryCredentialStore(_credentials())
         provider = _provider(store)
         assert provider.id_token() == _ID_1
@@ -333,12 +368,16 @@ class TestSessionLifecycle:
             provider.id_token()
 
     def test_defaults_to_the_real_clock_when_none_is_injected(self) -> None:
+        """Defaults to the real clock when none is injected."""
         provider = FirebaseTokenProvider("k", MemoryCredentialStore())
         assert provider.has_session() is False
 
 
 class TestFileCredentialStore:
+    """File credential store."""
+
     def test_round_trips_through_a_file(self, tmp_path: Path) -> None:
+        """Round trips through a file."""
         store = FileCredentialStore(tmp_path / "nested" / "creds.json")
         store.save(_credentials())
         assert store.load() == _credentials()
@@ -346,26 +385,31 @@ class TestFileCredentialStore:
     def test_writes_the_file_readable_only_by_this_user(self, tmp_path: Path) -> None:
         # The refresh token is the real secret; it must never be briefly
         # world-readable between write and chmod.
+        """Writes the file readable only by this user."""
         path = tmp_path / "creds.json"
         FileCredentialStore(path).save(_credentials())
         assert path.stat().st_mode & 0o777 == 0o600
 
     def test_load_returns_none_when_absent(self, tmp_path: Path) -> None:
+        """Load returns none when absent."""
         assert FileCredentialStore(tmp_path / "missing.json").load() is None
 
     def test_load_returns_none_for_a_truncated_file(self, tmp_path: Path) -> None:
         # An interrupted write reads as "not signed in"; the caller's next
         # step is to sign in again, which repairs it.
+        """Load returns none for a truncated file."""
         path = tmp_path / "creds.json"
         path.write_text('{"id_token": "a"', encoding="utf-8")
         assert FileCredentialStore(path).load() is None
 
     def test_load_returns_none_when_fields_are_missing(self, tmp_path: Path) -> None:
+        """Load returns none when fields are missing."""
         path = tmp_path / "creds.json"
         path.write_text('{"id_token": "a"}', encoding="utf-8")
         assert FileCredentialStore(path).load() is None
 
     def test_load_returns_none_for_an_unparsable_expiry(self, tmp_path: Path) -> None:
+        """Load returns none for an unparsable expiry."""
         path = tmp_path / "creds.json"
         path.write_text(
             json.dumps(
@@ -376,6 +420,7 @@ class TestFileCredentialStore:
         assert FileCredentialStore(path).load() is None
 
     def test_clear_removes_the_file_and_is_idempotent(self, tmp_path: Path) -> None:
+        """Clear removes the file and is idempotent."""
         path = tmp_path / "creds.json"
         store = FileCredentialStore(path)
         store.save(_credentials())
@@ -384,6 +429,7 @@ class TestFileCredentialStore:
         store.clear()
 
     def test_overwrites_an_existing_file(self, tmp_path: Path) -> None:
+        """Overwrites an existing file."""
         path = tmp_path / "creds.json"
         store = FileCredentialStore(path)
         store.save(_credentials())

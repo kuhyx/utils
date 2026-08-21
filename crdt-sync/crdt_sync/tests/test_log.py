@@ -13,9 +13,12 @@ if TYPE_CHECKING:
 
 
 class TestMergeLogs:
+    """Merge logs."""
+
     def test_returns_the_union_of_disjoint_ids(
         self, make_hlc: Callable[..., Hlc]
     ) -> None:
+        """Returns the union of disjoint ids."""
         local = {"a": Record(id="a", fields={"text": ("a", make_hlc(100))})}
         remote = {"b": Record(id="b", fields={"text": ("b", make_hlc(100))})}
         assert merge_logs(local, remote) == {**local, **remote}
@@ -23,6 +26,7 @@ class TestMergeLogs:
     def test_merges_a_shared_id_field_by_field(
         self, make_hlc: Callable[..., Hlc]
     ) -> None:
+        """Merges a shared id field by field."""
         local = {"a": Record(id="a", fields={"text": ("old", make_hlc(100))})}
         remote = {"a": Record(id="a", fields={"text": ("new", make_hlc(200))})}
         merged = merge_logs(local, remote)
@@ -31,6 +35,7 @@ class TestMergeLogs:
     def test_a_delete_on_one_side_survives_the_merge(
         self, make_hlc: Callable[..., Hlc]
     ) -> None:
+        """A delete on one side survives the merge."""
         local = {
             "a": Record(id="a", fields={}, deleted=True, deleted_hlc=make_hlc(200))
         }
@@ -38,6 +43,7 @@ class TestMergeLogs:
         assert merge_logs(local, remote)["a"].deleted is True
 
     def test_does_not_mutate_either_input(self, make_hlc: Callable[..., Hlc]) -> None:
+        """Does not mutate either input."""
         local = {"a": Record(id="a", fields={"text": ("a", make_hlc(100))})}
         remote = {"b": Record(id="b", fields={"text": ("b", make_hlc(100))})}
         local_before = dict(local)
@@ -48,6 +54,8 @@ class TestMergeLogs:
 
 
 class TestConvergenceProperties:
+    """Convergence properties."""
+
     def _sample_logs(self, make_hlc: Callable[..., Hlc]) -> tuple[Log, Log]:
         a = {
             "shared": Record(
@@ -64,16 +72,19 @@ class TestConvergenceProperties:
         return a, b
 
     def test_is_commutative(self, make_hlc: Callable[..., Hlc]) -> None:
+        """Is commutative."""
         a, b = self._sample_logs(make_hlc)
         assert merge_logs(a, b) == merge_logs(b, a)
 
     def test_is_idempotent(self, make_hlc: Callable[..., Hlc]) -> None:
+        """Is idempotent."""
         a, _ = self._sample_logs(make_hlc)
         assert merge_logs(a, a) == a
 
     def test_repeated_merge_of_the_same_remote_is_a_no_op(
         self, make_hlc: Callable[..., Hlc]
     ) -> None:
+        """Repeated merge of the same remote is a no op."""
         a, b = self._sample_logs(make_hlc)
         once = merge_logs(a, b)
         twice = merge_logs(once, b)
