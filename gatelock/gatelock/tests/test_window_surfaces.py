@@ -6,7 +6,12 @@ import queue
 import signal
 from unittest.mock import MagicMock, patch
 
-from gatelock._arbiter import RANK_DIET_GUARD, RANK_SCREEN_LOCKER, Claim
+from gatelock._arbiter import (
+    RANK_DIET_GUARD,
+    RANK_SCREEN_LOCKER,
+    RANK_WAKE_ALARM,
+    Claim,
+)
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
 from gatelock._window import LockConfig
@@ -139,7 +144,7 @@ class TestPreemptWeakerHolder:
         arbiter = self._arbiter_with(
             our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         window._arbiter = arbiter
         with patch("gatelock._window.os.kill") as kill:
             window._log_grab_blocked(25)
@@ -149,7 +154,7 @@ class TestPreemptWeakerHolder:
         arbiter = self._arbiter_with(
             our_rank=RANK_DIET_GUARD, holder_rank=RANK_SCREEN_LOCKER, holder_pid=4137
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         window._arbiter = arbiter
         with patch("gatelock._window.os.kill") as kill:
             window._log_grab_blocked(25)
@@ -159,7 +164,7 @@ class TestPreemptWeakerHolder:
         arbiter = self._arbiter_with(
             our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         window._arbiter = arbiter
         with patch("gatelock._window.os.kill") as kill:
             window._log_grab_blocked(25)
@@ -178,8 +183,26 @@ class TestPreemptWeakerHolder:
             window._log_grab_blocked(25)
         kill.assert_not_called()
 
-    def test_no_arbiter_means_no_preemption(self, mock_root: MagicMock) -> None:
+    def test_off_by_default(self, mock_root: MagicMock) -> None:
+        """Preemption is opt-in, so no app can evict anyone by accident.
+
+        wake_alarm outranks screen_locker and builds a plain hard LockConfig.
+        While the default was True, that combination SIGTERMed the *armed
+        workout lock*, unlocking enforcement with no workout logged.
+        """
+        arbiter = self._arbiter_with(
+            our_rank=RANK_WAKE_ALARM,
+            holder_rank=RANK_SCREEN_LOCKER,
+            holder_pid=4137,
+        )
         window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window._arbiter = arbiter
+        with patch("gatelock._window.os.kill") as kill:
+            window._log_grab_blocked(25)
+        kill.assert_not_called()
+
+    def test_no_arbiter_means_no_preemption(self, mock_root: MagicMock) -> None:
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         with patch("gatelock._window.os.kill") as kill:
             window._maybe_preempt(
                 Claim(
@@ -200,7 +223,7 @@ class TestPreemptWeakerHolder:
         arbiter = self._arbiter_with(
             our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         window._arbiter = arbiter
         with (
             patch("gatelock._window.os.kill", side_effect=ProcessLookupError),
@@ -215,7 +238,7 @@ class TestPreemptWeakerHolder:
         arbiter = self._arbiter_with(
             our_rank=RANK_SCREEN_LOCKER, holder_rank=RANK_DIET_GUARD, holder_pid=4075
         )
-        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=True))
         window._arbiter = arbiter
         with (
             patch("gatelock._window.os.kill", side_effect=OSError("nope")),

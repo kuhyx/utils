@@ -93,6 +93,11 @@ class LockConfig:
             never signal a holder that outranks us. SIGTERM (not SIGKILL) so
             the holder's own signal handler runs its normal close() path --
             same teardown as a clean dismiss, just triggered externally.
+            Defaults to False, and must stay opt-in: for an *enforcement*
+            lock (screen_locker), being preempted means the machine unlocks
+            with the obligation unmet. Only an app whose own dismissal is
+            harmless -- or which genuinely outranks every enforcer -- should
+            turn this on, and only after considering who it can now evict.
         app_name: This app's name, used in arbitration logs so a blocked app
             can say who is actually holding the screen.
         rank: Arbitration priority; higher wins. See the ``RANK_*`` constants
@@ -137,7 +142,7 @@ class LockConfig:
     disable_vt: bool | None = None
     grab_retry_ms: int | None = None
     grab_log_every: int = 25
-    preempt_weaker_holder: bool = True
+    preempt_weaker_holder: bool = False
     app_name: str = "gatelock"
     rank: int = RANK_SCREEN_LOCKER
     recovery_tick_ms: int = 1000
