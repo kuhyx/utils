@@ -109,6 +109,13 @@ def _measure(
     """Render the screen once and read its height back."""
     root = tk.Tk()
     try:
+        # A managed window has its geometry rewritten wholesale by a real
+        # window manager -- confirmed under i3, which tiled this to the pane
+        # size instead of the requested width/height, silently measuring the
+        # wrong resolution. Production lock windows are overrideredirect for
+        # exactly this reason; the throwaway root here must match so the
+        # measurement is honest regardless of what WM is running the check.
+        root.overrideredirect(boolean=True)
         root.geometry(f"{width}x{height}+0+0")
         root.update_idletasks()
         surface = ScrollableSurface(root, config or LockConfig(), center_when_fits=True)

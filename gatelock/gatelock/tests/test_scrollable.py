@@ -35,6 +35,12 @@ _TALL = 60
 def surface() -> tk.Misc:
     """A 400x200 viewport holding 20 stacked entries -- deliberately taller."""
     root = tk.Tk()
+    # A managed window has its geometry rewritten wholesale by a real window
+    # manager (i3 confirmed: a plain geometry() request came back tiled to
+    # the pane size instead of 400x200, so nothing ever overflowed and every
+    # scroll assertion in this file failed against a real WM session) --
+    # exactly the reason production lock windows are overrideredirect too.
+    root.overrideredirect(boolean=True)
     root.geometry(f"400x{_VIEWPORT_H}+0+0")
     # No window manager under Xvfb, so the toplevel must claim X input focus
     # before any synthetic key event is delivered anywhere.
@@ -203,6 +209,9 @@ def test_a_surface_without_a_scrollbar_still_scrolls() -> None:
     """``show_scrollbar=False`` removes the affordance, not the mechanism."""
     root = tk.Tk()
     try:
+        # See the `surface` fixture above for why this must be
+        # overrideredirect under a real WM.
+        root.overrideredirect(boolean=True)
         root.geometry(f"400x{_VIEWPORT_H}+0+0")
         root.focus_force()
         root.update_idletasks()
