@@ -7,7 +7,13 @@ import logging
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from crdt_sync import GitHubSyncClient, Record, sync_log
+from crdt_sync import (
+    GitHubSyncClient,
+    LogCodec,
+    Record,
+    SyncTarget,
+    sync_log,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,12 +60,16 @@ class TestSyncLog:
         client = _mock_client()
 
         merged = sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log=local_log,
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            local_log,
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         assert merged == local_log
@@ -73,12 +83,16 @@ class TestSyncLog:
         )
 
         sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         client.get_file_text.assert_called_once_with("devices/phone/log.json")
@@ -95,13 +109,17 @@ class TestSyncLog:
         )
 
         sync_log(
-            client=client,
-            device_id="new-uuid",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
-            legacy_device_id="pc",
+            SyncTarget(
+                client=client,
+                device_id="new-uuid",
+                legacy_device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         client.get_file_text.assert_called_once_with("devices/phone/log.json")
@@ -113,12 +131,16 @@ class TestSyncLog:
         )
 
         sync_log(
-            client=client,
-            device_id="new-uuid",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="new-uuid",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         client.get_file_text.assert_called_once_with("devices/pc/log.json")
@@ -128,12 +150,16 @@ class TestSyncLog:
         client = _mock_client(devices=("phone",), files={})
 
         merged = sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         assert not merged
@@ -151,12 +177,16 @@ class TestSyncLog:
 
         with caplog.at_level(logging.WARNING):
             merged = sync_log(
-                client=client,
-                device_id="pc",
-                path_prefix="devices",
-                local_log={},
-                encode=_encode,
-                decode=_decode,
+                SyncTarget(
+                    client=client,
+                    device_id="pc",
+                    path_prefix="devices",
+                ),
+                {},
+                LogCodec(
+                    decode=_decode,
+                    encode=_encode,
+                ),
             )
 
         assert not merged
@@ -174,12 +204,16 @@ class TestSyncLog:
         )
 
         merged = sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         assert not merged
@@ -197,12 +231,16 @@ class TestSyncLog:
         )
 
         merged = sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
         )
 
         assert merged == remote_log
@@ -212,14 +250,18 @@ class TestSyncLog:
         client = _mock_client()
 
         sync_log(
-            client=client,
-            device_id="pc",
-            path_prefix="devices",
-            local_log={},
-            encode=_encode,
-            decode=_decode,
-            filename="notes.json",
-            commit_message="custom message",
+            SyncTarget(
+                client=client,
+                device_id="pc",
+                path_prefix="devices",
+            ),
+            {},
+            LogCodec(
+                commit_message="custom message",
+                decode=_decode,
+                encode=_encode,
+                filename="notes.json",
+            ),
         )
 
         client.put_file_text.assert_called_once_with(

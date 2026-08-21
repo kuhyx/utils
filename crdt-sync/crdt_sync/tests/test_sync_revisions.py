@@ -19,15 +19,19 @@ from crdt_sync import (
     FileSyncStateStore,
     Hlc,
     Log,
+    LogCodec,
     MemorySyncStateStore,
     Record,
+    RevisionTracking,
     SyncState,
+    SyncTarget,
     default_revs_path,
     dump_log,
     load_log,
     revision_of,
     sync_log,
 )
+from crdt_sync.tests.conftest import FakeStore, FakeStoreWithoutBulkRead
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -50,107 +54,8 @@ _encode = dump_log
 _decode = load_log
 
 
-class FakeRemote:
-    """An in-memory store that also serves revision maps in one read.
-
-    Stands in for :class:`crdt_sync.FirebaseSyncClient`, counting every call
-    so tests can assert on traffic rather than only on results.
-    """
-
-    def __init__(self, files: dict[str, str] | None = None) -> None:
-        """Start holding ``files``, with empty call logs."""
-        self.files = dict(files or {})
-        self.reads: list[str] = []
-        self.writes: list[str] = []
-
-    def list_directory(self, path: str) -> list[str]:
-        """Return the distinct first segments under ``path``."""
-        prefix = f"{path}/"
-        return sorted(
-            {
-                key[len(prefix) :].split("/")[0]
-                for key in self.files
-                if key.startswith(prefix)
-            }
-        )
-
-    def get_file_text(self, path: str) -> str | None:
-        """Return the stored text, recording the read."""
-        self.reads.append(path)
-        return self.files.get(path)
-
-    def put_file_text(self, path: str, text: str, *, message: str) -> None:
-        """Store ``text``, recording the write."""
-        del message
-        self.writes.append(path)
-        self.files[path] = text
-
-    def get_string_map(self, path: str) -> dict[str, str]:
-        """Return the direct children of ``path`` as a flat map."""
-        prefix = f"{path}/"
-        return {
-            key[len(prefix) :]: value
-            for key, value in self.files.items()
-            if key.startswith(prefix)
-        }
-
-    def delete_file(self, path: str, *, message: str = "") -> None:
-        """Remove ``path`` if present."""
-        del message
-        self.files.pop(path, None)
-
-    def can_access_remote(self) -> bool:
-        """Always reachable."""
-        return True
-
-
-class FakeRemoteWithoutBulkRead:
-    """A store with no bulk-map read, standing in for GitHub.
-
-    Revision tracking must degrade to "fetch everything", not break.
-    Composes rather than subclasses :class:`FakeRemote`, because a subclass
-    would inherit ``get_string_map`` -- the very capability this fake exists
-    to lack.
-    """
-
-    def __init__(self, files: dict[str, str] | None = None) -> None:
-        """Wrap a plain :class:`FakeRemote` holding ``files``."""
-        self._inner = FakeRemote(files)
-
-    @property
-    def files(self) -> dict[str, str]:
-        """The wrapped store's contents."""
-        return self._inner.files
-
-    @property
-    def reads(self) -> list[str]:
-        """The wrapped store's read log."""
-        return self._inner.reads
-
-    @property
-    def writes(self) -> list[str]:
-        """The wrapped store's write log."""
-        return self._inner.writes
-
-    def list_directory(self, path: str) -> list[str]:
-        """Delegate to the wrapped store."""
-        return self._inner.list_directory(path)
-
-    def get_file_text(self, path: str) -> str | None:
-        """Delegate to the wrapped store."""
-        return self._inner.get_file_text(path)
-
-    def put_file_text(self, path: str, text: str, *, message: str) -> None:
-        """Delegate to the wrapped store."""
-        self._inner.put_file_text(path, text, message=message)
-
-    def delete_file(self, path: str, *, message: str = "") -> None:
-        """Delegate to the wrapped store."""
-        self._inner.delete_file(path, message=message)
-
-    def can_access_remote(self) -> bool:
-        """Delegate to the wrapped store."""
-        return self._inner.can_access_remote()
+FakeRemote = FakeStore
+FakeRemoteWithoutBulkRead = FakeStoreWithoutBulkRead
 
 
 def _tick(
@@ -160,13 +65,19 @@ def _tick(
     device_id: str = "pc",
 ) -> Log:
     return sync_log(
-        client=remote,
-        device_id=device_id,
-        path_prefix="ns/devices",
-        local_log=local or {},
-        encode=_encode,
-        decode=_decode,
-        state_store=store,
+        SyncTarget(
+            client=remote,
+            device_id=device_id,
+            path_prefix="ns/devices",
+        ),
+        local or {},
+        LogCodec(
+            decode=_decode,
+            encode=_encode,
+        ),
+        RevisionTracking(
+            state_store=store,
+        ),
     )
 
 
@@ -398,14 +309,20 @@ class TestRevisionPublishingOrder:
         """An explicit revs path overrides the default."""
         remote = FakeRemote()
         sync_log(
-            client=remote,
-            device_id="pc",
-            path_prefix="ns/devices",
-            local_log=_log("a", "1"),
-            encode=_encode,
-            decode=_decode,
-            state_store=MemorySyncStateStore(),
-            revs_path="custom/place",
+            SyncTarget(
+                client=remote,
+                device_id="pc",
+                path_prefix="ns/devices",
+            ),
+            _log("a", "1"),
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
+            RevisionTracking(
+                revs_path="custom/place",
+                state_store=MemorySyncStateStore(),
+            ),
         )
         assert "custom/place/pc" in remote.writes
 
@@ -419,13 +336,19 @@ class TestTwoDevicesConverge:
         pc_store, phone_store = MemorySyncStateStore(), MemorySyncStateStore()
         pc = _tick(remote, pc_store, _log("a", "from-pc", "node-pc"))
         phone = sync_log(
-            client=remote,
-            device_id="phone",
-            path_prefix="ns/devices",
-            local_log=_log("b", "from-phone", "node-phone"),
-            encode=_encode,
-            decode=_decode,
-            state_store=phone_store,
+            SyncTarget(
+                client=remote,
+                device_id="phone",
+                path_prefix="ns/devices",
+            ),
+            _log("b", "from-phone", "node-phone"),
+            LogCodec(
+                decode=_decode,
+                encode=_encode,
+            ),
+            RevisionTracking(
+                state_store=phone_store,
+            ),
         )
         assert {"a", "b"} <= set(phone)
         pc_after = _tick(remote, pc_store, pc)

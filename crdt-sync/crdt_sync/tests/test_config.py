@@ -6,6 +6,11 @@ newline a text editor appended), so each is asserted to name the field at
 fault rather than merely to raise.
 """
 
+# These tests assert on private attributes on purpose: `_timeout_seconds`
+# and `_path` are exactly what the fixes under test set, and there is no
+# public accessor for either.
+# pylint: disable=protected-access
+
 from __future__ import annotations
 
 import json

@@ -14,115 +14,17 @@ import pytest
 from crdt_sync import (
     Hlc,
     Log,
+    LogCodec,
     MirrorSyncClient,
     Record,
     RemoteStore,
     RemoteSyncError,
+    SyncTarget,
     dump_log,
     load_log,
     sync_log,
 )
-
-
-class FakeStore:
-    """A scriptable in-memory store that can be told to fail."""
-
-    def __init__(
-        self,
-        files: dict[str, str] | None = None,
-        *,
-        failing: bool = False,
-    ) -> None:
-        """Start holding ``files``, failing every call if ``failing``."""
-        self.files = dict(files or {})
-        self.failing = failing
-        self.writes: list[str] = []
-
-    def _guard(self, what: str) -> None:
-        if self.failing:
-            msg = f"{what} failed"
-            raise RemoteSyncError(msg)
-
-    def list_directory(self, path: str) -> list[str]:
-        """Return the distinct first segments under ``path``."""
-        self._guard("list")
-        prefix = f"{path}/"
-        return sorted(
-            {
-                key[len(prefix) :].split("/")[0]
-                for key in self.files
-                if key.startswith(prefix)
-            }
-        )
-
-    def get_file_text(self, path: str) -> str | None:
-        """Return the stored text, if any."""
-        self._guard("read")
-        return self.files.get(path)
-
-    def put_file_text(self, path: str, text: str, *, message: str) -> None:
-        """Store ``text`` at ``path``."""
-        del message
-        self._guard("write")
-        self.writes.append(path)
-        self.files[path] = text
-
-    def get_string_map(self, path: str) -> dict[str, str]:
-        """Return the direct children of ``path`` as a flat map."""
-        self._guard("map read")
-        prefix = f"{path}/"
-        return {
-            key[len(prefix) :]: value
-            for key, value in self.files.items()
-            if key.startswith(prefix)
-        }
-
-    def delete_file(self, path: str, *, message: str = "") -> None:
-        """Remove ``path`` if present."""
-        del message
-        self._guard("delete")
-        self.files.pop(path, None)
-
-    def can_access_remote(self) -> bool:
-        """Return whether this backend is currently healthy."""
-        return not self.failing
-
-
-class FakeStoreWithoutBulkRead:
-    """A store with no bulk-map read, standing in for GitHub.
-
-    Composes rather than subclasses :class:`FakeStore`, because a subclass
-    would inherit ``get_string_map`` -- the capability this fake must lack.
-    """
-
-    def __init__(self, files: dict[str, str] | None = None) -> None:
-        """Wrap a plain :class:`FakeStore` holding ``files``."""
-        self._inner = FakeStore(files)
-
-    @property
-    def files(self) -> dict[str, str]:
-        """The wrapped store's contents."""
-        return self._inner.files
-
-    def list_directory(self, path: str) -> list[str]:
-        """Delegate to the wrapped store."""
-        return self._inner.list_directory(path)
-
-    def get_file_text(self, path: str) -> str | None:
-        """Delegate to the wrapped store."""
-        return self._inner.get_file_text(path)
-
-    def put_file_text(self, path: str, text: str, *, message: str) -> None:
-        """Delegate to the wrapped store."""
-        self._inner.put_file_text(path, text, message=message)
-
-    def delete_file(self, path: str, *, message: str = "") -> None:
-        """Delegate to the wrapped store."""
-        self._inner.delete_file(path, message=message)
-
-    def can_access_remote(self) -> bool:
-        """Delegate to the wrapped store."""
-        return self._inner.can_access_remote()
+from crdt_sync.tests.conftest import FakeStore, FakeStoreWithoutBulkRead
 
 
 def _mirror(
@@ -433,20 +335,28 @@ class TestEndToEndThroughSyncLog:
             }
 
         sync_log(
-            client=github,
-            device_id="phone",
-            path_prefix="ns/devices",
-            local_log=log("from-phone", "node-phone"),
-            encode=dump_log,
-            decode=load_log,
+            SyncTarget(
+                client=github,
+                device_id="phone",
+                path_prefix="ns/devices",
+            ),
+            log("from-phone", "node-phone"),
+            LogCodec(
+                decode=load_log,
+                encode=dump_log,
+            ),
         )
         merged = sync_log(
-            client=MirrorSyncClient(firebase, github),
-            device_id="pc",
-            path_prefix="ns/devices",
-            local_log=log("from-pc", "node-pc"),
-            encode=dump_log,
-            decode=load_log,
+            SyncTarget(
+                client=MirrorSyncClient(firebase, github),
+                device_id="pc",
+                path_prefix="ns/devices",
+            ),
+            log("from-pc", "node-pc"),
+            LogCodec(
+                decode=load_log,
+                encode=dump_log,
+            ),
         )
         assert {"from-phone", "from-pc"} <= set(merged)
         # The pc's merged result is mirrored back to GitHub, so the

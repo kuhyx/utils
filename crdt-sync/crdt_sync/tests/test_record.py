@@ -94,6 +94,9 @@ class TestMergeRecord:
         a = Record(id="x", fields={}, deleted=True, deleted_hlc=None)
         b = Record(id="x", fields={}, deleted=True, deleted_hlc=make_hlc(200))
         assert merge_record(a, b).deleted_hlc == make_hlc(200)
+        # Swapping the operands is the property under test: merge_record
+        # must give the same answer either way round.
+        # pylint: disable-next=arguments-out-of-order
         assert merge_record(b, a).deleted_hlc == make_hlc(200)
 
     def test_is_commutative(self, make_hlc: Callable[..., Hlc]) -> None:

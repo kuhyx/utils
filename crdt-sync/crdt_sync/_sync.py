@@ -202,15 +202,27 @@ def _remote_revs(client: RemoteStore, revs_path: str) -> dict[str, str]:
     return get_string_map(revs_path)
 
 
+@dataclass(frozen=True)
+class _PullContext:
+    """Everything :func:`_pull_remote_logs` needs for one tick's pull.
+
+    A bundle rather than eight positional parameters: they are always passed
+    together, from one call site, and several share a type -- exactly the
+    shape where a positional mix-up is silent.
+    """
+
+    client: RemoteStore
+    own_ids: frozenset[str]
+    path_prefix: str
+    filename: str
+    decode: Callable[[str], Log]
+    remote_revs: dict[str, str]
+    state: SyncState
+
+
 def _pull_remote_logs(
-    client: RemoteStore,
-    own_ids: frozenset[str],
-    path_prefix: str,
-    filename: str,
-    decode: Callable[[str], Log],
-    remote_revs: dict[str, str],
+    ctx: _PullContext,
     seen_revs: dict[str, str],
-    state: SyncState,
 ) -> list[Log]:
     """Return every other device's last-pushed log, skipping this one.
 
@@ -229,11 +241,11 @@ def _pull_remote_logs(
     tick can skip them.
     """
     remote_logs: list[Log] = []
-    for other_device_id in client.list_directory(path_prefix):
-        if other_device_id in own_ids:
+    for other_device_id in ctx.client.list_directory(ctx.path_prefix):
+        if other_device_id in ctx.own_ids:
             continue
-        remote_rev = remote_revs.get(other_device_id)
-        if remote_rev is not None and remote_rev == state.peer_revs.get(
+        remote_rev = ctx.remote_revs.get(other_device_id)
+        if remote_rev is not None and remote_rev == ctx.state.peer_revs.get(
             other_device_id
         ):
             # Unchanged since we last merged it, and that merge is already
@@ -242,11 +254,13 @@ def _pull_remote_logs(
             # skipped next tick.
             seen_revs[other_device_id] = remote_rev
             continue
-        text = client.get_file_text(f"{path_prefix}/{other_device_id}/{filename}")
+        text = ctx.client.get_file_text(
+            f"{ctx.path_prefix}/{other_device_id}/{ctx.filename}"
+        )
         if text is None:
             continue
         try:
-            remote_logs.append(decode(text))
+            remote_logs.append(ctx.decode(text))
         except (ValueError, KeyError, TypeError):
             _logger.warning(
                 "Unparsable log pushed by device %r, skipping",
@@ -259,26 +273,9 @@ def _pull_remote_logs(
     return remote_logs
 
 
-def sync_log(
-    *,
-    client: RemoteStore,
-    device_id: str,
-    path_prefix: str,
-    local_log: Log,
-    encode: Callable[[Log], str],
-    decode: Callable[[str], Log],
-    filename: str = _DEFAULT_FILENAME,
-    commit_message: str = "crdt_sync: update log",
-    state_store: SyncStateStore | None = None,
-    revs_path: str | None = None,
-    legacy_device_id: str | None = None,
-) -> Log:
-    """Run one full sync tick: pull every other device's log, merge, push.
-
-    Pulls from ``<path_prefix>/<other-device-id>/<filename>`` for every
-    device directory the remote reports under ``path_prefix``, merges each
-    into ``local_log`` with :func:`crdt_sync.merge_logs`, then pushes this
-    device's own merged result to ``<path_prefix>/<device_id>/<filename>``.
+@dataclass(frozen=True)
+class SyncTarget:
+    """Which remote, which device, and where its logs live.
 
     Args:
         client: An authenticated :class:`RemoteStore` -- a
@@ -288,7 +285,31 @@ def sync_log(
             log is pushed under.
         path_prefix: The directory holding one subdirectory per device
             (e.g. ``"devices"``).
-        local_log: This device's current full log (including tombstones).
+        legacy_device_id: The id this device pushed under before migrating to
+            a persisted uuid. Treated as this device's own for skip-own
+            purposes, so its pre-migration log is not pulled back and
+            re-merged as a peer's. Pass ``None`` once the old path has been
+            reclaimed.
+    """
+
+    client: RemoteStore
+    device_id: str
+    path_prefix: str
+    legacy_device_id: str | None = None
+
+    @property
+    def own_ids(self) -> frozenset[str]:
+        """Every id whose pushed log belongs to this device."""
+        if self.legacy_device_id is None:
+            return frozenset({self.device_id})
+        return frozenset({self.device_id, self.legacy_device_id})
+
+
+@dataclass(frozen=True)
+class LogCodec:
+    """How a log is turned into pushed text and back.
+
+    Args:
         encode: Serializes a merged log for pushing.
         decode: Parses a remote device's pushed text back into a log.
             Raising ``ValueError``, ``KeyError``, or ``TypeError`` is treated
@@ -296,17 +317,51 @@ def sync_log(
             this tick rather than aborting the whole sync.
         filename: The file name each device pushes its log as.
         commit_message: The commit message used for this device's push.
-        state_store: Pass one to enable revision tracking, which skips
-            downloading peers that have not changed and skips pushing a log
-            that has not changed. Without it the tick behaves exactly as it
-            always did: fetch everything, push unconditionally.
+    """
+
+    encode: Callable[[Log], str]
+    decode: Callable[[str], Log]
+    filename: str = _DEFAULT_FILENAME
+    commit_message: str = "crdt_sync: update log"
+
+
+@dataclass(frozen=True)
+class RevisionTracking:
+    """Optional skip-unchanged behaviour for a tick.
+
+    Omit it entirely and the tick behaves exactly as it always did: fetch
+    everything, push unconditionally.
+
+    Args:
+        state_store: Persists what this device last pushed and last merged.
         revs_path: Where revisions live; defaults to
             :func:`default_revs_path`.
-        legacy_device_id: The id this device pushed under before migrating to
-            a persisted uuid. Treated as this device's own for skip-own
-            purposes, so its pre-migration log is not pulled back and
-            re-merged as a peer's. Pass ``None`` once the old path has been
-            reclaimed.
+    """
+
+    state_store: SyncStateStore | None = None
+    revs_path: str | None = None
+
+
+def sync_log(
+    target: SyncTarget,
+    local_log: Log,
+    codec: LogCodec,
+    revisions: RevisionTracking | None = None,
+) -> Log:
+    """Run one full sync tick: pull every other device's log, merge, push.
+
+    Pulls from ``<path_prefix>/<other-device-id>/<filename>`` for every
+    device directory the remote reports under ``path_prefix``, merges each
+    into ``local_log`` with :func:`crdt_sync.merge_logs`, then pushes this
+    device's own merged result to ``<path_prefix>/<device_id>/<filename>``.
+
+    Args:
+        target: Which remote and device this tick is for.
+        local_log: This device's current full log (including tombstones).
+        codec: How to serialize and parse a log.
+        revisions: Pass one to skip downloading peers that have not changed
+            and skip pushing a log that has not changed. ``None`` fetches
+            everything and pushes unconditionally.
 
     Returns:
         The merged log, as pushed.
@@ -319,45 +374,83 @@ def sync_log(
         unchanged and never be fetched again. Per-device keys make that
         failure impossible rather than merely avoided.
     """
-    revs = revs_path if revs_path is not None else default_revs_path(path_prefix)
-    state = state_store.load() if state_store is not None else SyncState()
-    remote_revs = _remote_revs(client, revs) if state_store is not None else {}
-
-    own_ids = frozenset(
-        {device_id} if legacy_device_id is None else {device_id, legacy_device_id}
+    tracking = revisions if revisions is not None else RevisionTracking()
+    state_store = tracking.state_store
+    revs = (
+        tracking.revs_path
+        if tracking.revs_path is not None
+        else default_revs_path(target.path_prefix)
     )
-    merged = dict(local_log)
-    seen_revs: dict[str, str] = {}
-    for remote_log in _pull_remote_logs(
-        client,
-        own_ids,
-        path_prefix,
-        filename,
-        decode,
-        remote_revs,
-        seen_revs,
-        state,
-    ):
-        merged = merge_logs(merged, remote_log)
+    state = state_store.load() if state_store is not None else SyncState()
+    remote_revs = _remote_revs(target.client, revs) if state_store is not None else {}
 
-    encoded = encode(merged)
+    seen_revs: dict[str, str] = {}
+    merged = _merge_peers(
+        _PullContext(
+            client=target.client,
+            own_ids=target.own_ids,
+            path_prefix=target.path_prefix,
+            filename=codec.filename,
+            decode=codec.decode,
+            remote_revs=remote_revs,
+            state=state,
+        ),
+        local_log,
+        seen_revs,
+    )
+
+    encoded = codec.encode(merged)
     revision = revision_of(encoded)
-    unchanged = state_store is not None and revision == state.pushed_rev
-    if not unchanged:
-        client.put_file_text(
-            f"{path_prefix}/{device_id}/{filename}",
+    if not (state_store is not None and revision == state.pushed_rev):
+        _push(
+            target,
+            codec,
             encoded,
-            message=commit_message,
+            _RevisionMarker(revs, revision) if state_store is not None else None,
         )
-        if state_store is not None:
-            # Published after the log, never before: a peer that cached
-            # "seen rev X" against a log it never received would skip it
-            # forever.
-            client.put_file_text(
-                f"{revs}/{device_id}",
-                revision,
-                message=commit_message,
-            )
     if state_store is not None:
         state_store.save(SyncState(pushed_rev=revision, peer_revs=seen_revs))
     return merged
+
+
+def _merge_peers(
+    ctx: _PullContext,
+    local_log: Log,
+    seen_revs: dict[str, str],
+) -> Log:
+    """Return ``local_log`` with every peer's pushed log merged in."""
+    merged = dict(local_log)
+    for remote_log in _pull_remote_logs(ctx, seen_revs):
+        merged = merge_logs(merged, remote_log)
+    return merged
+
+
+@dataclass(frozen=True)
+class _RevisionMarker:
+    """The revision node a tracked push publishes after its log."""
+
+    revs_path: str
+    revision: str
+
+
+def _push(
+    target: SyncTarget,
+    codec: LogCodec,
+    encoded: str,
+    marker: _RevisionMarker | None,
+) -> None:
+    """Push this device's merged log, then its revision marker."""
+    target.client.put_file_text(
+        f"{target.path_prefix}/{target.device_id}/{codec.filename}",
+        encoded,
+        message=codec.commit_message,
+    )
+    if marker is not None:
+        # Published after the log, never before: a peer that cached
+        # "seen rev X" against a log it never received would skip it
+        # forever.
+        target.client.put_file_text(
+            f"{marker.revs_path}/{target.device_id}",
+            marker.revision,
+            message=codec.commit_message,
+        )

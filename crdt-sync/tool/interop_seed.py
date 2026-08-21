@@ -27,8 +27,11 @@ import sys
 from crdt_sync import (
     FirebaseConfig,
     Hlc,
+    LogCodec,
     MemorySyncStateStore,
     Record,
+    RevisionTracking,
+    SyncTarget,
     dump_log,
     firebase_client_for,
     load_log,
@@ -52,10 +55,12 @@ def main() -> int:
 
     client = firebase_client_for("interop", config=FirebaseConfig.load())
     merged = sync_log(
-        client=client,
-        device_id=_DEVICE_ID,
-        path_prefix=_PATH_PREFIX,
-        local_log={
+        SyncTarget(
+            client=client,
+            device_id=_DEVICE_ID,
+            path_prefix=_PATH_PREFIX,
+        ),
+        {
             "py-rec": Record(
                 id="py-rec",
                 fields={
@@ -66,9 +71,13 @@ def main() -> int:
                 },
             )
         },
-        encode=dump_log,
-        decode=load_log,
-        state_store=MemorySyncStateStore(),
+        LogCodec(
+            decode=load_log,
+            encode=dump_log,
+        ),
+        RevisionTracking(
+            state_store=MemorySyncStateStore(),
+        ),
     )
 
     _logger.info("python sees records: %s", sorted(merged))
