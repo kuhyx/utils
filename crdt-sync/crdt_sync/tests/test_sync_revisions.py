@@ -205,16 +205,16 @@ class TestSyncState:
 
     def test_tolerates_a_missing_peer_map(self) -> None:
         """Tolerates a missing peer map."""
-        assert SyncState.from_json({}).peer_revs == {}
+        assert not SyncState.from_json({}).peer_revs
 
     def test_drops_malformed_peer_entries(self) -> None:
         """Drops malformed peer entries."""
         state = SyncState.from_json({"peer_revs": {"phone": 42}})
-        assert state.peer_revs == {}
+        assert not state.peer_revs
 
     def test_ignores_a_non_dict_peer_map(self) -> None:
         """Ignores a non dict peer map."""
-        assert SyncState.from_json({"peer_revs": "nonsense"}).peer_revs == {}
+        assert not SyncState.from_json({"peer_revs": "nonsense"}).peer_revs
 
     def test_ignores_a_non_string_pushed_rev(self) -> None:
         """Ignores a non string pushed rev."""

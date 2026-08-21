@@ -215,7 +215,7 @@ class TestSignInWithGoogle:
         body = self._google_body()
         del body["email"]
         with _patch_post(_response(200, body)):
-            assert _provider().sign_in_with_google("google-jwt") == ""
+            assert not _provider().sign_in_with_google("google-jwt")
 
     def test_sends_the_credential_form_encoded_in_post_body(self) -> None:
         # identitytoolkit rejects the IdP credential as a JSON field with

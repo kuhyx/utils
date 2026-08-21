@@ -136,7 +136,7 @@ class TestSyncLog:
             decode=_decode,
         )
 
-        assert merged == {}
+        assert not merged
 
     def test_skips_a_device_whose_pushed_file_is_corrupt(
         self, caplog: pytest.LogCaptureFixture
@@ -159,7 +159,7 @@ class TestSyncLog:
                 decode=_decode,
             )
 
-        assert merged == {}
+        assert not merged
         assert "Unparsable log" in caplog.text
 
     def test_skips_a_device_whose_pushed_json_has_the_wrong_shape(self) -> None:
@@ -182,7 +182,7 @@ class TestSyncLog:
             decode=_decode,
         )
 
-        assert merged == {}
+        assert not merged
 
     def test_merges_in_a_remote_devices_entries(
         self, make_hlc: Callable[..., Hlc]

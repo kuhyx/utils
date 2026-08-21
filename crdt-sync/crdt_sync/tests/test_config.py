@@ -218,7 +218,7 @@ def test_client_signs_in_only_without_a_cached_session(
     monkeypatch.setattr("crdt_sync._config.FirebaseTokenProvider", _Auth)
     client = firebase_client_for("diet_guard", config=config)
 
-    assert sign_ins == []
+    assert not sign_ins
     assert client is not None
 
 
