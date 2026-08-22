@@ -1,0 +1,34 @@
+name: file length
+
+# The 250-line cap, enforced on push as well as in pre-commit
+# (refactor_claude_todo.md, "make it permanent").
+#
+# Unlike the pre-commit hook, which only sees the files in a commit, this runs
+# over the whole tree: the hook keeps a violation from being *introduced*, and
+# this keeps one from surviving a path the hook never saw (a merge, a push
+# from a machine without hooks installed, a rebase that resurrects a file).
+#
+# No paths filter on purpose. The cap applies to every file in the repo, so
+# scoping this job to a subdirectory would be the one way to reintroduce the
+# problem it exists to catch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  file-length:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Every file is at most 250 lines
+        run: bash scripts/check_file_length.sh --all
