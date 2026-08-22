@@ -18,6 +18,8 @@ fi
 source "$LIB_DIR/common.sh"
 # shellcheck source=lib/file_guard.sh
 source "$LIB_DIR/file_guard.sh"
+# shellcheck source=lib/file_guard_unlock.sh
+source "$LIB_DIR/file_guard_unlock.sh"
 # shellcheck source=lib/package_block.sh
 source "$LIB_DIR/package_block.sh"
 
