@@ -9,7 +9,7 @@ Re-exported from :mod:`crdt_sync._sync`, so existing imports keep working.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

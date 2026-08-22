@@ -9,16 +9,12 @@ request and then stop.
 from __future__ import annotations
 
 import http.server
-import time
-import urllib.parse
 import logging
 import socket
 import threading
-from typing import TYPE_CHECKING, ClassVar
-from urllib.parse import parse_qs, urlparse
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+import time
+from typing import ClassVar
+import urllib.parse
 
 _logger = logging.getLogger(__name__)
 
