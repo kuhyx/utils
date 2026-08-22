@@ -32,10 +32,10 @@ from gatelock._outputs import (
     OutputEnumerator,
     OutputRect,
     OutputScan,
-    RandrBackend,
     enumerate_outputs,
-    parse_xrandr_query,
 )
+from gatelock._randr import RandrBackend
+from gatelock._xrandr import parse_xrandr_query
 from gatelock._queue import (
     QUEUE_DEADLINE_SECONDS,
     QUEUE_POLL_SECONDS,

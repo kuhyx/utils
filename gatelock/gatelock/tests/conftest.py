@@ -73,7 +73,7 @@ def _hermetic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None
     monkeypatch.setenv("GATELOCK_RUNTIME_DIR", str(tmp_path / "runtime"))
     with (
         patch("gatelock._surfaces.tk.Toplevel", side_effect=make_toplevel),
-        patch("gatelock._outputs.RandrBackend.create", return_value=None),
+        patch("gatelock._randr.RandrBackend.create", return_value=None),
         patch("gatelock._outputs.scan_xrandr", return_value=DEFAULT_OUTPUTS),
         patch("gatelock._detect._RandrEventSource.start", return_value=False),
         patch("gatelock._vt.shutil.which", return_value="/usr/bin/setxkbmap"),

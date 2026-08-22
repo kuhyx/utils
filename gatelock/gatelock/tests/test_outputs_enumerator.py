@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from gatelock._randr import RandrBackend
 from gatelock._outputs import (
     Output,
     OutputEnumerator,
     OutputRect,
     OutputScan,
-    RandrBackend,
     enumerate_outputs,
 )
 

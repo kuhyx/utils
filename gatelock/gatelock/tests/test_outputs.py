@@ -12,12 +12,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from gatelock._randr import RandrBackend, _decode_name
+from gatelock._xrandr import parse_xrandr_query
 from gatelock._outputs import (
     Output,
     OutputRect,
-    RandrBackend,
-    _decode_name,
-    parse_xrandr_query,
 )
 from gatelock._outputs import scan_xrandr as real_scan_xrandr
 
