@@ -8,7 +8,7 @@ Paste everything below into a fresh Claude session.
 2026-08-22, pushed to `github.com/kuhyx/utils`). Read `~/utils/vmbox/README.md`
 first — it documents the design and the traps.
 
-Two jobs this session, in order.
+Three jobs this session, in order.
 
 ## Job 1: harden it by using it for real
 
@@ -16,6 +16,17 @@ vmbox has only ever been driven by one session, against a handful of scripts.
 `testsAndMisc/linux_configuration` is ~1090 files, ~170 of which need root.
 **Expect it to break.** That is the point of this job: find the breakages by
 running real work through it, and fix them.
+
+**Standing instruction for the whole session: when vmbox breaks, FIX IT.**
+Do not work around it, do not report it as a limitation and move on, do not
+switch to testing on the host instead. A bug found here is the whole return on
+building the thing. Fix, commit, push, carry on with the list.
+
+Reuse a sandbox when one is already up and suitable (`vm list`, then
+`vm run <name> ...` — it starts the VM if stopped); create a fresh one when
+you need a clean system or a different pinned clock. Do not tear down and
+rebuild a sandbox for every command: `vm reset` is ~2s and is usually what you
+actually want.
 
 Work through this list, fixing vmbox whenever it gets in the way:
 
@@ -102,6 +113,40 @@ writing it — these are real forks, not rhetorical:
 
 Draft it, get kuhy's sign-off on those four points, then write it.
 
+## Job 3: make `vm build` faster than ~10 minutes
+
+Measured on the last real build, so this is a known target rather than a
+guess:
+
+- 45s waiting for cloud-init on the guest's first boot.
+- **197 packages, 396 MiB downloaded over the internet** (1273 MiB installed).
+- The host's own pacman cache is **114 GB** and already contains every one of
+  `xorg-server i3-wm base-devel git strace jq kcov bats rsync xterm dmenu
+  shellcheck` — verified. The build is re-downloading packages that are
+  already on this machine.
+
+Ideas, cheapest first — measure before and after, do not assume:
+
+1. **Expose the host pacman cache to the build VM read-only** (`-virtfs` the
+   way `vm share` already does) and point the guest's pacman at it
+   (`CacheDir`, or bind `/var/cache/pacman/pkg`). Should remove most of the
+   396 MiB. Careful: the guest must not WRITE to the host cache, and a stale
+   cached package can be older than the guest's mirror expects — `-Syu` first,
+   or accept `--needed` semantics.
+2. **Trim the package list.** `base-devel` is a large group; check whether the
+   target tests actually need all of it. `kcov` is only needed for the shell
+   coverage jail.
+3. **Cut the cloud-init wait.** The build boot spends 45s on datasource
+   probing that the sealed image then disables anyway; a kernel arg or an
+   earlier `cloud-init.disabled` may shorten it.
+4. **Cache the provisioned disk.** If provisioning inputs are unchanged
+   (`guest/provision.sh` hash + package list), a rebuild could reuse the last
+   provisioned image instead of redoing it. Only worth it if 1-3 are not
+   enough.
+
+Note the build already ends with a smoke test that boots a real sandbox; keep
+that. Making the build fast by making it fail open would be a bad trade.
+
 ## Definition of done
 
 - The 5 items in Job 1 have been run in a sandbox, with results reported per
@@ -110,6 +155,8 @@ Draft it, get kuhy's sign-off on those four points, then write it.
 - `bats ~/utils/vmbox/tests/test_vmbox.bats`, shellcheck and ruff all clean.
 - Either the CLAUDE.md rule is written and agreed, or there is a clear
   statement of what still makes vmbox untrustworthy.
+- `vm build --force` is measurably faster than the ~10 min baseline, with the
+  before/after numbers stated.
 
 ## State as of handoff
 
