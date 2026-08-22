@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from gatelock._randr import RandrBackend
 from gatelock._outputs import (
     Output,
     OutputEnumerator,
@@ -17,6 +16,7 @@ from gatelock._outputs import (
     OutputScan,
     enumerate_outputs,
 )
+from gatelock._randr import RandrBackend
 
 # Bound at import, so the autouse hermetic patch (which replaces these
 # attributes) does not hide the real implementations from their own tests.

@@ -12,13 +12,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gatelock._randr import RandrBackend, _decode_name
-from gatelock._xrandr import parse_xrandr_query
 from gatelock._outputs import (
     Output,
     OutputRect,
 )
 from gatelock._outputs import scan_xrandr as real_scan_xrandr
+from gatelock._randr import RandrBackend, _decode_name
+from gatelock._xrandr import parse_xrandr_query
 
 # Bound at import, so the autouse hermetic patch (which replaces these
 # attributes) does not hide the real implementations from their own tests.
@@ -139,8 +139,8 @@ class TestScanXrandr:
 
     def _run(self, **kwargs: object) -> tuple[Output, ...] | None:
         with (
-            patch("gatelock._outputs.shutil.which", return_value="/usr/bin/xrandr"),
-            patch("gatelock._outputs.subprocess.run", **kwargs),
+            patch("gatelock._xrandr.shutil.which", return_value="/usr/bin/xrandr"),
+            patch("gatelock._xrandr.subprocess.run", **kwargs),
         ):
             return real_scan_xrandr()
 
@@ -151,7 +151,7 @@ class TestScanXrandr:
 
     def test_missing_binary(self) -> None:
         """xrandr not on PATH degrades rather than raising."""
-        with patch("gatelock._outputs.shutil.which", return_value=None):
+        with patch("gatelock._xrandr.shutil.which", return_value=None):
             assert real_scan_xrandr() is None
 
     def test_nonzero_exit(self) -> None:

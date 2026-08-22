@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 import pytest
 
-from gatelock._claims import _same_file, _try_lock
 from gatelock._arbiter import (
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
@@ -22,6 +21,7 @@ from gatelock._arbiter import (
     default_runtime_dir,
     grab_strength,
 )
+from gatelock._claims import _same_file, _try_lock
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

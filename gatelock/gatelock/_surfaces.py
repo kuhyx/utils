@@ -41,8 +41,8 @@ from typing import TYPE_CHECKING
 from gatelock._placement import (
     _Surface,
     blind_outputs,
-    needs_backdrop_root,
     enforce_all,
+    needs_backdrop_root,
     set_geometry,
 )
 from gatelock._surface_types import (

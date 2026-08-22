@@ -35,19 +35,21 @@ registered verbatim on the client, e.g. ``http://localhost:8765``.
 from __future__ import annotations
 
 import argparse
-import http.server
 import logging
 from pathlib import Path
 import secrets
-import socket
 import sys
-import threading
-import time
-from typing import ClassVar
 import urllib.parse
 import webbrowser
 
 import requests
+
+from tool._oauth_callback import (
+    _CONSENT_TIMEOUT_SECONDS,
+    _CallbackHandler,
+    _free_port,
+    _start_callback_server,
+)
 
 _AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 
@@ -64,14 +66,6 @@ _SCOPES = "openid email profile"
 _TIMEOUT_SECONDS = 30
 
 _logger = logging.getLogger("google_id_token")
-
-
-from tool._oauth_callback import (
-    _CONSENT_TIMEOUT_SECONDS,
-    _CallbackHandler,
-    _free_port,
-    _start_callback_server,
-)
 
 
 class TokenError(Exception):

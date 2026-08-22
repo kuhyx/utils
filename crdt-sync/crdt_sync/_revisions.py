@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 
+
 def revision_of(encoded_log: str) -> str:
     """Return the revision of a serialized log: a content hash.
 

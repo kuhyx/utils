@@ -58,11 +58,13 @@ if TYPE_CHECKING:
 
         def close(self) -> None: ...
 
+
 _logger = logging.getLogger(__name__)
 
 # RandR's `connection` field: 0 is RR_Connected. Hard-coded rather than
 # imported so the constant is available without python-xlib installed.
 _RR_CONNECTED = 0
+
 
 def _decode_name(raw: object) -> str:
     """Normalise a RandR output name, which may arrive as bytes."""
@@ -153,5 +155,3 @@ class RandrBackend:
         if not info.mode or info.width <= 0 or info.height <= 0:
             return None
         return OutputRect(x=info.x, y=info.y, width=info.width, height=info.height)
-
-

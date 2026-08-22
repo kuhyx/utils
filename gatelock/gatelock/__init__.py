@@ -34,8 +34,6 @@ from gatelock._outputs import (
     OutputScan,
     enumerate_outputs,
 )
-from gatelock._randr import RandrBackend
-from gatelock._xrandr import parse_xrandr_query
 from gatelock._queue import (
     QUEUE_DEADLINE_SECONDS,
     QUEUE_POLL_SECONDS,
@@ -43,6 +41,7 @@ from gatelock._queue import (
     stronger_claims,
     wait_for_turn,
 )
+from gatelock._randr import RandrBackend
 from gatelock._recovery import RecoveryLoop, RecoveryReport
 from gatelock._root import GateRoot
 from gatelock._scrollable import ScrollableSurface
@@ -62,6 +61,7 @@ from gatelock._window import (
     SpaceStep,
     TypeRole,
 )
+from gatelock._xrandr import parse_xrandr_query
 from gatelock.widget_group import WidgetGroup
 from gatelock.widgets import (
     DEFAULT_WRAP,

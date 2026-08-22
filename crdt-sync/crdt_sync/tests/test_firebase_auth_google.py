@@ -4,7 +4,6 @@ Split from ``test_firebase_auth.py`` (250-line cap), which keeps credential
 handling and password sign-in.
 """
 
-
 from __future__ import annotations
 
 import datetime as dt

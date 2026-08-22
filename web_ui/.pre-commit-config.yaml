@@ -37,7 +37,7 @@ repos:
     hooks:
       - id: file-length-cap
         name: file length <= 250 lines
-        entry: bash /home/kuhy/utils/scripts/check_file_length.sh
+        entry: bash scripts/check_file_length.sh
         language: system
         pass_filenames: true
       - id: subproject-scope

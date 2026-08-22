@@ -19,9 +19,21 @@ from typing import TYPE_CHECKING
 
 import requests as _requests
 
+from crdt_sync._fberrors import DatabaseNotFoundError, FirebaseSyncError
 from crdt_sync._fbkeys import decode_key, encode_key, encode_path
+
+# Named explicitly so the autofixer cannot prune an import that exists for
+# its re-export: the tests import encode_key/decode_key from this module.
+__all__ = [
+    "DatabaseNotFoundError",
+    "FirebaseSyncClient",
+    "FirebaseSyncError",
+    "decode_key",
+    "encode_key",
+    "encode_path",
+]
 from crdt_sync._http import new_session
-from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
+from crdt_sync._remote import RemoteSyncError
 
 # Bound to the name ``requests`` so the call sites below -- and the tests
 # that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.
@@ -34,21 +46,6 @@ if TYPE_CHECKING:
 _DEFAULT_TIMEOUT_SECONDS = 15
 _HTTP_UNAUTHORIZED = 401
 _HTTP_FORBIDDEN = 403
-
-
-
-class FirebaseSyncError(RemoteSyncError):
-    """Raised for an RTDB failure the caller must not silently ignore."""
-
-
-class DatabaseNotFoundError(FirebaseSyncError, RemoteNotFoundError):
-    """Raised when the database is unreachable or the uid is not allowed.
-
-    The Firebase counterpart of :class:`crdt_sync.RepoNotFoundError`: "the
-    database URL is wrong, or the security rules reject this account", as
-    opposed to "nothing has been pushed to that path yet", which is benign
-    and surfaces as ``None``.
-    """
 
 
 class FirebaseSyncClient:

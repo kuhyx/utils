@@ -26,6 +26,7 @@ class FirebaseAuthError(RemoteSyncError):
     down".
     """
 
+
 def _reason(response: _requests.Response) -> str:
     """Return Google's machine-readable error reason, in parentheses.
 

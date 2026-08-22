@@ -31,6 +31,7 @@ _GEOMETRY = re.compile(r"(?P<w>\d+)x(?P<h>\d+)\+(?P<x>-?\d+)\+(?P<y>-?\d+)")
 
 _GEOMETRY = re.compile(r"(?P<w>\d+)x(?P<h>\d+)\+(?P<x>-?\d+)\+(?P<y>-?\d+)")
 
+
 def _parse_rect(head: str) -> OutputRect | None:
     """Parse a geometry token out of an xrandr output line's head segment."""
     match = _GEOMETRY.search(head)
@@ -108,5 +109,3 @@ def scan_xrandr() -> tuple[Output, ...] | None:
         _logger.warning("xrandr --query produced no parseable output lines")
         return None
     return outputs
-
-

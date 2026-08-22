@@ -14,8 +14,6 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
-import pytest
-
 from crdt_sync import (
     FirebaseConfig,
     FirebaseSyncClient,
@@ -26,6 +24,8 @@ from crdt_sync._config import _DEFAULT_TIMEOUT_SECONDS, firebase_client_for
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 _VALID = {
     "apiKey": "AIzaSyExample",

@@ -4,7 +4,6 @@ Split from ``test_mirror.py`` (250-line cap), which keeps plain writes,
 reads and directory listing.
 """
 
-
 from __future__ import annotations
 
 import pytest

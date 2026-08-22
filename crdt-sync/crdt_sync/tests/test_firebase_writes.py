@@ -4,7 +4,6 @@ Split from ``test_firebase.py`` (250-line cap), which keeps key escaping
 and the read paths.
 """
 
-
 from __future__ import annotations
 
 import datetime as dt

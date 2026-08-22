@@ -131,7 +131,7 @@ class TestHolder:
         """An unreadable holder file is reported as no holder."""
         (tmp_path / "rt").mkdir(parents=True, exist_ok=True)
         (tmp_path / "rt" / "holder.lock").write_text("{}", encoding="utf-8")
-        with patch("gatelock._arbiter.Path.open", side_effect=OSError("denied")):
+        with patch("gatelock._claims.Path.open", side_effect=OSError("denied")):
             assert arb.describe_holder() is None
 
 
@@ -167,7 +167,7 @@ class TestRelease:
         """A claim that cannot be removed does not break teardown."""
         arbiter = hard("a", RANK_DIET_GUARD, tmp_path / "rt")
         arbiter.publish()
-        with patch("gatelock._arbiter.Path.unlink", side_effect=OSError("busy")):
+        with patch("gatelock._claims.Path.unlink", side_effect=OSError("busy")):
             arbiter.release()
 
     def test_claim_property(self, arb: Arbiter) -> None:

@@ -68,7 +68,7 @@ class TestRemainingBranches:
         handle.__enter__.return_value = handle
         handle.read.side_effect = OSError("io error")
         with (
-            patch("gatelock._arbiter.Path.open", return_value=handle),
+            patch("gatelock._claims.Path.open", return_value=handle),
             patch("gatelock._claims._try_lock", return_value=False),
         ):
             assert arbiter.live_claims() == ()

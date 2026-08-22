@@ -12,10 +12,7 @@ two in step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import datetime as dt
-import json
-from typing import TYPE_CHECKING, Protocol
 
 import requests as _requests
 
@@ -29,18 +26,23 @@ from crdt_sync._credentials import (
 )
 from crdt_sync._http import new_session
 
+__all__ = [
+    "CredentialStore",
+    "FileCredentialStore",
+    "FirebaseAuthError",
+    "FirebaseCredentials",
+    "FirebaseTokenProvider",
+    "MemoryCredentialStore",
+]
+
 # Bound to the name ``requests`` so the call sites below -- and the tests
 # that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.
 requests = new_session()
 
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
 _SIGN_IN_BASE = "https://identitytoolkit.googleapis.com/v1"
 _REFRESH_BASE = "https://securetoken.googleapis.com/v1"
 _DEFAULT_TIMEOUT_SECONDS = 15
-
 
 
 class FirebaseTokenProvider:

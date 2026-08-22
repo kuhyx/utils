@@ -3,7 +3,6 @@
 Split from ``test_github.py`` (250-line cap), which keeps the read paths.
 """
 
-
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

@@ -4,8 +4,6 @@ Split from ``test_firebase_auth.py`` (250-line cap);
 ``test_firebase_auth_tokens.py`` keeps ID-token refresh.
 """
 
-
-
 from __future__ import annotations
 
 import datetime as dt

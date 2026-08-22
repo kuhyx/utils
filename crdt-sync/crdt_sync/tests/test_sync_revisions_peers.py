@@ -4,7 +4,6 @@ Split from ``test_sync_revisions.py`` (250-line cap), which keeps revision
 identity, state, and no-op push suppression.
 """
 
-
 from __future__ import annotations
 
 from crdt_sync import (

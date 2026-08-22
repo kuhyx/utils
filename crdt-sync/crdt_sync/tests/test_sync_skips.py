@@ -21,7 +21,6 @@ from crdt_sync import (
 )
 
 if TYPE_CHECKING:
-
     import pytest
 
     from crdt_sync import Log

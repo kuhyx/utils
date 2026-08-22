@@ -11,11 +11,11 @@ existing imports of either name keep working.
 
 from __future__ import annotations
 
-import tkinter as tk
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    import tkinter as tk
 
 # Tk text indices: the first character, and the last one before the newline
 # Text always appends.

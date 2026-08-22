@@ -15,13 +15,14 @@
 # the only one that covers the subprojects without a config of their own
 # (aur-publish/, guard-lib/, crdt_sync_dart/, file_length/, ...).
 #
-# `entry` is not run through a shell, so `~` would not expand: the absolute
-# path is deliberate.
+# The path is repo-relative on purpose. pre-commit always runs hooks from the
+# git root, so this resolves the same locally and on a CI runner -- an absolute
+# /home/... path exits 127 in Actions, which is how this was first written.
 repos:
   - repo: local
     hooks:
       - id: file-length-cap
         name: file length <= 250 lines
-        entry: bash /home/kuhy/utils/scripts/check_file_length.sh
+        entry: bash scripts/check_file_length.sh
         language: system
         pass_filenames: true

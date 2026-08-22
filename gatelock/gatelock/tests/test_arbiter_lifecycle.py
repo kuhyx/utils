@@ -102,7 +102,7 @@ class TestPublishAndLiveClaims:
         """A claim that cannot be opened is skipped, not fatal."""
         bad = tmp_path / "rt" / "claims" / "0100-1-bad.json"
         bad.write_text("{}", encoding="utf-8")
-        with patch("gatelock._arbiter.Path.open", side_effect=OSError("denied")):
+        with patch("gatelock._claims.Path.open", side_effect=OSError("denied")):
             assert arb.live_claims() == ()
 
     def test_reap_skips_recreated_file(self, arb: Arbiter, tmp_path: Path) -> None:
@@ -117,7 +117,7 @@ class TestPublishAndLiveClaims:
         """A failed unlink is logged, not raised."""
         dead = tmp_path / "rt" / "claims" / "0300-999-dead.json"
         dead.write_text(dead_claim().to_json(), "utf-8")
-        with patch("gatelock._arbiter.Path.unlink", side_effect=OSError("busy")):
+        with patch("gatelock._claims.Path.unlink", side_effect=OSError("busy")):
             live = arb.live_claims()
         # The reap is best-effort: the claim is excluded from the live set even
         # when the file itself cannot be removed.

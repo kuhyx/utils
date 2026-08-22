@@ -33,8 +33,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import logging
 import os
-from pathlib import Path
-from typing import IO, Final
+from typing import IO, TYPE_CHECKING, Final
 import uuid
 
 from gatelock._claims import (
@@ -46,6 +45,9 @@ from gatelock._claims import (
     live_claims,
     read_claim_if_held,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 

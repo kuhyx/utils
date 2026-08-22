@@ -11,23 +11,18 @@ Mirrors ``crdt_sync_dart``'s ``lib/src/sync.dart``; keep the two in step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-import hashlib
-import json
+from dataclasses import dataclass
 import logging
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 from crdt_sync._log import merge_logs
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from pathlib import Path
-
     from crdt_sync._log import Log
-    from crdt_sync._remote import RemoteStore
 
-from crdt_sync._pull import _PullContext, _pull_remote_logs, _remote_revs
+from crdt_sync._pull import _pull_remote_logs, _PullContext, _remote_revs
 from crdt_sync._revisions import revision_of
+from crdt_sync._syncargs import LogCodec, RevisionTracking, SyncTarget
 from crdt_sync._syncstate import (
     FileSyncStateStore,
     MemorySyncStateStore,
@@ -35,9 +30,22 @@ from crdt_sync._syncstate import (
     SyncStateStore,
 )
 
-_logger = logging.getLogger(__name__)
+# Named explicitly so the autofixer cannot prune an import that exists for its
+# re-export: crdt_sync/__init__.py imports all of these from here.
+__all__ = [
+    "FileSyncStateStore",
+    "LogCodec",
+    "MemorySyncStateStore",
+    "RevisionTracking",
+    "SyncState",
+    "SyncStateStore",
+    "SyncTarget",
+    "default_revs_path",
+    "revision_of",
+    "sync_log",
+]
 
-_DEFAULT_FILENAME = "log.json"
+_logger = logging.getLogger(__name__)
 
 
 def default_revs_path(path_prefix: str) -> str:
@@ -60,75 +68,6 @@ def default_revs_path(path_prefix: str) -> str:
     """
     head, separator, _ = path_prefix.rpartition("/")
     return f"{head}/revs" if separator else f"{path_prefix}/revs"
-
-
-@dataclass(frozen=True)
-class SyncTarget:
-    """Which remote, which device, and where its logs live.
-
-    Args:
-        client: An authenticated :class:`RemoteStore` -- a
-            :class:`crdt_sync.GitHubSyncClient`, a
-            :class:`crdt_sync.FirebaseSyncClient`, or a mirror of both.
-        device_id: This device's identifier; also the directory name its own
-            log is pushed under.
-        path_prefix: The directory holding one subdirectory per device
-            (e.g. ``"devices"``).
-        legacy_device_id: The id this device pushed under before migrating to
-            a persisted uuid. Treated as this device's own for skip-own
-            purposes, so its pre-migration log is not pulled back and
-            re-merged as a peer's. Pass ``None`` once the old path has been
-            reclaimed.
-    """
-
-    client: RemoteStore
-    device_id: str
-    path_prefix: str
-    legacy_device_id: str | None = None
-
-    @property
-    def own_ids(self) -> frozenset[str]:
-        """Every id whose pushed log belongs to this device."""
-        if self.legacy_device_id is None:
-            return frozenset({self.device_id})
-        return frozenset({self.device_id, self.legacy_device_id})
-
-
-@dataclass(frozen=True)
-class LogCodec:
-    """How a log is turned into pushed text and back.
-
-    Args:
-        encode: Serializes a merged log for pushing.
-        decode: Parses a remote device's pushed text back into a log.
-            Raising ``ValueError``, ``KeyError``, or ``TypeError`` is treated
-            as a corrupt/unparsable push, and that device is skipped for
-            this tick rather than aborting the whole sync.
-        filename: The file name each device pushes its log as.
-        commit_message: The commit message used for this device's push.
-    """
-
-    encode: Callable[[Log], str]
-    decode: Callable[[str], Log]
-    filename: str = _DEFAULT_FILENAME
-    commit_message: str = "crdt_sync: update log"
-
-
-@dataclass(frozen=True)
-class RevisionTracking:
-    """Optional skip-unchanged behaviour for a tick.
-
-    Omit it entirely and the tick behaves exactly as it always did: fetch
-    everything, push unconditionally.
-
-    Args:
-        state_store: Persists what this device last pushed and last merged.
-        revs_path: Where revisions live; defaults to
-            :func:`default_revs_path`.
-    """
-
-    state_store: SyncStateStore | None = None
-    revs_path: str | None = None
 
 
 def sync_log(

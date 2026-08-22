@@ -14,9 +14,10 @@ from dataclasses import dataclass
 import datetime as dt
 import json
 import logging
-import os
-from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 

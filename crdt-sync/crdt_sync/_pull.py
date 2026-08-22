@@ -9,7 +9,6 @@ all, so a quiet device costs one small read instead of one read per peer.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 import logging
 from typing import TYPE_CHECKING
 
@@ -18,9 +17,9 @@ if TYPE_CHECKING:
 
     from crdt_sync._log import Log
     from crdt_sync._remote import RemoteStore
+    from crdt_sync._syncstate import SyncState
 
 from crdt_sync._revisions import revision_of
-from crdt_sync._syncstate import SyncState
 
 _logger = logging.getLogger(__name__)
 

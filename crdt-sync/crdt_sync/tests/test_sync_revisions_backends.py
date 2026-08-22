@@ -4,8 +4,6 @@ Split from ``test_sync_revisions.py`` (250-line cap);
 ``test_sync_revisions_peers.py`` keeps peer-download suppression.
 """
 
-
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

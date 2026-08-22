@@ -13,8 +13,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 import logging
-from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 

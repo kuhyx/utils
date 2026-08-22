@@ -15,7 +15,6 @@ import requests as _requests
 
 from crdt_sync._gherrors import GitHubSyncError, RepoNotFoundError
 from crdt_sync._http import new_session
-from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
 
 # Bound to the name ``requests`` so the call sites below -- and the tests
 # that patch ``<module>.requests.<verb>`` -- are unchanged by pooling.

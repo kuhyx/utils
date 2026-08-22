@@ -27,15 +27,12 @@ from __future__ import annotations
 
 import logging
 import re
-import shutil
-import subprocess
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     import tkinter as tk
 
-from gatelock._output_types import Output, OutputRect, OutputScan, OutputSource
+from gatelock._output_types import Output, OutputRect, OutputScan
 from gatelock._randr import RandrBackend
 from gatelock._xrandr import parse_xrandr_query, scan_xrandr
 
@@ -54,7 +51,6 @@ __all__ = [
 ]
 
 _logger = logging.getLogger(__name__)
-
 
 
 # Output lines start at column 0; mode lines are indented four spaces. That

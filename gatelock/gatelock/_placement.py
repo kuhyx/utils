@@ -12,14 +12,13 @@ or unmap a surface; that asymmetry is what makes the recovery loop monotonic.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import tkinter as tk
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    import tkinter as tk
 
     from gatelock._config import LockConfig
-
     from gatelock._outputs import OutputRect
     from gatelock._surfaces import SurfaceInfo
 
