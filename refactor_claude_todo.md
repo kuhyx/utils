@@ -1,5 +1,14 @@
 # Refactor TODO — enforce the 250-line file cap
 
+> **DONE 2026-08-22.** All 46 violations are split and the gate is live:
+> `bash scripts/check_file_length.sh --all` exits 0, a local pre-commit hook
+> blocks an over-cap commit (verified in both directions), and
+> `.github/workflows/file-length.yml` runs the same check on push.
+>
+> The survey figures below are the 2026-08-14 snapshot and are now historical —
+> re-run the gate rather than trusting them. Kept as the record of what the
+> task asked for and how it was scoped.
+
 > **This file is a ready-to-use prompt.** Paste it to Claude, or open this repo
 > and say "do refactor_claude_todo". It is self-contained: everything needed to
 > execute is below. Generated 2026-08-14 from a measured survey of every repo.
@@ -13,7 +22,7 @@ enforced by a gate that fails the commit, not by a note anyone can ignore.
 Why: a file that cannot be read in one piece forces re-reads and partial edits,
 which is the single largest avoidable cost in an LLM-assisted workflow. Aim by
 churn, not size alone — refactoring pays where code is read and changed often
-(Fowler, *refactoring economic benefit*).
+(Fowler, _refactoring economic benefit_).
 
 ## Scope in this repo
 
@@ -21,6 +30,7 @@ churn, not size alone — refactoring pays where code is read and changed often
 - **14,348 lines** sit in violation; longest file is **525 lines**.
 
 Exempt (do NOT split these):
+
 - generated files — `*.g.dart`, `*.freezed.dart`, `*.gr.dart`, `**/l10n/generated/**`,
   anything with a `GENERATED` header
 - markup — `.html`, `.css`, `.scss`
@@ -32,23 +42,23 @@ Exempt (do NOT split these):
 ROI = lines x commits in the last year. Work top-down; a long file nobody edits
 has near-zero payoff and should not be first.
 
-| lines | commits/yr | kind | file |
-|------:|-----------:|:-----|:-----|
-| 515 | 6 | code | `gatelock/gatelock/_window.py` |
-| 477 | 3 | code | `gatelock/gatelock/tests/test_recovery.py` |
-| 259 | 5 | code | `crdt_sync_dart/lib/src/sync.dart` |
-| 406 | 3 | code | `crdt-sync/crdt_sync/_firebase_auth.py` |
-| 393 | 3 | code | `crdt-sync/crdt_sync/tests/test_firebase_auth.py` |
-| 363 | 3 | code | `crdt-sync/crdt_sync/_sync.py` |
-| 525 | 2 | code | `crdt_sync_dart/test/firebase_auth_rest_test.dart` |
-| 483 | 2 | code | `gatelock/gatelock/_scrollable.py` |
-| 321 | 3 | code | `gatelock/gatelock/_recovery.py` |
-| 457 | 2 | code | `sync_settings_ui/test/sync_settings_screen_test.dart` |
-| 452 | 2 | code | `crdt_sync_dart/test/mirror_store_test.dart` |
-| 451 | 2 | code | `crdt_sync_dart/test/sync_revisions_test.dart` |
-| 439 | 2 | code | `aur-publish/publish.sh` |
-| 291 | 3 | code | `crdt_sync_dart/test/github_client_test.dart` |
-| 418 | 2 | code | `gatelock/gatelock/tests/test_outputs.py` |
+| lines | commits/yr | kind | file                                                   |
+| ----: | ---------: | :--- | :----------------------------------------------------- |
+|   515 |          6 | code | `gatelock/gatelock/_window.py`                         |
+|   477 |          3 | code | `gatelock/gatelock/tests/test_recovery.py`             |
+|   259 |          5 | code | `crdt_sync_dart/lib/src/sync.dart`                     |
+|   406 |          3 | code | `crdt-sync/crdt_sync/_firebase_auth.py`                |
+|   393 |          3 | code | `crdt-sync/crdt_sync/tests/test_firebase_auth.py`      |
+|   363 |          3 | code | `crdt-sync/crdt_sync/_sync.py`                         |
+|   525 |          2 | code | `crdt_sync_dart/test/firebase_auth_rest_test.dart`     |
+|   483 |          2 | code | `gatelock/gatelock/_scrollable.py`                     |
+|   321 |          3 | code | `gatelock/gatelock/_recovery.py`                       |
+|   457 |          2 | code | `sync_settings_ui/test/sync_settings_screen_test.dart` |
+|   452 |          2 | code | `crdt_sync_dart/test/mirror_store_test.dart`           |
+|   451 |          2 | code | `crdt_sync_dart/test/sync_revisions_test.dart`         |
+|   439 |          2 | code | `aur-publish/publish.sh`                               |
+|   291 |          3 | code | `crdt_sync_dart/test/github_client_test.dart`          |
+|   418 |          2 | code | `gatelock/gatelock/tests/test_outputs.py`              |
 
 _(24 further files over 250 lines not listed — re-run the survey for the full set.)_
 
