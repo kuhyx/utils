@@ -13,6 +13,7 @@ import base64
 
 import requests as _requests
 
+from crdt_sync._gherrors import GitHubSyncError, RepoNotFoundError
 from crdt_sync._http import new_session
 from crdt_sync._remote import RemoteNotFoundError, RemoteSyncError
 
@@ -24,24 +25,6 @@ requests = new_session()
 _API_BASE = "https://api.github.com"
 _HTTP_NOT_FOUND = 404
 _DEFAULT_TIMEOUT_SECONDS = 15
-
-
-class GitHubSyncError(RemoteSyncError):
-    """Raised for a GitHub API failure the caller must not silently ignore."""
-
-
-class RepoNotFoundError(GitHubSyncError, RemoteNotFoundError):
-    """Raised when the configured repo itself is unreachable.
-
-    Distinguished from a path-404 (nothing pushed to that path yet, which is
-    benign -- it just means no other device has synced before) so the caller
-    can tell "the repo name is wrong or the token isn't scoped to it" apart
-    from "no other device has synced yet".
-
-    Derives from both so existing ``except GitHubSyncError`` handlers still
-    cover it *and* backend-neutral callers can catch "the remote itself is
-    missing" without naming GitHub.
-    """
 
 
 class GitHubSyncClient:
