@@ -22,6 +22,8 @@ Usage: vm <command> [args]
   new <name> [--rtc <ts>]     Create a sandbox (instant; thin overlay)
   run <name> <command...>     Run a command in the sandbox, report the verdict
   ssh <name> [args...]        Interactive shell in the sandbox
+  share <host-path>           Expose a host dir to sandboxes (read-only bind)
+  unshare <name>              Stop exposing it
   repo <name> <path> [--worktree]
                               Copy a host repo in (clone=HEAD, --worktree=uncommitted)
   screenshot <name> [out.png] Capture the guest screen (for locker tests)
@@ -78,6 +80,8 @@ main() {
         ssh)        source "$VMBOX_LIB_DIR/ssh.sh";                           vm_ssh_interactive "$@" ;;
         screenshot) source "$VMBOX_LIB_DIR/screenshot.sh";                    vm_screenshot "$@" ;;
         repo)       source "$VMBOX_LIB_DIR/repo.sh";                          cmd_repo "$@" ;;
+        share)      source "$VMBOX_LIB_DIR/repo.sh";                          repo_share "$@" ;;
+        unshare)    source "$VMBOX_LIB_DIR/repo.sh";                          repo_unshare "$@" ;;
         list|ls)    cmd_list ;;
         -h|--help|help|'') usage ;;
         *)          die "unknown command '$cmd' (try: vm --help)" ;;

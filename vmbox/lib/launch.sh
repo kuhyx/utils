@@ -33,7 +33,10 @@ launch_vm() {
     serial_n="$(vm_next_serial "$name")"
     serial="$(vm_serial "$name" "$serial_n")"
     qmp="$(vm_qmp_sock "$name")"
-    # Symlink the repos you want testable into here; nothing else is exposed.
+    # Repos you want testable go here. Use `vm share <path>` -- it BIND-MOUNTS
+    # rather than symlinks, because 9p exports a directory tree and will not
+    # follow a symlink pointing outside it (the guest would see a dangling
+    # link). Nothing outside this directory is ever exposed.
     share="${VMBOX_SHARE:-$VMBOX_HOME/share}"
     install -d -m 755 "$share"
 

@@ -17,6 +17,41 @@ source "$(dirname "${BASH_SOURCE[0]}")/ssh.sh"
 
 readonly GUEST_MOUNT="/mnt/hostrepo"
 
+# Expose a host directory to sandboxes. Bind-mount rather than symlink: 9p
+# exports a directory TREE and does not follow links out of it, so a symlinked
+# repo appears in the guest as a dangling link (measured, not assumed).
+# The bind is read-only, so the guest cannot write to the real repo.
+repo_share() {
+    local src="${1:-}" name share
+    [[ -n "$src" ]] || die "usage: vm share <host-path>"
+    [[ -d "$src" ]] || die "no such directory: $src"
+    src="$(realpath "$src")"
+    name="$(basename "$src")"
+    share="${VMBOX_SHARE:-$VMBOX_HOME/share}"
+    install -d -m 755 "$share/$name"
+
+    if mountpoint -q "$share/$name"; then
+        ok "$name is already shared"
+        return 0
+    fi
+    # A read-only bind needs two steps: mount, then remount ro.
+    sudo mount --bind "$src" "$share/$name" ||
+        die "bind mount failed (needs sudo once per boot)"
+    sudo mount -o remount,ro,bind "$share/$name" ||
+        warn "could not remount read-only -- the guest mount is still ro via 9p"
+    ok "shared $src -> sandboxes see it at $GUEST_MOUNT/$name (read-only)"
+}
+
+repo_unshare() {
+    local name="${1:-}" share
+    share="${VMBOX_SHARE:-$VMBOX_HOME/share}"
+    [[ -n "$name" ]] || die "usage: vm unshare <name>"
+    mountpoint -q "$share/$name" || { ok "$name is not shared"; return 0; }
+    sudo umount "$share/$name" || die "umount failed"
+    rmdir "$share/$name" 2>/dev/null || true
+    ok "unshared $name"
+}
+
 # $1 vm name, $2 host repo path, $3 mode (clone|worktree)
 repo_sync() {
     local name="$1" src="$2" mode="${3:-clone}" repo_name
