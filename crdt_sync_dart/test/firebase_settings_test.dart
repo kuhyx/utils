@@ -67,11 +67,25 @@ void main() {
       ('a missing password', '{"email":"a@b.c"}'),
       ('a non-string email', '{"email":1,"password":"p"}'),
       ('an empty email', '{"email":"","password":"p"}'),
-      ('an empty password', '{"email":"a@b.c","password":""}'),
     ]) {
       test('treats $name as not configured', () {
         expect(FirebaseAccount.tryParse(raw), isNull);
       });
     }
+
+    test('accepts an empty password, which Google sign-in writes', () {
+      // Regression: this used to return null, so a device that signed in with
+      // Google -- or adopted a seeded session -- wrote an account marker it
+      // could never read back. Every later launch reported "not configured"
+      // and fell through to the mirror, while a perfectly good refresh token
+      // sat unused in the keystore beside it.
+      final parsed = FirebaseAccount.tryParse(
+        const FirebaseAccount(email: 'a@b.c', password: '').toJsonString(),
+      );
+
+      expect(parsed, isNotNull);
+      expect(parsed!.email, 'a@b.c');
+      expect(parsed.password, isEmpty);
+    });
   });
 }

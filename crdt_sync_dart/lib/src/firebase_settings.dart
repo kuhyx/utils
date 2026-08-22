@@ -80,7 +80,17 @@ class FirebaseAccount {
     final email = decoded['email'];
     final password = decoded['password'];
     if (email is! String || password is! String) return null;
-    if (email.isEmpty || password.isEmpty) return null;
+    // An empty password is legal, and rejecting it was a real bug: both the
+    // Google one-tap path and the seeded-session path deliberately store
+    // `password: ''` -- the refresh token, not an address or a password, is
+    // the credential on those devices. Refusing to parse the blob they had
+    // just written made every such device read back as "not configured" on
+    // the next launch, so a signed-in phone fell through to the mirror
+    // forever. Callers already handle it: each guards `password.isEmpty` and
+    // passes null, meaning "no password on this device".
+    //
+    // An empty *email* stays rejected: it carries no identity at all.
+    if (email.isEmpty) return null;
     return FirebaseAccount(email: email, password: password);
   }
 
