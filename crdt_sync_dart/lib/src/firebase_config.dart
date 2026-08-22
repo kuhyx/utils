@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'firebase_auth_rest.dart';
+import 'firebase_credentials.dart';
 import 'firebase_client.dart';
 import 'mirror_store.dart';
 import 'remote_store.dart';
@@ -136,7 +137,10 @@ Future<FirebaseRestClient> firebaseClientFor({
       // than failing every sign-in against ''. Apps that know their uid should
       // pass expectedUid so a mis-tapped account picker is caught here instead
       // of turning into a silently denied sync.
-      await auth.signInWithGoogle(idToken: google, expectedUid: expectedUid ?? config.uid);
+      await auth.signInWithGoogle(
+        idToken: google,
+        expectedUid: expectedUid ?? config.uid,
+      );
     } else if (password != null) {
       await auth.signIn(email: config.email, password: password);
     } else {

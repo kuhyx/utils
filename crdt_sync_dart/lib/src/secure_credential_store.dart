@@ -15,7 +15,7 @@ library;
 
 import 'dart:convert';
 
-import 'firebase_auth_rest.dart';
+import 'firebase_credentials.dart';
 
 /// Reads a secret by key, returning null when absent.
 typedef SecretReader = Future<String?> Function(String key);
