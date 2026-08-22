@@ -78,7 +78,7 @@ of truth** — if a prompt needs correcting, fix it here and re-distribute.
 
 | Prompt | Distributed to |
 |---|---|
-| 01 | `~/utils/prompts/dopamine-ux-01-motion-tokens.md` |
+| 01 | `~/utils/prompts/dopamine-ux-01-motion-tokens.md` — deleted (done) |
 | 02 | `~/utils/prompts/dopamine-ux-02-structural-check.md` |
 | 03 | `~/diet-guard/prompts/dopamine-ux-diet-guard.md` |
 | 04 | `~/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |

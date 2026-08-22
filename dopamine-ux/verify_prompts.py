@@ -52,7 +52,16 @@ CREATED_BY_PROMPT = {
 }
 
 # Cited precisely to state that they do NOT exist.
-ASSERTED_ABSENT = {"~/gatelock"}
+ASSERTED_ABSENT = {
+    "~/gatelock",
+    # Distributed prompt copies are `git rm`d on completion (see the protocol in
+    # 00-INDEX.md), but 00-INDEX.md keeps citing them in its "Distributed copies"
+    # table. Asserting ABSENT rather than dropping the row keeps the check
+    # two-directional: a finished prompt reappearing in a repo is itself a
+    # failure, because the next session would re-run it. Move a row here as each
+    # prompt completes.
+    "~/utils/prompts/dopamine-ux-01-motion-tokens.md",
+}
 
 # Generic prose fragments rather than citations of one specific file.
 PROSE_FRAGMENTS = {"lib/ui/theme.dart", "lib/main.dart", "pubspec.yaml"}
