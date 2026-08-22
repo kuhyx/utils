@@ -16,7 +16,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gatelock._outputs import Output, OutputRect
+from gatelock._outputs import Output, OutputRect, OutputScan
+from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
+from gatelock._surfaces import SurfaceSet
 from gatelock._window import LockConfig, LockWindow
 
 if TYPE_CHECKING:
@@ -110,3 +112,51 @@ def make_window(
     hooks = hooks if hooks is not None else MagicMock()
     window = LockWindow(root, config or LockConfig(), hooks)
     return window, hooks
+
+
+DP0 = Output("DP-0", connected=True, rect=OutputRect(0, 0, 3840, 2160), primary=True)
+HDMI = Output("HDMI-0", connected=True, rect=OutputRect(3840, 0, 2560, 1440))
+DP0_DARK = Output("DP-0", connected=True, rect=None, primary=True)
+HDMI_DARK = Output("HDMI-0", connected=True, rect=None)
+
+BOTH = OutputScan((DP0, HDMI), "randr", ok=True)
+DEAD_PRIMARY = OutputScan((DP0_DARK, HDMI), "randr", ok=True)
+ALL_DARK = OutputScan((DP0_DARK, HDMI_DARK), "randr", ok=True)
+FAILED = OutputScan((), "none", ok=False)
+
+
+def build_loop(
+    root: MagicMock, config: LockConfig
+) -> tuple[RecoveryLoop, MagicMock, SurfaceSet]:
+    """A recovery loop over mocked surroundings, for an arbitrary config.
+
+    Args:
+        root: The mocked Tk root the loop drives.
+        config: The lock configuration under test.
+
+    Returns:
+        The loop, its mocked enumerator, and the surface set it manages.
+    """
+    hooks = MagicMock()
+    surfaces = SurfaceSet(root, config, hooks)
+    enumerator = MagicMock()
+    return (
+        RecoveryLoop(
+            root,
+            RecoveryCollaborators(
+                config=config,
+                surfaces=surfaces,
+                enumerator=enumerator,
+                detector=MagicMock(),
+                hooks=hooks,
+            ),
+        ),
+        enumerator,
+        surfaces,
+    )
+
+
+@pytest.fixture
+def loop(mock_root: MagicMock) -> tuple[RecoveryLoop, MagicMock, SurfaceSet]:
+    """A recovery loop in hard mode, the configuration most tests want."""
+    return build_loop(mock_root, LockConfig(mode="hard"))
