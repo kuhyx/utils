@@ -26,7 +26,7 @@ dependencies:
   crdt_sync_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_flutter-v0.1.1
+      ref: crdt_sync_flutter-v0.2.0
       path: crdt_sync_flutter
 ```
 
@@ -101,6 +101,15 @@ Use [`sync_settings_ui`](../sync_settings_ui) for that screen rather than
 building one; it takes the closures this package provides:
 
 ```dart
+/// The project's **Web** OAuth client id, used as the audience for Android's
+/// ID tokens. Public by design, exactly like the `apiKey`.
+const kServerClientId = '845446124781-...apps.googleusercontent.com';
+
+/// A **Desktop**-type OAuth client, for the loopback flow. A Web client id
+/// will not work here; a Desktop client is the only type allowed to redirect
+/// to loopback.
+const kDesktopClientId = '845446124781-...apps.googleusercontent.com';
+
 SyncSettingsScreen(
   accountLoader: () => loadAccount(),
   accountSaver: saveAccount,
@@ -109,15 +118,37 @@ SyncSettingsScreen(
   firebaseFactory: () => openSync(kApp),
   googleFirebaseFactory: () => signInWithGoogle(
     kApp,
-    tokenFetcher: googleIdToken, // the app's own google_sign_in call
+    tokenFetcher: () => googleAnyIdToken(
+      serverClientId: kServerClientId,
+      desktopClientId: kDesktopClientId,
+    ),
   ),
-  googleAvailable: googleSignInSupported,
+  googleAvailable: googleAnySignInSupported(
+    serverClientId: kServerClientId,
+    desktopClientId: kDesktopClientId,
+  ),
 )
 ```
 
-`signInWithGoogle` is the interactive path and takes the token fetcher as a
-closure — `google_sign_in` is Android/iOS/web only, and this package must keep
-working on Linux desktop.
+### One tap on every platform
+
+`google_sign_in` ships **android, ios and web** implementations only — there
+is no `google_sign_in_linux` — so a real GTK desktop build cannot use the
+plugin at all. This package covers both halves and picks between them:
+
+| Platform | Flow | Entry point |
+|---|---|---|
+| Android / iOS | `google_sign_in` plugin, OS account picker | `googleIdToken` |
+| Linux / Windows / macOS | OAuth **loopback** + PKCE, system browser | `googleDesktopIdToken` |
+| Web | none (GIS renders its own button) | falls back to password |
+
+Both return a Google ID token of the same shape, so `signInWithGoogle` cannot
+tell them apart.
+
+`googleSignInSupported(clientId)` takes the client id rather than reading a
+const so its second, easily-lost conjunct — *is a client id actually compiled
+in?* — cannot be dropped by a consuming app. A build that forgot the constant
+would otherwise show a button that always reports "cancelled".
 
 **`openSync` deliberately never offers Google.** It runs from background ticks
 and, in some apps, before `runApp`; offering Google there would raise the OS

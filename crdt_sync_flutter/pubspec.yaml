@@ -4,7 +4,7 @@ description: >-
   persisted per-install device id, and a one-call bootstrap. Removes the
   ~150 lines of firebase_backend.dart every consuming app was copying.
 publish_to: 'none'
-version: 0.1.1
+version: 0.2.0
 
 environment:
   sdk: ^3.12.2
@@ -15,6 +15,7 @@ dependencies:
       url: https://github.com/kuhyx/utils
       ref: crdt_sync_dart-v0.11.0
       path: crdt_sync_dart
+  crypto: ^3.0.6
   flutter:
     sdk: flutter
   flutter_secure_storage: ^10.3.1
@@ -22,8 +23,14 @@ dependencies:
   # consuming apps can test their own sync wiring without rebuilding it.
   flutter_test:
     sdk: flutter
+  # The one-tap Google plugin. Android/iOS/web only -- there is no Linux
+  # implementation -- so desktop reaches Google through the loopback flow in
+  # google_desktop_sign_in.dart instead. See google_platform.dart.
+  google_sign_in: ^7.2.0
   http: ^1.6.0
   shared_preferences: ^2.5.3
+  # Opens the system browser for the desktop loopback sign-in.
+  url_launcher: ^6.3.1
   uuid: ^4.5.1
 
 dev_dependencies:
