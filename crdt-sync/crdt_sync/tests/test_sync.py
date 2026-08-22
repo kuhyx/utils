@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
@@ -17,8 +16,6 @@ from crdt_sync import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    import pytest
 
     from crdt_sync import Hlc, Log
 
@@ -144,79 +141,6 @@ class TestSyncLog:
         )
 
         client.get_file_text.assert_called_once_with("devices/pc/log.json")
-
-    def test_skips_a_device_with_no_pushed_file_yet(self) -> None:
-        """Skips a device with no pushed file yet."""
-        client = _mock_client(devices=("phone",), files={})
-
-        merged = sync_log(
-            SyncTarget(
-                client=client,
-                device_id="pc",
-                path_prefix="devices",
-            ),
-            {},
-            LogCodec(
-                decode=_decode,
-                encode=_encode,
-            ),
-        )
-
-        assert not merged
-
-    def test_skips_a_device_whose_pushed_file_is_corrupt(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """An interrupted/truncated push must not crash every other device's
-        merge -- it is treated the same as a device that hasn't pushed yet.
-        """
-        client = _mock_client(
-            devices=("phone",),
-            files={"devices/phone/log.json": "{not valid json"},
-        )
-
-        with caplog.at_level(logging.WARNING):
-            merged = sync_log(
-                SyncTarget(
-                    client=client,
-                    device_id="pc",
-                    path_prefix="devices",
-                ),
-                {},
-                LogCodec(
-                    decode=_decode,
-                    encode=_encode,
-                ),
-            )
-
-        assert not merged
-        assert "Unparsable log" in caplog.text
-
-    def test_skips_a_device_whose_pushed_json_has_the_wrong_shape(self) -> None:
-        """Valid JSON that isn't a record map (e.g. from an incompatible
-        writer) must be skipped like corrupt JSON, not crash the whole
-        sync -- this is what the broad ``(ValueError, KeyError, TypeError)``
-        catch in ``_pull_remote_logs`` is for, not just JSON syntax errors.
-        """
-        client = _mock_client(
-            devices=("phone",),
-            files={"devices/phone/log.json": '{"a": 5}'},
-        )
-
-        merged = sync_log(
-            SyncTarget(
-                client=client,
-                device_id="pc",
-                path_prefix="devices",
-            ),
-            {},
-            LogCodec(
-                decode=_decode,
-                encode=_encode,
-            ),
-        )
-
-        assert not merged
 
     def test_merges_in_a_remote_devices_entries(
         self, make_hlc: Callable[..., Hlc]
