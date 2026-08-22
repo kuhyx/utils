@@ -1,0 +1,30 @@
+name: crdt_sync_flutter
+description: >-
+  The Flutter half of crdt_sync: keystore-backed Firebase credentials, a
+  persisted per-install device id, and a one-call bootstrap. Removes the
+  ~150 lines of firebase_backend.dart every consuming app was copying.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  crdt_sync:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: crdt_sync_dart-v0.11.0
+      path: crdt_sync_dart
+  flutter:
+    sdk: flutter
+  flutter_secure_storage: ^9.2.4
+  # A real dependency, not a dev one: lib/testing/ ships the keystore fake so
+  # consuming apps can test their own sync wiring without rebuilding it.
+  flutter_test:
+    sdk: flutter
+  http: ^1.6.0
+  shared_preferences: ^2.5.3
+  uuid: ^4.5.1
+
+dev_dependencies:
+  very_good_analysis: ^10.2.0
