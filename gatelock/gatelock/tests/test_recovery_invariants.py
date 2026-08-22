@@ -18,11 +18,24 @@ SOURCE_ROOT = Path(__file__).resolve().parent.parent
 
 
 def symbols(module: str) -> set[str]:
-    """Every attribute and name referenced in a module's source."""
-    tree = ast.parse((SOURCE_ROOT / module).read_text(encoding="utf-8"))
-    return {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)} | {
-        n.id for n in ast.walk(tree) if isinstance(n, ast.Name)
-    }
+    """Every attribute and name referenced across the `module` family.
+
+    Globbed rather than read as one exact filename, so that splitting a module
+    for the 250-line cap cannot narrow the invariant to whichever half kept the
+    original name. A new `_recovery_*.py` sibling is covered the moment it
+    exists; nobody has to remember to extend a list here.
+    """
+    stem = module.removesuffix(".py")
+    paths = sorted(SOURCE_ROOT.glob(f"{stem}*.py"))
+    if not paths:
+        msg = f"no module matching {stem}*.py -- renamed? the guard is off"
+        raise AssertionError(msg)
+    found: set[str] = set()
+    for path in paths:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        found |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        found |= {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+    return found
 
 
 class TestStaticInvariant:

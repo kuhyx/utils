@@ -36,52 +36,17 @@ keeps the grab. Pulling a cable is therefore not an escape.
 from __future__ import annotations
 
 import contextlib
-from dataclasses import dataclass
 import logging
 import tkinter as tk
-from typing import TYPE_CHECKING
 
+from gatelock._grabwatch import GrabWatch
+from gatelock._recovery_types import RecoveryCollaborators, RecoveryReport
 from gatelock._vt import disable_vt_switching
-
-if TYPE_CHECKING:
-    from gatelock._detect import OutputChangeDetector
-    from gatelock._outputs import OutputEnumerator
-    from gatelock._surfaces import SurfaceDelta, SurfaceSet
-    from gatelock._window import LockConfig, LockWindowHooks
 
 _logger = logging.getLogger(__name__)
 
 _VT_REASSERT_EVERY = 30
 """Re-disable VT switching every N verify ticks, in case something reset it."""
-
-
-@dataclass(frozen=True)
-class RecoveryReport:
-    """What one tick observed and corrected."""
-
-    scan_ok: bool
-    source: str
-    live_outputs: tuple[str, ...] = ()
-    delta: SurfaceDelta | None = None
-    corrected: tuple[str, ...] = ()
-    grab_reasserted: bool = False
-    vt_reasserted: bool = False
-    blind: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class RecoveryCollaborators:
-    """The pieces one tick re-asserts over.
-
-    Bundled to keep the loop's constructor at one object instead of a
-    growing, unbounded arg list.
-    """
-
-    config: LockConfig
-    surfaces: SurfaceSet
-    enumerator: OutputEnumerator
-    detector: OutputChangeDetector
-    hooks: LockWindowHooks
 
 
 class RecoveryLoop:
@@ -99,7 +64,7 @@ class RecoveryLoop:
         self._ticks = 0
         self._drain_job: str | None = None
         self._verify_job: str | None = None
-        self._last_grab_warning: str | None = None
+        self._grab = GrabWatch(root)
 
     @property
     def ticks(self) -> int:
@@ -238,43 +203,12 @@ class RecoveryLoop:
     def holds_grab(self) -> bool:
         """Whether the grab is held by a window this application owns.
 
-        Deliberately *not* ``grab_current() is self._root``. Our own transient
-        children take the grab for themselves: a posted Tk menu grabs the menu
-        window, and the old identity test read that as "the grab was lost" and
-        called ``grab_set_global()`` a second later, stealing it back off our
-        own widget mid-interaction. That is what made the screen-locker sport
-        selector unusable while locked on 2026-07-26. Any window we own still
-        means the lock has the pointer and keyboard.
-
-        ``grab_current`` resolves the name Tcl gives it against our own widget
-        map, so anything that does not resolve -- a Tcl-created popdown such as
-        a ``ttk.Combobox``'s, or a stale name -- raises ``KeyError`` and is NOT
-        provably ours. That counts as lost and the grab is re-taken: fail
-        closed, because this module exists to keep the lock, and losing a
-        popdown beats believing we hold a grab we do not.
-
-        Known limitation: a second ``tk.Tk()`` in the same process reports its
-        root as ``"."`` too, which is indistinguishable from ours. The old
-        identity test had exactly the same blind spot. ``_heat_skip``'s
-        throwaway root is the only other one in screen-locker, and it is
-        destroyed before the lock window exists.
-
         Public so an embedder (or a verification harness) can ask the same
         question the loop asks, rather than re-implementing it and drifting.
+        See :class:`gatelock._grabwatch.GrabWatch` for why the test is not a
+        simple identity check.
         """
-        try:
-            held = self._root.grab_current() is not None
-        except KeyError as exc:
-            self._warn_once(
-                f"the grab is held by {exc.args[0]!r}, not one of our windows"
-            )
-            return False
-        except tk.TclError:
-            self._warn_once("could not read the current grab")
-            return False
-        if held:
-            self._last_grab_warning = None
-        return held
+        return self._grab.holds_grab()
 
     def _reassert_focus(self) -> None:
         """Re-focus the preferred surface after any output came back live.
@@ -293,19 +227,6 @@ class RecoveryLoop:
         with contextlib.suppress(tk.TclError):
             index = self._surfaces.preferred_focus_index()
             self._hooks.on_focus_ready(self._surfaces.focus_surface(index))
-
-    def _warn_once(self, reason: str) -> None:
-        """Warn about a lost grab, but only when the reason changes.
-
-        These states can persist for the whole lock (a dark display, a popdown
-        that keeps re-grabbing), and this runs once a second -- warning every
-        tick would push a line per second into the journal for as long as it
-        lasts. Silence is not the alternative: the first occurrence and every
-        change of cause are still logged at WARNING.
-        """
-        if reason != self._last_grab_warning:
-            _logger.warning("%s; treating it as lost and re-taking it", reason)
-            self._last_grab_warning = reason
 
     def _reassert_vt(self) -> bool:
         """Periodically re-disable VT switching. Never re-enables it.

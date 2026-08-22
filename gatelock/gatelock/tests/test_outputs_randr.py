@@ -4,7 +4,6 @@ Split from ``test_outputs.py`` (250-line cap), which keeps rect geometry,
 the live predicate, and xrandr-query parsing.
 """
 
-
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

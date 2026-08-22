@@ -5,8 +5,6 @@ keeps the python-xlib backend itself; this covers the enumerator that drives
 it and the OutputScan it produces.
 """
 
-
-
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

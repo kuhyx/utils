@@ -3,7 +3,6 @@
 Split from ``test_window_surfaces.py`` to hold the shared 250-line cap.
 """
 
-
 from __future__ import annotations
 
 import queue

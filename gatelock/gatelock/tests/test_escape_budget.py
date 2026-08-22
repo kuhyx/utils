@@ -4,7 +4,6 @@ Split from ``test_escape.py`` (250-line cap), which keeps policy defaults,
 timestamp parsing, loading, and the integrity guarantee.
 """
 
-
 from __future__ import annotations
 
 import json

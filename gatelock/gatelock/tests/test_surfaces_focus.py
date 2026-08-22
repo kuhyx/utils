@@ -3,7 +3,6 @@
 Split from ``test_surfaces.py`` to hold the shared 250-line cap.
 """
 
-
 from __future__ import annotations
 
 from unittest.mock import MagicMock

@@ -34,15 +34,39 @@ recording, because each rules out an approach that looks reasonable:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
 import tkinter as tk
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
+
+from gatelock._placement import (
+    _Surface,
+    blind_outputs,
+    needs_backdrop_root,
+    enforce_all,
+    set_geometry,
+)
+from gatelock._surface_types import (
+    SurfaceBuilder,
+    SurfaceDelta,
+    SurfaceInfo,
+)
+from gatelock._textmirror import TextMirror, mirror_text_widgets
+
+# Names this module re-exports after the 250-line split. Listed explicitly so
+# the autofixer cannot prune an import that exists *for* its re-export -- it
+# stripped mirror_text_widgets once, and `gatelock` itself stopped importing.
+__all__ = [
+    "SurfaceBuilder",
+    "SurfaceDelta",
+    "SurfaceInfo",
+    "SurfaceSet",
+    "TextMirror",
+    "mirror_text_widgets",
+    "needs_backdrop_root",
+]
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from gatelock._outputs import OutputRect, OutputScan
+    from gatelock._outputs import OutputScan
     from gatelock._window import LockConfig
 
 _logger = logging.getLogger(__name__)
@@ -51,117 +75,6 @@ _logger = logging.getLogger(__name__)
 # trips the boolean-positional lint. Naming it satisfies both that rule
 # and the type stubs, which have no keyword overload.
 _TOPMOST_ON = True
-
-_TEXT_START = "1.0"
-_TEXT_END = "end-1c"
-
-
-@dataclass(frozen=True)
-class SurfaceInfo:
-    """Identifies one lock surface and the output it covers."""
-
-    output_name: str
-    rect: OutputRect
-    index: int
-    is_primary: bool
-
-
-class SurfaceBuilder(Protocol):
-    """What a consuming app must implement to paint its UI on each output."""
-
-    def build_surface(self, parent: tk.Misc, surface: SurfaceInfo) -> None:
-        """Build this app's widgets inside ``parent`` for one output."""
-
-    def teardown_surface(self, surface: SurfaceInfo) -> None:
-        """Forget any per-surface state; the window is about to be destroyed."""
-
-
-@dataclass(frozen=True)
-class SurfaceDelta:
-    """What one :meth:`SurfaceSet.apply` changed."""
-
-    created: tuple[str, ...] = ()
-    moved: tuple[str, ...] = ()
-    removed: tuple[str, ...] = ()
-    unverified: tuple[str, ...] = ()
-
-    @property
-    def changed(self) -> bool:
-        """Whether anything structural happened."""
-        return bool(self.created or self.moved or self.removed)
-
-
-@dataclass
-class _Surface:
-    """One Toplevel and the output it is pinned to."""
-
-    info: SurfaceInfo
-    window: tk.Toplevel
-    built: bool = field(default=False)
-
-
-def needs_backdrop_root(config: LockConfig) -> bool:
-    """Whether the root must stay mapped as a backdrop and grab holder.
-
-    Deliberately *not* simplified to "iff override-redirect".
-    ``LockConfig(mode="soft", grab="global")`` is a reachable combination, and
-    a global grab requires a viewable window -- X refuses to grab for a
-    withdrawn one. Collapsing this predicate would make that config fail at
-    runtime only.
-    """
-    return config.resolved_overrideredirect() or config.resolved_grab() != "none"
-
-
-class TextMirror:
-    """Keeps N ``tk.Text`` widgets showing the same value.
-
-    ``tk.Text`` has no ``textvariable``, so it is the one widget that cannot
-    ride the shared-``StringVar`` mechanism the rest of the mirroring uses.
-    """
-
-    def __init__(self, widgets: Sequence[tk.Text], var: tk.StringVar) -> None:
-        """Bind ``widgets`` to each other through ``var``."""
-        self._widgets = list(widgets)
-        self._var = var
-        self._syncing = False
-        for widget in self._widgets:
-            widget.bind("<KeyRelease>", self._on_key_release, add="+")
-        self._var.trace_add("write", self._on_var_write)
-
-    def _on_key_release(self, event: tk.Event[tk.Text]) -> None:
-        """Push the edited widget's content into the shared variable."""
-        if self._syncing:
-            return
-        self._syncing = True
-        try:
-            self._var.set(event.widget.get(_TEXT_START, _TEXT_END))
-        finally:
-            self._syncing = False
-        self._fan_out(source=event.widget)
-
-    def _on_var_write(self, *_args: str) -> None:
-        """Push the shared variable's value into every widget."""
-        if self._syncing:
-            return
-        self._fan_out(source=None)
-
-    def _fan_out(self, *, source: tk.Text | None) -> None:
-        """Write the variable's value into every widget but ``source``."""
-        value = self._var.get()
-        self._syncing = True
-        try:
-            for widget in self._widgets:
-                if widget is source or widget.get(_TEXT_START, _TEXT_END) == value:
-                    continue
-                widget.delete(_TEXT_START, "end")
-                widget.insert(_TEXT_START, value)
-        finally:
-            self._syncing = False
-
-
-def mirror_text_widgets(widgets: Sequence[tk.Text], var: tk.StringVar) -> TextMirror:
-    """Keep several ``tk.Text`` mirrors in sync through one variable."""
-    return TextMirror(widgets, var)
 
 
 class SurfaceSet:
@@ -252,12 +165,7 @@ class SurfaceSet:
         with no lock on it, means the escape UI is somewhere they cannot reach.
         """
         names = live_names if live_names is not None else self.names()
-        blind: list[str] = []
-        for name in sorted(names):
-            surface = self._surfaces.get(name)
-            if surface is None or not self._is_mapped(surface):
-                blind.append(name)
-        return tuple(blind)
+        return blind_outputs(self._surfaces, names)
 
     def enforce(self) -> tuple[str, ...]:
         """Re-assert every surface's placement and stacking.
@@ -265,29 +173,10 @@ class SurfaceSet:
         Only ever *adds* visibility: remaps what became unmapped, corrects
         drifted geometry, and raises. Nothing here can hide a surface.
         """
-        corrected = [
-            surface.info.output_name
-            for surface in self._surfaces.values()
-            if self._enforce_one(surface)
-        ]
-        return tuple(sorted(corrected))
-
-    def _enforce_one(self, surface: _Surface) -> bool:
-        """Re-assert one surface. True if anything needed correcting."""
-        window = surface.window
-        changed = False
-        if not self._is_mapped(surface):
-            window.deiconify()
-            changed = True
-        if not self._geometry_matches(surface):
-            self._set_geometry(window, surface.info.rect)
-            changed = True
-        # Re-assert override-redirect: it can be dropped across an unmap/map
-        # cycle, and a managed lock window would be moved by the WM.
-        if self._config.resolved_overrideredirect():
-            window.overrideredirect(boolean=True)
-        window.lift()
-        return changed
+        return enforce_all(
+            self._surfaces,
+            overrideredirect=self._config.resolved_overrideredirect(),
+        )
 
     def raise_all(self) -> None:
         """Lift every surface above whatever else is on screen."""
@@ -321,7 +210,7 @@ class SurfaceSet:
         if self._config.resolved_overrideredirect():
             window.overrideredirect(boolean=True)
         window.configure(bg=self._config.bg, cursor="arrow")
-        self._set_geometry(window, info.rect)
+        set_geometry(window, info.rect)
         if not self._config.resolved_overrideredirect():
             window.attributes("-topmost", _TOPMOST_ON)
         window.deiconify()
@@ -342,7 +231,7 @@ class SurfaceSet:
         not discard half-typed input.
         """
         surface.info = info
-        self._set_geometry(surface.window, info.rect)
+        set_geometry(surface.window, info.rect)
         surface.window.lift()
         _logger.info(
             "lock surface on %s moved to %s", info.output_name, info.rect.geometry()
@@ -359,22 +248,3 @@ class SurfaceSet:
         """Tear down every surface. Used only when the whole lock is closing."""
         for name in list(self._surfaces):
             self._destroy(name)
-
-    def _set_geometry(self, window: tk.Toplevel, rect: OutputRect) -> None:
-        """Pin a window to an output's rectangle."""
-        window.geometry(rect.geometry())
-
-    def _is_mapped(self, surface: _Surface) -> bool:
-        """Whether a surface's window is currently mapped."""
-        return bool(surface.window.winfo_ismapped())
-
-    def _geometry_matches(self, surface: _Surface) -> bool:
-        """Whether a surface still sits exactly on its output."""
-        rect = surface.info.rect
-        window = surface.window
-        return (
-            window.winfo_rootx() == rect.x
-            and window.winfo_rooty() == rect.y
-            and window.winfo_width() == rect.width
-            and window.winfo_height() == rect.height
-        )

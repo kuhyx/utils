@@ -4,7 +4,6 @@ Split from ``test_window_surfaces.py`` to hold the shared 250-line cap;
 that file keeps arming without a display and the grab-blocked logging.
 """
 
-
 from __future__ import annotations
 
 import signal

@@ -37,7 +37,9 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKENS_MD = ROOT / "unified-design-system" / "tokens.md"
 TOKENS_CSS = ROOT / "web_ui" / "src" / "tokens.css"
 TOKENS_DART = ROOT / "design_system" / "lib" / "src" / "tokens.dart"
-LOCKCONFIG_PY = ROOT / "gatelock" / "gatelock" / "_window.py"
+# LockConfig moved out of _window.py when that file was split for the
+# 250-line cap; the palette lives with the dataclass, not the window.
+LOCKCONFIG_PY = ROOT / "gatelock" / "gatelock" / "_config.py"
 
 
 @dataclass
@@ -121,7 +123,16 @@ def parse_tk(text: str) -> dict[str, str]:
     found: dict[str, str] = {}
     start = text.find("class LockConfig")
     if start == -1:
-        return found
+        # Fail closed. Returning {} here made every tk comparison vacuously
+        # pass when LockConfig moved to _config.py during the 250-line split:
+        # "0 parsed token(s)" read as success, and the drift guard was off
+        # for the whole gatelock stack without anything going red.
+        msg = (
+            "LockConfig not found in the file palette_check reads. It has "
+            "moved; update LOCKCONFIG_PY rather than letting the tk stack go "
+            "unchecked."
+        )
+        raise SystemExit(msg)
     body = text[start:]
     decl = re.compile(r'^\s{4}(\w+):\s*str\s*=\s*"(#[0-9A-Fa-f]{6})"', re.MULTILINE)
     for name, value in decl.findall(body):
