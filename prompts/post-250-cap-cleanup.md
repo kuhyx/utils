@@ -20,6 +20,9 @@ and the next session will re-run it. If you complete only some of the four
 tasks, do **not** delete it -- strike through the finished ones instead and
 leave the rest.
 
+**Current state: only Task 2 is left.** Delete this file once `tool/` is
+covered and the config flip has landed -- not before.
+
 ## Context
 
 The 250-line file cap is done and enforced: `bash
@@ -29,48 +32,33 @@ on push. **Do not undo any of that.** Every new file this prompt creates must
 also stay at or under 250 lines -- the hook will block your commit otherwise,
 which is the point.
 
-Four loose ends were deliberately left. They are independent; do them in any
-order, and commit each separately.
+Four loose ends were deliberately left. **Three are now done** (1, 3 and 4 --
+see the struck-through sections, which record what was actually found; the
+prompt's original diagnosis was wrong for both 1 and 4). **Only Task 2
+remains.**
 
 ---
 
-## Task 1 -- make `web-ui-tests` green (`pnpm build`)
+## ~~Task 1 -- make `web-ui-tests` green~~ -- DONE (53f2816)
 
-**Status:** red since commit `6714d13`, which pre-dates the cap work.
+The diagnosis above was wrong, so it is replaced rather than struck through.
+`dist/` had not drifted: all 16 files were byte-identical to a fresh build
+except for a **trailing newline** that `tsc` does not emit.
 
-The job's failing step:
+At `03bf1ed` the subproject config had no `exclude`, so pre-commit's
+`end-of-file-fixer` appended a newline to each generated file. `eaa5683` added
+`exclude: ^web_ui/dist/` so it would not recur, but never reverted the
+newlines already committed -- leaving a `dist/` that no `pnpm build` could
+reproduce, and a job that could never pass.
 
-```yaml
-- name: dist/ is in sync with src/
-  run: |
-    pnpm build
-    if ! git diff --exit-code -- dist; then
-      echo "::error::dist/ is stale — run 'pnpm build' in web_ui and commit the result."
-      exit 1
-```
+It looked fine locally because `tsc -b` is incremental: with a warm
+`tsconfig.tsbuildinfo` it skips emit entirely, so `pnpm build` was a no-op and
+showed no diff. CI has no cache, always emits, always failed. To reproduce
+locally, delete `web_ui/tsconfig.tsbuildinfo` first -- otherwise you are
+testing nothing.
 
-So `web_ui/dist/` is a committed build artifact that has drifted from `src/`.
-
-```bash
-cd ~/utils/web_ui
-pnpm install    # only if node_modules is missing
-pnpm build
-git diff --stat -- dist
-```
-
-Then run the repo's own suite before committing (`pnpm test`, or whatever
-`web_ui/package.json` defines -- read it, don't guess), and check the built
-output is not itself over the cap: `bash ../scripts/check_file_length.sh --all`.
-If a generated file in `dist/` trips the cap, **do not split it** -- generated
-files are exempt by design; add the exemption in `file_length/_tables.py`
-(`is_generated` / the `GENERATED` header rule) rather than hand-editing build
-output.
-
-`pnpm` is at `~/.local/share/pnpm/pnpm` and node is `v24.18.0` via nvm; both
-were on PATH as of 2026-08-22.
-
-**Done when:** `pnpm build` produces no `git diff` in `dist/`, the web_ui
-suite passes locally, and the `web_ui tests` workflow goes green on push.
+Fixed by committing the real `tsc` output. Verified green on CI (run
+32578353684), `pnpm lint` clean, `pnpm coverage` 84 tests / 100%.
 
 ---
 
@@ -154,73 +142,36 @@ suite green. Baseline before you start: **259 passed, 100%**.
 
 ---
 
-## Task 3 -- resolve the three dirty working-tree items
+## ~~Task 3 -- resolve the three dirty working-tree items~~ -- DONE
 
-All three predate the cap work and were deliberately left untouched. **Look at
-each before acting -- one of them is real work, not junk.**
-
-### `crdt-sync/tool/seed_session.py` (modified, +10/-1)
-
-This is a **real, intentional change**: it adds `todo` to `DEFAULT_APPS` and
-documents why (todo grew a desktop wrapper with its own Firebase REST client
-that needs a session like the Python daemons do). Someone wrote this on
-purpose and did not commit it.
-
-The comment asserts specific files exist, and **both were confirmed present on
-2026-08-22**:
-
-```bash
-ls ~/todo/lib/desktop/wrapper_server.dart ~/todo/lib/sync/firebase_backend.dart
-```
-
-Re-run that (cheap), and if it still holds, commit the change as its own
-commit with a message explaining the `todo` addition. If the files have since
-moved, the comment is stale -- ask rather than guessing.
-
-### `crdt-sync/firebase-debug.log` (untracked, 1931 lines)
-
-Firebase CLI debug output from 2026-08-11. Pure tool exhaust, and **not
-gitignored** -- which is the actual bug, since it will keep reappearing. Add
-`firebase-debug.log` to the appropriate `.gitignore` and delete the file. Do
-not commit its contents.
-
-### `staged/` (untracked directory)
-
-`staged/phone_deploy_split/` holds a prepared-but-unapplied split of
-`~/.claude/scripts/phone_deploy.sh` plus an `APPLY.sh`. Read
-`staged/phone_deploy_split/README.md` first: it was staged because that
-session could not write to `~/.claude` non-interactively.
-
-Two of its notes are now **out of date** and should be corrected or dropped:
-its `.pre-commit-config.yaml` snippet uses an absolute
-`/home/kuhy/utils/scripts/check_file_length.sh` path (that form exits 127 on a
-CI runner -- `~/utils` now uses a repo-relative `entry:`), and it claims
-`refactor_claude_todo.md`'s violations table is stale, which is true but moot
-now that the task is done.
-
-Decide with the user: apply it (`bash staged/phone_deploy_split/APPLY.sh`,
-which needs interactive approval for `~/.claude` writes), commit it into
-`~/utils` as a tracked staging area, or delete it. **Do not silently delete
-it** -- it represents real verified work (shellcheck clean, 12/12 function
-parity, exit codes checked).
+- **`seed_session.py`** -- both files its comment cites were re-confirmed
+  present, so the change was committed as-is (9d638fb).
+- **`firebase-debug.log`** -- deleted, and the root `.gitignore` now covers it
+  plus the sibling logs the Firebase CLI writes (e0eef3d).
+- **`staged/`** -- the user chose *apply*. `APPLY.sh` installed the split into
+  `~/.claude` (committed there as e0cf24a): `phone_deploy.sh` 311 -> 140 lines
+  with three sourced libs, 12/12 function parity, and the unreachable-device
+  path still exiting 30. `staged/` was then removed; the pre-split original
+  remains recoverable from `~/.claude` at `80cd45e`.
+  **Still unverified:** the build/install/launch tail, which needs a real APK
+  install on the phone (`bash ~/.claude/scripts/phone_deploy.sh ~/todo
+  --release`).
 
 ---
 
-## Task 4 -- fix the stale skill pointer (outside this repo)
+## ~~Task 4 -- fix the stale skill pointer~~ -- DONE (~/.claude e0cf24a)
 
-`~/.claude/skills/unified-design-system/SKILL.md` describes
-`unified-design-system/README.md` as holding "rules, per-stack patterns,
-'Do NOT' list". The per-stack patterns moved to
-`unified-design-system/operability-patterns.md` during the cap work, and the
-operability rules to `operability.md`.
+The description above was partly wrong: `README.md` **does** still hold the
+per-stack patterns and the "Do NOT" list. What actually split out during the
+cap work was the pointer-free-operability and screen-size material, into
+`operability.md` (rules) and `operability-patterns.md` (per-stack code);
+README's "Pointer-free + small-screen" section is now a stub pointing at them.
 
-Nothing is broken -- every filename the skill links still exists -- but a
-future session following that description lands in the wrong file. Update the
-file list to include `operability.md` and `operability-patterns.md`.
-
-This edits `~/.claude`, which the harness guards as sensitive config, so it
-may need interactive approval. If it does, tell the user the exact edit rather
-than working around it.
+`~/.claude/skills/unified-design-system/SKILL.md` now lists both new files and
+tells the reader to read `operability.md` before building any interactive
+widget, since its rules are marked required. All six relative links were
+checked to resolve. This edit lives outside `~/utils`, so `git status` here
+will never show it.
 
 ---
 
@@ -232,8 +183,15 @@ bash scripts/check_file_length.sh --all                  # must exit 0
 bash scripts/run_subproject_tests.sh crdt-sync           # 100% coverage
 pre-commit run --config crdt-sync/.pre-commit-config.yaml --all-files
 git status --short                                       # should be empty
-gh run list --limit 10                                   # web_ui tests green
+gh run list --limit 10                                   # all workflows green
 ```
 
-`web-ui-tests` is the one workflow that was red before this prompt; the other
-nine were green as of 2026-08-22.
+`web-ui-tests` was the one red workflow; it went green at 53f2816. Note that
+`git status` here cannot see the Task 3/4 edits under `~/.claude` -- those are
+committed in that repo (e0cf24a), not this one.
+
+One finding outside the four tasks, left for the user to decide:
+`~/.claude/scripts/finish.sh` is **309 lines**, over the cap. It does not
+block anything today -- the hook checks staged files only, so it fires only if
+a commit stages that file -- but it is the last known over-cap file in that
+repo.
