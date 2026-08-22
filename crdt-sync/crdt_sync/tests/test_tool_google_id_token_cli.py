@@ -15,8 +15,6 @@ import logging
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
-import pytest
-
 from crdt_sync.tests.test_tool_google_id_token import (
     _CLIENT_CREDENTIAL,
     _CLIENT_ID,
@@ -26,6 +24,8 @@ from tool import google_id_token as git
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 def test_main_prints_the_token_when_no_output_is_given(
