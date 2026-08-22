@@ -26,7 +26,7 @@ dependencies:
   crdt_sync_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_flutter-v0.2.0
+      ref: crdt_sync_flutter-v0.2.1
       path: crdt_sync_flutter
 ```
 

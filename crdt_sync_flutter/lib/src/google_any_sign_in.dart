@@ -22,10 +22,12 @@ import 'package:crdt_sync_flutter/src/google_sign_in.dart';
 ///
 /// [serverClientId] is the **Web** OAuth client id (the audience for the
 /// plugin's tokens); [desktopClientId] is a **Desktop**-type client, the only
-/// type permitted to redirect to loopback.
+/// type permitted to redirect to loopback. Both are required, and passing ''
+/// is how an app says it has not configured that half -- explicit, because a
+/// silently-defaulted '' is how a button that can never succeed gets shipped.
 bool googleAnySignInSupported({
   required String serverClientId,
-  String desktopClientId = '',
+  required String desktopClientId,
 }) =>
     googleSignInSupported(serverClientId) ||
     desktopSignInSupported(desktopClientId);
@@ -59,7 +61,7 @@ enum GoogleFlow {
 /// Picks the flow for this platform and configuration.
 GoogleFlow googleFlowFor({
   required String serverClientId,
-  String desktopClientId = '',
+  required String desktopClientId,
 }) {
   if (googleSignInSupported(serverClientId)) return GoogleFlow.plugin;
   if (desktopSignInSupported(desktopClientId)) return GoogleFlow.desktop;
@@ -72,7 +74,7 @@ GoogleFlow googleFlowFor({
 /// back to the password path either way.
 Future<String?> googleAnyIdToken({
   required String serverClientId,
-  String desktopClientId = '',
+  required String desktopClientId,
 }) async {
   switch (googleFlowFor(
     serverClientId: serverClientId,
