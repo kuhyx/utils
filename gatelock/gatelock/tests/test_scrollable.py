@@ -20,6 +20,8 @@ import tkinter as tk
 import pytest
 
 from gatelock._scrollable import ScrollableSurface
+from gatelock._scrollkeys import bind_scroll_keys
+from gatelock._userintent import viewport_targets
 from gatelock._window import LockConfig
 
 pytestmark = pytest.mark.skipif(
@@ -275,8 +277,8 @@ def test_paging_degrades_to_the_canvas_without_a_toplevel(
 
     surface.canvas.winfo_toplevel = _no_toplevel
     with caplog.at_level("WARNING"):
-        surface._bind_scroll_keys()
-        surface._bind_user_input()
+        bind_scroll_keys(surface.canvas, surface.content)
+        surface._intent.bind(viewport_targets(surface.canvas, surface.content))
 
     assert "paging keys bound to the canvas only" in caplog.text
     assert "user-input tracking is bound to the viewport only" in caplog.text
