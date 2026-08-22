@@ -70,14 +70,24 @@ vm_scp_to() {
 # Poll until the guest answers. ssh is its own port prober, so this needs no
 # nc/socat (neither is installed on this host).
 vm_wait_ssh() {
-    local name="$1" timeout="${2:-120}" waited=0
-    while (( waited < timeout )); do
+    local name="$1" timeout="${2:-120}" deadline start now
+    # Deadline is WALL CLOCK, not a count of sleeps. Each failed probe also
+    # burns up to ConnectTimeout seconds inside ssh itself, so counting only
+    # the sleeps under-measures badly: a guest that never boots (no kernel,
+    # stuck in GRUB) made a nominal 150s wait run for well over 10 minutes,
+    # which reads as a hung tool rather than an unreachable sandbox.
+    printf -v start '%(%s)T' -1
+    deadline=$(( start + timeout ))
+    while :; do
+        printf -v now '%(%s)T' -1
+        (( now < deadline )) || return 1
         if vm_is_running "$name" && vm_ssh_exec "$name" -o BatchMode=yes true 2>/dev/null; then
             return 0
         fi
         # A qemu that has exited means the guest will never answer.
-        vm_is_running "$name" || { (( waited > 3 )) && return 1; }
-        sleep 2; waited=$(( waited + 2 ))
+        if ! vm_is_running "$name"; then
+            (( now - start > 3 )) && return 1
+        fi
+        sleep 2
     done
-    return 1
 }

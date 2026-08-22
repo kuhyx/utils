@@ -30,6 +30,9 @@ readonly GUEST_ENV_SETUP='[ -f /etc/profile.d/vmbox-x11.sh ] && . /etc/profile.d
 # sshd does not. ssh stays available as the faster path for bulk work.
 readonly VMBOX_TRANSPORT="${VMBOX_TRANSPORT:-auto}"
 readonly VMBOX_RUN_TIMEOUT="${VMBOX_RUN_TIMEOUT:-600}"
+# Bounds for the post-verdict exit-code recovery boot (see _run_recover_rc).
+readonly RECOVER_SSH_TIMEOUT="${VMBOX_RECOVER_SSH_TIMEOUT:-60}"
+readonly RECOVER_SERIAL_TIMEOUT="${VMBOX_RECOVER_SERIAL_TIMEOUT:-30}"
 
 run_in_vm() {
     local name
@@ -153,18 +156,29 @@ _run_finish() {
 # Boot the sandbox again just far enough to read the recorded exit code.
 # The overlay survives the poweroff, so the value written before the machine
 # stopped is still there.
+#
+# Every wait here is BOUNDED, because this runs after the verdict has already
+# been printed: it is a best-effort nicety, never a reason to hang. The guest
+# being tested may well be unbootable -- that is a normal outcome for a
+# sandbox, not an error. A boot-repair run that deleted /boot/vmlinuz left a
+# guest sitting at a GRUB prompt, and the unbounded console read then blocked
+# for 480s AFTER "VERDICT: clean poweroff" had been reported, which reads as
+# a hung tool rather than a recovered exit code.
 _run_recover_rc() {
     local name="$1" rc="" console
     launch_vm "$name" >/dev/null 2>&1 || return 0
 
-    if vm_wait_ssh "$name" 90; then
+    if vm_wait_ssh "$name" "$RECOVER_SSH_TIMEOUT"; then
         rc="$(vm_ssh_exec "$name" "cat $RC_PATH 2>/dev/null" 2>/dev/null | tr -dc '0-9')"
     else
         # ssh may be broken or simply slower than the console; the serial
-        # shell can read the file just as well.
+        # shell can read the file just as well -- but only give it a short
+        # window, since an unbootable guest never produces a prompt at all.
         console="$(vm_console "$name")"
         if [[ -S "$console" ]]; then
-            rc="$(python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
+            rc="$(VMBOX_SERIAL_PROMPT_TIMEOUT="$RECOVER_SERIAL_TIMEOUT" \
+                  VMBOX_SERIAL_RUN_TIMEOUT="$RECOVER_SERIAL_TIMEOUT" \
+                  python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
                     "cat $RC_PATH 2>/dev/null" 2>/dev/null | grep -oE '^[0-9]+' | head -1)"
         fi
     fi

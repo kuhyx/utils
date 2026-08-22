@@ -19,6 +19,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import re
 import socket
 import sys
@@ -26,6 +27,12 @@ import time
 import uuid
 
 PROMPT = "[root@vmbox"
+# Both timeouts are env-overridable so a caller that already knows the guest
+# may be unbootable can bound its own wait. Without that, a guest stuck in
+# GRUB (no kernel) makes a "quick" console read block for 180+300s -- long
+# enough to look like a hang rather than a failure.
+PROMPT_TIMEOUT = float(os.environ.get("VMBOX_SERIAL_PROMPT_TIMEOUT", "180"))
+RUN_TIMEOUT = float(os.environ.get("VMBOX_SERIAL_RUN_TIMEOUT", "300"))
 # Strip ANSI CSI sequences and the OSC 3008 shell-integration blocks that
 # systemd's login emits, both of which otherwise corrupt marker matching.
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
@@ -64,7 +71,7 @@ class Console:
                 return True
         return False
 
-    def wait_prompt(self, timeout: float = 180) -> bool:
+    def wait_prompt(self, timeout: float = PROMPT_TIMEOUT) -> bool:
         # Nudge with a newline: if the shell is already up we get a fresh
         # prompt immediately instead of waiting for unrelated output.
         self.sock.sendall(b"\n")
@@ -93,7 +100,7 @@ class Console:
             self.buf += chunk
         return clean(self.buf).count(needle) >= count
 
-    def run(self, cmd: str, timeout: float = 300) -> str:
+    def run(self, cmd: str, timeout: float = RUN_TIMEOUT) -> str:
         # Markers are plain alphanumerics: shell metacharacters like < and >
         # are echoed back by the tty and can be reordered or line-wrapped,
         # which makes them unreliable to match on.
