@@ -6,7 +6,7 @@ token file should be readable as a table of values, and these are rules with
 reasons attached.
 
 Per-stack implementations of everything here are in
-[`README.md`](README.md#pointer-free--small-screen-per-stack-patterns).
+[`operability-patterns.md`](operability-patterns.md).
 
 ## Pointer-free operability (required)
 
