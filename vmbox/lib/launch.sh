@@ -16,15 +16,30 @@ readonly VMBOX_MEM="${VMBOX_MEM:-4096}"
 readonly VMBOX_SMP="${VMBOX_SMP:-4}"
 
 # $1 = vm name. Echoes the serial-log index it started.
-# First VM on the segment listens; later ones connect to it. Plain TCP on
-# loopback, so this works where multicast does not.
+# VM-to-VM segment, addressed by the VM's own index.
+#
+# History, so nobody re-tries these: `mcast=` is silently dead on this host
+# (`lo` has no MULTICAST flag, no multicast route -- qemu accepts it and drops
+# every frame), and a listen=/connect= socket hub connected but never passed
+# traffic. `dgram` with explicit UDP endpoints is the third approach: each VM
+# binds its own port and points at its peer, so a PAIR of sandboxes can talk.
+# This is a pair-wise link, not a switch: VMs 1 and 2 are wired together, 3
+# and 4 are wired together, and so on.
 _peer_netdev() {
-    if (exec 3<>/dev/tcp/127.0.0.1/"$VMBOX_HUB_PORT") 2>/dev/null; then
-        exec 3<&- 2>/dev/null || true
-        printf 'connect=127.0.0.1:%s' "$VMBOX_HUB_PORT"
+    # Pair (1,2), (3,4), (5,6)... An index pairs UP when odd and DOWN when
+    # even. Getting this backwards points a VM at a port nobody bound, which
+    # looks exactly like a broken network: both ends up, zero frames, ARP
+    # fails, and nothing in any log says why.
+    local index="$1" base="$VMBOX_HUB_PORT" mine theirs
+    mine=$(( base + index ))
+    if (( index % 2 == 1 )); then
+        theirs=$(( base + index + 1 ))
     else
-        printf 'listen=127.0.0.1:%s' "$VMBOX_HUB_PORT"
+        theirs=$(( base + index - 1 ))
     fi
+    # Type first, then id: qemu rejects `id=` before the netdev type.
+    printf 'dgram,id=net1,local.type=inet,local.host=127.0.0.1,local.port=%s,remote.type=inet,remote.host=127.0.0.1,remote.port=%s' \
+        "$mine" "$theirs"
 }
 
 launch_vm() {
@@ -67,7 +82,7 @@ launch_vm() {
         -device virtio-net-pci,netdev=net0
         # Shared segment so sandboxes can reach each other. No root, no bridge.
         # listen= for the first VM up, connect= for the rest (see _peer_netdev).
-        -netdev "socket,id=net1,$(_peer_netdev)"
+        -netdev "$(_peer_netdev "$index")"
         -device "virtio-net-pci,netdev=net1,mac=52:54:00:be:ef:$(printf '%02x' "$index")"
         # Repos under test, mounted PHYSICALLY read-only. Scoped to an
         # explicit share dir -- NEVER $HOME, which would hand the guest
