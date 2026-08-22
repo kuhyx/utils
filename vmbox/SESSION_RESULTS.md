@@ -90,7 +90,8 @@ included the one-time 531 MB cloud-image download, which is cached now. So
 "faster than ~10 min" would have been true before I changed anything; the
 honest comparison is against 103.76s.
 
-### Build: 103.76s -> 100.34s (best), i.e. ~3%. Small, and here is why
+### Build: 103.76s -> 99.99s, i.e. ~4%. Small, and here is why
+(99.99s is the confirming rebuild from committed source; smoke test passed.)
 Per-phase instrumentation (added this session) shows where it actually goes:
 
   PHASE first-boot   47s   the build guest's cloud-init first boot
