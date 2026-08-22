@@ -11,6 +11,9 @@ Re-exported from :mod:`gatelock._outputs`, so existing imports keep working.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
+
+OutputSource = Literal["randr", "xrandr", "tk", "none"]
 
 
 @dataclass(frozen=True)

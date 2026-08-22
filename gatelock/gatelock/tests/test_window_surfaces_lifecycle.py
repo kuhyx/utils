@@ -69,7 +69,7 @@ class TestRemainingBranches:
         handle.read.side_effect = OSError("io error")
         with (
             patch("gatelock._arbiter.Path.open", return_value=handle),
-            patch("gatelock._arbiter._try_lock", return_value=False),
+            patch("gatelock._claims._try_lock", return_value=False),
         ):
             assert arbiter.live_claims() == ()
         arbiter.release()

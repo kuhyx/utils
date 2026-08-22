@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     import tkinter as tk
 
-from gatelock._output_types import Output, OutputRect, OutputScan
+from gatelock._output_types import Output, OutputRect, OutputScan, OutputSource
 from gatelock._randr import RandrBackend
 from gatelock._xrandr import parse_xrandr_query, scan_xrandr
 
@@ -66,7 +66,6 @@ _OUTPUT_LINE = re.compile(
     re.MULTILINE,
 )
 
-OutputSource = Literal["randr", "xrandr", "tk", "none"]
 """Which backend produced a scan. Reported so logs can explain a degradation."""
 
 

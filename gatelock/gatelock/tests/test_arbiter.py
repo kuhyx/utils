@@ -13,13 +13,12 @@ from unittest.mock import patch
 
 import pytest
 
+from gatelock._claims import _same_file, _try_lock
 from gatelock._arbiter import (
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
     Arbiter,
     Claim,
-    _same_file,
-    _try_lock,
     default_runtime_dir,
     grab_strength,
 )
@@ -207,7 +206,7 @@ class TestTryLock:
             exc = OSError()
             exc.errno = errno.ENOSPC
             with (
-                patch("gatelock._arbiter.fcntl.flock", side_effect=exc),
+                patch("gatelock._claims.fcntl.flock", side_effect=exc),
                 pytest.raises(OSError, match=r"^$"),
             ):
                 _try_lock(handle)

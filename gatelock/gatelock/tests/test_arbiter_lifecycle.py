@@ -109,7 +109,7 @@ class TestPublishAndLiveClaims:
         """A claim recreated between lock and unlink is not deleted."""
         dead = tmp_path / "rt" / "claims" / "0300-999-dead.json"
         dead.write_text(dead_claim().to_json(), "utf-8")
-        with patch("gatelock._arbiter._same_file", return_value=False):
+        with patch("gatelock._claims._same_file", return_value=False):
             arb.live_claims()
         assert dead.exists()
 
@@ -127,7 +127,7 @@ class TestPublishAndLiveClaims:
         """A second publish on a locked path continues unpublished."""
         arbiter = hard("a", RANK_DIET_GUARD, tmp_path / "rt")
         arbiter.publish()
-        with patch("gatelock._arbiter._try_lock", return_value=False):
+        with patch("gatelock._claims._try_lock", return_value=False):
             arbiter.publish()  # must not raise
         arbiter.release()
 
