@@ -68,6 +68,32 @@ the discriminator, and it is asserted by grep, not read by eye.
 > A `POWERDOWN` event is **not** proof of anything: it means the ACPI request was
 > delivered. With no OS booted, QEMU emits `POWERDOWN` and then runs forever.
 
+## Worked example: testing the real shutdown installer
+
+```bash
+vm share ~/testsAndMisc                 # read-only bind, not a symlink
+vm share ~/utils                        # guard-lib lives here
+vm new st --rtc 2026-08-22T20:55:00     # inside the 21:00-05:00 window
+vm run st 'git clone --no-hardlinks -q /mnt/hostrepo/testsAndMisc ~/tam'
+vm run st 'echo y | sudo bash ~/tam/linux_configuration/scripts/periodic_background/digital_wellbeing/setup_midnight_shutdown.sh enable'
+vm run st 'sudo systemctl poweroff'     # -> VERDICT: clean poweroff
+vm reset st                             # back to pristine
+```
+
+Verified: the config lands at `/etc/shutdown-schedule.conf` under guard-lib's
+immutable protection, and `shutdown-timer-monitor.service`,
+`day-specific-shutdown.timer` and `shutdown-timer-monitor-watchdog.timer` all
+come up enabled -- while the host's own copy of that file kept its original
+timestamp and `/etc/hosts` kept its `+i` flag.
+
+Two things that installer taught us, both worth knowing before you run it:
+
+- **It is interactive.** It ends on `read -r -p 'Do you want to proceed?'`.
+  `vm run` closes stdin on purpose (installers that prompt would otherwise
+  hang forever), so pipe `echo y |` when you actually want it to proceed.
+- **It is subcommand-driven** (`enable` / `status`). Bare invocation prints
+  usage and exits 1 without changing anything.
+
 ## Design notes
 
 - **Reset is a backing-file trick.** The golden image is built once and sealed
