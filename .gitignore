@@ -15,3 +15,11 @@ dist/
 .coverage.*
 coverage.lcov
 htmlcov/
+
+# Firebase CLI debug exhaust. Written next to whichever directory the CLI was
+# invoked from (crdt-sync/ in practice), regenerated on every failed command,
+# and never worth committing.
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+database-debug.log
