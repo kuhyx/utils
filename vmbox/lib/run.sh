@@ -46,11 +46,17 @@ run_in_vm() {
     [[ -f "$events" ]] && events_before=$(wc -l < "$events")
 
     log "Running in '$name': $*"
-    _run_exec "$name" "$@"
-    local ssh_rc=$?
+    # `|| ssh_rc=$?` is load-bearing: under `set -e` a bare call would abort
+    # the script when ssh returns 255 -- which is precisely what a SUCCESSFUL
+    # guest poweroff causes. The verdict would then never be printed for the
+    # one case this tool exists to report on.
+    local ssh_rc=0
+    _run_exec "$name" "$@" || ssh_rc=$?
 
-    _run_settle "$name" "$serial"
-    _run_finish "$name" "$serial" "$events" "$events_before" "$ssh_rc"
+    _run_settle "$name" "$serial" || true
+    local frc=0
+    _run_finish "$name" "$serial" "$events" "$events_before" "$ssh_rc" || frc=$?
+    return "$frc"
 }
 
 # stdin is closed: several target installers prompt, and an inherited terminal
