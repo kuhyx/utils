@@ -73,16 +73,16 @@ lines, extracted during the cap work, whose `_start_callback_server` runtime
 path is unexercised) -- but adding `tool` to the coverage source pulls in
 **seven modules, ~1350 lines**, none of which have tests today:
 
-| lines | file |
-| ----: | :--- |
-|   250 | `tool/seed_session.py` |
-|   243 | `tool/link_google.py` |
-|   233 | `tool/google_id_token.py` |
-|   216 | `tool/migrate_github_to_firebase.py` |
-|   212 | `tool/preflight_firebase.py` |
-|   105 | `tool/_oauth_callback.py` |
-|    89 | `tool/interop_seed.py` |
-|     6 | `tool/__init__.py` |
+| lines | file | status |
+| ----: | :--- | :--- |
+|   250 | `tool/seed_session.py` | todo |
+|   243 | `tool/link_google.py` | todo |
+|   233 | `tool/google_id_token.py` | **done** (a7bccb3) |
+|   216 | `tool/migrate_github_to_firebase.py` | todo |
+|   212 | `tool/preflight_firebase.py` | todo |
+|   105 | `tool/_oauth_callback.py` | **done** (e6c8d66) |
+|    89 | `tool/interop_seed.py` | **done** (0de2a96) |
+|     6 | `tool/__init__.py` | covered incidentally by the imports above |
 
 The bar in this repo is **100% branch coverage, and omitting packages from
 coverage is forbidden** (`~/.claude/memories/code-quality.md`: "NEVER omit
@@ -93,15 +93,10 @@ the one file.
 **Suggested order** -- land each as its own commit so partial progress is
 useful:
 
-1. `_oauth_callback.py` first. It is the reason this task exists and the only
-   one with no network dependency: `_free_port` binds a real socket,
-   `_CallbackHandler` can be driven with a fake request, and
-   `_start_callback_server` can be exercised against `http.client` on the port
-   it picks. Do this one even if you do nothing else.
-2. `google_id_token.py` -- `fetch_id_token` is a `requests` call; mock at the
-   session boundary the way `crdt_sync/tests/test_firebase_auth.py` already
-   does. `main()` is argparse; test it via `main(["--client-id", ...])`.
-3. The rest, largest-payoff first.
+~~1. `_oauth_callback.py`~~ and ~~2. `google_id_token.py`~~ are done, as is
+`interop_seed.py`. **The four remaining are the four large ones**:
+`preflight_firebase.py`, `migrate_github_to_firebase.py`, `link_google.py`,
+`seed_session.py`. Largest payoff first, one commit each.
 
 Only after every module is covered, flip the config:
 
@@ -138,7 +133,27 @@ step, not the first.
 
 **Done when:** `source = ["crdt_sync", "tool"]` is in effect and
 `bash scripts/run_subproject_tests.sh crdt-sync` still reports 100% with the
-suite green. Baseline before you start: **259 passed, 100%**.
+suite green. Baseline was **259 passed, 100%**; it is **293 passed, 100%** as
+of 0de2a96, with the three modules above covered but `tool` not yet in the
+coverage source.
+
+**Two things learned doing the first three, which the traps list above does
+not carry:**
+
+- **`ruff check` on its own is not the check.** The hook runs
+  `--fix --unsafe-fixes --exit-non-zero-on-fix`, and several TC00x fixes are
+  classed *unsafe*, so a clean `ruff check` still leaves CI rewriting the file
+  and failing. Always finish with
+  `pre-commit run --config crdt-sync/.pre-commit-config.yaml --all-files`.
+  This cost one red CI run (e5a3d1e).
+- **S105/S106 key off the binding *name*, not the value.** A constant called
+  `_SECRET`, `_TOKEN` or `_PASSPHRASE` trips them however obviously fake the
+  value is. `_CLIENT_CREDENTIAL` / `_ID_VALUE` pass. Renaming is the fix; a
+  per-line suppression is banned here.
+- **Budget ~1.3 test lines per module line**, so each of the four remaining
+  modules will exceed the 250-line cap as a single test file. Plan the split
+  up front -- behaviour vs. `main()`/CLI is the seam that worked for
+  `google_id_token`.
 
 ---
 
