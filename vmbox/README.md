@@ -47,13 +47,19 @@ is closed, and there is no verdict to read.
 
 ### Five outcomes, all host-observable
 
-| Observation | Verdict | Exit |
-|---|---|---|
-| `SHUTDOWN guest:true` + serial reaches `reboot: Power down` | clean poweroff | 0 |
-| `SHUTDOWN guest:true`, serial truncated | **dirty** — stopped mid-sequence | 3 |
-| `SHUTDOWN reason=guest-reset` | **rebooted**, did not power off | 4 |
-| `GUEST_PANICKED` | **crashed** | 5 |
-| no event, liveness probe fails | **hung** | 6 |
+Every row below was measured against a real Arch guest, not inferred:
+
+| Guest command | QMP event | Verdict | Exit |
+|---|---|---|---|
+| `systemctl poweroff` | `SHUTDOWN {guest:true, guest-shutdown}` + serial reaches `reboot: Power down` | clean poweroff | 0 |
+| a stop that dies mid-sequence | `SHUTDOWN {guest:true}`, serial truncated | **dirty** | 3 |
+| `systemctl reboot` | `SHUTDOWN {guest:true, guest-reset}` | **rebooted**, did not power off | 4 |
+| `echo c > /proc/sysrq-trigger` | `GUEST_PANICKED` | **crashed** | 5 |
+| a script that wedges | no event, liveness probe fails | **hung** | 6 |
+
+**ssh returned the identical `Connection closed by remote host` for the
+poweroff, the reboot AND the panic.** That is the entire argument for reading
+the verdict from the host rather than from the connection.
 
 `guest:true` alone is not enough for "shuts down *completely*" — `poweroff -f`
 and a script that kills systemd mid-sequence both produce it. The serial tail is

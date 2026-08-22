@@ -47,11 +47,26 @@ out="$("$VM_CLI" run "$VM" 'cat /etc/os-release | head -1' 2>&1)"
 check "guest is Arch Linux" "Arch Linux" "$out"
 
 step "2. DESTROY: wipe /etc and /usr"
+overlay="$HOME/.local/share/vmbox/vms/$VM/overlay.qcow2"
+size_before="$(stat -c %s "$overlay" 2>/dev/null || echo 0)"
 "$VM_CLI" run "$VM" 'sudo rm -rf --no-preserve-root /etc /usr 2>/dev/null; true' 2>&1 | tail -3
 
-step "3. Confirm the guest really is broken"
-out="$("$VM_CLI" run "$VM" 'cat /etc/os-release 2>&1 || echo GUEST_IS_BROKEN' 2>&1)"
-check "guest is destroyed" "GUEST_IS_BROKEN" "$out"
+step "3. Confirm the guest really is broken -- from the HOST"
+# Deliberately NOT by asking the guest: rm -rf /usr removed bash, sshd and
+# agetty, so nothing is left in there to answer with. A corpse cannot report
+# its own death. Two host-side facts prove it instead.
+size_after="$(stat -c %s "$overlay" 2>/dev/null || echo 0)"
+check "overlay recorded the destruction" "GREW" \
+    "$([[ "$size_after" -gt "${size_before:-0}" ]] && echo GREW || echo "same:$size_after")"
+
+# The guest can no longer answer at all -- that unreachability IS the proof.
+# Do not recreate the sandbox here: `vm reset` in step 4 is the claim under
+# test, and recreating would quietly test something easier.
+if timeout 150 "$VM_CLI" run "$VM" 'echo alive' >/dev/null 2>&1; then
+    check "wiped guest is unreachable" "UNREACHABLE" "still answering"
+else
+    check "wiped guest is unreachable" "UNREACHABLE" "UNREACHABLE"
+fi
 
 step "4. RESET -- one command"
 time_start=$SECONDS
