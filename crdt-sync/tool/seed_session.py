@@ -49,8 +49,16 @@ from tool.google_id_token import TokenError, fetch_id_token
 # discovered from ~/.config, because a missing directory is exactly the case
 # that needs seeding -- discovery would skip the app that needs this most.
 #
-# The Flutter-only apps (todo, home_inventory, workout_app) are absent on
+# The remaining Flutter-only apps (home_inventory, workout_app) are absent on
 # purpose: they authenticate in-app on the phone and have no desktop session.
+# `todo` used to be grouped with them, but it grew a real desktop wrapper
+# (lib/desktop/wrapper_server.dart) with its own Firebase REST client that
+# needs a session exactly like the Python daemons do -- see
+# lib/sync/firebase_backend.dart and lib/desktop/wrapper_server.dart in
+# ~/todo. Its credential cache lives at ~/.config/todo/firebase_auth.json,
+# same shape as every entry below, even though the reader is Dart, not
+# Python: FirebaseCredentials.fromJson in crdt_sync_dart parses the exact
+# {id_token, refresh_token, expires_at} shape credential_store_for writes.
 #
 # Re-derive rather than guess when adding one; a repo-by-repo sweep missed two
 # of these. Grep all of ~ for the string literal passed to firebase_client_for,
@@ -64,6 +72,7 @@ DEFAULT_APPS = (
     "screen_locker",
     "byox_ladder",
     "leetcode_guard",
+    "todo",
 )
 
 # A fixed default so the redirect URI is stable enough to register once on the
