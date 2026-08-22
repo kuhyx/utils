@@ -1,0 +1,26 @@
+# vmbox hooks. The `files: ^vmbox/` scoping below is REQUIRED by
+# meta/scripts/check_subproject_scope.sh -- without that literal line every
+# hook here silently passes instead of running.
+repos:
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        files: ^vmbox/
+        args: [--severity=warning, --external-sources]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        files: ^vmbox/
+      - id: ruff-format
+        files: ^vmbox/
+
+  - repo: local
+    hooks:
+      - id: file-length-cap
+        name: enforce 250-line cap
+        entry: bash -c 'for f in "$@"; do n=$(wc -l < "$f"); if [ "$n" -gt 250 ]; then echo "$f: $n lines exceeds the 250-line cap"; exit 1; fi; done' --
+        language: system
+        files: ^vmbox/

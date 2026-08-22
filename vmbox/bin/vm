@@ -1,0 +1,87 @@
+#!/bin/bash
+# ============================================================================
+# vm -- disposable Arch VM sandbox.
+#
+# Runs destructive system scripts (shutdown installers, chattr +i guards,
+# pacman hooks) against a throwaway Arch guest, and verifies the outcome from
+# the HOST -- a guest that powers itself off cannot report its own success.
+# ============================================================================
+
+set -euo pipefail
+
+VMBOX_BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd -P)"
+readonly VMBOX_BIN_DIR
+# shellcheck source=../lib/common.sh
+source "$VMBOX_BIN_DIR/../lib/common.sh"
+
+usage() {
+    cat <<'USAGE'
+Usage: vm <command> [args]
+
+  build                       Build the golden base image (once, ~10 min)
+  new <name> [--rtc <ts>]     Create a sandbox (instant; thin overlay)
+  run <name> <command...>     Run a command in the sandbox, report the verdict
+  ssh <name> [args...]        Interactive shell in the sandbox
+  repo <name> <path> [--worktree]
+                              Copy a host repo in (clone=HEAD, --worktree=uncommitted)
+  screenshot <name> [out.png] Capture the guest screen (for locker tests)
+  reset <name>                Wipe back to pristine (sub-second)
+  rm <name>                   Delete the sandbox entirely
+  list                        List sandboxes and their state
+
+  --rtc <ts>  Pin the guest clock, e.g. 2026-08-22T20:55:00. Stored in the
+              VM's meta and re-applied on EVERY launch: the shutdown scripts
+              are gated on a 21:00-05:00 window, so an unpinned clock makes
+              their tests nondeterministic.
+
+Examples:
+  vm new demo --rtc 2026-08-22T20:55:00
+  vm run demo 'sudo systemctl poweroff'      # -> verdict: clean poweroff
+  vm reset demo                              # back to pristine
+USAGE
+}
+
+# vm repo <name> <path> [--worktree]
+cmd_repo() {
+    local name="${1:-}" src="${2:-}" mode=clone
+    [[ -n "$name" && -n "$src" ]] || die "usage: vm repo <name> <host-path> [--worktree]"
+    shift 2
+    [[ "${1:-}" == "--worktree" ]] && mode=worktree
+    repo_sync "$name" "$src" "$mode"
+}
+
+cmd_list() {
+    [[ -d "$VMBOX_VMS_DIR" ]] || { echo "no sandboxes yet (create one: vm new <name>)"; return 0; }
+    local found=0 d name state rtc
+    printf '%-20s %-12s %s\n' "NAME" "STATE" "RTC"
+    for d in "$VMBOX_VMS_DIR"/*/; do
+        [[ -d "$d" ]] || continue
+        found=1
+        name="$(basename "$d")"
+        if vm_is_running "$name"; then state="running"; else state="stopped"; fi
+        rtc="$(meta_get "$name" rtc 2>/dev/null || echo '-')"
+        printf '%-20s %-12s %s\n' "$name" "$state" "${rtc:--}"
+    done
+    (( found )) || echo "(none)"
+}
+
+main() {
+    local cmd="${1:-}"
+    [[ $# -gt 0 ]] && shift || true
+
+    case "$cmd" in
+        build)      require_host_deps; source "$VMBOX_LIB_DIR/base.sh";       base_build "$@" ;;
+        new)        require_host_deps; source "$VMBOX_LIB_DIR/overlay.sh";    overlay_new "$@" ;;
+        reset)      source "$VMBOX_LIB_DIR/overlay.sh";                       overlay_reset "$@" ;;
+        rm)         source "$VMBOX_LIB_DIR/overlay.sh";                       overlay_rm "$@" ;;
+        run)        require_host_deps; source "$VMBOX_LIB_DIR/run.sh";        run_in_vm "$@" ;;
+        ssh)        source "$VMBOX_LIB_DIR/ssh.sh";                           vm_ssh_interactive "$@" ;;
+        screenshot) source "$VMBOX_LIB_DIR/screenshot.sh";                    vm_screenshot "$@" ;;
+        repo)       source "$VMBOX_LIB_DIR/repo.sh";                          cmd_repo "$@" ;;
+        list|ls)    cmd_list ;;
+        -h|--help|help|'') usage ;;
+        *)          die "unknown command '$cmd' (try: vm --help)" ;;
+    esac
+}
+
+main "$@"

@@ -1,0 +1,7 @@
+# VM state lives in ~/.local/share/vmbox, never in the repo: these are
+# multi-GB disk images and live sockets. Listed here only as a guard against
+# an accidental copy landing in the tree.
+*.qcow2
+*.iso
+*.sock
+*.log

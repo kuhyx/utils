@@ -1,0 +1,103 @@
+# vmbox — a disposable Arch VM sandbox
+
+Run destructive system scripts — shutdown installers, `chattr +i` hosts guards,
+pacman hooks — against a throwaway Arch guest, and **verify the outcome from the
+host**. Break it as thoroughly as you like; reset takes under a second.
+
+```bash
+./install.sh          # installs deps (libisoburn), links `vm` onto PATH
+vm build              # builds the golden image, once (~10 min)
+vm new demo           # instant: a ~200 KB overlay on the sealed base
+vm run demo 'sudo systemctl poweroff'
+vm reset demo         # back to pristine
+```
+
+## Why this exists
+
+Much of `testsAndMisc/linux_configuration` cannot be tested on the real machine.
+The repo's own CI says so — its Ubuntu job runs only the "side-effect-free"
+tests and notes the rest *"drive pacman, /etc, systemd or adb and cannot run on
+an Ubuntu runner without root and an Arch container"*. Locally they probe the
+**live** system (`test_results.log` asserts `PASS: /etc/hosts is immutable`).
+
+Three things make testing them on the host genuinely unsafe:
+
+- **`chattr +i` immutability** — 15 files make `/etc/hosts` and friends
+  immutable. A bad test is not simply revertable; `rm` fails with EPERM.
+- **Auto-poweroff** — the shutdown installers write systemd units that power the
+  machine off on a schedule.
+- **Pacman hooks** — `boot_recovery/install.sh` installs pre/post-transaction
+  hooks and touches mkinitcpio. Blast radius is "your next update".
+
+## The hard part: a successful shutdown kills your observer
+
+Running a shutdown script over SSH returns a broken pipe. That is
+**indistinguishable** from a crash, a hang, or a network blip — ssh returns 255
+for all of them. So "did it actually shut down?" is answered from the host,
+using two artefacts that outlive the VM:
+
+| Channel | What it proves |
+|---|---|
+| QMP event log (`events.jsonl`) | *That* the machine stopped, and who stopped it |
+| Serial console log | *How far* the shutdown sequence got |
+
+A persistent recorder attaches at launch, **before** anything runs in the guest.
+This ordering matters: attach afterwards and QEMU has already exited, the stream
+is closed, and there is no verdict to read.
+
+### Five outcomes, all host-observable
+
+| Observation | Verdict | Exit |
+|---|---|---|
+| `SHUTDOWN guest:true` + serial reaches `reboot: Power down` | clean poweroff | 0 |
+| `SHUTDOWN guest:true`, serial truncated | **dirty** — stopped mid-sequence | 3 |
+| `SHUTDOWN reason=guest-reset` | **rebooted**, did not power off | 4 |
+| `GUEST_PANICKED` | **crashed** | 5 |
+| no event, liveness probe fails | **hung** | 6 |
+
+`guest:true` alone is not enough for "shuts down *completely*" — `poweroff -f`
+and a script that kills systemd mid-sequence both produce it. The serial tail is
+the discriminator, and it is asserted by grep, not read by eye.
+
+> A `POWERDOWN` event is **not** proof of anything: it means the ACPI request was
+> delivered. With no OS booted, QEMU emits `POWERDOWN` and then runs forever.
+
+## Design notes
+
+- **Reset is a backing-file trick.** The golden image is built once and sealed
+  (`chmod 444` + a sha256 sidecar verified on every launch). Each sandbox is a
+  thin qcow2 overlay, so `vm reset` is `rm` + recreate. Booting the base itself
+  would silently invalidate every overlay, so the launcher refuses to.
+- **No root anywhere.** User-mode networking with a per-VM forwarded SSH port;
+  VM-to-VM traffic rides a socket multicast segment. No bridge, no libvirt, no
+  daemon.
+- **The guest clock is pinned** (`--rtc`) and re-applied on *every* launch. The
+  shutdown installers gate on a 21:00–05:00 window, so an unpinned clock makes
+  their tests pass or fail depending on the time of day. NTP is masked in the
+  image, or it would quietly undo the pin.
+- **The guest gets its own clone** of the repos from a read-only mount. Real
+  credentials are never shared; the guest carries sentinel values instead.
+
+## Commands
+
+| Command | Effect |
+|---|---|
+| `vm build [--force]` | Build/rebuild the golden image |
+| `vm new <name> [--rtc <ts>]` | Create a sandbox |
+| `vm run <name> <cmd...>` | Run a command, print the verdict |
+| `vm ssh <name>` | Interactive shell (starts the VM if needed) |
+| `vm screenshot <name> [out.png]` | Capture the screen (locker/X11 tests) |
+| `vm reset <name>` | Wipe back to pristine |
+| `vm rm <name>` / `vm list` | Delete / list sandboxes |
+
+## Out of scope
+
+A VM cannot cover everything: adb/phone tests (~36 files), GPU monitors, the
+i2c RGB in `setup_night_lockdown.sh`, and the Nextcloud/SearXNG suites (whose
+fixtures assume a Debian layout) all stay on the host or stay untested.
+
+## Tests
+
+`bats tests/test_vmbox.bats` — host-side unit tests for name validation, meta
+handling, serial rotation and the full verdict table. They do not boot a VM;
+booting is covered by the destructive end-to-end demo above.
