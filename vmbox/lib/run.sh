@@ -17,6 +17,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/ssh.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/verdict.sh"
 
 readonly RC_PATH="/var/tmp/vmbox.rc"
+# Transport for guest commands. Serial is the default for shutdown work: it
+# keeps printing through the poweroff that kills ssh, and it still works when
+# sshd does not. ssh stays available as the faster path for bulk work.
+readonly VMBOX_TRANSPORT="${VMBOX_TRANSPORT:-auto}"
 readonly VMBOX_RUN_TIMEOUT="${VMBOX_RUN_TIMEOUT:-600}"
 
 run_in_vm() {
@@ -54,9 +58,33 @@ run_in_vm() {
 _run_exec() {
     local name="$1"; shift
     local cmd="$*"
-    vm_ssh_exec "$name" \
-        "sh -c '{ $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
-        </dev/null
+    case "$(_run_transport "$name")" in
+        serial) _run_exec_serial "$name" "$cmd" ;;
+        *)      vm_ssh_exec "$name" \
+                    "sh -c '{ $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
+                    </dev/null ;;
+    esac
+}
+
+# Prefer ssh when it answers (faster, cleaner), else drive the serial console.
+_run_transport() {
+    local name="$1"
+    case "$VMBOX_TRANSPORT" in
+        ssh|serial) printf '%s' "$VMBOX_TRANSPORT"; return ;;
+    esac
+    if vm_ssh_exec "$name" -o BatchMode=yes -o ConnectTimeout=4 true 2>/dev/null; then
+        printf 'ssh'
+    else
+        printf 'serial'
+    fi
+}
+
+_run_exec_serial() {
+    local name="$1" cmd="$2" console
+    console="$(vm_console "$name")"
+    [[ -S "$console" ]] || die "no serial console socket for '$name'"
+    python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
+        "{ $cmd ; } ; echo \$? > $RC_PATH"
 }
 
 # Give a guest that is shutting down time to finish writing its serial log.
@@ -109,11 +137,22 @@ _run_finish() {
 }
 
 # Boot the sandbox again just far enough to read the recorded exit code.
+# The overlay survives the poweroff, so the value written before the machine
+# stopped is still there.
 _run_recover_rc() {
-    local name="$1" rc=""
+    local name="$1" rc="" console
     launch_vm "$name" >/dev/null 2>&1 || return 0
-    if vm_wait_ssh "$name" 120; then
+
+    if vm_wait_ssh "$name" 90; then
         rc="$(vm_ssh_exec "$name" "cat $RC_PATH 2>/dev/null" 2>/dev/null | tr -dc '0-9')"
+    else
+        # ssh may be broken or simply slower than the console; the serial
+        # shell can read the file just as well.
+        console="$(vm_console "$name")"
+        if [[ -S "$console" ]]; then
+            rc="$(python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
+                    "cat $RC_PATH 2>/dev/null" 2>/dev/null | grep -oE '^[0-9]+' | head -1)"
+        fi
     fi
     printf '%s' "$rc"
 }

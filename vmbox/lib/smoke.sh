@@ -21,7 +21,7 @@ base_smoke_test() {
     source "$VMBOX_LIB_DIR/launch.sh"
     source "$VMBOX_LIB_DIR/ssh.sh"
 
-    local smoke="__smoke"
+    local smoke="vmbox-smoke"
     vm_exists "$smoke" && overlay_rm "$smoke" >/dev/null 2>&1
     overlay_new "$smoke" >/dev/null
 
@@ -42,7 +42,7 @@ base_smoke_test() {
     if (( failed == 0 )); then
         overlay_rm "$smoke" >/dev/null 2>&1 || true
     else
-        warn "keeping sandbox '__smoke' so its logs survive; remove it with: vm rm __smoke"
+        warn "keeping sandbox 'vmbox-smoke' so its logs survive; remove it with: vm rm vmbox-smoke"
         die "refusing to ship an unreachable base image"
     fi
 }

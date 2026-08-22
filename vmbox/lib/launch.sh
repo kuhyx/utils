@@ -63,6 +63,10 @@ launch_vm() {
         -device virtio-vga
         -chardev file,id=ser0,path="$serial",append=on
         -serial chardev:ser0
+        # ttyS1: interactive console on a unix socket. Separate from ttyS0 so
+        # driving a shell never interleaves with the log the verdict reads.
+        -chardev "socket,id=ser1,path=$(vm_console "$name"),server=on,wait=off"
+        -serial chardev:ser1
         -qmp "unix:${qmp},server=on,wait=off"
         # A QMP socket serves ONE client, and the recorder holds that one for
         # the VM's whole life. Screenshots and status queries therefore need

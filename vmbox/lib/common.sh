@@ -67,6 +67,10 @@ vm_qmp_sock() { printf '%s/%s/qmp.sock' "$VMBOX_VMS_DIR" "$1"; }
 # Separate control channel: the recorder occupies the main QMP socket, and a
 # QMP socket accepts a single client at a time.
 vm_qmp_ctl()  { printf '%s/%s/qmp.sock.ctl' "$VMBOX_VMS_DIR" "$1"; }
+# Bidirectional serial console. Unlike ssh this survives the poweroff it is
+# reporting on, and it works when sshd does not -- so it is the transport of
+# record for shutdown tests, not a fallback.
+vm_console()  { printf '%s/%s/console.sock' "$VMBOX_VMS_DIR" "$1"; }
 vm_events()   { printf '%s/%s/events.jsonl' "$VMBOX_VMS_DIR" "$1"; }
 vm_pidfile()  { printf '%s/%s/vm.pid' "$VMBOX_VMS_DIR" "$1"; }
 

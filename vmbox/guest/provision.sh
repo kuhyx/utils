@@ -30,6 +30,8 @@ if [[ -f /etc/default/grub ]]; then
     grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
 fi
 systemctl enable serial-getty@ttyS0.service
+# ttyS1 carries the interactive console vmbox drives programmatically.
+systemctl enable serial-getty@ttyS1.service
 
 # --- ssh ------------------------------------------------------------------
 # `systemctl enable sshd` alone is NOT enough on this image: systemd's
@@ -37,8 +39,13 @@ systemctl enable serial-getty@ttyS0.service
 # no-op and leave nothing listening on TCP:22. The guest then boots perfectly
 # and every ssh gets "Connection reset by peer". Force the real service on and
 # verify the symlink exists, failing the build loudly if it does not.
+# Do NOT `systemctl disable sshd.socket` here. On Arch sshd.socket and
+# sshd.service are alternatives, and disabling the socket after enabling the
+# service also drops the service's multi-user.target.wants symlink -- the
+# build then reports "enabled" while the sealed image has no sshd at boot.
+# Evidence: the build log shows "Created symlink" for every other unit but
+# never for sshd.service, and the guest boot shows only the AF_UNIX socket.
 systemctl enable sshd.service
-systemctl disable sshd.socket 2>/dev/null || true
 if [[ ! -e /etc/systemd/system/multi-user.target.wants/sshd.service ]]; then
     echo "provision: FAILED to enable sshd.service -- guest would be unreachable" >&2
     exit 1
@@ -50,6 +57,23 @@ ls /etc/ssh/ssh_host_*_key >/dev/null 2>&1 || {
     echo "provision: FAILED to generate sshd host keys" >&2
     exit 1
 }
+# Belt and braces. On this image sshd.service is enabled and its dependencies
+# are satisfied, yet it produces no start line at boot -- neither started nor
+# failed. Rather than keep guessing at the mechanism, force it explicitly once
+# multi-user is reached. Harmless if sshd already started.
+cat > /etc/systemd/system/vmbox-sshd-kick.service <<'KICK'
+[Unit]
+Description=vmbox: ensure sshd is actually running
+After=multi-user.target network.target
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl start --no-block sshd.service
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+KICK
+systemctl enable vmbox-sshd-kick.service
+
 echo "provision: sshd.service enabled with $(ls /etc/ssh/ssh_host_*_key | wc -l) host keys"
 
 # --- systemd --user session ----------------------------------------------
@@ -62,12 +86,14 @@ loginctl enable-linger "$GUEST_USER" 2>/dev/null || true
 # Without autologin here an unreachable guest can only be diagnosed by
 # inferring from absent log lines, which is exactly how a single sshd fault
 # turned into several blind image rebuilds.
-install -d -m 755 /etc/systemd/system/serial-getty@ttyS0.service.d
-cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf <<SUNIT
+for tty in ttyS0 ttyS1; do
+    install -d -m 755 "/etc/systemd/system/serial-getty@${tty}.service.d"
+    cat > "/etc/systemd/system/serial-getty@${tty}.service.d/autologin.conf" <<SUNIT
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --keep-baud 115200,57600,38400,9600 %I \$TERM
 SUNIT
+done
 
 # --- host repo share ------------------------------------------------------
 # Mounted read-only; the guest clones out of it rather than working in it.
