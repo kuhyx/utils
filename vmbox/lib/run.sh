@@ -52,6 +52,13 @@ run_in_vm() {
     else
         serial_n="$(launch_vm "$name")"
         vm_wait_ssh "$name" 150 || die "sandbox '$name' did not become reachable"
+        # This run booted the guest, so it is the ONLY one that can race the
+        # tty1 autologin that starts Xorg -- sshd answers first. Give the X
+        # session a default window to appear here rather than requiring the
+        # caller to remember a flag; a warm run never reaches this branch and
+        # so never pays for it. Explicit VMBOX_X_WAIT still wins.
+        : "${VMBOX_X_WAIT:=${VMBOX_X_WAIT_ON_BOOT:-20}}"
+        export VMBOX_X_WAIT
     fi
     serial="$(vm_serial "$name" "$serial_n")"
     events="$(vm_events "$name")"
@@ -109,22 +116,34 @@ _run_exec_serial() {
         "$(_guest_env_setup) { $cmd ; } ; echo \$? > $RC_PATH"
 }
 
-# Give a guest that is SHUTTING DOWN time to finish writing its serial log.
+# Give a guest that is shutting down time to finish writing its serial log.
 #
-# Only a guest that is actually stopping needs this. The first loop used to
-# run unconditionally, so every ordinary `vm run` -- the overwhelming majority,
-# which leave the guest running -- paid a flat 30s waiting for a poweroff
-# marker that was never going to appear. That single wait was most of the
-# wall-clock cost of running anything at all in a sandbox: 41s for a `true`,
-# of which 31s was this. Measured before/after: 41s -> 11s.
+# The hard part is deciding, cheaply, whether this run IS a shutdown. The
+# transport's exit code cannot answer it: ssh returns 255 for a poweroff but
+# serial_exec returns 0 while the machine is already on its way down, so
+# keying on that reported a clean serial-driven poweroff as "still running".
+# The serial log cannot answer it either at this instant -- the shutdown
+# markers appear a second or two later, so grepping for them here just loses
+# the race.
 #
-# The ssh transport reports a dropped connection as 255, which is what a
-# successful poweroff looks like from the host; a guest that is merely still
-# running gives a real exit code. So: settle only when the guest has already
-# stopped, or when the connection died in the way a shutdown would cause.
+# So: wait a SHORT fixed grace period for any sign of a stop, and only then
+# commit to the long wait. Runs that leave the guest up (the overwhelming
+# majority) pay the grace period and nothing more; the old code paid the full
+# 30s on every one of them, which was most of the wall-clock cost of running
+# anything in a sandbox at all -- 41s for a `true`, of which 31s was this.
 _run_settle() {
-    local name="$1" serial="$2" ssh_rc="${3:-0}" waited=0
-    if vm_is_running "$name" && (( ssh_rc != 255 )); then
+    local name="$1" serial="$2" ssh_rc="${3:-0}" waited=0 grace="${VMBOX_SETTLE_GRACE:-3}"
+    while (( grace > 0 )); do
+        vm_is_running "$name" || break
+        grep -qa 'System Power Off\|systemd-shutdown\|reboot: ' "$serial" 2>/dev/null && break
+        (( ssh_rc == 255 )) && break
+        sleep 1; grace=$(( grace - 1 ))
+    done
+    # Nothing suggests a stop: the guest is up, its log is quiet, and the
+    # transport returned normally. Do not pay the 30s poweroff wait.
+    if vm_is_running "$name" &&
+       ! grep -qa 'System Power Off\|systemd-shutdown\|reboot: ' "$serial" 2>/dev/null &&
+       (( ssh_rc != 255 )); then
         return 0
     fi
     while vm_is_running "$name" && (( waited < 30 )); do

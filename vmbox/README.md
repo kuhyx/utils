@@ -6,7 +6,7 @@ host**. Break it as thoroughly as you like; reset takes under a second.
 
 ```bash
 ./install.sh          # installs deps (libisoburn), links `vm` onto PATH
-vm build              # builds the golden image, once (~90s)
+vm build              # builds the golden image, once (~100s)
 vm new demo           # instant: a ~200 KB overlay on the sealed base
 vm run demo 'sudo systemctl poweroff'
 vm reset demo         # back to pristine
@@ -140,13 +140,16 @@ Measured on this host, all with the cloud image already downloaded:
 
 | | before | after |
 |---|---|---|
-| `vm run` (cold sandbox) | 41s | 12s |
-| `vm run` (warm sandbox) | 30s | 0s |
+| `vm run` (cold sandbox) | 41s | 14s |
+| `vm run` (warm sandbox) | 30s | 3s |
 
 Neither number was the guest being slow. `_run_settle` waited up to 30s for a
 poweroff marker on EVERY run, including the majority that leave the guest
 running, and the ssh readiness poll used a 5s connect timeout against a
 forwarded port QEMU accepts before the guest is listening on it.
+
+A cold `vm run` also waits for the guest's X session, because sshd now answers
+before tty1's autologin has started Xorg; `VMBOX_X_WAIT=<seconds>` overrides it.
 
 The build reads packages from the host's own `/var/cache/pacman/pkg`, mounted
 read-only, rather than fetching 396 MiB over the internet. The guest keeps its

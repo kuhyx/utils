@@ -116,8 +116,8 @@ boot, and I did not find the mechanism. NOT DONE -- see "still open".
 ### The real win was elsewhere: `vm run` got 3-4x faster
 Chasing the build number turned up two flat taxes on EVERY sandbox command:
 
-  vm run, cold sandbox   41s -> 12s
-  vm run, warm sandbox   30s ->  0s
+  vm run, cold sandbox   41s -> 14s   (includes waiting for the X session)
+  vm run, warm sandbox   30s ->  3s
 
 - `_run_settle` waited up to 30s for the kernel's "reboot: Power down" marker
   unconditionally, including on the majority of runs that leave the guest
@@ -127,8 +127,16 @@ Chasing the build number turned up two flat taxes on EVERY sandbox command:
   probe blocked for the full timeout instead of failing fast: a guest
   reachable at ~10s was reported up at ~45s.
 
-All five shutdown verdicts re-tested afterwards (clean poweroff / dirty /
-reboot / panic / still-running) -- unchanged.
+All five shutdown verdicts re-tested on BOTH transports (ssh and serial), plus
+tests/destructive_demo.sh 7/7.
+
+A first attempt at this gated the skip on the transport's exit code, which
+BROKE the serial path: ssh returns 255 for a poweroff but serial_exec returns
+0 while the machine is already going down, so a clean serial-driven poweroff
+was reported as "still running" -- vmbox's whole purpose, silently wrong.
+Grepping the serial log at that instant does not work either (the markers
+appear a second or two later). The shipped version waits a short grace period
+for any sign of a stop before committing to the long wait.
 
 ### Host cache safety (Q7's gate)
 Fingerprinted before and after FOUR full builds: 45427 files,
