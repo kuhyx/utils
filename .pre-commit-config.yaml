@@ -1,0 +1,27 @@
+# Repo-wide gate for the shared 250-line file cap (refactor_claude_todo.md).
+#
+# A file that cannot be read in one piece forces re-reads and partial edits,
+# which is the largest avoidable cost in an LLM-assisted workflow. A refactor
+# without a gate silently regrows, so this is the part that makes it stick.
+#
+# Checks only the files in the commit, so an unrelated commit never breaks on
+# a violation it did not introduce, and it FAILS (exit 1) rather than warning.
+# No baseline and no allowlist -- those are suppressions.
+#
+# The subprojects (gatelock/, crdt-sync/, web_ui/, design_system/,
+# sync_settings_ui/) each keep their own .pre-commit-config.yaml for their own
+# linters, and carry this same hook so committing with one of those configs is
+# gated too. This root config is what `pre-commit install` wires up, and it is
+# the only one that covers the subprojects without a config of their own
+# (aur-publish/, guard-lib/, crdt_sync_dart/, file_length/, ...).
+#
+# `entry` is not run through a shell, so `~` would not expand: the absolute
+# path is deliberate.
+repos:
+  - repo: local
+    hooks:
+      - id: file-length-cap
+        name: file length <= 250 lines
+        entry: bash /home/kuhy/utils/scripts/check_file_length.sh
+        language: system
+        pass_filenames: true
