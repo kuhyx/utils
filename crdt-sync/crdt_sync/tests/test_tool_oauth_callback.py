@@ -164,11 +164,21 @@ def test_serve_loop_gives_up_once_the_consent_deadline_passes(
         _retire(srv, thread)
 
 
-def test_log_message_is_silenced() -> None:
-    """The default handler logs every request to stderr; this one must not."""
-    # Called unbound with no request context: the override must accept any
-    # arguments and do nothing, which is exactly what makes that safe.
-    assert oc._CallbackHandler.log_message(None, '"GET / HTTP/1.1"', 200) is None
+def test_log_message_writes_nothing_to_stderr(
+    server: tuple[int, threading.Thread],
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    """The default handler logs every request to stderr; this one must not.
+
+    Asserted through a real request rather than by calling the override
+    directly: it returns None either way, so only the absence of output
+    distinguishes a silenced handler from the stock one.
+    """
+    port, _ = server
+
+    _get(port, f"/?code=the-code&state={_STATE}")
+
+    assert capfd.readouterr().err == ""
 
 
 def test_starting_the_server_resets_state_from_a_previous_run() -> None:
