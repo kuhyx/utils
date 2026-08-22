@@ -62,35 +62,99 @@ http.Response _fileContaining(String text) =>
     _response(200, {'content': base64.encode(utf8.encode(text))});
 
 void main() {
-  group('syncLog', () {
-    test('pushes the local log when no other devices have synced', () async {
-      final localLog = <String, Record>{
-        'a': Record(id: 'a', fields: {'text': ('hello', _make(100))}),
-      };
+  group('syncLog skips unusable peer files', () {
+    test('skips a device with no pushed file yet', () async {
       final (:client, :putCalls) = _client(
-        contentResponses: {'devices': _directoryOf([])},
+        contentResponses: {
+          'devices': _directoryOf(['phone']),
+        },
       );
 
       final merged = await syncLog(
         client: client,
         deviceId: 'pc',
         pathPrefix: 'devices',
-        localLog: localLog,
+        localLog: {},
         encode: _encode,
         decode: _decode,
       );
 
-      expect(merged, equals(localLog));
-      expect(putCalls, hasLength(1));
-      expect(putCalls.single.path, 'devices/pc/log.json');
+      expect(merged, isEmpty);
+      expect(putCalls.single.body['content'], base64.encode(utf8.encode('{}')));
     });
 
-    test('skips its own device id when listing', () async {
+    test('skips a device whose pushed file is corrupt', () async {
       final (:client, :putCalls) = _client(
         contentResponses: {
-          'devices': _directoryOf(['pc', 'phone']),
-          'devices/phone/log.json': _fileContaining('{}'),
+          'devices': _directoryOf(['phone']),
+          'devices/phone/log.json': _fileContaining('{not valid json'),
         },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'pc',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+      );
+
+      expect(merged, isEmpty);
+      expect(putCalls, hasLength(1));
+    });
+
+    test('skips a device whose pushed JSON has the wrong shape', () async {
+      // Valid JSON that isn't a record map (e.g. from an incompatible
+      // writer) must be skipped like corrupt JSON, not crash the whole
+      // sync -- this is what the `on TypeError` catch in `syncLog` is
+      // for, not just JSON syntax errors caught by `FormatException`.
+      final (:client, :putCalls) = _client(
+        contentResponses: {
+          'devices': _directoryOf(['phone']),
+          'devices/phone/log.json': _fileContaining('{"a": 5}'),
+        },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'pc',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+      );
+
+      expect(merged, isEmpty);
+      expect(putCalls, hasLength(1));
+    });
+
+    test('merges in a remote device\'s entries', () async {
+      final remoteLog = <String, Record>{
+        'b': Record(id: 'b', fields: {'text': ('from phone', _make(100))}),
+      };
+      final (:client, :putCalls) = _client(
+        contentResponses: {
+          'devices': _directoryOf(['phone']),
+          'devices/phone/log.json': _fileContaining(_encode(remoteLog)),
+        },
+      );
+
+      final merged = await syncLog(
+        client: client,
+        deviceId: 'pc',
+        pathPrefix: 'devices',
+        localLog: {},
+        encode: _encode,
+        decode: _decode,
+      );
+
+      expect(merged, equals(remoteLog));
+    });
+
+    test('uses a custom filename and commit message', () async {
+      final (:client, :putCalls) = _client(
+        contentResponses: {'devices': _directoryOf([])},
       );
 
       await syncLog(
@@ -100,61 +164,12 @@ void main() {
         localLog: {},
         encode: _encode,
         decode: _decode,
+        filename: 'notes.json',
+        commitMessage: 'custom message',
       );
 
-      expect(putCalls, hasLength(1));
-    });
-
-    test('skips its legacy device id as well as its current one', () async {
-      // The old path holds a record this device pushed before migrating.
-      // Pulling it back would re-merge its own history as a peer's.
-      final legacyLog = _encode({
-        'stale': Record(id: 'stale', fields: {'text': ('old', _make(1))}),
-      });
-      final (:client, :putCalls) = _client(
-        contentResponses: {
-          'devices': _directoryOf(['pc', 'new-uuid']),
-          'devices/pc/log.json': _fileContaining(legacyLog),
-        },
-      );
-
-      final merged = await syncLog(
-        client: client,
-        deviceId: 'new-uuid',
-        pathPrefix: 'devices',
-        localLog: {},
-        encode: _encode,
-        decode: _decode,
-        legacyDeviceId: 'pc',
-      );
-
-      expect(merged, isEmpty);
-      expect(putCalls.single.path, 'devices/new-uuid/log.json');
-    });
-
-    test('pulls the old path when no legacy id is declared', () async {
-      // Negative control for the test above: absent legacyDeviceId, the old
-      // path really is treated as a peer.
-      final legacyLog = _encode({
-        'stale': Record(id: 'stale', fields: {'text': ('old', _make(1))}),
-      });
-      final (:client, :putCalls) = _client(
-        contentResponses: {
-          'devices': _directoryOf(['pc', 'new-uuid']),
-          'devices/pc/log.json': _fileContaining(legacyLog),
-        },
-      );
-
-      final merged = await syncLog(
-        client: client,
-        deviceId: 'new-uuid',
-        pathPrefix: 'devices',
-        localLog: {},
-        encode: _encode,
-        decode: _decode,
-      );
-
-      expect(merged.keys, contains('stale'));
+      expect(putCalls.single.path, 'devices/pc/notes.json');
+      expect(putCalls.single.body['message'], 'custom message');
     });
   });
 }

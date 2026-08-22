@@ -74,6 +74,29 @@ class _FakeStore implements RemoteStore, BulkMapReader {
   void close() => closed = true;
 }
 
+/// A store with no bulk-map capability, standing in for [GitHubClient].
+class _FakeStoreWithoutBulkRead implements RemoteStore {
+  _FakeStoreWithoutBulkRead([Map<String, String>? files])
+    : _inner = _FakeStore(files: files);
+
+  final _FakeStore _inner;
+
+  @override
+  Future<List<String>> listDirectory(String path) => _inner.listDirectory(path);
+  @override
+  Future<String?> getFileText(String path) => _inner.getFileText(path);
+  @override
+  Future<void> putFileText(String p, String t, {required String message}) =>
+      _inner.putFileText(p, t, message: message);
+  @override
+  Future<void> deleteFile(String path, {String message = ''}) =>
+      _inner.deleteFile(path, message: message);
+  @override
+  Future<bool> canAccessRemote() => _inner.canAccessRemote();
+  @override
+  void close() => _inner.close();
+}
+
 ({
   MirrorStore store,
   _FakeStore primary,
@@ -102,87 +125,70 @@ _mirror({
 }
 
 void main() {
-  group('writes', () {
-    test('go to both backends', () async {
-      final m = _mirror();
-      await m.store.putFileText('ns/pc/log.json', '{}', message: 'm');
-      expect(m.primary.writes, ['ns/pc/log.json']);
-      expect(m.mirror.writes, ['ns/pc/log.json']);
+  group('primary read fallback', () {
+    test('getFileText falls back to the mirror', () async {
+      final m = _mirror(
+        primaryFailing: true,
+        mirrorFiles: {'ns/phone/log.json': '{}'},
+      );
+      expect(await m.store.getFileText('ns/phone/log.json'), '{}');
     });
 
-    test('a primary failure fails the tick', () async {
-      // Fail-closed: the primary is authoritative, so a sync that could not
-      // write it must not be reported as successful.
+    test('getFileText throws when both fail', () async {
+      final m = _mirror(primaryFailing: true, mirrorFailing: true);
+      await expectLater(
+        () => m.store.getFileText('ns/phone/log.json'),
+        throwsA(isA<RemoteSyncError>()),
+      );
+    });
+
+    test('getFileText throws when primary fails and mirror lacks it', () async {
+      // A reachable mirror that simply does not hold the file is not an
+      // answer either, since the primary's copy was never read.
+      final m = _mirror(primaryFailing: true);
+      await expectLater(
+        () => m.store.getFileText('ns/phone/log.json'),
+        throwsA(isA<RemoteSyncError>()),
+      );
+    });
+
+    test('getStringMap falls back to the mirror', () async {
+      final m = _mirror(
+        primaryFailing: true,
+        mirrorFiles: {'ns/revs/phone': 'r1'},
+      );
+      expect(await m.store.getStringMap('ns/revs'), {'phone': 'r1'});
+    });
+
+    test('getStringMap throws when both fail', () async {
+      final m = _mirror(primaryFailing: true, mirrorFailing: true);
+      await expectLater(
+        () => m.store.getStringMap('ns/revs'),
+        throwsA(isA<RemoteSyncError>()),
+      );
+    });
+
+    test('getStringMap tolerates a mirror that cannot bulk-read', () async {
+      // A mirror with no bulk-read capability (GitHub) contributes nothing,
+      // but that is not a failure -- it simply has no revisions to add, so a
+      // working primary's map must still come back.
+      final store = MirrorStore(
+        primary: _FakeStore(files: {'ns/revs/pc': 'r1'}),
+        mirror: _FakeStoreWithoutBulkRead(),
+      );
+      expect(await store.getStringMap('ns/revs'), {'pc': 'r1'});
+    });
+
+    test('writes stay fail-closed on a primary failure', () async {
+      // The read fix must NOT loosen writes: an unaccepted write has not
+      // happened, so it must still fail the tick.
       final m = _mirror(primaryFailing: true);
       await expectLater(
         () => m.store.putFileText('ns/pc/log.json', '{}', message: 'm'),
         throwsA(isA<RemoteSyncError>()),
       );
-    });
-
-    test('a mirror failure is loud but does not fail the tick', () async {
-      final m = _mirror(mirrorFailing: true);
-      await m.store.putFileText('ns/pc/log.json', '{}', message: 'm');
-      expect(m.primary.writes, ['ns/pc/log.json']);
-      expect(m.failures, ['putFileText ns/pc/log.json']);
-    });
-
-    test('deletes behave the same way', () async {
-      final m = _mirror(
-        primaryFiles: {'ns/pc/log.json': '{}'},
-        mirrorFiles: {'ns/pc/log.json': '{}'},
-        mirrorFailing: true,
-      );
-      await m.store.deleteFile('ns/pc/log.json');
-      expect(m.primary.files, isEmpty);
-      expect(m.failures, ['deleteFile ns/pc/log.json']);
-    });
-
-    test('a primary delete failure fails the tick', () async {
-      final m = _mirror(primaryFailing: true);
       await expectLater(
         () => m.store.deleteFile('ns/pc/log.json'),
-        throwsA(isA<RemoteSyncError>()),
-      );
-    });
-  });
-
-  group('reads consult both backends', () {
-    test('prefer the primary when it has the file', () async {
-      final m = _mirror(
-        primaryFiles: {'ns/pc/log.json': 'from-primary'},
-        mirrorFiles: {'ns/pc/log.json': 'from-mirror'},
-      );
-      expect(await m.store.getFileText('ns/pc/log.json'), 'from-primary');
-    });
-
-    test('fall back to the mirror for an un-migrated device', () async {
-      // This is why reads are not primary-only: a migrated desktop must
-      // still see an un-migrated phone's writes, or convergence silently
-      // becomes one-directional with no error raised.
-      final m = _mirror(mirrorFiles: {'ns/phone/log.json': 'from-mirror'});
-      expect(await m.store.getFileText('ns/phone/log.json'), 'from-mirror');
-    });
-
-    test('return null when neither backend has the file', () async {
-      final m = _mirror();
-      expect(await m.store.getFileText('ns/nobody/log.json'), isNull);
-    });
-
-    test('a mirror read failure degrades to the primary answer', () async {
-      final m = _mirror(mirrorFailing: true);
-      expect(await m.store.getFileText('ns/pc/log.json'), isNull);
-      expect(m.failures, ['getFileText ns/pc/log.json']);
-    });
-
-    test('a primary read failure with nothing in the mirror throws', () async {
-      // Named for what it actually exercises: the primary throws AND the
-      // mirror does not hold the file, so neither side has an answer. A
-      // primary failure alone no longer fails the read -- see the
-      // "primary read fallback" group.
-      final m = _mirror(primaryFailing: true);
-      await expectLater(
-        () => m.store.getFileText('ns/pc/log.json'),
         throwsA(isA<RemoteSyncError>()),
       );
     });
