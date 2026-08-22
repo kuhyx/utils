@@ -186,6 +186,13 @@ systemctl enable systemd-networkd systemd-resolved 2>/dev/null || true
 # re-introduces exactly the nondeterminism -rtc exists to remove.
 systemctl disable systemd-timesyncd 2>/dev/null || true
 systemctl mask systemd-timesyncd 2>/dev/null || true
+# CRITICAL: systemd-time-wait-sync waits for a sync that can never arrive once
+# timesyncd is masked. It then sits in "start running" forever and every other
+# job -- sshd included -- queues behind it as "start waiting", so the system
+# never reaches multi-user.target. The guest boots to a login prompt and looks
+# healthy while being permanently unreachable. Mask it together with timesyncd.
+systemctl disable systemd-time-wait-sync 2>/dev/null || true
+systemctl mask systemd-time-wait-sync 2>/dev/null || true
 # Do NOT write a /etc/systemd/network/*.network file here: an en* match
 # also catches the primary NIC and outranks the cloud image's own DHCP
 # config, which breaks sshd's network and makes the sandbox unreachable.

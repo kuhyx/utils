@@ -70,18 +70,46 @@ class Console:
         self.sock.sendall(b"\n")
         return self.read_until(PROMPT, timeout)
 
+    def read_until_count(self, needle: str, count: int, timeout: float) -> bool:
+        """Wait until `needle` has been seen `count` times.
+
+        A tty echoes what you type, so the marker appears once in the echoed
+        command line before it ever appears in real output. Waiting for the
+        first occurrence returns immediately -- before the command has run --
+        and yields an empty or truncated result that looks like a hang.
+        """
+        end = time.time() + timeout
+        while time.time() < end:
+            if clean(self.buf).count(needle) >= count:
+                return True
+            try:
+                chunk = self.sock.recv(4096)
+            except TimeoutError:
+                continue
+            except OSError:
+                return False
+            if not chunk:
+                return False
+            self.buf += chunk
+        return clean(self.buf).count(needle) >= count
+
     def run(self, cmd: str, timeout: float = 300) -> str:
-        token = uuid.uuid4().hex[:8]
-        start, done = f"<<<S{token}>>>", f"<<<E{token}>>>"
+        # Markers are plain alphanumerics: shell metacharacters like < and >
+        # are echoed back by the tty and can be reordered or line-wrapped,
+        # which makes them unreliable to match on.
+        token = uuid.uuid4().hex[:8].upper()
+        start, done = f"VMBOXS{token}", f"VMBOXE{token}"
         self.buf = b""
         # `; echo RC=$?` keeps the guest's exit status, which the ssh path
         # cannot report once the machine stops.
         self.sock.sendall(f"echo {start}; {cmd}; echo RC=$?; echo {done}\n".encode())
-        if not self.read_until(done, timeout):
+        # Twice: once in the echoed command line, once in real output.
+        if not self.read_until_count(done, 2, timeout):
             return f"### TIMEOUT: no end marker after {timeout}s ###"
         text = clean(self.buf)
-        body = text.split(start, 1)[-1].split(done, 1)[0]
-        # Drop the echoed command line itself.
+        # Take the LAST start marker and the text up to the following end
+        # marker: everything before that is the echo of what we typed.
+        body = text.rsplit(start, 1)[-1].split(done, 1)[0]
         lines = [ln for ln in body.splitlines() if start not in ln and done not in ln]
         return "\n".join(lines).strip()
 
