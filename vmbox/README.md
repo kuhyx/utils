@@ -118,7 +118,7 @@ Two things that installer taught us, both worth knowing before you run it:
 | `vm new <name> [--rtc <ts>]` | Create a sandbox |
 | `vm run <name> <cmd...>` | Run a command, print the verdict |
 | `vm ssh <name>` | Interactive shell (starts the VM if needed) |
-| `vm screenshot <name> [out.png]` | Capture the screen (locker/X11 tests) |
+| `vm screenshot <name> [out.png]` | Capture the screen (locker/X11 tests) — verified: real 1280x800 PNG of the guest's i3 session, no viewer installed |
 | `vm reset <name>` | Wipe back to pristine |
 | `vm rm <name>` / `vm list` | Delete / list sandboxes |
 
