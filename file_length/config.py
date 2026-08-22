@@ -179,6 +179,7 @@ THIRD_PARTY_REPOS = frozenset(
         "freesound-mcp",  # github.com/timjrobinson/FreesoundMCPServer
         "llama_cpp_dart_local",  # generated FFI bindings
         "aseprite-mcp",
+        "Mapperatorinator",  # github.com/OliBomby/Mapperatorinator
         "aur",
         "build-your-own-x",
         "build_your_x",
