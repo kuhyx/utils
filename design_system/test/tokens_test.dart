@@ -81,4 +81,64 @@ void main() {
   test('kProseMaxWidth caps line length', () {
     expect(kProseMaxWidth, 640.0);
   });
+
+  group('AppDuration', () {
+    test('matches the frozen scale, ascending', () {
+      const scale = [
+        AppDuration.instant,
+        AppDuration.fast,
+        AppDuration.base,
+        AppDuration.slow,
+      ];
+      expect(scale.map((d) => d.inMilliseconds), [0, 120, 200, 320]);
+      for (var i = 1; i < scale.length; i++) {
+        expect(
+          scale[i] > scale[i - 1],
+          isTrue,
+          reason: 'step $i is not longer than the one before it',
+        );
+      }
+    });
+
+    test('instant is the zero the reduced-motion contract collapses to', () {
+      expect(AppDuration.instant, Duration.zero);
+    });
+
+    test(
+      'stays within the perceptible band: nothing over the 320ms ceiling',
+      () {
+        expect(AppDuration.slow.inMilliseconds, lessThanOrEqualTo(350));
+        expect(AppDuration.fast.inMilliseconds, greaterThanOrEqualTo(100));
+      },
+    );
+  });
+
+  group('AppCurve', () {
+    const curves = {
+      'standard': AppCurve.standard,
+      'decelerate': AppCurve.decelerate,
+      'accelerate': AppCurve.accelerate,
+    };
+
+    test('every curve is anchored at both ends', () {
+      curves.forEach((name, curve) {
+        expect(curve.transform(0), closeTo(0, 1e-6), reason: '$name at t=0');
+        expect(curve.transform(1), closeTo(1, 1e-6), reason: '$name at t=1');
+      });
+    });
+
+    test('matches the frozen control points', () {
+      expect(AppCurve.standard, const Cubic(0.2, 0, 0, 1));
+      expect(AppCurve.decelerate, const Cubic(0, 0, 0, 1));
+      expect(AppCurve.accelerate, const Cubic(0.3, 0, 1, 1));
+    });
+
+    test('decelerate leads and accelerate trails, as their names promise', () {
+      // Named for what they do at the END: decelerate has covered most of the
+      // distance by the midpoint (it is settling), accelerate has covered
+      // little (it is still winding up).
+      expect(AppCurve.decelerate.transform(0.5), greaterThan(0.5));
+      expect(AppCurve.accelerate.transform(0.5), lessThan(0.5));
+    });
+  });
 }

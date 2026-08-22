@@ -93,6 +93,24 @@
 
   /* Focus ring: the platform default is black, invisible on --bg. */
   --focus-ring: #b8862e; /* = accent */
+
+  /* Motion ----------------------------------------------------------------- */
+  /* Frozen in ~/utils/unified-design-system/motion.md, which carries the
+   * rationale per step. The same numbers ship for Dart as AppDuration /
+   * AppCurve — a change here is a change there. Four steps only: a longer
+   * duration vocabulary gets picked from at random, which is drift wearing a
+   * token's name. */
+  --duration-instant: 0ms; /* the reduced-motion collapse target */
+  --duration-fast: 120ms; /* hover, press, checkbox — already under the cursor */
+  --duration-base: 200ms; /* default: enters/leaves/moves within the view */
+  --duration-slow: 320ms; /* sheets, dialogs, page transitions */
+
+  /* Named for what the motion does at its END — the part the eye reads. Never
+   * ease-in-out on something that enters or exits: symmetric easing makes an
+   * arrival look like it is braking and a departure look reluctant. */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* starts and ends on screen */
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1); /* entering: full speed -> rest */
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1); /* leaving: no settle */
 }
 
 @media (prefers-color-scheme: light) {
@@ -114,6 +132,19 @@
   :root {
     --shadow-1: none;
     --shadow-2: none;
+  }
+}
+
+/* Mandatory, and it collapses the tokens themselves rather than asking every
+ * consumer to branch. Easing is irrelevant at zero duration, so the curves are
+ * left alone. Sound and haptics are NOT motion and are deliberately untouched
+ * here: a user who suppressed animation did not ask to lose confirmation that
+ * a tap landed. The sound opt-out is a separate, user-facing setting. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
   }
 }
 

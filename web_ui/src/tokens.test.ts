@@ -104,6 +104,37 @@ describe("tokens.css", () => {
     expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--focus-ring\)/);
   });
 
+  it("declares the duration scale", () => {
+    expect(
+      ["instant", "fast", "base", "slow"].map((s) => declared(`duration-${s}`)[0]),
+    ).toEqual(["0ms", "120ms", "200ms", "320ms"]);
+  });
+
+  it("declares the three easing curves", () => {
+    expect(["standard", "decelerate", "accelerate"].map((s) => declared(`ease-${s}`)[0])).toEqual([
+      "cubic-bezier(0.2, 0, 0, 1)",
+      "cubic-bezier(0, 0, 0, 1)",
+      "cubic-bezier(0.3, 0, 1, 1)",
+    ]);
+  });
+
+  it("collapses every non-zero duration under prefers-reduced-motion", () => {
+    // The collapse happens on the tokens themselves so no consumer has to
+    // branch. Missing one step here is the whole bug this guards.
+    const block = /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1];
+    expect(block).toBeDefined();
+    for (const step of ["fast", "base", "slow"]) {
+      expect(block).toMatch(new RegExp(`--duration-${step}:\\s*0ms;`));
+    }
+  });
+
+  it("does not silence sound or haptics along with motion", () => {
+    // Reduced motion is not a request to lose confirmation that a tap landed;
+    // the sound opt-out is a separate, user-facing setting.
+    const block = /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1];
+    expect(block).not.toMatch(/sound|haptic|volume|mute/i);
+  });
+
   it("uses no raw black or white literals", () => {
     // Shadows are ink-tinted rgba; neutrals are never pure.
     expect(css).not.toMatch(/#fff\b|#ffffff\b|#000\b|#000000\b|rgba\(0,\s*0,\s*0/i);

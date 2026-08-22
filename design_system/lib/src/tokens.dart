@@ -128,6 +128,47 @@ abstract final class AppTextSize {
   static const double display = 32;
 }
 
+/// Shared motion durations. Frozen in `unified-design-system/motion.md`, which
+/// carries the rationale for each step and the reduced-motion contract.
+///
+/// Under `MediaQuery.of(context).disableAnimations` every value here collapses
+/// to [instant]. Haptics and sound are *not* motion and are unaffected by that
+/// preference — see `AppHaptic` in `motion.md`'s vocabulary.
+abstract final class AppDuration {
+  /// 0ms — no animation. The reduced-motion collapse target.
+  static const Duration instant = Duration.zero;
+
+  /// 120ms — state on an element already under the cursor/finger: hover,
+  /// press, checkbox, ripple. The floor at which motion reads *as* motion.
+  static const Duration fast = Duration(milliseconds: 120);
+
+  /// 200ms — the default. Anything entering, leaving or moving within the
+  /// current view: toasts, expanding rows, tab switches.
+  static const Duration base = Duration(milliseconds: 200);
+
+  /// 320ms — full-surface change: sheets, dialogs, page transitions. The
+  /// ceiling; past ~350ms the interface feels like it is waiting on itself.
+  static const Duration slow = Duration(milliseconds: 320);
+}
+
+/// Shared easing curves, named for what the motion does at its *end* — that is
+/// the part the eye actually reads.
+///
+/// Never use a symmetric `ease-in-out` on an element that enters or exits: it
+/// makes an arrival look like it is braking and a departure look reluctant.
+abstract final class AppCurve {
+  /// Starts and ends on screen. Fast out of the gate, settles gently.
+  static const Curve standard = Cubic(0.2, 0, 0, 1);
+
+  /// Entering the screen. Starts at full speed — the element is already in
+  /// motion from off-stage — and eases to rest.
+  static const Curve decelerate = Cubic(0, 0, 0, 1);
+
+  /// Leaving the screen. Eases in, exits at speed: no settle, because there is
+  /// nothing left to settle onto.
+  static const Curve accelerate = Cubic(0.3, 0, 1, 1);
+}
+
 /// Prose/paragraph line-length cap (rule 21).
 ///
 /// Desktop builds here are Chrome `--app` windows that can be arbitrarily

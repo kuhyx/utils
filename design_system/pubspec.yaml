@@ -5,7 +5,7 @@ description: >-
   helpers that were each reimplemented in three or more repos. Owns the tokens
   -- consumers import them rather than transcribing the token table by hand.
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.12.2
