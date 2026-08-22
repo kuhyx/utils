@@ -34,8 +34,23 @@ through the identitytoolkit REST API to anyone holding the Web API key, and
 that key ships inside the Android APKs. Pinning the uid means a stranger who
 registers an account still reads and writes nothing.
 
-To deploy, substitute the real uid (Firebase console → Authentication → Users
-→ User UID) and paste into **Realtime Database → Rules → Publish**.
+The uid here is a **placeholder on purpose** — this repo is public, and the
+uid is the one value that must not appear in it. Publishing this file
+verbatim yields rules matching no account, which locks every app out of the
+project until someone notices; the failure looks like a permission error
+from every device at once.
+
+So do not hand-substitute. Render it:
+
+```bash
+./render_rules.sh            # prints deployable rules, real uid filled in
+./render_rules.sh --check    # validates without printing the uid
+```
+
+It reads the uid from `~/.config/crdt-sync/firebase.json` and refuses to emit
+anything still containing the placeholder, missing `auth != null`, missing a
+uid pin, or not parsing as JSON. Paste its output into **Realtime Database →
+Rules → Publish**.
 
 Verify the rules are live — an unauthenticated request must be refused:
 
@@ -53,7 +68,7 @@ outside version control:
 |---|---|
 | `firebase.json` | `apiKey`, `databaseUrl`, `projectId`, `uid`, `email` |
 | `password` | the sync account's password, no trailing newline |
-| `database.rules.json` | the deployed rules, with the real uid filled in |
+| `database.rules.json` | the rendered rules, real uid filled in (see `render_rules.sh`) |
 
 The Web API key is **not** a secret — it is a public project identifier that
 ships inside client apps. The password and refresh tokens are the real
