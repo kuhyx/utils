@@ -98,7 +98,7 @@ what remains instead.
 
 | Prompt | Status | Impl commit | Note |
 |---|---|---|---|
-| 01-motion-tokens.md | not started | — | — |
+| 01-motion-tokens.md | DONE 2026-08-22 | `f741896` | `motion.md` frozen; `AppDuration`/`AppCurve` + `--duration-*`/`--ease-*` shipped. Tags: `design_system-v0.2.0`, `web_ui-v0.3.2`. |
 | 02-structural-check.md | not started | — | — |
 | 03-diet-guard.md | not started | — | — |
 | 04-screen-locker.md | not started | — | — |
