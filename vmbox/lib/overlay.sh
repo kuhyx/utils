@@ -94,6 +94,16 @@ overlay_reset() {
 
     vm_is_running "$name" && _overlay_stop "$name"
 
+    # Wait for the qemu process to actually release the overlay. Recreating it
+    # while the old process still has it open leaves the next boot reading a
+    # half-detached file, which surfaces much later as "did not become
+    # reachable" rather than as an error here.
+    local waited=0 pid
+    pid="$(cat "$(vm_pidfile "$name")" 2>/dev/null || true)"
+    while [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null && (( waited < 30 )); do
+        sleep 1; waited=$(( waited + 1 ))
+    done
+
     # Discard everything the guest did: the overlay holds 100% of its writes.
     _overlay_create_disk "$name"
     rm -f "$(vm_dir "$name")"/serial.*.log "$(vm_events "$name")" "$(vm_pidfile "$name")"
