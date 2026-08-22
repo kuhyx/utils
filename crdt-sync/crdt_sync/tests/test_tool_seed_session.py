@@ -107,12 +107,16 @@ def test_verification_happens_after_every_session_exists(seeding: tuple) -> None
     """
     factory, _, client_factory = seeding
     order: list[str] = []
-    factory.return_value.sign_in_with_google.side_effect = lambda *a, **k: (
-        order.append("seed") or "person@gmail.com"
-    )
-    client_factory.return_value.list_directory.side_effect = lambda _p: order.append(
-        "verify"
-    )
+
+    def _record_seed(*_args: object, **_kwargs: object) -> str:
+        order.append("seed")
+        return "person@gmail.com"
+
+    def _record_verify(_path: str) -> None:
+        order.append("verify")
+
+    factory.return_value.sign_in_with_google.side_effect = _record_seed
+    client_factory.return_value.list_directory.side_effect = _record_verify
 
     ss.seed_apps(_CONFIG, _ID_VALUE, _APPS)
 

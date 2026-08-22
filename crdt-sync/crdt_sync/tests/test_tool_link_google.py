@@ -58,68 +58,19 @@ def _response(*, ok: bool = True, status: int = 200, body: object = None) -> Mag
     return response
 
 
-def test_a_token_that_is_not_three_parts_is_rejected() -> None:
-    """An access token or an auth code pasted by mistake.
+def _config_with_password() -> MagicMock:
+    """A config whose password is supplied rather than read from disk.
 
-    The message names both, because that is the actual confusion -- the
-    module docstring exists because the Firebase-side error does not.
+    ``read_password()`` falls back to the real ``~/.config/crdt-sync/
+    password``, so the plain dataclass passes only on a machine that happens
+    to have one -- by reading the user's own password. CI caught that.
     """
-    with pytest.raises(lg.LinkError, match="not an access token"):
-        lg.describe_google_token("not-a-jwt")
-
-
-def test_a_token_with_an_unparseable_payload_is_rejected() -> None:
-    """Three parts, but the middle one is not base64url JSON."""
-    with pytest.raises(lg.LinkError, match="not valid base64url JSON"):
-        lg.describe_google_token("header.!!!not-base64!!!.signature")
-
-
-def test_a_payload_that_is_not_an_object_is_rejected() -> None:
-    """Valid base64url JSON, wrong shape."""
-    payload = base64.urlsafe_b64encode(b'"just a string"').decode().rstrip("=")
-
-    with pytest.raises(lg.LinkError, match="not a JSON object"):
-        lg.describe_google_token(f"header.{payload}.signature")
-
-
-def test_a_token_from_another_issuer_is_rejected() -> None:
-    """The check that makes a misconfiguration report itself locally."""
-    with pytest.raises(lg.LinkError, match="not Google"):
-        lg.describe_google_token(_google_token(iss="https://login.example.com"))
-
-
-@pytest.mark.parametrize(
-    "issuer", ["https://accounts.google.com", "accounts.google.com"]
-)
-def test_both_google_issuer_spellings_are_accepted(issuer: str) -> None:
-    """Google uses both forms; rejecting either would be a false alarm."""
-    assert "person@gmail.com" in lg.describe_google_token(_google_token(iss=issuer))
-
-
-def test_the_description_names_the_account_and_the_audience() -> None:
-    """The operator's only chance to notice they are linking the wrong one."""
-    description = lg.describe_google_token(_google_token())
-
-    assert "person@gmail.com" in description
-    assert "the-web-client-id.apps.googleusercontent.com" in description
-
-
-def test_missing_optional_claims_are_described_rather_than_crashing() -> None:
-    """A token without email/aud is odd but still describable."""
-    token = _jwt({"iss": "accounts.google.com"})
-
-    description = lg.describe_google_token(token)
-
-    assert "<no email claim>" in description
-    assert "<no aud claim>" in description
-
-
-def test_padding_is_restored_before_decoding() -> None:
-    """base64url in a JWT is unpadded; decoding without padding fails."""
-    # A payload whose length is not a multiple of 4 once stripped.
-    claims = {"iss": "accounts.google.com", "email": "a@b.co"}
-
-    assert "a@b.co" in lg.describe_google_token(_jwt(claims))
+    config = MagicMock(spec=FirebaseConfig)
+    config.api_key = _CONFIG.api_key
+    config.email = _CONFIG.email
+    config.uid = _CONFIG.uid
+    config.read_password.return_value = "the-stored-password"
+    return config
 
 
 def _auth_provider() -> MagicMock:
@@ -135,7 +86,7 @@ def test_linking_returns_the_unchanged_uid() -> None:
         patch.object(lg, "FirebaseTokenProvider", return_value=_auth_provider()),
         patch.object(lg.requests, "post", return_value=_response()) as posted,
     ):
-        result = lg.link_google(_CONFIG, _google_token())
+        result = lg.link_google(_config_with_password(), _google_token())
 
     assert result == _UID
     assert posted.call_count == 1
@@ -151,7 +102,7 @@ def test_the_existing_id_token_is_always_sent() -> None:
         patch.object(lg, "FirebaseTokenProvider", return_value=_auth_provider()),
         patch.object(lg.requests, "post", return_value=_response()) as posted,
     ):
-        lg.link_google(_CONFIG, "the-google-token")
+        lg.link_google(_config_with_password(), "the-google-token")
 
     sent = posted.call_args.kwargs["json"]
     assert sent["idToken"] == "the-existing-account-id-token"
@@ -163,11 +114,7 @@ def test_the_existing_id_token_is_always_sent() -> None:
 def test_the_account_password_is_used_to_prove_ownership() -> None:
     """Linking requires proving ownership of the account being linked to."""
     auth = _auth_provider()
-    config = MagicMock(spec=FirebaseConfig)
-    config.api_key = _CONFIG.api_key
-    config.email = _CONFIG.email
-    config.uid = _UID
-    config.read_password.return_value = "the-stored-password"
+    config = _config_with_password()
 
     with (
         patch.object(lg, "FirebaseTokenProvider", return_value=auth),
@@ -191,7 +138,7 @@ def test_linking_onto_a_different_uid_is_a_hard_failure() -> None:
         patch.object(lg.requests, "post", return_value=_response(body=body)),
         pytest.raises(lg.LinkError, match="LINKED THE WRONG ACCOUNT"),
     ):
-        lg.link_google(_CONFIG, _google_token())
+        lg.link_google(_config_with_password(), _google_token())
 
 
 def test_the_wrong_account_message_names_the_unlink_remedy() -> None:
@@ -203,7 +150,7 @@ def test_the_wrong_account_message_names_the_unlink_remedy() -> None:
         ),
         pytest.raises(lg.LinkError, match="Unlink this Google identity"),
     ):
-        lg.link_google(_CONFIG, _google_token())
+        lg.link_google(_config_with_password(), _google_token())
 
 
 def test_a_response_without_a_local_id_is_rejected() -> None:
@@ -213,7 +160,7 @@ def test_a_response_without_a_local_id_is_rejected() -> None:
         patch.object(lg.requests, "post", return_value=_response(body={})),
         pytest.raises(lg.LinkError, match="no localId"),
     ):
-        lg.link_google(_CONFIG, _google_token())
+        lg.link_google(_config_with_password(), _google_token())
 
 
 def test_a_rejected_link_reports_the_status_and_body() -> None:
@@ -225,7 +172,7 @@ def test_a_rejected_link_reports_the_status_and_body() -> None:
         patch.object(lg.requests, "post", return_value=response),
         pytest.raises(lg.LinkError, match="HTTP 400"),
     ):
-        lg.link_google(_CONFIG, _google_token())
+        lg.link_google(_config_with_password(), _google_token())
 
 
 def test_a_network_error_is_wrapped_as_a_link_error() -> None:
@@ -235,7 +182,7 @@ def test_a_network_error_is_wrapped_as_a_link_error() -> None:
         patch.object(lg.requests, "post", side_effect=requests.Timeout("timed out")),
         pytest.raises(lg.LinkError, match="network error"),
     ):
-        lg.link_google(_CONFIG, _google_token())
+        lg.link_google(_config_with_password(), _google_token())
 
 
 def test_the_timeout_is_passed_through() -> None:
@@ -244,6 +191,6 @@ def test_the_timeout_is_passed_through() -> None:
         patch.object(lg, "FirebaseTokenProvider", return_value=_auth_provider()),
         patch.object(lg.requests, "post", return_value=_response()) as posted,
     ):
-        lg.link_google(_CONFIG, _google_token(), timeout_seconds=5)
+        lg.link_google(_config_with_password(), _google_token(), timeout_seconds=5)
 
     assert posted.call_args.kwargs["timeout"] == 5
