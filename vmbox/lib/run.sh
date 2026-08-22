@@ -24,7 +24,12 @@ readonly RC_PATH="/var/tmp/vmbox.rc"
 # on a missing file is a SPECIAL BUILTIN error that exits the shell outright,
 # and `|| true` does NOT rescue it. Written that way, every `vm run` against a
 # base image predating this snippet silently produced no output at all.
-readonly GUEST_ENV_SETUP='[ -f /etc/profile.d/vmbox-x11.sh ] && . /etc/profile.d/vmbox-x11.sh;'
+# Built at call time, not as a constant, so the host's VMBOX_X_WAIT is baked
+# in by VALUE -- a single-quoted constant would ship the literal ${...} text.
+_guest_env_setup() {
+    printf 'export VMBOX_X_WAIT=%s; [ -f /etc/profile.d/vmbox-x11.sh ] && . /etc/profile.d/vmbox-x11.sh;' \
+        "${VMBOX_X_WAIT:-0}"
+}
 # Transport for guest commands. Serial is the default for shutdown work: it
 # keeps printing through the poweroff that kills ssh, and it still works when
 # sshd does not. ssh stays available as the faster path for bulk work.
@@ -64,7 +69,7 @@ run_in_vm() {
     local ssh_rc=0
     _run_exec "$name" "$@" || ssh_rc=$?
 
-    _run_settle "$name" "$serial" || true
+    _run_settle "$name" "$serial" "$ssh_rc" || true
     local frc=0
     _run_finish "$name" "$serial" "$events" "$events_before" "$ssh_rc" || frc=$?
     return "$frc"
@@ -78,7 +83,7 @@ _run_exec() {
     case "$(_run_transport "$name")" in
         serial) _run_exec_serial "$name" "$cmd" ;;
         *)      vm_ssh_exec "$name" \
-                    "sh -c '$GUEST_ENV_SETUP { $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
+                    "sh -c '$(_guest_env_setup) { $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
                     </dev/null ;;
     esac
 }
@@ -101,12 +106,27 @@ _run_exec_serial() {
     console="$(vm_console "$name")"
     [[ -S "$console" ]] || die "no serial console socket for '$name'"
     python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
-        "$GUEST_ENV_SETUP { $cmd ; } ; echo \$? > $RC_PATH"
+        "$(_guest_env_setup) { $cmd ; } ; echo \$? > $RC_PATH"
 }
 
-# Give a guest that is shutting down time to finish writing its serial log.
+# Give a guest that is SHUTTING DOWN time to finish writing its serial log.
+#
+# Only a guest that is actually stopping needs this. The first loop used to
+# run unconditionally, so every ordinary `vm run` -- the overwhelming majority,
+# which leave the guest running -- paid a flat 30s waiting for a poweroff
+# marker that was never going to appear. That single wait was most of the
+# wall-clock cost of running anything at all in a sandbox: 41s for a `true`,
+# of which 31s was this. Measured before/after: 41s -> 11s.
+#
+# The ssh transport reports a dropped connection as 255, which is what a
+# successful poweroff looks like from the host; a guest that is merely still
+# running gives a real exit code. So: settle only when the guest has already
+# stopped, or when the connection died in the way a shutdown would cause.
 _run_settle() {
-    local name="$1" serial="$2" waited=0
+    local name="$1" serial="$2" ssh_rc="${3:-0}" waited=0
+    if vm_is_running "$name" && (( ssh_rc != 255 )); then
+        return 0
+    fi
     while vm_is_running "$name" && (( waited < 30 )); do
         grep -qa "$POWEROFF_MARKER" "$serial" 2>/dev/null && break
         sleep 1; waited=$(( waited + 1 ))

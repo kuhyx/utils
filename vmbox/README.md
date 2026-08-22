@@ -6,7 +6,7 @@ host**. Break it as thoroughly as you like; reset takes under a second.
 
 ```bash
 ./install.sh          # installs deps (libisoburn), links `vm` onto PATH
-vm build              # builds the golden image, once (~10 min)
+vm build              # builds the golden image, once (~90s)
 vm new demo           # instant: a ~200 KB overlay on the sealed base
 vm run demo 'sudo systemctl poweroff'
 vm reset demo         # back to pristine
@@ -130,6 +130,25 @@ fixtures assume a Debian layout) all stay on the host or stay untested.
 
 ## Tests
 
-`bats tests/test_vmbox.bats` — host-side unit tests for name validation, meta
-handling, serial rotation and the full verdict table. They do not boot a VM;
-booting is covered by the destructive end-to-end demo above.
+`bats tests/test_vmbox.bats` — 39 host-side unit tests for name validation,
+meta handling, serial rotation and the full verdict table. They do not boot a
+VM; booting is covered by the destructive end-to-end demo above.
+
+## Speed
+
+Measured on this host, all with the cloud image already downloaded:
+
+| | before | after |
+|---|---|---|
+| `vm run` (cold sandbox) | 41s | 12s |
+| `vm run` (warm sandbox) | 30s | 0s |
+
+Neither number was the guest being slow. `_run_settle` waited up to 30s for a
+poweroff marker on EVERY run, including the majority that leave the guest
+running, and the ssh readiness poll used a 5s connect timeout against a
+forwarded port QEMU accepts before the guest is listening on it.
+
+The build reads packages from the host's own `/var/cache/pacman/pkg`, mounted
+read-only, rather than fetching 396 MiB over the internet. The guest keeps its
+own writable cache, so a package the host lacks is downloaded as usual. See
+`SESSION_RESULTS.md` for the build before/after.

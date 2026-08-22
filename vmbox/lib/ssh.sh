@@ -24,7 +24,7 @@ _ssh_base_args() {
         -o UserKnownHostsFile=/dev/null \
         -o GlobalKnownHostsFile=/dev/null \
         -o LogLevel=ERROR \
-        -o ConnectTimeout=5 \
+        -o ConnectTimeout="${VMBOX_SSH_CONNECT_TIMEOUT:-5}" \
         -o ServerAliveInterval=5 \
         -p "$port"
 }
@@ -81,13 +81,25 @@ vm_wait_ssh() {
     while :; do
         printf -v now '%(%s)T' -1
         (( now < deadline )) || return 1
-        if vm_is_running "$name" && vm_ssh_exec "$name" -o BatchMode=yes true 2>/dev/null; then
+        # A 1s connect timeout (not the 5s default) is what makes this loop
+        # track the guest instead of lagging ~35s behind it. QEMU's user-mode
+        # networking ACCEPTS the forwarded TCP connection even while the guest
+        # has nothing listening on :22, so a probe against a booting guest does
+        # not fail fast -- it blocks for the whole ConnectTimeout. Measured:
+        # sshd is reachable at ~10s, but a 5s-timeout poll reported the guest
+        # up at ~45s, and that inflated figure was blamed on cloud-init.
+        #
+        # It goes through the env var because ssh honours the FIRST value given
+        # for an option, so a second -o appended here would be ignored -- and
+        # anything after the hostname is the remote command, not an option.
+        if vm_is_running "$name" &&
+           VMBOX_SSH_CONNECT_TIMEOUT=1 vm_ssh_exec "$name" -o BatchMode=yes true 2>/dev/null; then
             return 0
         fi
         # A qemu that has exited means the guest will never answer.
         if ! vm_is_running "$name"; then
             (( now - start > 3 )) && return 1
         fi
-        sleep 2
+        sleep 1
     done
 }

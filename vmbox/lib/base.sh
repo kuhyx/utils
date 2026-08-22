@@ -19,6 +19,19 @@ readonly CLOUD_URL="https://geo.mirror.pkgbuild.com/images/latest"
 readonly CLOUD_IMG="Arch-Linux-x86_64-cloudimg.qcow2"
 readonly BASE_DISK_SIZE="${BASE_DISK_SIZE:-20G}"
 readonly BUILD_SSH_PORT="${BUILD_SSH_PORT:-2222}"
+# The host's own package cache, offered to the build guest read-only.
+readonly HOST_PKG_CACHE="${VMBOX_HOST_PKG_CACHE:-/var/cache/pacman/pkg}"
+
+# Per-phase timing. "The build got faster" is only checkable against phase
+# numbers: a single wall-clock figure hides which change did the work, and
+# the download share in particular varies with what the host cache holds.
+_phase_start=0
+phase_begin() { printf -v _phase_start '%(%s)T' -1; log "$1"; }
+phase_end() {
+    local now
+    printf -v now '%(%s)T' -1
+    ok "$1: $(( now - _phase_start ))s"
+}
 
 base_fetch() {
     # Separate statements: within a single `local a=.. b="$a.."`, the later
@@ -55,6 +68,27 @@ base_provision() {
     seed_ensure_key
     seed_build_iso "$seed" "$work"
 
+    # Offer the host's own pacman cache to the build guest, READ-ONLY. The
+    # host cache already holds every package this image installs, so this is
+    # the difference between fetching them over the internet and reading them
+    # off local disk.
+    #
+    # Read-only is enforced at BOTH layers -- `readonly=on` here and `ro` in
+    # the guest's mount -- because a guest that could write here would be
+    # writing into the real host system's package cache, which is the one
+    # thing this design must never allow. The guest still keeps its own
+    # writable /var/cache/pacman/pkg; this mount is only an extra CacheDir,
+    # so a package the host cache lacks is downloaded normally rather than
+    # failing the build.
+    local -a cache_args=()
+    if [[ -d "$HOST_PKG_CACHE" ]]; then
+        cache_args=(-virtfs
+            "local,path=$HOST_PKG_CACHE,mount_tag=pkgcache,security_model=none,readonly=on")
+        log "Sharing the host pacman cache read-only ($(du -sh "$HOST_PKG_CACHE" 2>/dev/null | cut -f1))"
+    else
+        warn "no host pacman cache at $HOST_PKG_CACHE -- packages will be downloaded"
+    fi
+
     log "Booting image for provisioning"
     qemu-system-x86_64 \
         -machine q35,accel=kvm -cpu host -smp 4 -m 4096 \
@@ -62,6 +96,7 @@ base_provision() {
         -drive file="$seed",if=virtio,format=raw,readonly=on \
         -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:${BUILD_SSH_PORT}-:22" \
         -device virtio-net-pci,netdev=net0 \
+        "${cache_args[@]}" \
         -display none \
         -chardev file,id=ser0,path="$serial",append=on -serial chardev:ser0 \
         -no-reboot >/dev/null 2>&1 &
@@ -73,12 +108,19 @@ base_provision() {
     # shellcheck disable=SC2064  # expanding NOW is intended: see comment above
     trap "kill $qpid 2>/dev/null || true; rm -rf '$work'" RETURN
 
+    phase_begin "Waiting for the provisioning guest to come up"
     _base_wait_ssh "$qpid" || die "guest never became reachable -- see $serial"
+    phase_end "PHASE first-boot"
 
-    log "Provisioning guest (installs Xorg/i3 + dev tools; several minutes)"
+    phase_begin "Provisioning guest (installs Xorg/i3 + dev tools)"
+    # provision.sh sources a sibling (provision-desktop.sh) by path, so BOTH
+    # must land in the same directory in the guest -- copying only the entry
+    # point produces a build that dies partway with "No such file or directory".
     _base_scp "$VMBOX_GUEST_DIR/provision.sh" "/tmp/provision.sh"
-    _base_ssh "chmod +x /tmp/provision.sh && sudo /tmp/provision.sh '$VMBOX_GUEST_USER'" ||
+    _base_scp "$VMBOX_GUEST_DIR/provision-desktop.sh" "/tmp/provision-desktop.sh"
+    _base_ssh "chmod +x /tmp/provision.sh /tmp/provision-desktop.sh && sudo /tmp/provision.sh '$VMBOX_GUEST_USER'" ||
         die "provisioning failed -- see $serial"
+    phase_end "PHASE provision"
 
     # Disable cloud-init so per-VM boots skip datasource probing entirely
     # (it adds startup delay and would re-run on every overlay).
@@ -110,7 +152,7 @@ base_provision() {
 
 _base_ssh_opts() {
     printf '%s' "-i $VMBOX_SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
--o LogLevel=ERROR -o ConnectTimeout=5 -p $BUILD_SSH_PORT"
+-o LogLevel=ERROR -o ConnectTimeout=${BUILD_SSH_CONNECT_TIMEOUT:-5} -p $BUILD_SSH_PORT"
 }
 
 _base_ssh() {
@@ -125,17 +167,31 @@ _base_scp() {
 
 # ssh is its own port prober, so no nc/socat needed (neither is installed).
 _base_wait_ssh() {
-    local qpid="$1" waited=0
+    local qpid="$1" start now deadline
     log "Waiting for guest ssh (first boot runs cloud-init)"
-    while (( waited < 300 )); do
+    printf -v start '%(%s)T' -1
+    deadline=$(( start + 300 ))
+    # Poll every 1s against a wall-clock deadline, not every 5s against a
+    # count of sleeps. The old loop over-reported by up to 5s of sleep plus
+    # the ConnectTimeout each failed probe burns inside ssh, so a guest that
+    # was reachable at ~22s was recorded as "reachable after 45s" -- and that
+    # inflated figure was then treated as cloud-init being slow.
+    while :; do
         kill -0 "$qpid" 2>/dev/null || return 1
-        if _base_ssh -o BatchMode=yes true 2>/dev/null; then
-            ok "guest reachable after ${waited}s"
+        printf -v now '%(%s)T' -1
+        (( now < deadline )) || return 1
+        # Short connect timeout: QEMU's user-mode networking accepts the
+        # forwarded connection before the guest listens on :22, so a probe
+        # against a booting guest blocks for the WHOLE timeout rather than
+        # failing fast. It must go through the env var -- ssh honours the
+        # FIRST value given for an option, so a second -o here is ignored.
+        if BUILD_SSH_CONNECT_TIMEOUT=1 _base_ssh -o BatchMode=yes true 2>/dev/null; then
+            printf -v now '%(%s)T' -1
+            ok "guest reachable after $(( now - start ))s"
             return 0
         fi
-        sleep 5; waited=$(( waited + 5 ))
+        sleep 1
     done
-    return 1
 }
 
 # Make the base read-only and record its hash. The hash is the guard that

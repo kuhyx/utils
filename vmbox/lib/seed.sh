@@ -49,6 +49,7 @@ chpasswd:
 
 ssh_pwauth: true
 preserve_hostname: false
+
 UD
 
     cat > "$workdir/meta-data" <<MD

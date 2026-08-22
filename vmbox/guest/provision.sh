@@ -11,6 +11,32 @@ GUEST_USER="${1:-arch}"
 
 echo "=== vmbox provision: starting ==="
 
+# --- host package cache (read-only) ---------------------------------------
+# The host shares its own /var/cache/pacman/pkg on the `pkgcache` 9p tag. Every
+# package this image installs is usually already in it, so reading them from
+# there instead of the internet is the single biggest lever on build time.
+#
+# Mounted `ro` -- belt and braces with the `readonly=on` on the QEMU side --
+# because this is the REAL host's package cache, not a copy. It is added as an
+# EXTRA CacheDir, listed BEFORE the guest's own: pacman reads from every
+# CacheDir but only ever writes to the first WRITABLE one, so a package the
+# host cache lacks still downloads into the guest's own cache instead of
+# failing the build.
+if [[ -n "$(grep -s pkgcache /proc/self/mountinfo)" ]] || mountpoint -q /mnt/pkgcache; then
+    :  # already mounted
+else
+    install -d -m 755 /mnt/pkgcache
+    if mount -t 9p -o trans=virtio,version=9p2000.L,ro pkgcache /mnt/pkgcache 2>/dev/null; then
+        echo "provision: host pacman cache mounted read-only ($(ls /mnt/pkgcache | wc -l) files)"
+        # CacheDir is multi-valued; the guest's own writable dir stays first.
+        sed -i 's|^#*CacheDir.*|CacheDir = /var/cache/pacman/pkg/\nCacheDir = /mnt/pkgcache/|' \
+            /etc/pacman.conf
+        grep -q '^CacheDir' /etc/pacman.conf || printf 'CacheDir = /var/cache/pacman/pkg/\nCacheDir = /mnt/pkgcache/\n' >> /etc/pacman.conf
+    else
+        echo "provision: no host pacman cache share; packages will be downloaded"
+    fi
+fi
+
 # The cloud image ships an empty package DB; -Syu also picks up any security
 # fixes since the image was cut.
 pacman -Syu --noconfirm --needed \
@@ -102,83 +128,10 @@ if ! grep -q hostrepo /etc/fstab 2>/dev/null; then
     echo 'hostrepo /mnt/hostrepo 9p trans=virtio,version=9p2000.L,ro,nofail 0 0' >> /etc/fstab
 fi
 
-# --- X11 autologin + i3 ---------------------------------------------------
-# Locker tests need a real X session on tty1. Autologin then startx.
-install -d -m 755 /etc/systemd/system/getty@tty1.service.d
-cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<UNIT
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin ${GUEST_USER} --noclear %I \$TERM
-UNIT
-
-cat > "/home/$GUEST_USER/.xinitrc" <<'XINIT'
-exec i3
-XINIT
-chown "$GUEST_USER:$GUEST_USER" "/home/$GUEST_USER/.xinitrc"
-
-# startx on tty1 login only, so `vm ssh` sessions do not try to start X.
-cat > "/home/$GUEST_USER/.bash_profile" <<'PROFILE'
-[[ -f ~/.bashrc ]] && . ~/.bashrc
-if [[ -z ${DISPLAY:-} && $(tty) == /dev/tty1 ]]; then
-    exec startx -- -keeptty >~/.xsession.log 2>&1
-fi
-PROFILE
-chown "$GUEST_USER:$GUEST_USER" "/home/$GUEST_USER/.bash_profile"
-
-# i3 without a config prompts a wizard that blocks the session; ship a minimal one.
-install -d -m 755 "/home/$GUEST_USER/.config/i3"
-cat > "/home/$GUEST_USER/.config/i3/config" <<'I3'
-set $mod Mod4
-font pango:monospace 10
-bindsym $mod+Return exec xterm
-bindsym $mod+d exec dmenu_run
-bindsym $mod+Shift+q kill
-# Marker window so screenshot tests have something deterministic to match.
-exec --no-startup-id xterm -T vmbox-ready -e 'echo VMBOX READY; exec bash'
-I3
-chown -R "$GUEST_USER:$GUEST_USER" "/home/$GUEST_USER/.config"
-
-# --- X session discovery for non-login commands ---------------------------
-# The image ships a real X/i3 session on tty1 so locker and i3 tests can run.
-# But `vm run` executes through `sh -c`, which reads no profile, so those
-# commands land with no DISPLAY and no XAUTHORITY -- and every X tool then
-# fails with "Could not determine i3 socket path" / "cannot open display".
-# That looks exactly like "the sandbox has no X", which is wrong and cost a
-# real installer run to diagnose.
-#
-# XAUTHORITY is the awkward half: startx generates /tmp/serverauth.XXXXXXXX
-# with a random suffix on every boot, so it cannot be hardcoded. Resolve it
-# from the running Xorg process instead, falling back to a glob.
-cat > /etc/profile.d/vmbox-x11.sh <<'XENV'
-# Point non-login shells at the guest's X session, if one is running.
-# Sourced by vmbox's `vm run`; harmless when no X session exists.
-if [ -z "${DISPLAY:-}" ]; then
-    if pgrep -x Xorg >/dev/null 2>&1; then
-        DISPLAY=":0"
-        export DISPLAY
-    fi
-fi
-if [ -n "${DISPLAY:-}" ] && [ -z "${XAUTHORITY:-}" ]; then
-    # Prefer the auth file the running Xorg was actually started with.
-    _vmbox_xauth="$(tr '\0' '\n' < /proc/"$(pgrep -x Xorg | head -1)"/cmdline 2>/dev/null \
-        | grep -A1 -x -- -auth | tail -1)"
-    if [ ! -f "${_vmbox_xauth:-}" ]; then
-        _vmbox_xauth="$(ls -1t /tmp/serverauth.* 2>/dev/null | head -1)"
-    fi
-    if [ -f "${_vmbox_xauth:-}" ]; then
-        XAUTHORITY="$_vmbox_xauth"
-        export XAUTHORITY
-    fi
-    unset _vmbox_xauth
-fi
-# i3 tools look here when I3SOCK is unset; setting it explicitly avoids a
-# second round of X round-trips in tests that shell out repeatedly.
-if [ -n "${DISPLAY:-}" ] && [ -z "${I3SOCK:-}" ] && command -v i3 >/dev/null 2>&1; then
-    I3SOCK="$(i3 --get-socketpath 2>/dev/null || true)"
-    [ -n "$I3SOCK" ] && export I3SOCK || unset I3SOCK
-fi
-XENV
-chmod 644 /etc/profile.d/vmbox-x11.sh
+# --- graphical session + X discovery --------------------------------------
+# Autologin on tty1, startx into i3, and the DISPLAY/XAUTHORITY resolution
+# that lets `vm run` reach that session. Separate file for the 250-line cap.
+bash "$(dirname "${BASH_SOURCE[0]}")/provision-desktop.sh" "$GUEST_USER"
 
 # --- static IP on the VM-to-VM segment ------------------------------------
 # The multicast segment has no DHCP (the user-mode NIC serves the other

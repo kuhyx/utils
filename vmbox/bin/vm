@@ -22,6 +22,7 @@ Usage: vm <command> [args]
   new <name> [--rtc <ts>]     Create a sandbox (instant; thin overlay)
   run <name> <command...>     Run a command in the sandbox, report the verdict
   ssh <name> [args...]        Interactive shell in the sandbox
+  scp <name> <src> <dest>     Copy a host file into the sandbox
   share <host-path>           Expose a host dir to sandboxes (read-only bind)
   unshare <name>              Stop exposing it
   repo <name> <path> [--worktree]
@@ -51,6 +52,20 @@ cmd_repo() {
     [[ "${1:-}" == "--worktree" ]] && mode=worktree
     repo_sync "$name" "$src" "$mode"
 }
+# Copy a file into a sandbox. lib/ssh.sh has always been able to do this;
+# without a subcommand the only route was base64 through `vm run`.
+cmd_scp() {
+    local name="${1:-}" src="${2:-}" dest="${3:-}"
+    [[ -n "$name" && -n "$src" && -n "$dest" ]] ||
+        die "usage: vm scp <name> <host-src> <guest-dest>"
+    name="$(validate_vm_name "$name")"
+    require_vm "$name"
+    [[ -e "$src" ]] || die "no such file: $src"
+    vm_is_running "$name" || die "sandbox '$name' is not running (start it with: vm run $name true)"
+    vm_scp_to "$name" "$src" "$dest" || die "copy failed"
+    ok "copied $src -> $name:$dest"
+}
+
 
 cmd_list() {
     [[ -d "$VMBOX_VMS_DIR" ]] || { echo "no sandboxes yet (create one: vm new <name>)"; return 0; }
@@ -78,6 +93,7 @@ main() {
         rm)         source "$VMBOX_LIB_DIR/overlay.sh";                       overlay_rm "$@" ;;
         run)        require_host_deps; source "$VMBOX_LIB_DIR/run.sh";        run_in_vm "$@" ;;
         ssh)        source "$VMBOX_LIB_DIR/ssh.sh";                           vm_ssh_interactive "$@" ;;
+        scp)        source "$VMBOX_LIB_DIR/ssh.sh";                           cmd_scp "$@" ;;
         screenshot) source "$VMBOX_LIB_DIR/screenshot.sh";                    vm_screenshot "$@" ;;
         repo)       source "$VMBOX_LIB_DIR/repo.sh";                          cmd_repo "$@" ;;
         share)      source "$VMBOX_LIB_DIR/repo.sh";                          repo_share "$@" ;;
