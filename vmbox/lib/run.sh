@@ -17,6 +17,14 @@ source "$(dirname "${BASH_SOURCE[0]}")/ssh.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/verdict.sh"
 
 readonly RC_PATH="/var/tmp/vmbox.rc"
+# Sourced before every guest command so X11 tests can reach the guest's own
+# i3 session. `sh -c` reads no profile, so without this DISPLAY/XAUTHORITY are
+# unset and every X tool fails as if the sandbox had no X server at all.
+# The `[ -f ]` guard is load-bearing, not defensive dressing: in POSIX sh, `.`
+# on a missing file is a SPECIAL BUILTIN error that exits the shell outright,
+# and `|| true` does NOT rescue it. Written that way, every `vm run` against a
+# base image predating this snippet silently produced no output at all.
+readonly GUEST_ENV_SETUP='[ -f /etc/profile.d/vmbox-x11.sh ] && . /etc/profile.d/vmbox-x11.sh;'
 # Transport for guest commands. Serial is the default for shutdown work: it
 # keeps printing through the poweroff that kills ssh, and it still works when
 # sshd does not. ssh stays available as the faster path for bulk work.
@@ -67,7 +75,7 @@ _run_exec() {
     case "$(_run_transport "$name")" in
         serial) _run_exec_serial "$name" "$cmd" ;;
         *)      vm_ssh_exec "$name" \
-                    "sh -c '{ $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
+                    "sh -c '$GUEST_ENV_SETUP { $cmd; } ; echo \$? | sudo tee $RC_PATH >/dev/null' </dev/null" \
                     </dev/null ;;
     esac
 }
@@ -90,7 +98,7 @@ _run_exec_serial() {
     console="$(vm_console "$name")"
     [[ -S "$console" ]] || die "no serial console socket for '$name'"
     python3 "$VMBOX_LIB_DIR/serial_exec.py" "$console" \
-        "{ $cmd ; } ; echo \$? > $RC_PATH"
+        "$GUEST_ENV_SETUP { $cmd ; } ; echo \$? > $RC_PATH"
 }
 
 # Give a guest that is shutting down time to finish writing its serial log.

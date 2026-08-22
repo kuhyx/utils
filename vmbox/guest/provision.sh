@@ -138,6 +138,48 @@ exec --no-startup-id xterm -T vmbox-ready -e 'echo VMBOX READY; exec bash'
 I3
 chown -R "$GUEST_USER:$GUEST_USER" "/home/$GUEST_USER/.config"
 
+# --- X session discovery for non-login commands ---------------------------
+# The image ships a real X/i3 session on tty1 so locker and i3 tests can run.
+# But `vm run` executes through `sh -c`, which reads no profile, so those
+# commands land with no DISPLAY and no XAUTHORITY -- and every X tool then
+# fails with "Could not determine i3 socket path" / "cannot open display".
+# That looks exactly like "the sandbox has no X", which is wrong and cost a
+# real installer run to diagnose.
+#
+# XAUTHORITY is the awkward half: startx generates /tmp/serverauth.XXXXXXXX
+# with a random suffix on every boot, so it cannot be hardcoded. Resolve it
+# from the running Xorg process instead, falling back to a glob.
+cat > /etc/profile.d/vmbox-x11.sh <<'XENV'
+# Point non-login shells at the guest's X session, if one is running.
+# Sourced by vmbox's `vm run`; harmless when no X session exists.
+if [ -z "${DISPLAY:-}" ]; then
+    if pgrep -x Xorg >/dev/null 2>&1; then
+        DISPLAY=":0"
+        export DISPLAY
+    fi
+fi
+if [ -n "${DISPLAY:-}" ] && [ -z "${XAUTHORITY:-}" ]; then
+    # Prefer the auth file the running Xorg was actually started with.
+    _vmbox_xauth="$(tr '\0' '\n' < /proc/"$(pgrep -x Xorg | head -1)"/cmdline 2>/dev/null \
+        | grep -A1 -x -- -auth | tail -1)"
+    if [ ! -f "${_vmbox_xauth:-}" ]; then
+        _vmbox_xauth="$(ls -1t /tmp/serverauth.* 2>/dev/null | head -1)"
+    fi
+    if [ -f "${_vmbox_xauth:-}" ]; then
+        XAUTHORITY="$_vmbox_xauth"
+        export XAUTHORITY
+    fi
+    unset _vmbox_xauth
+fi
+# i3 tools look here when I3SOCK is unset; setting it explicitly avoids a
+# second round of X round-trips in tests that shell out repeatedly.
+if [ -n "${DISPLAY:-}" ] && [ -z "${I3SOCK:-}" ] && command -v i3 >/dev/null 2>&1; then
+    I3SOCK="$(i3 --get-socketpath 2>/dev/null || true)"
+    [ -n "$I3SOCK" ] && export I3SOCK || unset I3SOCK
+fi
+XENV
+chmod 644 /etc/profile.d/vmbox-x11.sh
+
 # --- static IP on the VM-to-VM segment ------------------------------------
 # The multicast segment has no DHCP (the user-mode NIC serves the other
 # interface), so without a static address sandboxes cannot reach each other.
