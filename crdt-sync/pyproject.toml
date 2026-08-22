@@ -125,6 +125,7 @@ addopts = [
     "--strict-config",
     "-ra",
     "--cov=crdt_sync",
+    "--cov=tool",
     "--cov-branch",
     "--cov-report=term-missing",
     "--cov-report=lcov",
@@ -136,7 +137,10 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["crdt_sync"]
+# `tool` is measured but deliberately not installed: [tool.setuptools] ships
+# only crdt_sync, so these one-shot scripts stay out of every consumer's
+# site-packages. They still run and import as a package from this directory.
+source = ["crdt_sync", "tool"]
 branch = true
 omit = [
     "*/__pycache__/*",

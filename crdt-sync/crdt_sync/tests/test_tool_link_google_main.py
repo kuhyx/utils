@@ -19,9 +19,8 @@ import pytest
 
 from crdt_sync._config import ConfigError
 from crdt_sync._firebase_auth import FirebaseAuthError
+from crdt_sync.tests.test_tool_link_google import _CONFIG, _UID, _google_token
 from tool import link_google as lg
-
-from .test_tool_link_google import _CONFIG, _UID, _google_token
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,7 +38,7 @@ def _args(
 
 def test_a_token_is_read_from_the_command_line() -> None:
     """The inline form."""
-    assert lg._read_token(_args(token="the-token")) == "the-token"
+    assert lg._read_token(_args("the-token")) == "the-token"
 
 
 def test_a_token_is_read_from_a_file(tmp_path: Path) -> None:
@@ -82,7 +81,7 @@ def test_an_empty_token_is_rejected(tmp_path: Path) -> None:
 def test_an_empty_inline_token_is_rejected() -> None:
     """Same check, the other input route."""
     with pytest.raises(lg.LinkError, match="is empty"):
-        lg._read_token(_args(token=""))
+        lg._read_token(_args(""))
 
 
 def test_main_links_and_reports_the_unchanged_uid(
