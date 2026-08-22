@@ -49,7 +49,9 @@ def test_a_token_from_another_issuer_is_rejected() -> None:
         lg.describe_google_token(_google_token(iss="https://login.example.com"))
 
 
-@pytest.mark.parametrize("issuer", [*lg._EXPECTED_ISSUERS])
+@pytest.mark.parametrize(
+    "issuer", ["https://accounts.google.com", "accounts.google.com"]
+)
 def test_both_google_issuer_spellings_are_accepted(issuer: str) -> None:
     """Google uses both forms; rejecting either would be a false alarm."""
     assert "person@gmail.com" in lg.describe_google_token(_google_token(iss=issuer))
