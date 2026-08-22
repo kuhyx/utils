@@ -59,13 +59,18 @@ size_after="$(stat -c %s "$overlay" 2>/dev/null || echo 0)"
 check "overlay recorded the destruction" "GREW" \
     "$([[ "$size_after" -gt "${size_before:-0}" ]] && echo GREW || echo "same:$size_after")"
 
-# The guest can no longer answer at all -- that unreachability IS the proof.
+# A RUNNING Linux survives `rm -rf /usr` for a while: processes keep their
+# binaries alive through open file handles, so sshd answers until it exits.
+# The honest proof of destruction is that the machine cannot come back --
+# reboot it and it will not return.
+#
 # Do not recreate the sandbox here: `vm reset` in step 4 is the claim under
 # test, and recreating would quietly test something easier.
-if timeout 150 "$VM_CLI" run "$VM" 'echo alive' >/dev/null 2>&1; then
-    check "wiped guest is unreachable" "UNREACHABLE" "still answering"
+"$VM_CLI" run "$VM" 'sudo systemctl reboot' >/dev/null 2>&1 || true
+if timeout 180 "$VM_CLI" run "$VM" 'echo alive' 2>&1 | grep -q alive; then
+    check "wiped guest cannot boot again" "DEAD" "it came back up"
 else
-    check "wiped guest is unreachable" "UNREACHABLE" "UNREACHABLE"
+    check "wiped guest cannot boot again" "DEAD" "DEAD"
 fi
 
 step "4. RESET -- one command"

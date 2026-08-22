@@ -16,6 +16,17 @@ readonly VMBOX_MEM="${VMBOX_MEM:-4096}"
 readonly VMBOX_SMP="${VMBOX_SMP:-4}"
 
 # $1 = vm name. Echoes the serial-log index it started.
+# First VM on the segment listens; later ones connect to it. Plain TCP on
+# loopback, so this works where multicast does not.
+_peer_netdev() {
+    if (exec 3<>/dev/tcp/127.0.0.1/"$VMBOX_HUB_PORT") 2>/dev/null; then
+        exec 3<&- 2>/dev/null || true
+        printf 'connect=127.0.0.1:%s' "$VMBOX_HUB_PORT"
+    else
+        printf 'listen=127.0.0.1:%s' "$VMBOX_HUB_PORT"
+    fi
+}
+
 launch_vm() {
     local name="$1"
     require_vm "$name"
@@ -55,7 +66,8 @@ launch_vm() {
         -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:${port}-:22"
         -device virtio-net-pci,netdev=net0
         # Shared segment so sandboxes can reach each other. No root, no bridge.
-        -netdev "socket,id=net1,mcast=${VMBOX_MCAST}"
+        # listen= for the first VM up, connect= for the rest (see _peer_netdev).
+        -netdev "socket,id=net1,$(_peer_netdev)"
         -device "virtio-net-pci,netdev=net1,mac=52:54:00:be:ef:$(printf '%02x' "$index")"
         # Repos under test, mounted PHYSICALLY read-only. Scoped to an
         # explicit share dir -- NEVER $HOME, which would hand the guest

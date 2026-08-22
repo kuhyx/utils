@@ -144,24 +144,28 @@ chown -R "$GUEST_USER:$GUEST_USER" "/home/$GUEST_USER/.config"
 # The last octet is injected per-VM at launch via the vmbox.peer kernel arg.
 cat > /usr/local/bin/vmbox-peer-ip <<'PEER'
 #!/bin/bash
-# Assign the peer-network address from the vmbox.peer=<n> kernel argument.
+# Bring up the VM-to-VM segment and give this guest a static address.
+#
+# The address comes from the NIC's own MAC (the host allocates
+# 52:54:00:be:ef:<index>), NOT from a kernel argument: deriving it here means
+# the guest needs nothing passed in, so there is no way for the launcher and
+# the guest to disagree about which index this VM has.
 set -euo pipefail
-n=$(sed -n 's/.*vmbox\.peer=\([0-9]\+\).*/\1/p' /proc/cmdline)
-[[ -n "$n" ]] || exit 0
-subnet=$(sed -n 's/.*vmbox\.subnet=\([0-9.]\+\).*/\1/p' /proc/cmdline)
-[[ -n "$subnet" ]] || subnet=10.77.0
-# The peer NIC is the one WITHOUT a default route (user-mode NIC has it).
-for i in /sys/class/net/e*; do
-    dev=$(basename "$i")
-    # Skip the primary NIC: it carries ssh and already has DHCP + a default
-    # route. Touching it is how the sandbox becomes unreachable.
-    ip route show default dev "$dev" | grep -q . && continue
-    ip -4 addr show dev "$dev" | grep -q 'inet ' && continue
-    ip addr add "${subnet}.${n}/24" dev "$dev" 2>/dev/null || true
+subnet="${VMBOX_SUBNET:-10.77.0}"
+for path in /sys/class/net/*/address; do
+    dev="$(basename "$(dirname "$path")")"
+    [[ "$dev" == lo ]] && continue
+    mac="$(cat "$path")"
+    # Only the peer NIC carries the be:ef prefix; the primary nic must not be
+    # touched, since it carries ssh.
+    [[ "$mac" == 52:54:00:be:ef:* ]] || continue
+    idx=$((16#${mac##*:}))
+    ip addr add "${subnet}.${idx}/24" dev "$dev" 2>/dev/null || true
     ip link set "$dev" up
-    break
+    exit 0
 done
 PEER
+chmod 755 /usr/local/bin/vmbox-peer-ip
 chmod 755 /usr/local/bin/vmbox-peer-ip
 
 cat > /etc/systemd/system/vmbox-peer-ip.service <<'PSVC'

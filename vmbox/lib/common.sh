@@ -31,8 +31,12 @@ readonly VMBOX_SSH_KEY="$VMBOX_BASE_DIR/id_ed25519"
 
 # Base SSH port. Each VM gets VMBOX_SSH_PORT_BASE + its index.
 readonly VMBOX_SSH_PORT_BASE="${VMBOX_SSH_PORT_BASE:-2300}"
-# Shared multicast segment so sandboxes can reach each other (no root, no bridge).
-readonly VMBOX_MCAST="${VMBOX_MCAST:-230.0.0.1:12345}"
+# VM-to-VM segment. Multicast (mcast=) is NOT usable here: this host's `lo`
+# has no MULTICAST flag and no multicast route, so qemu accepts the option and
+# then silently drops every frame. A socket hub over plain TCP on loopback
+# needs no multicast, no bridge and no root. The lowest-indexed running VM
+# listens; the others connect to it.
+readonly VMBOX_HUB_PORT="${VMBOX_HUB_PORT:-12345}"
 # Guest static subnet on the second NIC (the mcast segment has no DHCP).
 readonly VMBOX_GUEST_SUBNET="${VMBOX_GUEST_SUBNET:-10.77.0}"
 
