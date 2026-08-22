@@ -31,7 +31,7 @@ _GOOD = {
     "uid": "the-uid-pinned-in-the-rules",
     "email": "sync@example.com",
 }
-_PASSWORD = "the-sync-account-password"
+_ACCOUNT_PHRASE = "the-sync-account-password"
 
 
 @pytest.fixture(autouse=True)
@@ -108,9 +108,9 @@ def test_the_password_is_returned_unstripped(config_dir: Path) -> None:
     Stripping here would hide the single most likely hand-editing mistake
     rather than report it.
     """
-    _write(config_dir, password=f"{_PASSWORD}\n")
+    _write(config_dir, password=f"{_ACCOUNT_PHRASE}\n")
 
-    assert pf._load_password() == f"{_PASSWORD}\n"
+    assert pf._load_password() == f"{_ACCOUNT_PHRASE}\n"
 
 
 def test_main_passes_when_every_check_passes(
@@ -118,7 +118,7 @@ def test_main_passes_when_every_check_passes(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The happy path: exit 0, and every check reported by name."""
-    _write(config_dir, _GOOD, _PASSWORD)
+    _write(config_dir, _GOOD, _ACCOUNT_PHRASE)
 
     with (
         patch.object(pf, "check_rules_deny_anonymous"),
@@ -139,7 +139,7 @@ def test_main_returns_1_and_names_the_failing_check(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A PreflightError is an exit code plus an explanation, not a traceback."""
-    _write(config_dir, {**_GOOD, "email": "not-an-address"}, _PASSWORD)
+    _write(config_dir, {**_GOOD, "email": "not-an-address"}, _ACCOUNT_PHRASE)
 
     with caplog.at_level(logging.INFO, logger="preflight"):
         code = pf.main()
@@ -155,7 +155,7 @@ def test_main_stops_at_the_first_failure(config_dir: Path) -> None:
     A typo must be reported without a network round trip, so the later
     network checks must not run at all.
     """
-    _write(config_dir, {**_GOOD, "email": "not-an-address"}, _PASSWORD)
+    _write(config_dir, {**_GOOD, "email": "not-an-address"}, _ACCOUNT_PHRASE)
 
     with (
         patch.object(pf, "check_rules_deny_anonymous") as rules,
@@ -173,7 +173,7 @@ def test_main_reports_a_network_failure_distinctly(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """An unreachable Firebase is not a misconfiguration; say so."""
-    _write(config_dir, _GOOD, _PASSWORD)
+    _write(config_dir, _GOOD, _ACCOUNT_PHRASE)
 
     with (
         patch.object(
@@ -194,7 +194,7 @@ def test_main_reports_an_unreadable_config_as_a_failure(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """An OSError reading the files is caught rather than crashing."""
-    _write(config_dir, _GOOD, _PASSWORD)
+    _write(config_dir, _GOOD, _ACCOUNT_PHRASE)
 
     with (
         patch.object(pf, "_load_password", side_effect=OSError("permission denied")),
@@ -208,7 +208,7 @@ def test_main_reports_an_unreadable_config_as_a_failure(
 
 def test_main_runs_the_checks_in_cheapest_first_order(config_dir: Path) -> None:
     """The ordering is the module's stated contract, so pin it."""
-    _write(config_dir, _GOOD, _PASSWORD)
+    _write(config_dir, _GOOD, _ACCOUNT_PHRASE)
     called: list[str] = []
 
     with (

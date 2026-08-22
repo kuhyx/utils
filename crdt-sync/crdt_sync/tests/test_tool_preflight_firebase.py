@@ -29,7 +29,7 @@ _GOOD = {
     "uid": _UID,
     "email": "sync@example.com",
 }
-_PASSWORD = "the-sync-account-password"
+_ACCOUNT_PHRASE = "the-sync-account-password"
 
 
 def _config(**overrides: str) -> dict[str, str]:
@@ -71,56 +71,58 @@ def test_all_missing_keys_are_reported_together() -> None:
 
 def test_no_placeholders_accepts_a_filled_in_config() -> None:
     """Real values pass."""
-    pf.check_no_placeholders(_config(), _PASSWORD)
+    pf.check_no_placeholders(_config(), _ACCOUNT_PHRASE)
 
 
 def test_an_unreplaced_scaffold_placeholder_is_caught() -> None:
     """The scaffold ships PASTE_ markers; one left behind is a typo."""
     with pytest.raises(pf.PreflightError, match="projectId"):
-        pf.check_no_placeholders(_config(projectId="PASTE_PROJECT_ID"), _PASSWORD)
+        pf.check_no_placeholders(_config(projectId="PASTE_PROJECT_ID"), _ACCOUNT_PHRASE)
 
 
 def test_a_placeholder_in_the_password_file_is_caught() -> None:
     """The password lives in its own file and is easy to forget."""
     with pytest.raises(pf.PreflightError, match="password"):
-        pf.check_no_placeholders(_config(), "PASTE_PASSWORD_HERE")
+        pf.check_no_placeholders(_config(), "PASTE_ACCOUNT_PHRASE_HERE")
 
 
 def test_shapes_accepts_well_formed_values() -> None:
     """The happy path raises nothing."""
-    pf.check_shapes(_config(), _PASSWORD)
+    pf.check_shapes(_config(), _ACCOUNT_PHRASE)
 
 
 def test_a_non_https_database_url_is_rejected() -> None:
     """http:// would work locally and fail everywhere else."""
     with pytest.raises(pf.PreflightError, match="must start with https://"):
         pf.check_shapes(
-            _config(databaseUrl="http://project.firebasedatabase.app"), _PASSWORD
+            _config(databaseUrl="http://project.firebasedatabase.app"), _ACCOUNT_PHRASE
         )
 
 
 def test_a_trailing_slash_on_the_database_url_is_rejected() -> None:
     """It yields a double slash in every request path built from it."""
     with pytest.raises(pf.PreflightError, match="must not end with"):
-        pf.check_shapes(_config(databaseUrl=f"{_GOOD['databaseUrl']}/"), _PASSWORD)
+        pf.check_shapes(
+            _config(databaseUrl=f"{_GOOD['databaseUrl']}/"), _ACCOUNT_PHRASE
+        )
 
 
 def test_an_api_key_in_the_wrong_format_is_rejected() -> None:
     """Pasting a service-account key instead of the Web API key."""
     with pytest.raises(pf.PreflightError, match="AIza"):
-        pf.check_shapes(_config(apiKey="ya29.not-the-web-api-key"), _PASSWORD)
+        pf.check_shapes(_config(apiKey="ya29.not-the-web-api-key"), _ACCOUNT_PHRASE)
 
 
 def test_a_password_with_a_trailing_newline_is_rejected() -> None:
     """The single most likely hand-editing mistake, per the module docstring."""
     with pytest.raises(pf.PreflightError, match="whitespace"):
-        pf.check_shapes(_config(), f"{_PASSWORD}\n")
+        pf.check_shapes(_config(), f"{_ACCOUNT_PHRASE}\n")
 
 
 def test_an_email_without_an_at_sign_is_rejected() -> None:
     """A uid pasted into the email field, typically."""
     with pytest.raises(pf.PreflightError, match="does not look like an address"):
-        pf.check_shapes(_config(email="not-an-address"), _PASSWORD)
+        pf.check_shapes(_config(email="not-an-address"), _ACCOUNT_PHRASE)
 
 
 def _get(status: int, payload: object = None) -> MagicMock:
@@ -202,7 +204,7 @@ def _provider(uid: str) -> MagicMock:
 def test_sign_in_with_the_pinned_uid_passes() -> None:
     """The decisive check, in its passing form."""
     with patch.object(pf, "FirebaseTokenProvider", return_value=_provider(_UID)):
-        pf.check_sign_in_uid_matches(_config(), _PASSWORD)
+        pf.check_sign_in_uid_matches(_config(), _ACCOUNT_PHRASE)
 
 
 def test_signing_in_as_a_different_uid_is_rejected() -> None:
@@ -213,7 +215,7 @@ def test_signing_in_as_a_different_uid_is_rejected() -> None:
         ),
         pytest.raises(pf.PreflightError, match="every read and write would be denied"),
     ):
-        pf.check_sign_in_uid_matches(_config(), _PASSWORD)
+        pf.check_sign_in_uid_matches(_config(), _ACCOUNT_PHRASE)
 
 
 def test_the_uid_is_read_from_sub_when_user_id_is_absent() -> None:
@@ -223,7 +225,7 @@ def test_the_uid_is_read_from_sub_when_user_id_is_absent() -> None:
     provider.id_token.return_value = f"h.{payload.decode().rstrip('=')}.s"
 
     with patch.object(pf, "FirebaseTokenProvider", return_value=provider):
-        pf.check_sign_in_uid_matches(_config(), _PASSWORD)
+        pf.check_sign_in_uid_matches(_config(), _ACCOUNT_PHRASE)
 
 
 def test_the_password_is_passed_to_sign_in_verbatim() -> None:
@@ -231,9 +233,9 @@ def test_the_password_is_passed_to_sign_in_verbatim() -> None:
     provider = _provider(_UID)
 
     with patch.object(pf, "FirebaseTokenProvider", return_value=provider):
-        pf.check_sign_in_uid_matches(_config(), _PASSWORD)
+        pf.check_sign_in_uid_matches(_config(), _ACCOUNT_PHRASE)
 
-    provider.sign_in.assert_called_once_with(_GOOD["email"], _PASSWORD)
+    provider.sign_in.assert_called_once_with(_GOOD["email"], _ACCOUNT_PHRASE)
 
 
 def test_requests_exceptions_are_not_swallowed_by_the_checks() -> None:
