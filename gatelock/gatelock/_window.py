@@ -26,271 +26,49 @@ from __future__ import annotations
 
 import atexit
 import contextlib
-from dataclasses import dataclass
 import logging
-import os
 import signal
 import tkinter as tk
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING
 
-from gatelock import _density
-from gatelock._arbiter import RANK_SCREEN_LOCKER
+from gatelock import _arming, _preempt
+from gatelock._config import (
+    GrabKind,
+    LockConfig,
+    LockMode,
+    SpaceStep,
+    TypeRole,
+)
 from gatelock._detect import OutputChangeDetector
+from gatelock._hooks import LockWindowHooks
 from gatelock._outputs import OutputEnumerator
 from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
-from gatelock._surfaces import SurfaceSet, needs_backdrop_root
-from gatelock._vt import disable_vt_switching, restore_vt_switching
+from gatelock._surfaces import SurfaceSet
+from gatelock._vt import restore_vt_switching
 
 if TYPE_CHECKING:
     from types import FrameType
 
-    from gatelock._arbiter import Arbiter, Claim
-    from gatelock._surfaces import SurfaceInfo
+    from gatelock._arbiter import Arbiter
 
 _logger = logging.getLogger(__name__)
 
-GrabKind = Literal["none", "local", "global"]
-LockMode = Literal["soft", "hard"]
-TypeRole = Literal["display", "title", "subtitle", "body", "label", "caption"]
-SpaceStep = Literal["xs", "sm", "md", "lg", "xl", "xxl"]
+# Re-exported so `from gatelock._window import LockConfig` -- which several
+# sibling modules and the test suite already do -- keeps resolving after the
+# declarative half moved to :mod:`gatelock._config`.
+__all__ = [
+    "GrabKind",
+    "LockConfig",
+    "LockMode",
+    "LockWindow",
+    "LockWindowHooks",
+    "SpaceStep",
+    "TypeRole",
+]
 
 # Periodic no-op so a grabbed, event-starved loop keeps handing control back
 # to Python, letting SIGTERM/SIGINT be serviced promptly.
-# Tk's attributes() takes the value positionally, so a bare `True` here
-# trips the boolean-positional lint. Naming it satisfies both that rule
-# and the type stubs, which have no keyword overload.
-_TOPMOST_ON = True
-
 _KEEPALIVE_MS = 250
-# Default retry interval for a "global" grab that initially fails (e.g. a
-# fullscreen game holds it). Used whenever grab_retry_ms is left unset.
-_DEFAULT_GRAB_RETRY_MS = 200
-
-
-@dataclass(frozen=True)
-class LockConfig:
-    """Declarative knobs for one :class:`LockWindow` instance.
-
-    Each field left as ``None`` is derived from ``mode``; an explicit value
-    always overrides the preset for that one axis.
-
-    Attributes:
-        mode: Preset bundling the common combination. "soft" = topmost only,
-            typeable, WM-escapable. "hard" = overrideredirect + global grab +
-            VT-disable (the production lock for all three apps).
-        overrideredirect: Force a WM-unmanaged window. None = derive from mode.
-            Note that per-output placement *requires* this: a window manager
-            rewrites a managed window's geometry wholesale.
-        grab: Input grab strategy. None = derive from mode.
-        disable_vt: Disable Ctrl+Alt+Fn VT switching. None = derive from mode.
-        grab_retry_ms: Retry interval in ms for a "global" grab that initially
-            fails. 0 means "try once, then fall back to a local grab". Left
-            unset (None), a "global" grab retries forever every 200ms.
-        grab_log_every: Log a warning every N failed retry-forever attempts.
-        preempt_weaker_holder: SIGTERM a lower-ranked incumbent that is
-            blocking our grab, instead of retrying against it forever. Only
-            the *direction* the arbiter's own ranking already sanctions: we
-            never signal a holder that outranks us. SIGTERM (not SIGKILL) so
-            the holder's own signal handler runs its normal close() path --
-            same teardown as a clean dismiss, just triggered externally.
-            Defaults to False, and must stay opt-in: for an *enforcement*
-            lock (screen_locker), being preempted means the machine unlocks
-            with the obligation unmet. Only an app whose own dismissal is
-            harmless -- or which genuinely outranks every enforcer -- should
-            turn this on, and only after considering who it can now evict.
-        app_name: This app's name, used in arbitration logs so a blocked app
-            can say who is actually holding the screen.
-        rank: Arbitration priority; higher wins. See the ``RANK_*`` constants
-            in :mod:`gatelock._arbiter`.
-        recovery_tick_ms: Interval of the full re-assertion pass.
-        detect_drain_ms: Interval of the cheap "did anything change?" drain.
-        bg: Background color for the lock surfaces.
-        fg: Primary (near-white) text color.
-        muted: Secondary/caption text color.
-        field_bg: Background for "raised" surfaces (entry/spinbox fields,
-            input wells) -- one step lighter than ``bg``.
-        accent: The shared brand accent (buttons, primary actions).
-        success: Positive/on-track status color.
-        warning: Caution/pending status color.
-        danger: Negative/error status color.
-        on_fill: Text/icon color for anything drawn on top of a filled
-            accent/success/warning/danger surface (e.g. a button's label) --
-            NOT ``fg``. All four fills sit in the same mid-light band, so
-            near-white text under-contrasts on every one of them; callers
-            must pick ``fg`` vs. ``on_fill`` based on the widget's own
-            background, never hardcode one for all buttons.
-        font_family: Default font family for lock-window widgets.
-        focus_ring: Color of the *focused* widget's highlight ring. Defaults to
-            ``accent``, because Tk's own default is black -- invisible against
-            ``bg``. Pass to ``highlightcolor``; note ``highlightbackground`` is
-            the *unfocused* ring, so setting that one inverts the affordance.
-        focus_thickness: Ring width in px. Never set 0 on a focusable widget.
-        type_display, type_title, type_subtitle, type_body, type_label,
-            type_caption: The type scale, in **pixels**. Do not pass these to
-            Tk directly -- use :meth:`font`, which applies the sign convention.
-        space_xs, space_sm, space_md, space_lg, space_xl, space_xxl: The 4px
-            spacing scale, in pixels. Use for ``padx``/``pady``/``ipadx``.
-
-    All color/font defaults come from the ``unified-design-system`` docs
-    (``~/utils/unified-design-system/tokens.md``) -- the same palette used by
-    every one of kuhy's apps, Flutter and web included.
-    """
-
-    mode: LockMode = "hard"
-    overrideredirect: bool | None = None
-    grab: GrabKind | None = None
-    disable_vt: bool | None = None
-    grab_retry_ms: int | None = None
-    grab_log_every: int = 25
-    preempt_weaker_holder: bool = False
-    app_name: str = "gatelock"
-    rank: int = RANK_SCREEN_LOCKER
-    recovery_tick_ms: int = 1000
-    detect_drain_ms: int = 100
-    bg: str = "#211D1B"
-    fg: str = "#ECEAE9"
-    muted: str = "#AAA09A"
-    field_bg: str = "#2B2624"
-    accent: str = "#B8862E"
-    success: str = "#8A9A3C"
-    warning: str = "#E0A63C"
-    danger: str = "#E2585F"
-    on_fill: str = "#211D1B"
-    font_family: str = "Arial"
-    focus_ring: str = "#B8862E"
-    focus_thickness: int = 2
-    # Type scale in PIXELS (unified-design-system tokens.md). Convert via
-    # font(); a raw positive value handed to Tk means *points*, ~37% bigger.
-    type_display: int = 32
-    type_title: int = 24
-    type_subtitle: int = 20
-    type_body: int = 16
-    type_label: int = 14
-    type_caption: int = 12
-    # 4px spacing scale, in pixels.
-    space_xs: int = 4
-    space_sm: int = 8
-    space_md: int = 16
-    space_lg: int = 24
-    space_xl: int = 32
-    space_xxl: int = 48
-
-    def type_px(self, role: TypeRole = "body") -> int:
-        """Return the type-scale size for ``role``, in pixels.
-
-        Compacted on short displays -- see :mod:`gatelock._density`. The scale
-        is authored for 1080p; a 768px panel gets 0.8 of it, because a lock
-        surface has to fit one screen and cannot scroll its way out of being
-        too tall.
-        """
-        return _density.scale_type(int(getattr(self, f"type_{role}")))
-
-    def space(self, step: SpaceStep = "md") -> int:
-        """Return the spacing-scale value for ``step``, in pixels.
-
-        Compacted on short displays, exactly like :meth:`type_px`.
-        """
-        return _density.scale_space(int(getattr(self, f"space_{step}")))
-
-    def font(
-        self,
-        role: TypeRole = "body",
-        *,
-        bold: bool = False,
-        family: str | None = None,
-        scale: float = 1.0,
-    ) -> tuple[str, int] | tuple[str, int, str]:
-        """Return a Tk font tuple for a type-scale role, sized in **pixels**.
-
-        Tk encodes the unit in the *sign* of the size: positive means points,
-        negative means pixels. The design-system scale is in pixels, so passing
-        e.g. ``type_body`` (16) straight to Tk yields 16 *points* -- about 37%
-        larger than intended (measured: linespace 26px vs 19px). Inflating
-        every string by a third is enough on its own to push a layout off a
-        768px-tall screen, which is exactly what happened to the diet_guard
-        meal gate. Always build lock-window fonts through this method.
-
-        Args:
-            role: Type-scale role.
-            bold: Append Tk's ``"bold"`` weight.
-            family: Override the font family. Defaults to ``font_family``.
-            scale: Multiplier for display-only emphasis (e.g. an oversized
-                countdown). Kept explicit so outliers are visible rather than
-                hidden behind a fresh literal.
-
-        Returns:
-            A Tk font tuple with a negative (pixel) size.
-        """
-        px = max(1, round(self.type_px(role) * scale))
-        name = family if family is not None else self.font_family
-        return (name, -px, "bold") if bold else (name, -px)
-
-    def focus_kwargs(self) -> dict[str, str | int]:
-        """Return widget kwargs that make focus visible on this palette.
-
-        ``highlightcolor`` is the *focused* ring; ``highlightbackground`` is the
-        unfocused one. Both are set so the widget shows a subdued edge when
-        unfocused and the accent ring when focused -- rather than Tk's default
-        black-on-``bg``, which reads as no ring at all.
-        """
-        return {
-            "highlightcolor": self.focus_ring,
-            "highlightbackground": self.bg,
-            "highlightthickness": self.focus_thickness,
-        }
-
-    def resolved_overrideredirect(self) -> bool:
-        """Return the effective overrideredirect setting."""
-        if self.overrideredirect is not None:
-            return self.overrideredirect
-        return self.mode == "hard"
-
-    def resolved_grab(self) -> GrabKind:
-        """Return the effective grab strategy."""
-        if self.grab is not None:
-            return self.grab
-        return "global" if self.mode == "hard" else "none"
-
-    def resolved_disable_vt(self) -> bool:
-        """Return whether VT switching should be disabled."""
-        if self.disable_vt is not None:
-            return self.disable_vt
-        return self.mode == "hard"
-
-
-class LockWindowHooks(Protocol):
-    """Callbacks :class:`LockWindow` invokes; the embedding app supplies all."""
-
-    def build_surface(self, parent: tk.Misc, surface: SurfaceInfo) -> None:
-        """Build this app's widgets inside ``parent``, for one output.
-
-        Called once per live output, and again whenever an output comes back.
-        Tk variables should stay mastered on the root so every surface shows
-        the same state, and every surface's submit path should call the same
-        handler -- solving the lock on any monitor dismisses all of them.
-        """
-
-    def teardown_surface(self, surface: SurfaceInfo) -> None:
-        """Forget per-surface state; that output went dark and is closing."""
-
-    def on_focus_ready(self, surface: SurfaceInfo | None) -> None:
-        """Called once the lock is mapped and (if applicable) grabbed.
-
-        Args:
-            surface: The surface that took initial focus, or None when no
-                output is live and there is therefore nothing to focus.
-        """
-
-    def on_callback_error(self) -> None:
-        """Called when a Tk callback raised (see :class:`~gatelock.GateRoot`)."""
-
-    def on_close(self) -> None:
-        """Called once, from :meth:`LockWindow.close`, before VT is restored.
-
-        Runs on every exit path -- normal dismiss, SIGTERM, SIGINT -- not just
-        a clean close, so app-specific teardown (restoring hardware state,
-        etc.) can't be skipped by killing the process.
-        """
 
 
 class LockWindow:
@@ -337,6 +115,15 @@ class LockWindow:
                 hooks=hooks,
             ),
         )
+        self._arming = _arming.ArmingCollaborators(
+            config=config,
+            surfaces=self._surfaces,
+            enumerator=self._enumerator,
+            detector=self._detector,
+            recovery=self._recovery,
+            notify_focus_ready=self._notify_focus_ready,
+            log_grab_blocked=self._log_grab_blocked,
+        )
 
     @property
     def surfaces(self) -> SurfaceSet:
@@ -348,151 +135,36 @@ class LockWindow:
     def setup(self) -> None:
         """Configure the backdrop and build a surface on every live output.
 
-        Disables VT switching first: strengthening the lock must not wait on
-        being able to draw anything. If no output is live, no surface is built
-        and the lock stays armed and invisible until one appears.
+        Delegates to :func:`gatelock._arming.setup`.
         """
-        if self._config.resolved_disable_vt():
-            self._vt_disabled = disable_vt_switching()
-
-        if needs_backdrop_root(self._config):
-            # The root is a plain black backdrop spanning the whole X screen,
-            # including any region a modeless output left behind. It holds the
-            # grab (X will not grab for a window that is not viewable) and
-            # never carries widgets.
-            self.root.overrideredirect(boolean=self._config.resolved_overrideredirect())
-            self._surfaces.update_backdrop()
-        else:
-            self.root.attributes("-topmost", _TOPMOST_ON)
-
-        scan = self._enumerator.scan()
-        delta = self._surfaces.apply(scan)
-        if not scan.live:
-            _logger.warning(
-                "no live outputs at startup (source=%s); arming the lock with "
-                "nothing displayed -- it will appear as soon as a monitor "
-                "comes back",
-                scan.source,
-            )
-        else:
-            _logger.info(
-                "lock armed on %d output(s): %s",
-                len(scan.live),
-                ", ".join(output.name for output in scan.live),
-            )
-        if delta.unverified:
-            _logger.error(
-                "outputs live but not covered at startup: %s",
-                ", ".join(delta.unverified),
-            )
+        self._vt_disabled = _arming.setup(self.root, self._arming)
 
     def grab_input(self) -> None:
-        """Take the configured grab, then start watching for output changes."""
-        self.root.update_idletasks()
-        self.root.focus_force()
-        grab = self._config.resolved_grab()
-        if grab == "global":
-            self._acquire_global_grab(attempt=1)
-        elif grab == "local":
-            with contextlib.suppress(tk.TclError):
-                self.root.grab_set()
-        self._detector.start()
-        self._recovery.start()
-        self.root.after(100, self._notify_focus_ready)
+        """Take the configured grab, then start watching for output changes.
+
+        Delegates to :func:`gatelock._arming.grab_input`.
+        """
+        _arming.grab_input(self.root, self._arming)
 
     def _acquire_global_grab(self, *, attempt: int) -> None:
-        """Acquire the global input grab, retrying per ``grab_retry_ms``.
+        """Acquire the global grab, retrying per ``grab_retry_ms``.
 
-        Args:
-            attempt: 1-based attempt counter, used only to throttle the log.
+        Delegates to :func:`gatelock._arming.acquire_global_grab`.
         """
-        retry_ms = self._config.grab_retry_ms
-        try:
-            self.root.grab_set_global()
-        except tk.TclError:
-            if retry_ms == 0:
-                _logger.warning("Global grab failed, falling back to local grab")
-                with contextlib.suppress(tk.TclError):
-                    self.root.grab_set()
-                return
-            effective_retry_ms = retry_ms or _DEFAULT_GRAB_RETRY_MS
-            if not attempt % self._config.grab_log_every:
-                self._log_grab_blocked(attempt)
-            self.root.after(
-                effective_retry_ms,
-                lambda: self._acquire_global_grab(attempt=attempt + 1),
-            )
-            return
-        with contextlib.suppress(tk.TclError):
-            self.root.focus_force()
-            self._notify_focus_ready()
+        _arming.acquire_global_grab(self.root, self._arming, attempt=attempt)
 
     def _log_grab_blocked(self, attempt: int) -> None:
-        """Say who is actually holding the grab, rather than guessing.
+        """Log who holds the grab, and stand a weaker holder down.
 
-        v0.1.1 always blamed "a fullscreen game". On 2026-07-25 the holder was
-        the other locker, and that guess sent the diagnosis in the wrong
-        direction for the length of the outage.
-
-        A holder that outranks us is left alone entirely -- retrying is the
-        correct behavior there, matching :func:`gatelock.wait_for_turn`'s own
-        rule for an app that has not armed yet. A *weaker* holder is preempted
-        below, once per pid, rather than left to block us for as long as it
-        takes to finish on its own (diet_guard held the grab for ~3 minutes
-        against a higher-ranked screen_locker on 2026-08-21).
+        Delegates to :mod:`gatelock._preempt`; see there for the policy and
+        why a stronger holder is left alone.
         """
-        holder = self._arbiter.describe_holder() if self._arbiter else None
-        if holder is None:
-            _logger.warning(
-                "global grab still blocked after %d attempts; no gatelock app "
-                "holds it -- likely another X client (e.g. a fullscreen game)",
-                attempt,
-            )
-            return
-        _logger.warning(
-            "global grab still blocked after %d attempts; held by gatelock app "
-            "%r (rank %d, pid %d) since %s",
+        _preempt.log_grab_blocked(
             attempt,
-            holder.app,
-            holder.rank,
-            holder.pid,
-            holder.started,
+            arbiter=self._arbiter,
+            config=self._config,
+            preempted_pids=self._preempted_pids,
         )
-        self._maybe_preempt(holder)
-
-    def _maybe_preempt(self, holder: Claim) -> None:
-        """SIGTERM a weaker holder once, so it stands down instead of blocking.
-
-        SIGTERM (not SIGKILL): the holder's own signal handler
-        (``LockWindow._install_signal_handlers``) raises ``SystemExit(0)``,
-        which unwinds through its ``run()``'s ``finally`` into its own
-        ``close()`` -- the identical teardown a clean dismiss gets (VT
-        restored, arbiter claim released, app-specific ``on_close`` hook
-        run), just triggered externally instead of by the user.
-        """
-        if not self._config.preempt_weaker_holder or self._arbiter is None:
-            return
-        if holder.rank >= self._arbiter.claim.rank:
-            return
-        if holder.pid in self._preempted_pids:
-            return
-        self._preempted_pids.add(holder.pid)
-        _logger.warning(
-            "preempting weaker holder %r (rank %d, pid %d) so rank %d can arm",
-            holder.app,
-            holder.rank,
-            holder.pid,
-            self._arbiter.claim.rank,
-        )
-        try:
-            os.kill(holder.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            _logger.info(
-                "holder pid %d was already gone by the time we signalled it",
-                holder.pid,
-            )
-        except OSError:
-            _logger.exception("could not signal holder pid %d", holder.pid)
 
     def _notify_focus_ready(self) -> None:
         """Tell the app it can focus its first input widget now.

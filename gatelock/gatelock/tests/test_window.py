@@ -53,7 +53,7 @@ class TestSetup:
         window, _hooks = make_window(mock_root, config=LockConfig(mode="hard"))
 
         with patch(
-            "gatelock._window.disable_vt_switching", return_value=True
+            "gatelock._arming.disable_vt_switching", return_value=True
         ) as mock_disable:
             window.setup()
 
@@ -75,7 +75,7 @@ class TestSetup:
         """Soft mode never calls overrideredirect or disables VT switching."""
         window, _hooks = make_window(mock_root, config=LockConfig(mode="soft"))
 
-        with patch("gatelock._window.disable_vt_switching") as mock_disable:
+        with patch("gatelock._arming.disable_vt_switching") as mock_disable:
             window.setup()
 
         mock_root.overrideredirect.assert_not_called()
@@ -106,10 +106,10 @@ class TestGrabInput:
             mock_root, config=LockConfig(mode="soft", grab="global")
         )
 
-        with patch.object(window, "_acquire_global_grab") as mock_acquire:
+        with patch("gatelock._arming.acquire_global_grab") as mock_acquire:
             window.grab_input()
 
-        mock_acquire.assert_called_once_with(attempt=1)
+        mock_acquire.assert_called_once_with(window.root, window._arming, attempt=1)
         mock_root.after.assert_any_call(100, window._notify_focus_ready)
 
     def test_local_grab_calls_grab_set(self, mock_root: MagicMock) -> None:
@@ -213,11 +213,11 @@ class TestAcquireGlobalGrab:
             mock_root, config=LockConfig(mode="hard", grab_log_every=5)
         )
 
-        with patch("gatelock._window._logger") as mock_logger:
+        with patch("gatelock._preempt._logger") as mock_logger:
             window._acquire_global_grab(attempt=5)
             mock_logger.warning.assert_called_once()
 
-        with patch("gatelock._window._logger") as mock_logger:
+        with patch("gatelock._preempt._logger") as mock_logger:
             window._acquire_global_grab(attempt=3)
             mock_logger.warning.assert_not_called()
 
@@ -243,10 +243,10 @@ class TestAcquireGlobalGrab:
         window._acquire_global_grab(attempt=1)
         scheduled_callback = mock_root.after.call_args[0][1]
 
-        with patch.object(window, "_acquire_global_grab") as mock_acquire:
+        with patch("gatelock._arming.acquire_global_grab") as mock_acquire:
             scheduled_callback()
 
-        mock_acquire.assert_called_once_with(attempt=2)
+        mock_acquire.assert_called_once_with(window.root, window._arming, attempt=2)
 
 
 class TestNotifyFocusReady:
