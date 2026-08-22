@@ -19,6 +19,7 @@ class SyncSettingsScreen extends StatefulWidget {
     required this.firebaseFactory,
     this.googleFirebaseFactory,
     this.googleAvailable,
+    this.googleUnavailableReason,
     this.backup,
     super.key,
   });
@@ -58,6 +59,17 @@ class SyncSettingsScreen extends StatefulWidget {
   /// pass `false` to model a platform that reports Google sign-in
   /// unsupported even though a factory is wired.
   final bool? googleAvailable;
+
+  /// Why Google sign-in is unavailable here, shown under a *disabled* button.
+  ///
+  /// Null hides the button entirely, which stays the default. Supplying a
+  /// reason trades a silently-absent control for one that explains itself --
+  /// worth it where a platform genuinely cannot support the flow, and where
+  /// its absence would otherwise read as a bug.
+  ///
+  /// Not the same as a button that can never succeed: this one cannot be
+  /// tapped at all, so it can never report a misleading "cancelled".
+  final String? googleUnavailableReason;
 
   /// Optional local export/import section. Null omits the "Backup" section
   /// entirely (diet_guard, wake_alarm have no local backup format).

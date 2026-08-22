@@ -163,6 +163,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
             connected: _firebaseConnected,
             busy: _busy,
             googleAvailable: _googleAvailable,
+            googleUnavailableReason: widget.googleUnavailableReason,
             emailController: _emailController,
             passwordController: _passwordController,
             onConnectPassword: _connectFirebase,

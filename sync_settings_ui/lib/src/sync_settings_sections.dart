@@ -10,6 +10,7 @@ class _FirebaseSection extends StatelessWidget {
     required this.connected,
     required this.busy,
     required this.googleAvailable,
+    required this.googleUnavailableReason,
     required this.emailController,
     required this.passwordController,
     required this.onConnectPassword,
@@ -20,6 +21,7 @@ class _FirebaseSection extends StatelessWidget {
   final bool connected;
   final bool busy;
   final bool googleAvailable;
+  final String? googleUnavailableReason;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final VoidCallback onConnectPassword;
@@ -52,6 +54,25 @@ class _FirebaseSection extends StatelessWidget {
               icon: const Icon(Icons.account_circle),
               label: const Text('Sign in with Google'),
             ),
+          ),
+          const SizedBox(height: 12),
+        ] else if (googleUnavailableReason != null) ...[
+          // Disabled, not hidden. A null onPressed cannot be tapped, so this
+          // is not the "control that can never succeed" trap -- that one
+          // looks live and reports a fake cancellation. This one says why,
+          // which beats a screen that silently offers less on one platform.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.account_circle),
+              label: const Text('Sign in with Google'),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            googleUnavailableReason!,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
         ],

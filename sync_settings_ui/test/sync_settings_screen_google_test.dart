@@ -141,5 +141,55 @@ void main() {
         expect(find.text('Sign in with Google'), findsNothing);
       },
     );
+
+    testWidgets('a reason renders a disabled button that explains itself', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SyncSettingsScreen(
+            accountLoader: () async => null,
+            accountSaver: (_) async {},
+            accountClearer: () async {},
+            sessionProbe: () async => false,
+            firebaseFactory: () async => null,
+            googleFirebaseFactory: () async => _fakeClient(),
+            googleAvailable: false,
+            googleUnavailableReason: 'Not available on this platform.',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign in with Google'), findsOneWidget);
+      expect(find.text('Not available on this platform.'), findsOneWidget);
+
+      // Disabled, so it cannot report a misleading "cancelled".
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Sign in with Google'),
+      );
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('no reason keeps the button hidden, as before', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SyncSettingsScreen(
+            accountLoader: () async => null,
+            accountSaver: (_) async {},
+            accountClearer: () async {},
+            sessionProbe: () async => false,
+            firebaseFactory: () async => null,
+            googleFirebaseFactory: () async => _fakeClient(),
+            googleAvailable: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign in with Google'), findsNothing);
+    });
   });
 }
