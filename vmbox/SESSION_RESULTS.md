@@ -38,9 +38,16 @@ sh aborts the shell even with `|| true` (special-builtin rule).
    never installs guard-lib first, so on a fresh machine the core "Midnight
    shutdown timer" module always fails.
 
-## Item 5: hosts guard immutability — PASS (partial, reset check pending)
+## Item 5: hosts guard immutability — PASS (complete)
 lsattr /etc/hosts in the guest: ----ia---------------- (189366 entries).
-The immutable flag really lands. `vm reset` clearing it still to verify.
+The immutable flag really lands.
+
+`vm reset` clearing it: VERIFIED 2026-08-22 (was left pending). Set
+`chattr +i /etc/hosts` in a sandbox -> `----i-----------------`; after
+`vm reset` the same file reads `----------------------` AND accepts a write
+(`echo test >> /etc/hosts` succeeds). This is the strongest form of the reset
+guarantee: immutability is precisely what makes these scripts hard to undo on
+a real machine, and the overlay discards it wholesale.
 
 ## Item 4: boot_recovery/install.sh — PASS (highest-value item)
 Installer exits 0; installs boot-repair + both pacman hooks.
