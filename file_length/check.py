@@ -175,7 +175,7 @@ def main() -> int:
     for path, lines in sorted(violations, key=lambda item: -item[1]):
         over = lines - MAX_LINES
         print(f"  {path}: {lines} lines (over by {over})", file=sys.stderr)
-    print("\nSplit them, or see refactor_claude_todo.md in this repo.", file=sys.stderr)
+    print("\nSplit them, or see TODO-file-length-250.md in this repo.", file=sys.stderr)
     return 1
 
 
