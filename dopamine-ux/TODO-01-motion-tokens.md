@@ -136,3 +136,5 @@ block.
   wake_alarm hand-transcribe the token values into local `lib/ui/theme.dart`
   copies. So tokens added here reach exactly one app automatically — the others
   are handled per-prompt.
+
+REMOVE ME AFTER FINISH

@@ -1,41 +1,3 @@
-> **This file is a ready-to-use prompt.** Open this repo and say
-> "do dopamine-ux-02-structural-check". It is self-contained -- it needs no context from
-> any other session.
->
-> Canonical copy: `~/utils/dopamine-ux/02-structural-check.md` (source of truth; this is a
-> distributed copy). Running order and cross-prompt rules: `~/utils/dopamine-ux/00-INDEX.md`.
-> Generated 2026-08-16 from a survey of this repo -- line numbers are accurate
-> as of that date; **anchor on the symbol names, not the line numbers.**
-
-## ⛔ WHEN YOU FINISH THIS PROMPT
-
-Do **both**, in the same session that completes the work:
-
-1. **Delete this file** and commit that deletion together with the
-   implementation:
-   ```bash
-   git rm prompts/dopamine-ux-02-structural-check.md
-   ```
-   Do not leave a finished prompt lying in the repo -- a stale prompt is
-   indistinguishable from a pending one, and the next session will re-run it.
-
-2. **Log completion in the canonical index**, in `~/utils` (a *different* repo,
-   so it needs its own commit):
-   ```bash
-   cd ~/utils
-   # append to the "Completion log" table in dopamine-ux/00-INDEX.md:
-   #   | 02-structural-check.md | DONE <YYYY-MM-DD> | <impl commit sha> | <one-line note> |
-   git add dopamine-ux/00-INDEX.md
-   git commit -m "dopamine-ux: mark 02-structural-check.md done"
-   git push
-   ```
-
-If you finish only part of the prompt, do **neither** -- instead edit this file
-to strike out what is done and state what remains, so the next session starts
-from the true state. Partial completion must never be recorded as DONE.
-
----
-
 Add a structural-token drift checker to CI
 
 ## findings (2, ranked by value over effort)
@@ -173,3 +135,5 @@ the passing run alone proves nothing.
   deliberately outside the checker's scope for now — bringing them in is a much
   larger job than this prompt.
 - `~/utils/gatelock/` is a package inside this monorepo, not a separate repo.
+
+REMOVE ME AFTER FINISH

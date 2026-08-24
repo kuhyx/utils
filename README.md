@@ -79,6 +79,6 @@ shadow policy) and per-stack (Flutter/web/Tkinter) implementation patterns
 that keep every one of kuhy's repos visually identical, plus annotated
 component references (`components.html`, `button.html`). Read
 [`unified-design-system/README.md`](unified-design-system/README.md) and
-`tokens.md` before touching any theme/CSS/style file in any repo. The
+`DOCS-tokens.md` before touching any theme/CSS/style file in any repo. The
 `unified-design-system` Claude Code skill is a thin pointer here, not a
 duplicate.

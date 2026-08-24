@@ -56,7 +56,7 @@ MaterialApp(
 
 The values are the six-repo consensus — todo, home_inventory, dufs-cloud,
 habit_stack, and untools all shipped byte-identical copies — which is also
-exactly what `unified-design-system/tokens.md` specifies. Repos that had
+exactly what `unified-design-system/DOCS-tokens.md` specifies. Repos that had
 drifted (diet-guard, macro-cam) are corrected *to* this package, not the
 other way round.
 

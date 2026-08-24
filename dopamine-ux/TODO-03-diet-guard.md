@@ -166,3 +166,5 @@ whitelist entry before it can be tested.
 - diet-guard state lives under XDG (`~/.local/share/diet_guard`), unlike
   screen-locker's in-repo JSON. Tests isolate it via
   `~/diet-guard/diet_guard/tests/conftest.py:97` `_isolate_state`.
+
+REMOVE ME AFTER FINISH

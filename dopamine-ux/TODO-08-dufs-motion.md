@@ -194,3 +194,5 @@ report what you saw. State the haptic as a physical observation.
 - Media playback (`web/src/hooks/use-dash-player.ts`, `web/src/lib/dash-buffer.ts`,
   `app/lib/services/app_player.dart`) has its own buffering states. Out of scope
   unless trivially adjacent.
+
+REMOVE ME AFTER FINISH

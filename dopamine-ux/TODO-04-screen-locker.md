@@ -166,3 +166,5 @@ Current real state for comparison: `screen_locker/extra_benefits_state.json` and
   icon at `~/.config/i3/scripts/screen_locker_tray.py` (outside the repo, shells
   out to the CLI, refreshes every 60s), and the lock screen itself. No i3blocks
   integration exists despite `format_summary_line` being described as one.
+
+REMOVE ME AFTER FINISH

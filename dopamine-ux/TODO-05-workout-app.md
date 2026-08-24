@@ -190,3 +190,5 @@ state what you felt and heard; do not infer them from the code.
   what counts as a workout** — enforcement depends on it, and it is out of scope.
 - The repo enforces a 250-line file cap and bans `# noqa`; ruff runs
   `select = ["ALL"]` on the Python side.
+
+REMOVE ME AFTER FINISH

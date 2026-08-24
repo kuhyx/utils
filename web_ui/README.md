@@ -5,7 +5,7 @@ The shared token + component layer for kuhy's web apps — the web counterpart t
 scales, and the components that were each reimplemented in two or more repos.
 
 Consumers import the tokens rather than transcribing the token table by hand.
-Source of truth for the *values* is `~/utils/unified-design-system/tokens.md`;
+Source of truth for the *values* is `~/utils/unified-design-system/DOCS-tokens.md`;
 this package is its executable form for the web.
 
 ## Install

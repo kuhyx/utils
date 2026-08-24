@@ -109,3 +109,5 @@ suppressing: it sometimes flags a real latent IndexError.
 4. No sibling package appears in your diff.
 5. The final report states which option the user chose for the fixture-idiom
    findings, and lists every suppression with its justification.
+
+REMOVE ME AFTER FINISH

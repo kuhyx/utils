@@ -178,3 +178,5 @@ can go stale independently — but this prompt's done-condition is the phone.
 - Settings sync cross-device last-writer-wins through Firebase
   (`settings/advancedMode`). If you add a synced preference, follow
   `reconcileWithRemote`/`adopt`; if local-only, skip that path entirely.
+
+REMOVE ME AFTER FINISH

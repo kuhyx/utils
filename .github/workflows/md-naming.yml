@@ -1,0 +1,38 @@
+name: md-naming
+
+# The four markdown namespaces, enforced on push as well as at commit time.
+# The local pre-commit hook can be skipped (a fresh clone that never ran
+# `pre-commit install` has no hooks at all), so the convention needs a second
+# gate that no one can forget to install.
+#
+# Deliberately a SEPARATE workflow from any release job: a badly named doc
+# should fail lint, not block publishing an artifact.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  md-naming:
+    name: markdown naming convention
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The gate and its exemption list live in the shared utils repo so every
+      # repo enforces the same namespaces. Checking it out beats vendoring a
+      # copy here, which is exactly how a gate and a survey start disagreeing.
+      - name: Check out the shared gate
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+
+      - name: Enforce the naming convention
+        run: bash .utils/scripts/check_md_naming.sh --all
+
+      # Warns only: no machine can prove a task is finished, so an old TODO
+      # gets a nudge, never a failure.
+      - name: Warn about stale TODOs
+        run: PYTHONPATH=.utils python3 .utils/md_naming/stale.py

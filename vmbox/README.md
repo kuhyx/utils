@@ -154,4 +154,4 @@ before tty1's autologin has started Xorg; `VMBOX_X_WAIT=<seconds>` overrides it.
 The build reads packages from the host's own `/var/cache/pacman/pkg`, mounted
 read-only, rather than fetching 396 MiB over the internet. The guest keeps its
 own writable cache, so a package the host lacks is downloaded as usual. See
-`SESSION_RESULTS.md` for the build before/after.
+`DOCS-session-results.md` for the build before/after.

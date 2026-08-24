@@ -137,3 +137,5 @@ starting (from the currently installed build) and after, and compare them. Never
 - Three other Flutter apps (diet-guard, workout_app, wake_alarm) have the same
   hand-copy pattern. They are **out of scope** — migrating them is a separate,
   larger job, and doing one app properly is the point here.
+
+REMOVE ME AFTER FINISH

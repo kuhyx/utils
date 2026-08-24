@@ -1,0 +1,24 @@
+# Coverage settings for the markdown-naming gate.
+#
+# fail_under = 100 matches the standard for shared code in this repo. The two
+# exclusions are unreachable under pytest by construction, not test gaps: the
+# `__main__` block never runs on import, and the plain-script sys.path shim
+# only fires when check.py is executed directly rather than imported.
+#
+# md_naming/migrate/ is omitted: it is a one-shot script that ran on
+# 2026-08-24 and is kept as the record of how 203 files were classified, not
+# as maintained library code. Its *decision logic* -- the rewrite rules where
+# two real bugs were caught -- is still tested directly in test_migrate.py.
+[run]
+branch = True
+source = md_naming
+omit =
+    md_naming/tests/*
+    md_naming/migrate/*
+
+[report]
+fail_under = 100
+show_missing = true
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
