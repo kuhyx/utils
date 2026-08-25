@@ -58,13 +58,13 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       setState(() => _status = 'Enter the sync account email and password.');
       return;
     }
-    setState(() {
-      _busy = true;
-      _status = 'Signing in…';
-    });
+    setState(() => _busy = true);
     final result = await _firebase.connectWithPassword(
       email: email,
       password: password,
+      onProgress: (stage) {
+        if (mounted) setState(() => _status = stage);
+      },
     );
     if (!mounted) return;
     _applyConnectResult(result, clearPasswordOnSuccess: true);
@@ -94,14 +94,15 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       _firebaseConnected = result.outcome == FirebaseConnectOutcome.connected;
       _status = switch (result.outcome) {
         FirebaseConnectOutcome.connected => 'Connected to Firebase.',
-        FirebaseConnectOutcome.rejected => 'Firebase rejected that account.',
+        FirebaseConnectOutcome.rejected => result.message != null
+            ? 'Firebase rejected that account: ${result.message}'
+            : 'Firebase rejected that account.',
         FirebaseConnectOutcome.cancelled => 'Google sign-in was cancelled.',
         FirebaseConnectOutcome.signedInButNotPersisted =>
           'Signed in, but this device did not save the session - it will '
               'sync over GitHub after a restart. Try connecting again.',
         FirebaseConnectOutcome.wrongAccount => result.message,
-        FirebaseConnectOutcome.failed =>
-          'Google sign-in failed: ${result.message}',
+        FirebaseConnectOutcome.failed => 'Sign-in failed: ${result.message}',
       };
     });
   }

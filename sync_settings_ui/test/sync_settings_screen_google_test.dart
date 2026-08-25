@@ -116,7 +116,7 @@ void main() {
       await tester.tap(find.text('Sign in with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Google sign-in failed'), findsOneWidget);
+      expect(find.textContaining('Sign-in failed'), findsOneWidget);
     });
 
     testWidgets(

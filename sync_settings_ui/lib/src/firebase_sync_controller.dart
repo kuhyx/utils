@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:crdt_sync/crdt_sync.dart';
 
 /// Outcome of a Firebase connect attempt, distinguishing why it did or did
@@ -127,22 +129,77 @@ class FirebaseSyncController {
 
   /// Stores [email]/[password] and signs in immediately, so a typo surfaces
   /// here instead of as a silent background failure on the next sync tick.
+  ///
+  /// [onProgress], if given, is called with a human-readable stage name as
+  /// each awaited step starts, so a caller can show the user what is
+  /// actually happening instead of one static "Signing in..." the whole
+  /// time -- and, if it stalls, which step it stalled on.
+  ///
+  /// Wraps [firebaseFactory] the same way [connectWithGoogle] already does:
+  /// broader than Exception on purpose, matching every app-local copy -- a
+  /// missing platform binding raises a FlutterError, which is an Error, not
+  /// an Exception -- letting it escape left the button disabled and the
+  /// screen stuck on "Signing in..." forever. That fix existed for the
+  /// Google path but was never mirrored here.
   Future<FirebaseConnectResult> connectWithPassword({
     required String email,
     required String password,
+    void Function(String stage)? onProgress,
   }) async {
+    onProgress?.call('Saving account…');
     await accountSaver(FirebaseAccount(email: email, password: password));
-    final client = await firebaseFactory();
-    if (client == null) {
+    try {
+      onProgress?.call('Signing in to Firebase…');
+      final client = await firebaseFactory();
+      if (client == null) {
+        log(
+          'connectWithPassword: rejected (null client) for $email',
+          name: 'FirebaseSyncController',
+          level: 900,
+        );
+        await accountClearer();
+        return const FirebaseConnectResult(
+          outcome: FirebaseConnectOutcome.rejected,
+        );
+      }
+      log(
+        'connectWithPassword: connected as $email',
+        name: 'FirebaseSyncController',
+      );
+      return FirebaseConnectResult(
+        outcome: FirebaseConnectOutcome.connected,
+        email: email,
+      );
+    } on FirebaseAuthError catch (error, stackTrace) {
+      log(
+        'connectWithPassword: rejected for $email',
+        name: 'FirebaseSyncController',
+        level: 900,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      // A confirmed-bad password shouldn't linger in the keystore for a
+      // background sync tick to keep retrying against.
       await accountClearer();
-      return const FirebaseConnectResult(
+      return FirebaseConnectResult(
         outcome: FirebaseConnectOutcome.rejected,
+        message: error.message,
+      );
+    } on Object catch (error, stackTrace) {
+      log(
+        'connectWithPassword: failed for $email',
+        name: 'FirebaseSyncController',
+        level: 1000,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      // Not cleared: this could be a transient failure (network, wrapper
+      // hiccup), not proof the credentials themselves are wrong.
+      return FirebaseConnectResult(
+        outcome: FirebaseConnectOutcome.failed,
+        message: '$error',
       );
     }
-    return FirebaseConnectResult(
-      outcome: FirebaseConnectOutcome.connected,
-      email: email,
-    );
   }
 
   /// Signs in by picking a Google account -- the one-tap path. Callers must

@@ -167,6 +167,48 @@ void main() {
     });
 
     testWidgets(
+      'connect with password does not get stuck on "Signing in..." when '
+      'the factory throws -- reproduces the reported hang, where the '
+      'button stayed disabled and the status text never changed',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            SyncSettingsScreen(
+              accountLoader: () async => null,
+              accountSaver: (_) async {},
+              accountClearer: () async {},
+              sessionProbe: () async => false,
+              firebaseFactory: () async =>
+                  throw FirebaseAuthError('bad creds'),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Sync account email'),
+          'a@b.com',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Sync account password'),
+          'wrong',
+        );
+        await tester.tap(find.text('Connect Firebase'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Signing in to Firebase…'), findsNothing);
+        expect(
+          find.text('Firebase rejected that account: bad creds'),
+          findsOneWidget,
+        );
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Connect Firebase'),
+        );
+        expect(button.onPressed, isNotNull);
+      },
+    );
+
+    testWidgets(
       'shows the Google button when googleAvailable, and connecting '
       'succeeds',
       (tester) async {
