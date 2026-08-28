@@ -129,3 +129,23 @@ exceptions:
     blocked_by: "transitive:x@1.0.0"
 """)
     assert run("--all") == 2
+
+
+def test_an_exception_excuses_only_the_version_it_names(repo, run, capsys):
+    """A held version is an argument about ONE version, not a blank cheque.
+
+    The fleet-wide typescript entry pins 6.0.3 with a reason specific to it;
+    dufs-cloud/web sat on `~5.8.3`, two majors older for no stated reason, and
+    the gate reported it current because the label matched.
+    """
+    write(repo, "pubspec.yaml", STALE_PUBSPEC.replace("1.5.0", "1.4.0"))
+    write(repo, ALLOWLIST, """\
+exceptions:
+  - ecosystem: pub
+    package: http
+    pinned: "1.5.0"
+    reason: "1.5.0 is held; 1.4.0 is not"
+    blocked_by: "transitive:some_pkg@1.0.0"
+""")
+    assert run("--all") == 1
+    assert "pub:http" in capsys.readouterr().err

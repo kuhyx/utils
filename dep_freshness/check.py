@@ -72,10 +72,13 @@ def _excuse(
     excused: list[Finding] = []
     for finding in findings:
         entry = by_label.get(finding.label)
-        if entry is None:
+        if entry is not None:
+            used.add(finding.label)  # the entry applies here, even if it
+            # does not excuse this particular pin -- that is a stale pin to
+            # fix, not allowlist rot to delete.
+        if entry is None or not _covers(entry, finding):
             failing.append(finding)
             continue
-        used.add(finding.label)
         excused.append(Finding(
             finding.dep, finding.severity, finding.latest, finding.detail,
             excused=entry.reason,
@@ -87,6 +90,19 @@ def _excuse(
         and (shared is None or e.source != shared)
     ]
     return failing, dead
+
+
+def _covers(entry, finding: Finding) -> bool:
+    """Does this exception excuse THIS pin, or only the one it names?
+
+    `pinned` is a required field: an entry is an argument about ONE version,
+    and excusing any version of the package turns a narrow, reasoned hold into
+    a blanket exemption. The fleet-wide typescript entry pins 6.0.3 for a
+    reason specific to 6.0.3, while dufs-cloud/web sat on `~5.8.3` -- two
+    majors older, for no stated reason -- and the gate called it current
+    because the package name matched.
+    """
+    return entry.pinned in (finding.dep.pinned, finding.dep.constraint)
 
 
 def _unquarantine(finding: Finding) -> Finding | None:
