@@ -77,11 +77,15 @@ MANIFEST_GLOBS: Final = (
 )
 REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"
 
+# `.utils` is where every CI workflow checks the shared gate out, INSIDE the
+# repo being checked. Without it `--all` walks utils' own manifests and fails
+# the consuming repo for staleness in a directory that repo does not own --
+# which is exactly how punchme's first green local run turned red in CI.
 EXCLUDED_DIRS: Final = frozenset({
     ".git", "node_modules", "build", "dist", ".dart_tool", ".venv", "venv",
     "__pycache__", "target", "vendor", ".gradle", "ios", "macos", "windows",
     ".mypy_cache", ".pytest_cache", ".ruff_cache", "coverage", "htmlcov",
-    ".idea", ".vscode", "Pods", ".fvm",
+    ".idea", ".vscode", "Pods", ".fvm", ".utils",
 })
 
 # --- Constraint policy ------------------------------------------------------

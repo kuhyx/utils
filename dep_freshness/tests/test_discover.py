@@ -43,6 +43,18 @@ def test_excluded_directories_are_skipped(repo):
     assert find_manifests(repo) == []
 
 
+def test_the_shared_gate_checkout_is_not_part_of_the_repo(repo):
+    """CI clones kuhyx/utils into `.utils/` inside the repo being checked.
+
+    Without this exclusion `--all` walks utils' own manifests and fails the
+    consuming repo for staleness in a directory it does not own -- which is
+    how punchme's first green local run turned red in CI.
+    """
+    write(repo, ".utils/design_system/pubspec.yaml", PUBSPEC)
+    write(repo, "pubspec.yaml", PUBSPEC)
+    assert [str(p) for p in find_manifests(repo)] == [str(repo / "pubspec.yaml")]
+
+
 def test_git_ignored_manifests_are_skipped(repo):
     write(repo, ".gitignore", "generated/\n")
     write(repo, "generated/pubspec.yaml", PUBSPEC)
