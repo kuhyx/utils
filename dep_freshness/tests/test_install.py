@@ -180,3 +180,52 @@ def test_the_module_entrypoint_runs_the_cli(repo, monkeypatch):
     with pytest.raises(SystemExit) as exit_info:
         runpy.run_module("dep_freshness.install_main", run_name="__main__")
     assert exit_info.value.code == 0
+
+
+def test_the_hook_lands_in_the_last_local_block_not_at_end_of_file(repo):
+    """Most of these configs interleave local and remote hook repos.
+
+    diet-guard, screen-locker and wake-alarm carry nine `- repo:` blocks each,
+    and a hook appended under a remote one is handed to that repo's hook
+    definitions -- which fails with an error naming an unknown id rather than
+    the real problem.
+    """
+    write(
+        repo,
+        ".pre-commit-config.yaml",
+        """\
+repos:
+  - repo: local
+    hooks:
+      - id: file-length-cap
+        entry: bash scripts/check_file_length.sh
+        language: system
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff
+""",
+    )
+    installer.install(repo)
+    lines = (repo / ".pre-commit-config.yaml").read_text(encoding="utf-8").split("\n")
+    hook = lines.index("      - id: dependency-freshness")
+    remote = lines.index("  - repo: https://github.com/astral-sh/ruff-pre-commit")
+    assert hook < remote, "the hook must sit inside the local block"
+    assert lines[-2] == "      - id: ruff", "the remote block keeps its own hooks"
+
+
+def test_a_config_with_no_local_block_refuses_rather_than_guessing(repo):
+    write(
+        repo,
+        ".pre-commit-config.yaml",
+        """\
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff
+""",
+    )
+    with pytest.raises(ValueError, match="no `  - repo: local` block"):
+        installer.install(repo)

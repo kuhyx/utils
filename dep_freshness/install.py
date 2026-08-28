@@ -49,10 +49,32 @@ def _needs_hook(repo: Path) -> bool:
     return f"id: {HOOK_ID}" not in target.read_text(encoding="utf-8")
 
 
-def _write_hook(repo: Path) -> None:
-    """Append the hook block to the repo's `local` hooks list.
+LOCAL_REPO = "  - repo: local"
 
-    Appending rather than parsing-and-re-emitting is deliberate: every one of
+
+def _local_block_end(lines: list[str]) -> int:
+    """Index just past the LAST `- repo: local` block, or -1 if there is none.
+
+    Appending at end-of-file is wrong whenever a config interleaves local and
+    remote hook repos, which most of these do -- diet-guard, screen-locker and
+    wake-alarm each carry nine `- repo:` blocks. A block appended under
+    `- repo: https://github.com/...` would be handed to that remote repo's
+    hook definitions and fail with an unhelpful error about an unknown id.
+    """
+    starts = [n for n, line in enumerate(lines) if line.rstrip() == LOCAL_REPO]
+    if not starts:
+        return -1
+    after = [
+        n for n in range(starts[-1] + 1, len(lines))
+        if lines[n].startswith("  - repo:")
+    ]
+    return after[0] if after else len(lines)
+
+
+def _write_hook(repo: Path) -> None:
+    """Insert the hook into the repo's LAST `local` hooks list.
+
+    Inserting rather than parsing-and-re-emitting is deliberate: every one of
     these configs carries comments explaining why a hook exists, and a YAML
     round-trip through the standard library drops all of them.
     """
@@ -60,8 +82,19 @@ def _write_hook(repo: Path) -> None:
     body = target.read_text(encoding="utf-8") if target.is_file() else EMPTY_PRECOMMIT
     if not body.endswith("\n"):
         body += "\n"
+    # `body` was just made to end in a newline, so the split always leaves a
+    # trailing empty element; dropping it keeps the join below symmetric.
+    lines = body.split("\n")[:-1]
+    cut = _local_block_end(lines)
+    if cut < 0:
+        raise ValueError(
+            f"{target} has no `{LOCAL_REPO}` block to add the hook to; "
+            "add one by hand, then re-run"
+        )
+    block = _template("precommit-hook.yaml").rstrip("\n").split("\n")
+    lines[cut:cut] = ["", *block]
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(f"{body}\n{_template('precommit-hook.yaml')}", encoding="utf-8")
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def plan(repo: Path) -> list[str]:
