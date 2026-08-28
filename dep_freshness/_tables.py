@@ -114,5 +114,12 @@ PUB_SDK_PACKAGES: Final = frozenset({
 PUB_OVERRIDE_KEY: Final = "dependency_overrides"
 
 ALLOWLIST_FILE: Final = "dependency-freshness.allowlist.yaml"
+
+# A blocker like "typescript-eslint does not support TS 7" holds in EVERY repo
+# that pins typescript, so a repo-only allowlist would mean hand-copying one
+# entry into eight files that then all rot independently -- the four-way fork
+# of the 250-line cap, in the mechanism built to avoid it. The shared file in
+# ~/utils is inherited; a repo entry for the same package overrides it.
+SHARED_ALLOWLIST_ENV: Final = "DEP_FRESHNESS_SHARED_ALLOWLIST"
 ALLOWLIST_MAX_DAYS: Final = 90
 TRANSITIVE_PREFIX: Final = "transitive:"

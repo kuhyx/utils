@@ -46,9 +46,35 @@ def no_network(monkeypatch):
     http.force_offline(False)
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
+def no_shared_allowlist(tmp_path, monkeypatch) -> Path:
+    """Point the fleet-wide allowlist at a path that does not exist.
+
+    AUTOUSE for the same reason as `cache_dir`: repos inherit the real
+    ~/utils/dependency-freshness.allowlist.yaml, so without this every test
+    silently reads whatever is currently excused fleet-wide and starts
+    depending on it.
+    """
+    # In its OWN directory, not tmp_path: the `repo` fixture is tmp_path, and
+    # the gate exempts inherited entries from the rot check everywhere except
+    # the repo that owns the shared file. Putting both in one directory makes
+    # every test look like it is running inside utils.
+    target = tmp_path / "shared" / "shared-allowlist.yaml"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("DEP_FRESHNESS_SHARED_ALLOWLIST", str(target))
+    return target
+
+
+@pytest.fixture(autouse=True)
 def cache_dir(tmp_path, monkeypatch) -> Path:
-    """Point the on-disk registry snapshot at a scratch directory."""
+    """Point the on-disk registry snapshot at a scratch directory.
+
+    AUTOUSE, and not negotiable: any code path that constructs a bare `Cache()`
+    writes to the real ~/.cache/dep-freshness/registry.json otherwise. That
+    already happened once -- a quarantine test seeded a fake answer for package
+    "x" into the live cache, and the next run of the same test read its own
+    pollution back and passed for the wrong reason.
+    """
     target = tmp_path / "cache"
     monkeypatch.setenv("DEP_FRESHNESS_CACHE", str(target))
     return target

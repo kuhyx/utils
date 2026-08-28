@@ -17,8 +17,13 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from dep_freshness._tables import NPM_API, NPM_QUARANTINE_HOURS
+from dep_freshness.cache import Cache
 from dep_freshness.registries.http import Offline, get_json
 from dep_freshness.versions import newest_stable, parse
+
+# Its own cache namespace: the answer here is narrower than `npm/<name>` and
+# the two must not overwrite each other.
+CACHE_ECOSYSTEM = "npm-installable"
 
 
 def cutoff(now: datetime | None = None) -> datetime:
@@ -35,7 +40,10 @@ def _parse(stamp: str) -> datetime | None:
 
 
 def installable_latest(
-    name: str, ceiling: str, now: datetime | None = None
+    name: str,
+    ceiling: str,
+    now: datetime | None = None,
+    cache: Cache | None = None,
 ) -> str | None:
     """Newest stable release published before the quarantine cutoff.
 
@@ -50,11 +58,25 @@ def installable_latest(
     registry has no `time` map), which callers must treat as "no change" --
     narrowing on a guess would hide a genuinely stale dependency.
     """
+    # Cached under the normal TTL. Without this every gate run in a JS-heavy
+    # repo re-downloads tens of full packuments, inside a pre-commit hook --
+    # the exact cost the 6h cache exists to prevent.
+    #
+    # The ceiling is part of the KEY, not applied afterwards: clamping a cached
+    # answer to the ceiling would return the ceiling itself, and the ceiling is
+    # frequently the very release the quarantine is excluding. `dist-tags.latest`
+    # is stable within a TTL, so hits still land across manifests.
+    store = cache if cache is not None else Cache()
+    key = f"{name}@{ceiling}"
+    entry = store.get(CACHE_ECOSYSTEM, key)
+    if entry is not None and entry.fresh(CACHE_ECOSYSTEM):
+        return entry.version
+
     url = NPM_API.format(name=name.replace("/", "%2f"))
     try:
         payload = get_json(url)
     except Offline:
-        return None
+        return entry.version if entry is not None else None  # stale beats none
     if not payload:
         return None
     times = payload.get("time")
@@ -73,4 +95,7 @@ def installable_latest(
         if top is not None and (here is None or here > top):
             continue
         old_enough.append(version)
-    return newest_stable(old_enough)
+    answer = newest_stable(old_enough)
+    store.put(CACHE_ECOSYSTEM, key, answer)
+    store.save()
+    return answer

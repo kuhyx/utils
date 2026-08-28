@@ -186,3 +186,43 @@ def _offline(_ecosystem, _name):
 
 def test_the_cache_directory_is_honoured(cache_dir):
     assert os.environ["DEP_FRESHNESS_CACHE"] == str(cache_dir)
+
+
+SHARED = """\
+exceptions:
+  - ecosystem: pub
+    package: some_other_package
+    pinned: "1.0.0"
+    reason: "a fleet-wide hold on something this repo does not use"
+    blocked_by: "transitive:whatever@1.0.0"
+"""
+
+
+def test_an_inherited_entry_this_repo_does_not_need_is_not_rot(
+    repo, run, no_shared_allowlist
+):
+    """A fleet-wide hold on typescript excuses nothing in a Flutter app.
+
+    Treating that as a dead entry would make every repo without the dependency
+    uncommittable -- the shared allowlist would be unusable for the exact case
+    it exists for.
+    """
+    no_shared_allowlist.write_text(SHARED, encoding="utf-8")
+    write(repo, "pubspec.yaml", CURRENT_PUBSPEC)
+    assert run("--all") == 0
+
+
+def test_a_repo_local_entry_with_nothing_to_excuse_is_still_rot(
+    repo, run, no_shared_allowlist
+):
+    no_shared_allowlist.write_text(SHARED, encoding="utf-8")
+    write(repo, "pubspec.yaml", CURRENT_PUBSPEC)
+    write(repo, ALLOWLIST, """\
+exceptions:
+  - ecosystem: pub
+    package: http
+    pinned: "1.5.0"
+    reason: "this repo's own stale entry"
+    blocked_by: "transitive:x@1.0.0"
+""")
+    assert run("--all") == 2

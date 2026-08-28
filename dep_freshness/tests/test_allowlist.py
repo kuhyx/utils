@@ -152,3 +152,46 @@ def test_unreadable_yaml_is_an_error(tmp_path):
     _allowlist(tmp_path, "exceptions: [\n")
     with pytest.raises(AllowlistError, match="unreadable"):
         load(tmp_path)
+
+
+def test_the_shared_allowlist_is_inherited(tmp_path, no_shared_allowlist):
+    """A fleet-wide blocker must not have to be copied into forty repos."""
+    no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
+    entries = load(tmp_path)
+    assert [(e.ecosystem, e.package) for e in entries] == [
+        ("pub", "plugin_platform_interface")
+    ]
+
+
+def test_a_repo_entry_overrides_the_shared_one(tmp_path, no_shared_allowlist):
+    no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
+    _allowlist(tmp_path, TRANSITIVE.replace(
+        'reason: "firebase_core 4.2.0 constrains this below latest"',
+        'reason: "this repo has its own reason"'))
+    entries = load(tmp_path)
+    assert len(entries) == 1
+    assert entries[0].reason == "this repo has its own reason"
+
+
+def test_shared_and_repo_entries_for_different_packages_both_apply(
+    tmp_path, no_shared_allowlist
+):
+    no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
+    _allowlist(tmp_path, _discretionary(30))
+    assert {e.package for e in load(tmp_path)} == {
+        "plugin_platform_interface", "abandoned"
+    }
+
+
+def test_a_malformed_shared_allowlist_is_an_error(tmp_path, no_shared_allowlist):
+    no_shared_allowlist.write_text("exceptions:\n  - just-a-string\n",
+                                   encoding="utf-8")
+    with pytest.raises(AllowlistError, match="must be a mapping"):
+        load(tmp_path)
+
+
+def test_the_shared_path_defaults_to_the_gate_repo(monkeypatch):
+    from dep_freshness.allowlist import shared_path
+    monkeypatch.delenv("DEP_FRESHNESS_SHARED_ALLOWLIST", raising=False)
+    assert shared_path().name == NAME
+    assert shared_path().parent.name == "utils"

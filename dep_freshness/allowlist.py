@@ -20,7 +20,13 @@ from pathlib import Path
 
 import yaml
 
-from dep_freshness._tables import ALLOWLIST_FILE, ALLOWLIST_MAX_DAYS
+import os
+
+from dep_freshness._tables import (
+    ALLOWLIST_FILE,
+    ALLOWLIST_MAX_DAYS,
+    SHARED_ALLOWLIST_ENV,
+)
 from dep_freshness.models import Exception_
 
 REQUIRED = ("ecosystem", "package", "pinned", "reason", "blocked_by")
@@ -32,6 +38,18 @@ class AllowlistError(Exception):
 
 def path_for(root: Path) -> Path:
     return root / ALLOWLIST_FILE
+
+
+def shared_path() -> Path:
+    """The fleet-wide allowlist that every repo inherits.
+
+    Lives beside the gate it belongs to. Overridable so a test -- or a machine
+    that keeps utils somewhere else -- is not forced to touch the real one.
+    """
+    override = os.environ.get(SHARED_ALLOWLIST_ENV)
+    if override:
+        return Path(override).expanduser()
+    return Path(__file__).resolve().parent.parent / ALLOWLIST_FILE
 
 
 def _parse_date(raw: object, where: str) -> date:
@@ -96,8 +114,21 @@ def check_expiry(entry: Exception_, today: date | None = None) -> None:
 
 
 def load(root: Path) -> list[Exception_]:
-    """Every exception declared for `root`; [] when there is no allowlist."""
-    source = path_for(root)
+    """Every exception in force for `root`: the shared set, then the repo's.
+
+    A repo entry for the same `ecosystem:package` replaces the shared one, so a
+    repo can always be stricter or state its own reason -- but nobody has to
+    copy a fleet-wide blocker into forty files to be able to commit.
+    """
+    entries = {
+        f"{e.ecosystem}:{e.package}": e for e in _load_file(shared_path())
+    }
+    for entry in _load_file(path_for(root)):
+        entries[f"{entry.ecosystem}:{entry.package}"] = entry
+    return list(entries.values())
+
+
+def _load_file(source: Path) -> list[Exception_]:
     if not source.is_file():
         return []
     try:

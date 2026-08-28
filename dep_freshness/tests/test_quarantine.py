@@ -166,3 +166,52 @@ def test_a_repo_pinned_to_the_newest_installable_version_passes(
           '{"dependencies": {"@testing-library/react": "16.3.2"}}')
     monkeypatch.chdir(repo)
     assert check.main(["--all"]) == 0
+
+
+def test_the_answer_is_cached_so_a_second_run_makes_no_request(packument,
+                                                               cache_dir):
+    """A 7MB packument per npm finding, per run, inside a pre-commit hook is
+    exactly what the 6h cache exists to prevent."""
+    from dep_freshness.cache import Cache
+
+    store = Cache(cache_dir / "registry.json")
+    packument(PACKUMENT)
+    assert quarantine.installable_latest("x", "16.3.3", now=NOW,
+                                         cache=store) == "16.3.2"
+
+    packument(None)  # any further fetch would now answer "no such package"
+    assert quarantine.installable_latest("x", "16.3.3", now=NOW,
+                                         cache=store) == "16.3.2"
+
+
+def test_a_different_dist_tag_is_a_different_cache_entry(packument, cache_dir):
+    """The ceiling is part of the key: clamping a cached answer to it would
+    return the ceiling, which is often the release being excluded."""
+    from dep_freshness.cache import Cache
+
+    store = Cache(cache_dir / "registry.json")
+    packument(PACKUMENT)
+    assert quarantine.installable_latest("x", "16.3.2", now=NOW,
+                                         cache=store) == "16.3.2"
+    assert store.get(quarantine.CACHE_ECOSYSTEM, "x@16.3.3") is None
+
+
+def test_a_stale_cache_entry_is_served_when_the_registry_is_down(packument,
+                                                                 cache_dir):
+    from dep_freshness.cache import Cache
+    from dep_freshness.registries.http import Offline
+
+    store = Cache(cache_dir / "registry.json")
+    store.put(quarantine.CACHE_ECOSYSTEM, "x@16.3.3", "16.3.2")
+    store._data[f"{quarantine.CACHE_ECOSYSTEM}/x@16.3.3"]["fetched_at"] = 0.0
+
+    def down(*_a, **_k):
+        raise Offline("no network")
+
+    monkey = down
+    import dep_freshness.quarantine as q
+    original, q.get_json = q.get_json, monkey
+    try:
+        assert q.installable_latest("x", "16.3.3", cache=store) == "16.3.2"
+    finally:
+        q.get_json = original

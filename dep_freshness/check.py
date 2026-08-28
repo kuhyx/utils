@@ -21,7 +21,7 @@ import sys
 
 from dep_freshness import report
 from dep_freshness._tables import NPM
-from dep_freshness.allowlist import AllowlistError, load
+from dep_freshness.allowlist import AllowlistError, load, shared_path
 from dep_freshness.discover import find_manifests, is_manifest, parse_manifest
 from dep_freshness.evaluate import judge
 from dep_freshness.models import Finding, Severity
@@ -43,12 +43,19 @@ def repo_root(start: Path) -> Path:
     return Path(result.stdout.strip() or start)
 
 
-def _excuse(findings: list[Finding], entries) -> tuple[list[Finding], list]:
+def _excuse(
+    findings: list[Finding], entries, shared: Path | None = None
+) -> tuple[list[Finding], list]:
     """Split findings into (still failing, excused), and flag dead entries.
 
     A `transitive:` entry clears itself the moment its dependency is no longer
     stale — that is what makes it a predicate rather than a date. An entry with
     nothing left to excuse is allowlist rot and exits 2.
+
+    Inherited entries are exempt from that rot check everywhere except the
+    repo that owns the shared file. A fleet-wide hold on `typescript`
+    legitimately excuses nothing in a Flutter app, and failing there would
+    make every repo without that dependency uncommittable.
     """
     by_label = {f"{e.ecosystem}:{e.package}": e for e in entries}
     used: set[str] = set()
@@ -64,7 +71,11 @@ def _excuse(findings: list[Finding], entries) -> tuple[list[Finding], list]:
             finding.dep, finding.severity, finding.latest, finding.detail,
             excused=entry.reason,
         ))
-    dead = [e for e in entries if f"{e.ecosystem}:{e.package}" not in used]
+    dead = [
+        e for e in entries
+        if f"{e.ecosystem}:{e.package}" not in used
+        and (shared is None or e.source != shared)
+    ]
     return failing, dead
 
 
@@ -149,7 +160,10 @@ def main(argv: list[str] | None = None) -> int:
 
     resolver = Resolver(refresh=args.refresh)
     findings = collect(_targets(args, root), resolver)
-    failing, dead = _excuse(findings, entries)
+    shared = shared_path()
+    failing, dead = _excuse(
+        findings, entries, shared=None if root == shared.parent else shared
+    )
 
     still_blocking = {f.label: True for f in findings}
     report.exceptions_block(entries, still_blocking)

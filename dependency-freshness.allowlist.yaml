@@ -1,5 +1,11 @@
 # Dependencies deliberately held below latest stable, and why.
 #
+# THIS IS THE FLEET-WIDE FILE. Every repo inherits it; a repo's own
+# dependency-freshness.allowlist.yaml adds to it, and an entry there for the
+# same ecosystem:package overrides the one here. A blocker like "typescript-eslint
+# does not support TS 7" holds in every repo that pins typescript, and copying
+# it into eight of them would give eight entries that rot independently.
+#
 # Two entry classes, and the distinction is load-bearing:
 #
 #   blocked_by: transitive:<pkg>@<ver>
@@ -24,6 +30,10 @@ exceptions:
       typescript-eslint 8.68.0 -- itself the latest release -- declares
       `typescript: ">=4.8.4 <6.1.0"` and throws "typescript-eslint does not
       support TS 7.0" when eslint loads its config. No 9.x exists. Taking TS 7
-      would mean dropping every type-aware lint rule from ts_core and web_ui
-      until upstream catches up, so the compiler waits for the linter.
+      would mean dropping every type-aware lint rule from every repo that pins
+      it, so the compiler waits for the linter.
+      Held fleet-wide: this blocks ts_core, web_ui, konbini-67, iron-and-anvil,
+      awesome-mcp-explorer, europe-county-map and every other repo pinning
+      typescript, which is exactly why the entry lives here and not in eight
+      separate files.
     blocked_by: "transitive:typescript-eslint@8.68.0"
