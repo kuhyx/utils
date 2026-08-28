@@ -1,12 +1,7 @@
 name: dependency freshness
 
 # Every dependency on its ecosystem's newest STABLE release, enforced on push
-# as well as at commit time. This repo OWNS the gate, so unlike every other
-# repo it runs its own copy directly instead of checking one out.
-#
-# Deliberately added last, after all eleven manifests here were brought
-# current: installing the gate on a repo before its dependencies are upgraded
-# makes it instantly and permanently red, which teaches people to ignore it. The local pre-commit hook only sees the manifests
+# as well as at commit time. The local pre-commit hook only sees the manifests
 # in a commit and can be skipped entirely by a fresh clone that never ran
 # `pre-commit install`; this runs `--all` over the whole repo.
 #
@@ -33,10 +28,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The gate lives in the shared utils repo so every repo resolves the
+      # same "latest stable" the same way. Checking it out beats vendoring a
+      # copy, which is exactly how a gate and its survey start disagreeing.
+      - name: Check out the shared gate
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+
+      # "3.x", never a pinned minor: the Python target IS the interpreter the
+      # gate runs under (registries/toolchain.python_installed), so a runner
+      # held a release behind this machine reports a repo's `requires-python`
+      # as excluding "latest" while the same check passes locally. flax-docs-mcp
+      # hit exactly that -- `>=3.14` green here, red on a 3.13 runner.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.x"
 
       - name: Install the gate's two runtime dependencies
         run: python -m pip install --upgrade pyyaml packaging
@@ -45,8 +54,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/dep-freshness
-          key: dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/package.json', '**/requirements*.txt', '**/pyproject.toml') }}
+          key: dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/pyproject.toml',
+            '**/requirements*.txt', '**/package.json', '**/Cargo.toml', '**/go.mod') }}
           restore-keys: dep-freshness-
 
       - name: Every dependency is on newest stable
-        run: bash scripts/check_dependency_freshness.sh --all --strict
+        run: bash .utils/scripts/check_dependency_freshness.sh --all --strict

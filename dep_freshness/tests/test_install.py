@@ -229,3 +229,21 @@ repos:
     )
     with pytest.raises(ValueError, match="no `  - repo: local` block"):
         installer.install(repo)
+
+
+def test_utils_own_checker_is_never_replaced_by_the_delegate(repo):
+    """The one repo whose copy is meant to differ.
+
+    utils holds the real checker at the delegate's path. Overwriting it with
+    the shim makes the gate exec itself, because the shim resolves the shared
+    gate to exactly the file it just replaced.
+    """
+    real = "#!/bin/bash\n# the real checker, not a shim\n"
+    write(repo, "dep_freshness/check.py", "# the shared implementation\n")
+    write(repo, "scripts/check_dependency_freshness.sh", real)
+
+    assert "scripts/check_dependency_freshness.sh" not in installer.plan(repo)
+    installer.install(repo)
+    assert (repo / "scripts/check_dependency_freshness.sh").read_text(
+        encoding="utf-8"
+    ) == real

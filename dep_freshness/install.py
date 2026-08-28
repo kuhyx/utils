@@ -35,7 +35,20 @@ def _template(name: str) -> str:
     return (TEMPLATES / name).read_text(encoding="utf-8")
 
 
+def _owns_the_shared_gate(repo: Path) -> bool:
+    """True for utils itself, where DELEGATE is the real checker, not a shim.
+
+    Without this the installer "fixes drift" in the one repo whose copy is
+    supposed to differ, and the result execs itself: the delegate resolves
+    the shared gate to `$HOME/utils/scripts/check_dependency_freshness.sh`,
+    which is the file it just overwrote.
+    """
+    return (repo / "dep_freshness" / "check.py").is_file()
+
+
 def _needs_delegate(repo: Path) -> bool:
+    if _owns_the_shared_gate(repo):
+        return False
     target = repo / DELEGATE
     return not target.is_file() or target.read_text(encoding="utf-8") != _template(
         "delegate.sh"
