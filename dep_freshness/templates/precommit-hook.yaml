@@ -1,0 +1,20 @@
+      # Every dependency on its ecosystem's newest STABLE release, exact-pinned
+      # so the question is mechanically answerable at all.
+      #
+      # `files:` is what keeps this cheap: a commit touching only source makes
+      # ZERO network requests, and manifest commits mostly hit a 6h disk cache.
+      #
+      # Runs WITHOUT --strict on purpose. Offline it degrades to the cached
+      # answer and passes with a loud banner; `--no-verify` is banned here, so
+      # a hook that hard-failed on a flaky connection would leave no way to
+      # commit at all. CI, always online, is the strict authority.
+      - id: dependency-freshness
+        name: dependencies on newest stable
+        entry: scripts/check_dependency_freshness.sh
+        language: system
+        pass_filenames: true
+        files: >-
+          (pubspec\.(yaml|lock)|pyproject\.toml|requirements.*\.txt|uv\.lock
+          |package\.json|package-lock\.json|pnpm-lock\.yaml
+          |Cargo\.(toml|lock)|go\.(mod|sum)
+          |\.fvmrc|\.nvmrc|\.python-version)$

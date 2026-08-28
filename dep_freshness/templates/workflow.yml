@@ -1,0 +1,57 @@
+name: dependency freshness
+
+# Every dependency on its ecosystem's newest STABLE release, enforced on push
+# as well as at commit time. The local pre-commit hook only sees the manifests
+# in a commit and can be skipped entirely by a fresh clone that never ran
+# `pre-commit install`; this runs `--all` over the whole repo.
+#
+# `--strict` is CI-only. Offline the gate degrades to its cached answer and
+# passes, because `--no-verify` is banned locally and a hook that hard-failed
+# on a flaky connection would leave no way to commit. A runner is always
+# online, so here an undeterminable answer is a real failure.
+#
+# Expect this to go red for reasons this repo's commit did not cause: an
+# upstream release overnight is enough. That is the chosen behaviour -- the
+# alternative is a gate that only notices staleness when someone remembers to
+# look.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  dependency-freshness:
+    name: dependencies on newest stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The gate lives in the shared utils repo so every repo resolves the
+      # same "latest stable" the same way. Checking it out beats vendoring a
+      # copy, which is exactly how a gate and its survey start disagreeing.
+      - name: Check out the shared gate
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install the gate's two runtime dependencies
+        run: python -m pip install --upgrade pyyaml packaging
+
+      - name: Cache registry lookups
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/dep-freshness
+          key: dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/pyproject.toml',
+            '**/requirements*.txt', '**/package.json', '**/Cargo.toml', '**/go.mod') }}
+          restore-keys: dep-freshness-
+
+      - name: Every dependency is on newest stable
+        run: bash .utils/scripts/check_dependency_freshness.sh --all --strict
