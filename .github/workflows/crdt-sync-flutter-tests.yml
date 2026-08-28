@@ -1,0 +1,36 @@
+name: crdt_sync_flutter tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['crdt_sync_flutter/**', 'crdt_sync_dart/**']
+  pull_request:
+    branches: [main]
+    paths: ['crdt_sync_flutter/**', 'crdt_sync_dart/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crdt_sync_flutter
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce 100% line coverage
+        run: scripts/check_coverage.sh coverage/lcov.info 100

@@ -1,0 +1,48 @@
+name: crdt_sync_dart tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['crdt_sync_dart/**']
+  pull_request:
+    branches: [main]
+    paths: ['crdt_sync_dart/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crdt_sync_dart
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pure Dart, no Flutter dependency -- so setup-dart, not flutter-action.
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+      - name: Run tests with coverage
+        run: dart test --coverage=coverage
+
+      # Unlike `flutter test --coverage`, `dart test --coverage` emits raw VM
+      # JSON and no lcov. Skipping this step leaves a stale lcov.info on disk
+      # that the gate below happily "passes" -- which is exactly how this
+      # package drifted to 96% while believing it was at 100%.
+      - name: Convert coverage to lcov
+        run: |
+          dart pub global activate coverage
+          dart pub global run coverage:format_coverage \
+            --lcov --in=coverage/test --out=coverage/lcov.info \
+            --report-on=lib --packages=.dart_tool/package_config.json
+
+      - name: Enforce 100% line coverage
+        run: scripts/check_coverage.sh coverage/lcov.info 100
