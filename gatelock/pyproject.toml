@@ -15,7 +15,7 @@ dependencies = []  # pure stdlib — tkinter is bundled with Python
 # promptly — so this must stay OPTIONAL: a locker that refuses to start
 # because a dependency is missing is itself a way to end up unlocked.
 # Consumers' install scripts install it unconditionally all the same.
-randr = ["python-xlib>=0.33"]
+randr = ["python-xlib==0.33"]
 
 [tool.setuptools.packages.find]
 include = ["gatelock*"]
