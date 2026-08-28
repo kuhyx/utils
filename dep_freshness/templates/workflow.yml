@@ -54,7 +54,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/dep-freshness
-          key: dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/pyproject.toml',
+          key:
+            dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/pyproject.toml',
             '**/requirements*.txt', '**/package.json', '**/Cargo.toml', '**/go.mod') }}
           restore-keys: dep-freshness-
 
