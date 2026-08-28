@@ -173,6 +173,11 @@ VENDORED_SUBPATHS = {
         # byte-identical to the originals, so nothing here is student-written.
         "Programming/EOPSY/lab3/task3/work",
         "Programming/EOPSY/lab4/task4/work",
+        # sightpy, the BSD-3 ray tracer from rafael-fuente/Python-Raytracer.
+        # Verified 2026-08-28 against a fresh upstream clone, line endings
+        # normalised: 30/32 .py byte-identical; ray.py and scene.py carry a
+        # 12- and 13-line local patch adding ray counters for the report.
+        "Programming/TRAK/sightpy",
     ),
 }
 
