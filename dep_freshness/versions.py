@@ -74,7 +74,10 @@ def behind(pinned: str, latest: str) -> bool:
     return left < right
 
 
-EXACT = re.compile(r"^\s*(?:==\s*)?v?\d+(?:\.\d+){0,2}(?:[-+][0-9A-Za-z.-]+)?\s*$")
+# Any number of numeric release components, not three: PyPI stub packages
+# date-stamp a fourth (`types-requests==2.33.0.20260712`), and capping at
+# three reported an exact pin as unpinned against itself.
+EXACT = re.compile(r"^\s*(?:==\s*)?v?\d+(?:\.\d+)*(?:[-+][0-9A-Za-z.-]+)?\s*$")
 
 
 def exact_pin(constraint: str) -> str | None:

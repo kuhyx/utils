@@ -34,7 +34,10 @@ def test_newest_stable_ignores_unparseable_entries():
 
 @pytest.mark.parametrize("raw,expected", [
     ("1.6.0", "1.6.0"), ("==1.6.0", "1.6.0"), ("v2.0.0", "2.0.0"),
-    ("  1.0.0  ", "1.0.0"),
+    ("  1.0.0  ", "1.0.0"), ("1.9", "1.9"), ("3", "3"),
+    # PyPI stub packages date-stamp a fourth component. Capping the regex at
+    # three reported this exact pin as unpinned *against its own value*.
+    ("==2.33.0.20260712", "2.33.0.20260712"),
 ])
 def test_exact_pins_are_recognised(raw, expected):
     assert exact_pin(raw) == expected
