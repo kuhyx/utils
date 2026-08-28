@@ -85,6 +85,30 @@ def test_refresh_discards_the_existing_cache(cache_dir, monkeypatch):
     assert resolver.latest(dep()).version == "1.6.0"
 
 
+def test_the_python_target_ignores_the_cache_entirely(resolver, monkeypatch):
+    """screen-locker went red on a cached interpreter from another machine.
+
+    `actions/cache` restored a `dep-freshness-` entry written by an older
+    runner image, so a job that `setup-python` had put on 3.14.7 was told the
+    "current toolchain" was 3.13.15 -- and the repo's own
+    `requires-python = ">=3.14"` was reported as excluding latest. The answer
+    describes this process and costs nothing, so it is never cached.
+    """
+    resolver.cache.put("toolchain", "python", "3.13.15")
+    monkeypatch.setattr(tc, "python_installed", lambda: "3.14.7")
+    assert resolver.latest(dep("toolchain", "python")).version == "3.14.7"
+
+
+def test_prefetch_does_not_warm_the_python_target(resolver, monkeypatch):
+    monkeypatch.setattr(
+        http, "get_json", lambda *a, **k: pytest.fail("no lookup is needed")
+    )
+    monkeypatch.setattr(
+        tc, "python_installed", lambda: pytest.fail("prefetch must skip python")
+    )
+    resolver.prefetch([dep("toolchain", "python")])
+
+
 def test_git_tags_get_a_longer_ttl_than_registries():
     assert ttl_for("gittag") > ttl_for("pub")
 

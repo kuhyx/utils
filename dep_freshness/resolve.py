@@ -50,6 +50,18 @@ def _toolchain_latest(name: str) -> str | None:
     return None
 
 
+def never_cached(ecosystem: str, name: str) -> bool:
+    """True for answers that describe THIS process, not a remote registry.
+
+    `toolchain:python` is `platform.python_version()`: free to compute, and
+    different on every machine. Caching it made screen-locker's CI red on
+    2026-08-28 -- the `actions/cache` restore-key handed a job running 3.14.7
+    a 3.13.15 answer written by an older runner image, and the gate declared
+    the repo's own `requires-python = ">=3.14"` to exclude "latest".
+    """
+    return ecosystem == TOOLCHAIN and name == "python"
+
+
 def _fetch(ecosystem: str, package: str) -> str | None:
     if ecosystem == TOOLCHAIN:
         return _toolchain_latest(package)
@@ -71,8 +83,11 @@ class Resolver:
         wanted = {
             (d.ecosystem, d.name)
             for d in deps
-            if not (entry := self.cache.get(d.ecosystem, d.name))
-            or not entry.fresh(d.ecosystem)
+            if not never_cached(d.ecosystem, d.name)
+            and (
+                not (entry := self.cache.get(d.ecosystem, d.name))
+                or not entry.fresh(d.ecosystem)
+            )
         }
         if not wanted:
             return
@@ -93,6 +108,8 @@ class Resolver:
         self.cache.save()
 
     def latest(self, dep: Dep) -> Answer:
+        if never_cached(dep.ecosystem, dep.name):
+            return Answer(_fetch(dep.ecosystem, dep.name))
         entry = self.cache.get(dep.ecosystem, dep.name)
         if entry and entry.fresh(dep.ecosystem):
             return Answer(entry.version)
