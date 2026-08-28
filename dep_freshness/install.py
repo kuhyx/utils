@@ -1,11 +1,12 @@
-"""Install the three gate pieces into a repo, from one set of templates.
+"""Install the gate's pieces into a repo, from one set of templates.
 
 The gate ships as three hand-replicated files per repo -- a delegate script, a
-pre-commit hook entry and a CI workflow -- and hand-replication is exactly how
-the 250-line cap ended up with four different hook ids, two of them
-independent reimplementations rather than delegates. Sixteen more repos of
-copy-paste would repeat that, so the copy is a script and the templates have
-one home.
+pre-commit hook entry and a CI workflow, plus a fourth edit to an existing
+`pre-commit` workflow where one exists (see install_precommit_ci) -- and
+hand-replication is exactly how the 250-line cap ended up with four different
+hook ids, two of them independent reimplementations rather than delegates.
+Sixteen more repos of copy-paste would repeat that, so the copy is a script
+and the templates have one home.
 
 Idempotent by design: running it twice changes nothing the second time, and
 `plan()` reports what a run WOULD do without touching the repo.
@@ -14,6 +15,12 @@ Idempotent by design: running it twice changes nothing the second time, and
 from __future__ import annotations
 
 from pathlib import Path
+
+from dep_freshness.install_precommit_ci import (
+    PRECOMMIT_WORKFLOW,
+    needs_patch,
+    patch,
+)
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 DELEGATE = Path("scripts/check_dependency_freshness.sh")
@@ -65,8 +72,7 @@ def _local_block_end(lines: list[str]) -> int:
     if not starts:
         return -1
     after = [
-        n for n in range(starts[-1] + 1, len(lines))
-        if lines[n].startswith("  - repo:")
+        n for n in range(starts[-1] + 1, len(lines)) if lines[n].startswith("  - repo:")
     ]
     return after[0] if after else len(lines)
 
@@ -106,6 +112,8 @@ def plan(repo: Path) -> list[str]:
         todo.append(str(WORKFLOW))
     if _needs_hook(repo):
         todo.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
+    if needs_patch(repo):
+        todo.append(f"{PRECOMMIT_WORKFLOW} (shared-gate checkout)")
     return todo
 
 
@@ -126,6 +134,8 @@ def install(repo: Path) -> list[str]:
     if _needs_hook(repo):
         _write_hook(repo)
         done.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
+    if patch(repo):
+        done.append(f"{PRECOMMIT_WORKFLOW} (shared-gate checkout)")
     return done
 
 
