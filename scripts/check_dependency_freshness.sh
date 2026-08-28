@@ -35,8 +35,29 @@ main() {
         exit 1
     fi
 
+    ensure_runtime_deps
+
     PYTHONPATH="$UTILS_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
         python3 -m dep_freshness "$@"
+}
+
+# The gate deliberately runs under the REPO's interpreter, because the Python
+# toolchain check compares that interpreter against latest stable. So a repo
+# with its own `.python-version` hands us a pyenv build that has never seen
+# pyyaml, and the gate died on an import traceback with no hint of the cause
+# (aseprite-mcp, pyenv 3.13.1). CI already installs these explicitly; do the
+# same locally rather than telling a human to.
+ensure_runtime_deps() {
+    if python3 -c 'import yaml, packaging' 2>/dev/null; then
+        return
+    fi
+    echo "dependency-freshness: installing pyyaml/packaging for $(python3 -V 2>&1)" >&2
+    python3 -m pip install --quiet --disable-pip-version-check pyyaml packaging >&2 || true
+    if ! python3 -c 'import yaml, packaging' 2>/dev/null; then
+        echo "Error: the gate needs pyyaml and packaging under $(command -v python3)." >&2
+        echo "Install them there, or run the gate with a different interpreter." >&2
+        exit 3
+    fi
 }
 
 main "$@"
