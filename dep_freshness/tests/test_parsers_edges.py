@@ -94,3 +94,49 @@ def test_line_index_of_an_unreadable_file_is_empty(tmp_path):
     from dep_freshness.parsers._lines import find, index
     assert index(tmp_path / "nope") == {}
     assert find(tmp_path / "nope", "x") == 0
+
+
+def test_a_config_block_never_wins_the_line_over_the_dependency(tmp_path):
+    """Every Flutter app here declares `flutter_launcher_icons` twice.
+
+    Once as a dev dependency, and once as a TOP-LEVEL configuration block for
+    the same tool. Least-indented wins sends the fix to the config block --
+    lyricanki reported `pubspec.yaml:64`, the config key, while the version
+    being complained about lives at line 48.
+    """
+    body = """\
+name: demo
+environment:
+  sdk: ^3.12.2
+dependencies:
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/icon.png"
+"""
+    deps = {
+        d.name: d
+        for d in pubspec.parse(write(tmp_path, "pubspec.yaml", body))
+    }
+    assert deps["flutter_launcher_icons"].line == 8
+
+
+def test_the_sdk_line_is_the_environment_one_not_a_plugin_block(tmp_path):
+    """`flutter: {sdk: flutter}` also declares an `sdk:` key, deeper in."""
+    body = """\
+name: demo
+environment:
+  sdk: ^3.12.2
+dependencies:
+  flutter:
+    sdk: flutter
+"""
+    deps = {
+        d.name: d
+        for d in pubspec.parse(write(tmp_path, "pubspec.yaml", body))
+    }
+    assert deps["dart"].line == 3

@@ -26,6 +26,14 @@ from dep_freshness.parsers._lines import index
 from dep_freshness.versions import exact_pin
 
 _SECTIONS = (("dependencies", False), ("dev_dependencies", True))
+# Where a version may legitimately be declared. Everything else at top level is
+# configuration -- and a Flutter app has a `flutter_launcher_icons:` config
+# block sharing its name with the dev dependency, which without this hint wins
+# the line lookup by being less indented and sends the fix to a line that
+# carries no version at all.
+_LINE_SECTIONS = (
+    "environment", "dependencies", "dev_dependencies", PUB_OVERRIDE_KEY,
+)
 
 
 def _load(path: Path) -> dict:
@@ -61,7 +69,7 @@ def parse(path: Path) -> list[Dep]:
     data = _load(path)
     if not data:
         return []
-    lines = index(path)
+    lines = index(path, _LINE_SECTIONS)
     locks = locked_versions(path.with_name("pubspec.lock"))
     deps: list[Dep] = []
 
