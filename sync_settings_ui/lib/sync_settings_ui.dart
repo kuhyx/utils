@@ -12,5 +12,6 @@
 library;
 
 export 'src/backup_slot.dart';
+export 'src/firebase_connect_result.dart';
 export 'src/firebase_sync_controller.dart';
 export 'src/sync_settings_screen.dart';

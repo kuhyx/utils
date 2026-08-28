@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:crdt_sync/crdt_sync.dart';
 import 'package:flutter/material.dart';
 import 'package:sync_settings_ui/src/backup_slot.dart';
+import 'package:sync_settings_ui/src/firebase_connect_result.dart';
 import 'package:sync_settings_ui/src/firebase_sync_controller.dart';
 
 part 'sync_settings_sections.dart';

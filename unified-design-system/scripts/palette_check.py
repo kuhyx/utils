@@ -34,7 +34,9 @@ from palette_map import NON_COLOUR_CSS, PALETTE, STACKS
 # Repo root: this file is <root>/unified-design-system/scripts/palette_check.py
 ROOT = Path(__file__).resolve().parents[2]
 
-TOKENS_MD = ROOT / "unified-design-system" / "tokens.md"
+# Renamed by the md-naming migration; the gate kept pointing at the old
+# name and had been failing on every push since.
+TOKENS_MD = ROOT / "unified-design-system" / "DOCS-tokens.md"
 TOKENS_CSS = ROOT / "web_ui" / "src" / "tokens.css"
 TOKENS_DART = ROOT / "design_system" / "lib" / "src" / "tokens.dart"
 # LockConfig moved out of _window.py when that file was split for the
