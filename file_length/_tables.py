@@ -175,11 +175,9 @@ SESSION_ARTIFACTS_ANYWHERE = (
 
 #: Whole repos under ~ that are third-party clones, not kuhy's work.
 #: Verified 2026-08-14 by `git remote get-url origin` + commit authors.
+#: 2026-08-28: StringTheory / reaper-mcp / freesound-mcp deleted from disk.
 THIRD_PARTY_REPOS = frozenset(
     {
-        "StringTheory",  # github.com/AnthonySf/TheStringTheory
-        "reaper-mcp",  # github.com/TwelveTake-Studios/reaper-mcp
-        "freesound-mcp",  # github.com/timjrobinson/FreesoundMCPServer
         "llama_cpp_dart_local",  # generated FFI bindings
         "aseprite-mcp",
         "Mapperatorinator",  # github.com/OliBomby/Mapperatorinator
