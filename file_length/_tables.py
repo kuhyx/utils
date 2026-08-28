@@ -154,6 +154,26 @@ VENDORED_SUBPATHS = {
     # sibling references/ dir, so splitting one into SKILL.part2.md would
     # break the format rather than improve readability.
     "todo": (".agents/skills",),
+    # University coursework archive. The authoritative list, with a verified
+    # reason per entry, is gates/vendored.txt in that repo -- this tuple is a
+    # mirror of it. Keep the two in step (`./run.sh sync-vendored` there).
+    "WUT_Computer_Science": (
+        # ASP.NET scaffolder's jQuery/Bootstrap dist bundle: 30,875 lines of
+        # JS and 43,027 of CSS, ~98% of all JS and CSS in the repo.
+        "Programming/EGUI/lab2/lab2/wwwroot/lib",
+        # Stock Unity package and new-project template content.
+        "Programming/E-PSYOPS/theProject/Assets/TextMesh Pro",
+        "Programming/E-PSYOPS/theProject/Assets/TutorialInfo",
+        # Manufacturer-supplied Altium/EAGLE/PADS component libraries.
+        "NotProgramming/EMISY/componentSchematic",
+        "NotProgramming/EMISY/schematic",
+        # EOPSY simulators shipped by the department as tarballs; work/ is the
+        # extraction target of `make setup`. Verified 2026-08-28 by extracting
+        # ftp/sched.tgz and ftp/memory.tgz and diffing: 14/14 java files
+        # byte-identical to the originals, so nothing here is student-written.
+        "Programming/EOPSY/lab3/task3/work",
+        "Programming/EOPSY/lab4/task4/work",
+    ),
 }
 
 #: Directory names that mark a vendored agent-skill tree wherever they appear.
