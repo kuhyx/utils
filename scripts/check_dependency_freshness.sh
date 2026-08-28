@@ -53,11 +53,19 @@ ensure_runtime_deps() {
     fi
     echo "dependency-freshness: installing pyyaml/packaging for $(python3 -V 2>&1)" >&2
     python3 -m pip install --quiet --disable-pip-version-check pyyaml packaging >&2 || true
+    # A `uv venv` ships no pip at all, and those are most of this fleet now.
+    if ! python3 -c 'import yaml, packaging' 2>/dev/null && has_uv; then
+        uv pip install --quiet --python "$(command -v python3)" pyyaml packaging >&2 || true
+    fi
     if ! python3 -c 'import yaml, packaging' 2>/dev/null; then
         echo "Error: the gate needs pyyaml and packaging under $(command -v python3)." >&2
         echo "Install them there, or run the gate with a different interpreter." >&2
         exit 3
     fi
+}
+
+has_uv() {
+    command -v uv >/dev/null 2>&1
 }
 
 main "$@"
