@@ -37,6 +37,7 @@ class Dep:
     dev: bool = False
     caret_ok: bool = False      # Q13 carve-out: a range is legal here
     override: bool = False
+    peer: bool = False          # a compatibility range, not a build pin
 
 
 @dataclass(frozen=True)

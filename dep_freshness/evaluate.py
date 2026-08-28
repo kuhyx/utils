@@ -64,6 +64,17 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
     if dep.ecosystem == TOOLCHAIN:
         return _toolchain(dep, latest)
 
+    if dep.peer:
+        # A peerDependency declares what a CONSUMER may bring, so exact-pinning
+        # it is actively wrong: it would force every consumer onto one version.
+        # The meaningful question is whether the range still admits latest.
+        if not satisfies(dep.constraint, latest):
+            return Finding(
+                dep, Severity.STALE, latest,
+                detail=f"the peer range excludes the current {latest}",
+            )
+        return None
+
     if dep.pinned is None:
         if dep.caret_ok:
             floor = lower_bound(dep.constraint)

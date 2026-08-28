@@ -110,6 +110,24 @@ lint = ["ruff==0.16.5"]
     assert deps["python"].constraint == ">=3.10"
 
 
+def test_package_json_reads_the_package_manager_pin(tmp_path):
+    """corepack enforces `packageManager`, so it is a real dependency."""
+    path = write(tmp_path, "package.json", '{"packageManager": "pnpm@10.13.1"}')
+    deps = {d.name: d for d in javascript.parse_package_json(path)}
+    assert deps["pnpm"].pinned == "10.13.1"
+
+
+def test_a_package_manager_without_a_version_is_ignored(tmp_path):
+    path = write(tmp_path, "package.json", '{"packageManager": "pnpm"}')
+    assert javascript.parse_package_json(path) == []
+
+
+def test_peer_dependencies_are_marked_as_such(tmp_path):
+    path = write(tmp_path, "package.json",
+                 '{"peerDependencies": {"react": ">=19"}}')
+    assert javascript.parse_package_json(path)[0].peer
+
+
 def test_package_json_reads_engines_and_overrides(tmp_path):
     path = write(tmp_path, "package.json", """\
 {"engines": {"node": "24.20.0"},

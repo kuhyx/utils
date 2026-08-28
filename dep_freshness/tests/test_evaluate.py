@@ -110,6 +110,25 @@ def test_a_pinned_toolchain_behind_latest_is_stale():
     assert finding.severity is Severity.STALE
 
 
+def test_a_peer_range_admitting_latest_is_not_a_violation():
+    """Exact-pinning a peer dep would force every consumer onto one version."""
+    assert judge(
+        dep(ecosystem="npm", name="react", constraint=">=19", pinned=None,
+            peer=True),
+        Answer("19.2.8"),
+    ) is None
+
+
+def test_a_peer_range_excluding_latest_is_reported():
+    finding = judge(
+        dep(ecosystem="npm", name="react", constraint=">=19 <19.2", pinned=None,
+            peer=True),
+        Answer("19.2.8"),
+    )
+    assert finding.severity is Severity.STALE
+    assert "peer range excludes" in finding.detail
+
+
 def test_no_answer_at_all_is_unknown_not_stale():
     finding = judge(dep(), Answer(None, unavailable=True))
     assert finding.severity is Severity.UNKNOWN
