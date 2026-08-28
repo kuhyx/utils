@@ -7,7 +7,6 @@ this repo has shipped exactly that twice before (two fake file-length gates).
 
 from __future__ import annotations
 
-from datetime import date, timedelta
 import os
 
 import pytest
@@ -15,36 +14,12 @@ import pytest
 from dep_freshness import check
 from dep_freshness.cache import Cache
 from dep_freshness.registries import http
-from dep_freshness.tests.conftest import write
-
-STALE_PUBSPEC = """\
-name: demo
-environment:
-  sdk: ^3.12.2
-dependencies:
-  http: 1.5.0
-"""
-CURRENT_PUBSPEC = STALE_PUBSPEC.replace("1.5.0", "1.6.0")
-ALLOWLIST = "dependency-freshness.allowlist.yaml"
-
-
-@pytest.fixture(autouse=True)
-def canned(monkeypatch, cache_dir):
-    """One registry answer for every package the fixtures declare."""
-    answers = {("pub", "http"): "1.6.0", ("toolchain", "dart"): "3.13.2"}
-    monkeypatch.setattr(
-        "dep_freshness.resolve._fetch",
-        lambda eco, name: answers.get((eco, name)),
-    )
-    return answers
-
-
-@pytest.fixture
-def run(repo, monkeypatch):
-    def invoke(*argv):
-        monkeypatch.chdir(repo)
-        return check.main(list(argv))
-    return invoke
+from dep_freshness.tests.conftest import (
+    ALLOWLIST,
+    CURRENT_PUBSPEC,
+    STALE_PUBSPEC,
+    write,
+)
 
 
 def test_a_stale_pin_fails_and_names_the_package(repo, run, capsys):
@@ -69,56 +44,6 @@ def test_a_non_manifest_path_is_ignored(repo, run):
     write(repo, "pubspec.yaml", STALE_PUBSPEC)
     write(repo, "lib/main.dart", "void main() {}\n")
     assert run("lib/main.dart") == 0
-
-
-def test_a_transitive_exception_excuses_the_finding(repo, run):
-    write(repo, "pubspec.yaml", STALE_PUBSPEC)
-    write(repo, ALLOWLIST, """\
-exceptions:
-  - ecosystem: pub
-    package: http
-    pinned: "1.5.0"
-    reason: "something upstream holds it"
-    blocked_by: "transitive:some_pkg@1.0.0"
-""")
-    assert run("--all") == 0
-
-
-def test_an_exception_prints_loudly_even_on_success(repo, run, capsys):
-    test_a_transitive_exception_excuses_the_finding(repo, run)
-    err = capsys.readouterr().err
-    assert "DEPENDENCY EXCEPTION IN USE" in err
-    assert "still blocking" in err
-
-
-def test_an_exception_with_nothing_left_to_excuse_is_an_error(repo, run, capsys):
-    write(repo, "pubspec.yaml", CURRENT_PUBSPEC)
-    write(repo, ALLOWLIST, """\
-exceptions:
-  - ecosystem: pub
-    package: http
-    pinned: "1.5.0"
-    reason: "stale entry nobody removed"
-    blocked_by: "transitive:some_pkg@1.0.0"
-""")
-    assert run("--all") == 2
-    assert "no longer stale" in capsys.readouterr().err
-
-
-def test_an_expired_allowlist_exits_two(repo, run, capsys):
-    write(repo, "pubspec.yaml", STALE_PUBSPEC)
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
-    write(repo, ALLOWLIST, f"""\
-exceptions:
-  - ecosystem: pub
-    package: http
-    pinned: "1.5.0"
-    reason: "held"
-    blocked_by: "discretionary"
-    expires: "{yesterday}"
-""")
-    assert run("--all") == 2
-    assert "Allowlist ERROR" in capsys.readouterr().err
 
 
 def test_offline_with_a_cold_cache_passes_with_a_degraded_banner(
@@ -186,43 +111,3 @@ def _offline(_ecosystem, _name):
 
 def test_the_cache_directory_is_honoured(cache_dir):
     assert os.environ["DEP_FRESHNESS_CACHE"] == str(cache_dir)
-
-
-SHARED = """\
-exceptions:
-  - ecosystem: pub
-    package: some_other_package
-    pinned: "1.0.0"
-    reason: "a fleet-wide hold on something this repo does not use"
-    blocked_by: "transitive:whatever@1.0.0"
-"""
-
-
-def test_an_inherited_entry_this_repo_does_not_need_is_not_rot(
-    repo, run, no_shared_allowlist
-):
-    """A fleet-wide hold on typescript excuses nothing in a Flutter app.
-
-    Treating that as a dead entry would make every repo without the dependency
-    uncommittable -- the shared allowlist would be unusable for the exact case
-    it exists for.
-    """
-    no_shared_allowlist.write_text(SHARED, encoding="utf-8")
-    write(repo, "pubspec.yaml", CURRENT_PUBSPEC)
-    assert run("--all") == 0
-
-
-def test_a_repo_local_entry_with_nothing_to_excuse_is_still_rot(
-    repo, run, no_shared_allowlist
-):
-    no_shared_allowlist.write_text(SHARED, encoding="utf-8")
-    write(repo, "pubspec.yaml", CURRENT_PUBSPEC)
-    write(repo, ALLOWLIST, """\
-exceptions:
-  - ecosystem: pub
-    package: http
-    pinned: "1.5.0"
-    reason: "this repo's own stale entry"
-    blocked_by: "transitive:x@1.0.0"
-""")
-    assert run("--all") == 2

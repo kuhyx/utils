@@ -44,7 +44,8 @@ def repo_root(start: Path) -> Path:
 
 
 def _excuse(
-    findings: list[Finding], entries, shared: Path | None = None
+    findings: list[Finding], entries, shared: Path | None = None,
+    whole_repo: bool = True,
 ) -> tuple[list[Finding], list]:
     """Split findings into (still failing, excused), and flag dead entries.
 
@@ -56,6 +57,14 @@ def _excuse(
     repo that owns the shared file. A fleet-wide hold on `typescript`
     legitimately excuses nothing in a Flutter app, and failing there would
     make every repo without that dependency uncommittable.
+
+    `whole_repo` is False for a file-scoped run -- what pre-commit does, since
+    it passes only the staged manifests. Such a run has seen a SUBSET of the
+    repo by construction, so "no finding mentioned this package" carries no
+    information about whether the entry is still needed. Judging rot there
+    fails the commit over a manifest the commit never touched: staging two
+    pubspec.yaml files in utils reported the fleet-wide typescript hold as
+    dead, because no package.json was in scope to be found stale.
     """
     by_label = {f"{e.ecosystem}:{e.package}": e for e in entries}
     used: set[str] = set()
@@ -73,7 +82,8 @@ def _excuse(
         ))
     dead = [
         e for e in entries
-        if f"{e.ecosystem}:{e.package}" not in used
+        if whole_repo
+        and f"{e.ecosystem}:{e.package}" not in used
         and (shared is None or e.source != shared)
     ]
     return failing, dead
@@ -162,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
     findings = collect(_targets(args, root), resolver)
     shared = shared_path()
     failing, dead = _excuse(
-        findings, entries, shared=None if root == shared.parent else shared
+        findings, entries,
+        shared=None if root == shared.parent else shared,
+        whole_repo=args.all,
     )
 
     still_blocking = {f.label: True for f in findings}

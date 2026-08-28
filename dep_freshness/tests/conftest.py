@@ -85,3 +85,49 @@ def write(root: Path, relative: str, body: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body, encoding="utf-8")
     return path
+
+
+STALE_PUBSPEC = """\
+name: demo
+environment:
+  sdk: ^3.12.2
+dependencies:
+  http: 1.5.0
+"""
+CURRENT_PUBSPEC = STALE_PUBSPEC.replace("1.5.0", "1.6.0")
+ALLOWLIST = "dependency-freshness.allowlist.yaml"
+
+
+@pytest.fixture
+def canned(monkeypatch, cache_dir):
+    """One registry answer for every package the end-to-end fixtures declare.
+
+    Deliberately NOT autouse: the resolver tests monkeypatch `_fetch`
+    themselves, and a fixture that quietly re-patched it for the whole suite
+    would make those tests pass against this table instead of their own.
+    `run` depends on it, so every end-to-end test still gets it.
+    """
+    answers = {("pub", "http"): "1.6.0", ("toolchain", "dart"): "3.13.2"}
+    monkeypatch.setattr(
+        "dep_freshness.resolve._fetch",
+        lambda eco, name: answers.get((eco, name)),
+    )
+    return answers
+
+
+@pytest.fixture
+def run(repo, monkeypatch, canned):
+    """Invoke the CLI inside the throwaway repo and return its exit code.
+
+    `check` is imported here rather than at module scope for the same reason
+    as in `no_network`: the sys.path insert above is what makes the package
+    importable, and a top-level import would run before it.
+    """
+    from dep_freshness import check
+
+    assert canned, "the registry table must be patched before the CLI runs"
+
+    def invoke(*argv):
+        monkeypatch.chdir(repo)
+        return check.main(list(argv))
+    return invoke
