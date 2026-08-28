@@ -4,7 +4,7 @@ description: >-
   persisted per-install device id, and a one-call bootstrap. Removes the
   ~150 lines of firebase_backend.dart every consuming app was copying.
 publish_to: 'none'
-version: 0.3.0
+version: 0.3.1
 
 environment:
   sdk: ^3.12.2
@@ -13,7 +13,7 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.11.0
+      ref: crdt_sync_dart-v0.11.1
       path: crdt_sync_dart
   crypto: 3.0.7
   flutter:
