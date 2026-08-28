@@ -37,10 +37,15 @@ jobs:
           repository: kuhyx/utils
           path: .utils
 
+      # "3.x", never a pinned minor: the Python target IS the interpreter the
+      # gate runs under (registries/toolchain.python_installed), so a runner
+      # held a release behind this machine reports a repo's `requires-python`
+      # as excluding "latest" while the same check passes locally. flax-docs-mcp
+      # hit exactly that -- `>=3.14` green here, red on a 3.13 runner.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.x"
 
       - name: Install the gate's two runtime dependencies
         run: python -m pip install --upgrade pyyaml packaging
