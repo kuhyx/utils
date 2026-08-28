@@ -15,7 +15,7 @@ purpose:
 
 from __future__ import annotations
 
-from dep_freshness._tables import TOOLCHAIN
+from dep_freshness._tables import MATRIX, TOOLCHAIN
 from dep_freshness.constraints import lower_bound, satisfies
 from dep_freshness.models import Dep, Finding, Severity
 from dep_freshness.resolve import Answer
@@ -27,15 +27,32 @@ def _toolchain(dep: Dep, latest: str) -> Finding | None:
         if behind(dep.pinned, latest):
             return Finding(dep, Severity.STALE, latest)
         return None
+    if dep.constraint == MATRIX:
+        # Standing decision: every repo runs exactly ONE toolchain version and
+        # it is the newest. A matrix is three answers to a one-answer question,
+        # and its older entries are stale by construction.
+        return Finding(
+            dep,
+            Severity.UNPINNED,
+            latest,
+            detail=f"a version MATRIX is not a version: run exactly one "
+            f"{dep.name}, the newest. Replace the whole matrix with a "
+            f'single `{dep.name}-version: "'
+            f'{latest.split(".")[0]}.x"`',
+        )
     if not dep.constraint or dep.caret_ok is False:
         return Finding(
-            dep, Severity.UNPINNED, latest,
+            dep,
+            Severity.UNPINNED,
+            latest,
             detail="a channel name is not a version: two machines on the same "
-                   "commit can build with different SDKs",
+            "commit can build with different SDKs",
         )
     if not satisfies(dep.constraint, latest):
         return Finding(
-            dep, Severity.STALE, latest,
+            dep,
+            Severity.STALE,
+            latest,
             detail=f"the constraint excludes the current toolchain {latest}",
         )
     return None
@@ -45,19 +62,25 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
     """The gate's objection to `dep`, or None when it is fine."""
     if dep.override:
         return Finding(
-            dep, Severity.OVERRIDE, answer.version,
+            dep,
+            Severity.OVERRIDE,
+            answer.version,
             detail="an override pins a transitive dependency nothing else "
-                   "watches; allowlist it or remove it",
+            "watches; allowlist it or remove it",
         )
     if answer.unavailable:
         return Finding(
-            dep, Severity.UNKNOWN, None,
+            dep,
+            Severity.UNKNOWN,
+            None,
             detail="no network and no cached answer",
         )
     latest = answer.version
     if latest is None:
         return Finding(
-            dep, Severity.UNKNOWN, None,
+            dep,
+            Severity.UNKNOWN,
+            None,
             detail="the registry has no stable release for this package",
         )
 
@@ -70,7 +93,9 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
         # The meaningful question is whether the range still admits latest.
         if not satisfies(dep.constraint, latest):
             return Finding(
-                dep, Severity.STALE, latest,
+                dep,
+                Severity.STALE,
+                latest,
                 detail=f"the peer range excludes the current {latest}",
             )
         return None
@@ -80,12 +105,16 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
             floor = lower_bound(dep.constraint)
             if floor and behind(floor, latest):
                 return Finding(
-                    dep, Severity.STALE, latest,
+                    dep,
+                    Severity.STALE,
+                    latest,
                     detail=f"range floor {floor} is behind latest stable",
                 )
             return None
         return Finding(
-            dep, Severity.UNPINNED, latest,
+            dep,
+            Severity.UNPINNED,
+            latest,
             detail=f"exact-pin it ({latest}) so freshness is checkable",
         )
 
@@ -93,7 +122,9 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
         return Finding(dep, Severity.STALE, latest)
     if dep.locked and dep.locked != dep.pinned:
         return Finding(
-            dep, Severity.LOCK_MISMATCH, latest,
+            dep,
+            Severity.LOCK_MISMATCH,
+            latest,
             detail=f"lockfile resolved {dep.locked}, manifest pins {dep.pinned}",
         )
     return None

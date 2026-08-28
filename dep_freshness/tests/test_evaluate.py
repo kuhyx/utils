@@ -101,6 +101,22 @@ def test_a_channel_name_in_fvmrc_is_reported_unpinned():
     assert finding.severity is Severity.UNPINNED
 
 
+def test_a_version_matrix_is_reported_with_the_single_pin_to_use():
+    """One toolchain version per repo, always the newest (kuhy, 2026-08-28).
+
+    A matrix has to be DELETED, not bumped, so the detail must not read like
+    "exact-pin it (3.14.7)" -- that would leave the other entries in place.
+    """
+    finding = judge(
+        dep(ecosystem="toolchain", name="python", constraint="matrix",
+            pinned=None, path=Path(".github/workflows/ci.yml")),
+        Answer("3.14.7"),
+    )
+    assert finding.severity is Severity.UNPINNED
+    assert "MATRIX is not a version" in finding.detail
+    assert 'python-version: "3.x"' in finding.detail
+
+
 def test_a_pinned_toolchain_behind_latest_is_stale():
     finding = judge(
         dep(ecosystem="toolchain", name="flutter", constraint="3.47.1",

@@ -18,6 +18,10 @@ CARGO: Final = "cargo"
 GOMOD: Final = "gomod"
 GITTAG: Final = "gittag"
 TOOLCHAIN: Final = "toolchain"
+# The constraint a workflow parser writes for a version MATRIX. Standing
+# decision (kuhy, 2026-08-28): one toolchain version per repo, always newest,
+# so a matrix is a finding to delete rather than a range to satisfy.
+MATRIX: Final = "matrix"
 
 ECOSYSTEMS: Final = (PUB, PYPI, NPM, CARGO, GOMOD, GITTAG, TOOLCHAIN)
 
