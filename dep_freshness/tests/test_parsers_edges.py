@@ -140,3 +140,68 @@ dependencies:
         for d in pubspec.parse(write(tmp_path, "pubspec.yaml", body))
     }
     assert deps["dart"].line == 3
+
+
+DIRECT_REQ = """\
+ruff==0.16.5
+crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.0#subdirectory=crdt-sync
+gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.7.1#subdirectory=gatelock
+"""
+
+
+def test_a_git_direct_reference_is_a_git_tag_dependency(tmp_path):
+    """The shared Python libs are consumed by git tag, like the Dart ones.
+
+    Parsed as an ordinary requirement this is an unpinned PyPI package that
+    does not exist on PyPI, so the answer is undeterminable and the drift is
+    invisible -- wake-alarm sat four minor versions behind on both with a
+    green gate.
+    """
+    deps = {
+        d.name: d
+        for d in python.parse_requirements(
+            write(tmp_path, "requirements.txt", DIRECT_REQ)
+        )
+    }
+    assert deps["crdt-sync"].ecosystem == "gittag"
+    assert deps["crdt-sync"].pinned == "0.9.0"
+    assert deps["crdt-sync"].line == 2
+    assert deps["gatelock"].pinned == "0.7.1"
+    assert deps["ruff"].ecosystem == "pypi"
+
+
+def test_a_pyproject_git_direct_reference_is_a_git_tag_dependency(tmp_path):
+    body = """\
+[project]
+name = "demo"
+requires-python = ">=3.13"
+dependencies = [
+  "gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.7.1#subdirectory=gatelock",
+]
+"""
+    deps = {
+        d.name: d
+        for d in python.parse_pyproject(write(tmp_path, "pyproject.toml", body))
+    }
+    assert deps["gatelock"].ecosystem == "gittag"
+    assert deps["gatelock"].pinned == "0.7.1"
+    assert deps["gatelock"].line == 5
+
+
+def test_a_plain_git_url_without_a_version_tag_is_still_skipped(tmp_path):
+    """A branch or SHA ref has no version to compare, so it stays unparsed."""
+    body = "thing @ git+https://github.com/kuhyx/utils@main#subdirectory=thing\n"
+    assert python.parse_requirements(
+        write(tmp_path, "requirements.txt", body)
+    )[0].ecosystem == "pypi"
+
+
+def test_an_unreadable_manifest_gives_the_direct_reference_no_line(tmp_path):
+    """`_ref_line` degrades to 0 rather than raising, like the key indexer."""
+    missing = tmp_path / "gone.txt"
+    assert python._ref_line(missing, "gatelock-v0.7.1") == 0
+
+
+def test_a_direct_reference_the_file_does_not_contain_has_no_line(tmp_path):
+    path = write(tmp_path, "requirements.txt", "ruff==0.16.5\n")
+    assert python._ref_line(path, "gatelock-v0.7.1") == 0

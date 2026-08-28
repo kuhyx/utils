@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gatelock"
-version = "0.7.1"
+version = "0.7.2"
 description = "Shared per-output lock-window + HMAC log-integrity backend for blocking-overlay apps"
 requires-python = ">=3.10"
 dependencies = []  # pure stdlib — tkinter is bundled with Python
