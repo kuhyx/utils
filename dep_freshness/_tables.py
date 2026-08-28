@@ -1,0 +1,108 @@
+"""Static data for the dependency-freshness gate.
+
+Every tunable lives here so `config.py` stays a re-export surface and the
+ecosystem modules stay pure logic. Changing a registry URL, a TTL or the Node
+release channel is a one-line edit in this file and nowhere else.
+"""
+
+from __future__ import annotations
+
+from typing import Final
+
+# --- Ecosystems -------------------------------------------------------------
+
+PUB: Final = "pub"
+PYPI: Final = "pypi"
+NPM: Final = "npm"
+CARGO: Final = "cargo"
+GOMOD: Final = "gomod"
+GITTAG: Final = "gittag"
+TOOLCHAIN: Final = "toolchain"
+
+ECOSYSTEMS: Final = (PUB, PYPI, NPM, CARGO, GOMOD, GITTAG, TOOLCHAIN)
+
+# --- Registry endpoints -----------------------------------------------------
+
+PUB_API: Final = "https://pub.dev/api/packages/{name}"
+PYPI_API: Final = "https://pypi.org/simple/{name}/"
+NPM_API: Final = "https://registry.npmjs.org/{name}"
+CRATES_API: Final = "https://crates.io/api/v1/crates/{name}"
+GOPROXY_API: Final = "https://proxy.golang.org/{name}/@latest"
+FLUTTER_RELEASES: Final = (
+    "https://storage.googleapis.com/flutter_infra_release/releases/"
+    "releases_linux.json"
+)
+NODE_RELEASES: Final = "https://nodejs.org/dist/index.json"
+UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
+
+# crates.io 403s without one; npm/PyPI want a contactable agent too.
+USER_AGENT: Final = "kuhyx-dependency-freshness (+https://github.com/kuhyx/utils)"
+
+# PyPI's modern index; the legacy JSON `info.version` leaks pre-releases.
+PYPI_ACCEPT: Final = "application/vnd.pypi.simple.v1+json"
+NPM_ACCEPT: Final = "application/vnd.npm.install-v1+json"
+
+# --- Cache ------------------------------------------------------------------
+
+CACHE_PATH_ENV: Final = "DEP_FRESHNESS_CACHE"
+DEFAULT_CACHE_DIR: Final = "~/.cache/dep-freshness"
+CACHE_FILE: Final = "registry.json"
+TTL_SECONDS: Final = 6 * 3600
+TTL_GITTAG_SECONDS: Final = 24 * 3600
+HTTP_TIMEOUT: Final = 10.0
+PROBE_TIMEOUT: Final = 2.0
+MAX_WORKERS: Final = 8
+
+# --- Toolchain targets ------------------------------------------------------
+
+# Q2 read literally points at Node Current; this machine and every repo build
+# against LTS, so the gate targets LTS. One-line switch to "current".
+NODE_CHANNEL: Final = "lts"
+
+# The interpreter is pacman-managed here. A gate satisfiable only by fighting
+# the distro gets disabled, so Python is compared to what is INSTALLED.
+PYTHON_SOURCE: Final = "installed"
+
+# --- Manifest discovery -----------------------------------------------------
+
+MANIFEST_GLOBS: Final = (
+    "pubspec.yaml",
+    "pyproject.toml",
+    "package.json",
+    "Cargo.toml",
+    "go.mod",
+    ".fvmrc",
+    ".nvmrc",
+    ".python-version",
+)
+REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"
+
+EXCLUDED_DIRS: Final = frozenset({
+    ".git", "node_modules", "build", "dist", ".dart_tool", ".venv", "venv",
+    "__pycache__", "target", "vendor", ".gradle", "ios", "macos", "windows",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", "coverage", "htmlcov",
+    ".idea", ".vscode", "Pods", ".fvm",
+})
+
+# --- Constraint policy ------------------------------------------------------
+
+# Q13: these resolve from the Flutter/Dart SDK or are lint packages coupled to
+# it, so a caret range is allowed. An exact pin is still checked for staleness.
+PUB_CARET_ALLOWED: Final = frozenset({
+    "flutter", "flutter_test", "flutter_localizations", "flutter_driver",
+    "flutter_web_plugins", "integration_test", "sky_engine",
+    "flutter_lints", "very_good_analysis", "lints",
+})
+
+# Packages that ship with the Flutter SDK: no registry version exists.
+PUB_SDK_PACKAGES: Final = frozenset({
+    "flutter", "flutter_test", "flutter_localizations", "flutter_driver",
+    "flutter_web_plugins", "integration_test", "sky_engine",
+})
+
+# `dependency_overrides` is an unpinned dependency wearing a disguise.
+PUB_OVERRIDE_KEY: Final = "dependency_overrides"
+
+ALLOWLIST_FILE: Final = "dependency-freshness.allowlist.yaml"
+ALLOWLIST_MAX_DAYS: Final = 90
+TRANSITIVE_PREFIX: Final = "transitive:"

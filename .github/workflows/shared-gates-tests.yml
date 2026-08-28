@@ -1,0 +1,40 @@
+name: shared gate tests
+
+# The gates in this repo are enforced in ~40 other repos, so a bug here is a
+# bug everywhere at once. Until now `md_naming` had a test suite that no
+# workflow ran; `dep_freshness` ships with one from day one.
+#
+# The dependency-freshness suite never touches the network -- every registry
+# answer is a fixture, because the gate's worst failure mode (accepting a
+# pre-release as "latest stable") fails GREEN and only a fixture can pin it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shared-gate-tests:
+    name: gate unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pytest pytest-cov pyyaml packaging
+
+      - name: dep_freshness — 100% branch coverage on the gate itself
+        run: |
+          PYTHONPATH=. python -m pytest dep_freshness/tests -q \
+            --cov=dep_freshness --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=99
+
+      - name: md_naming
+        run: PYTHONPATH=. python -m pytest md_naming/tests -q
