@@ -20,12 +20,14 @@ import subprocess
 import sys
 
 from dep_freshness import report
+from dep_freshness._tables import NPM
 from dep_freshness.allowlist import AllowlistError, load
 from dep_freshness.discover import find_manifests, is_manifest, parse_manifest
 from dep_freshness.evaluate import judge
 from dep_freshness.models import Finding, Severity
+from dep_freshness.quarantine import installable_latest
 from dep_freshness.registries import http
-from dep_freshness.resolve import Resolver
+from dep_freshness.resolve import Answer, Resolver
 
 
 def repo_root(start: Path) -> Path:
@@ -66,12 +68,32 @@ def _excuse(findings: list[Finding], entries) -> tuple[list[Finding], list]:
     return failing, dead
 
 
+def _unquarantine(finding: Finding) -> Finding | None:
+    """Re-judge an npm finding against what pnpm will actually install.
+
+    pnpm 11 refuses a package published inside its quarantine window, so a
+    repo pinned to the newest *installable* version is not behind in any sense
+    a commit could fix. Only npm findings reach here, and only after a finding
+    already exists, so the expensive full-document fetch never happens on a
+    clean run.
+    """
+    if finding.dep.ecosystem != NPM or finding.latest is None:
+        return finding
+    installable = installable_latest(finding.dep.name, finding.latest)
+    if installable is None or installable == finding.latest:
+        return finding
+    return judge(finding.dep, Answer(installable))
+
+
 def collect(targets: list[Path], resolver: Resolver) -> list[Finding]:
     deps = [dep for path in targets for dep in parse_manifest(path)]
     resolver.prefetch(deps)
     findings = []
     for dep in deps:
         finding = judge(dep, resolver.latest(dep))
+        if finding is None:
+            continue
+        finding = _unquarantine(finding)
         if finding is not None:
             findings.append(finding)
     return findings

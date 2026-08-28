@@ -1,0 +1,29 @@
+# Dependencies deliberately held below latest stable, and why.
+#
+# Two entry classes, and the distinction is load-bearing:
+#
+#   blocked_by: transitive:<pkg>@<ver>
+#       A PREDICATE. The gate re-evaluates the blocker on every run and the
+#       entry clears itself the moment upstream moves. It must NOT carry
+#       `expires` -- a calendar date nobody can act on only turns the gate red
+#       for a reason no commit can fix.
+#
+#   anything else
+#       Discretionary. Requires `expires`, capped at 90 days, and fails once
+#       past.
+#
+# Every entry prints loudly on every gate run and at session start. An
+# exception nobody sees any more is a suppression.
+
+exceptions:
+  - ecosystem: npm
+    package: typescript
+    pinned: "6.0.3"
+    latest_known: "7.0.2"
+    reason: >-
+      typescript-eslint 8.68.0 -- itself the latest release -- declares
+      `typescript: ">=4.8.4 <6.1.0"` and throws "typescript-eslint does not
+      support TS 7.0" when eslint loads its config. No 9.x exists. Taking TS 7
+      would mean dropping every type-aware lint rule from ts_core and web_ui
+      until upstream catches up, so the compiler waits for the linter.
+    blocked_by: "transitive:typescript-eslint@8.68.0"

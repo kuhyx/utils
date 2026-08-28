@@ -35,6 +35,12 @@ FLUTTER_RELEASES: Final = (
 NODE_RELEASES: Final = "https://nodejs.org/dist/index.json"
 UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
 
+# pnpm 11 quarantines packages younger than this before it will install them,
+# to blunt the window in which a compromised publish is live. The gate matches
+# it: reporting a repo as behind a version its package manager refuses to
+# install is a failure nobody can act on. Its default is 1440 minutes.
+NPM_QUARANTINE_HOURS: Final = 24
+
 # crates.io 403s without one; npm/PyPI want a contactable agent too.
 USER_AGENT: Final = "kuhyx-dependency-freshness (+https://github.com/kuhyx/utils)"
 
