@@ -17,4 +17,5 @@
           (pubspec\.(yaml|lock)|pyproject\.toml|requirements.*\.txt|uv\.lock
           |package\.json|package-lock\.json|pnpm-lock\.yaml
           |Cargo\.(toml|lock)|go\.(mod|sum)
-          |\.fvmrc|\.nvmrc|\.python-version)$
+          |\.fvmrc|\.nvmrc|\.python-version
+          |\.github/workflows/.*\.ya?ml)$

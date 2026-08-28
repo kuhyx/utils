@@ -14,7 +14,9 @@ import subprocess
 
 from dep_freshness._tables import EXCLUDED_DIRS, MANIFEST_GLOBS, REQUIREMENTS_PATTERN
 from dep_freshness.models import Dep
-from dep_freshness.parsers import fvm, golang, javascript, pubspec, python, rust
+from dep_freshness.parsers import (
+    fvm, golang, javascript, pubspec, python, rust, workflow,
+)
 
 _REQUIREMENTS = re.compile(REQUIREMENTS_PATTERN)
 
@@ -31,7 +33,11 @@ _BY_NAME = {
 
 
 def is_manifest(path: Path) -> bool:
-    return path.name in MANIFEST_GLOBS or bool(_REQUIREMENTS.match(path.name))
+    return (
+        path.name in MANIFEST_GLOBS
+        or bool(_REQUIREMENTS.match(path.name))
+        or workflow.is_workflow(path)
+    )
 
 
 def parse_manifest(path: Path) -> list[Dep]:
@@ -41,6 +47,8 @@ def parse_manifest(path: Path) -> list[Dep]:
         return parser(path)
     if _REQUIREMENTS.match(path.name):
         return python.parse_requirements(path)
+    if workflow.is_workflow(path):
+        return workflow.parse(path)
     return []
 
 
