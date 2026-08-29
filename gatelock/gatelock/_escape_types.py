@@ -9,7 +9,7 @@ Re-exported from :mod:`gatelock._escape`, so existing imports keep working.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import logging
 from typing import Any
 
@@ -67,7 +67,7 @@ class EscapeDraft:
 
 def _today_iso() -> str:
     """Return today's date as ``YYYY-MM-DD`` (UTC)."""
-    return datetime.now(tz=timezone.utc).strftime(_DATE_FORMAT)
+    return datetime.now(tz=UTC).strftime(_DATE_FORMAT)
 
 
 def _parse_iso(date_str: str) -> datetime | None:
@@ -77,7 +77,7 @@ def _parse_iso(date_str: str) -> datetime | None:
     silently counting it as zero would quietly widen the budget.
     """
     try:
-        return datetime.strptime(date_str, _DATE_FORMAT).replace(tzinfo=timezone.utc)
+        return datetime.strptime(date_str, _DATE_FORMAT).replace(tzinfo=UTC)
     except ValueError as exc:
         _logger.warning(
             "escape history holds an unparsable date %r (%s) -- that entry is "

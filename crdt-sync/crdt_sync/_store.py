@@ -53,7 +53,7 @@ def read_log(path: Path) -> Log:
         return {}
     try:
         return load_log(text)
-    except (ValueError, KeyError, TypeError):
+    except ValueError, KeyError, TypeError:
         return {}
 
 

@@ -50,7 +50,7 @@ def _auth(*, signed_in: bool = True) -> FirebaseTokenProvider:
         FirebaseCredentials(
             id_token=_FAKE_ID,
             refresh_token=_FAKE_REFRESH,
-            expires_at=dt.datetime(2099, 1, 1, tzinfo=dt.timezone.utc),
+            expires_at=dt.datetime(2099, 1, 1, tzinfo=dt.UTC),
         )
         if signed_in
         else None

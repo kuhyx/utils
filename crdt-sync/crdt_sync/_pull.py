@@ -96,7 +96,7 @@ def _pull_remote_logs(
             continue
         try:
             remote_logs.append(ctx.decode(text))
-        except (ValueError, KeyError, TypeError):
+        except ValueError, KeyError, TypeError:
             _logger.warning(
                 "Unparsable log pushed by device %r, skipping",
                 other_device_id,

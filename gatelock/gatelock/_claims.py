@@ -94,7 +94,7 @@ class Claim:
                 disable_vt=bool(raw["disable_vt"]),
                 instance_id=str(raw["instance_id"]),
             )
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             return None
 
     def at_least_as_strong_as(self, other: Claim) -> bool:

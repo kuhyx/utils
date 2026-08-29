@@ -119,7 +119,7 @@ class FileSyncStateStore:
         """Return the stored state, or a default one if unreadable."""
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return SyncState()
         if not isinstance(data, dict):
             return SyncState()

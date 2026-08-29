@@ -97,7 +97,7 @@ def viewport_targets(canvas: tk.Misc, content: tk.Misc) -> list[tk.Misc]:
     targets: list[tk.Misc] = [canvas, content]
     try:
         targets.append(canvas.winfo_toplevel())
-    except (tk.TclError, KeyError, AttributeError):
+    except tk.TclError, KeyError, AttributeError:
         _logger.warning(
             "no toplevel for scroll viewport; user-input tracking is "
             "bound to the viewport only, so focus-following scrolling "

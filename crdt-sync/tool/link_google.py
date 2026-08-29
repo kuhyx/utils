@@ -227,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
         config = FirebaseConfig.load()
         _logger.info("  ..  linking onto %s (uid %s)", config.email, config.uid)
         linked_uid = link_google(config, token)
-    except (LinkError, ConfigError, FirebaseAuthError):
+    except LinkError, ConfigError, FirebaseAuthError:
         # logging.exception already renders the exception and its traceback.
         _logger.exception("  FAIL")
         return 1

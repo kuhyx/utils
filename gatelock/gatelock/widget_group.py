@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import contextlib
 import tkinter as tk
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 _W = TypeVar("_W", bound=tk.Misc)
 
 
-class WidgetGroup(Generic[_W]):
+class WidgetGroup[W: tk.Misc]:
     """Every per-output copy of one logical widget.
 
     Build one per logical widget, :meth:`add` a copy as each surface is

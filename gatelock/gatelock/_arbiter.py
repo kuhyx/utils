@@ -30,7 +30,7 @@ arms anyway. See :meth:`Arbiter.evaluate`.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import logging
 import os
 from typing import IO, TYPE_CHECKING, Final
@@ -78,7 +78,7 @@ _HOLDER_FILENAME: Final = "holder.lock"
 
 def _utc_now_iso() -> str:
     """Return an ISO-8601 UTC timestamp, sortable as a plain string."""
-    return datetime.now(tz=timezone.utc).isoformat()
+    return datetime.now(tz=UTC).isoformat()
 
 
 class Arbiter:

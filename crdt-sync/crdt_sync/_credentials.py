@@ -121,11 +121,11 @@ class FileCredentialStore:
         """
         try:
             data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None
         try:
             return FirebaseCredentials.from_json(data)
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             return None
 
     def save(self, credentials: FirebaseCredentials) -> None:
@@ -144,4 +144,4 @@ class FileCredentialStore:
 
 
 def _utcnow() -> dt.datetime:
-    return dt.datetime.now(dt.timezone.utc)
+    return dt.datetime.now(dt.UTC)

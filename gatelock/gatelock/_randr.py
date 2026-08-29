@@ -140,7 +140,7 @@ class RandrBackend:
         """Return the primary output's id, or None when RandR won't say."""
         try:
             return root.xrandr_get_output_primary().output
-        except (OSError, ValueError, KeyError, AttributeError, TypeError):
+        except OSError, ValueError, KeyError, AttributeError, TypeError:
             return None
 
     def _crtc_rect(self, crtc: int, timestamp: int) -> OutputRect | None:

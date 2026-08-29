@@ -9,11 +9,11 @@ ties), without requiring synchronized clocks across devices.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import time
 
 _ISO_PREFIX_LEN = 23  # len("YYYY-MM-DDTHH:MM:SS.mmm")
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 @dataclass(frozen=True, order=True)
@@ -66,7 +66,7 @@ class Hlc:
         comparison for the wall-clock component.
         """
         seconds, millis = divmod(self.wall_time_ms, 1000)
-        dt = datetime.fromtimestamp(seconds, tz=timezone.utc)
+        dt = datetime.fromtimestamp(seconds, tz=UTC)
         iso = dt.strftime("%Y-%m-%dT%H:%M:%S")
         return f"{iso}.{millis:03d}Z-{self.counter:04x}-{self.node_id}"
 
@@ -85,9 +85,7 @@ class Hlc:
         if not sep:
             msg = f"not a valid Hlc string: {text!r}"
             raise ValueError(msg)
-        dt = datetime.strptime(iso_part, "%Y-%m-%dT%H:%M:%S.%f").replace(
-            tzinfo=timezone.utc
-        )
+        dt = datetime.strptime(iso_part, "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=UTC)
         delta = dt - _EPOCH
         wall_time_ms = (
             delta.days * 86_400_000 + delta.seconds * 1000 + delta.microseconds // 1000

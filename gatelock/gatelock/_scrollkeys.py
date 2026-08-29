@@ -100,7 +100,7 @@ def bind_scroll_keys(canvas: tk.Canvas, content: tk.Misc) -> None:
     target: tk.Misc = canvas
     try:
         target = canvas.winfo_toplevel()
-    except (tk.TclError, KeyError, AttributeError):
+    except tk.TclError, KeyError, AttributeError:
         # Reachable when the widget tree's root is not a real toplevel --
         # notably under tests that mock the Tk root. Degrade to binding on
         # the canvas rather than failing to build the viewport at all:
