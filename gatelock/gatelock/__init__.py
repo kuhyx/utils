@@ -36,6 +36,7 @@ from gatelock._outputs import (
 )
 from gatelock._queue import (
     QUEUE_DEADLINE_SECONDS,
+    QUEUE_HEARTBEAT_SECONDS,
     QUEUE_POLL_SECONDS,
     QueueResult,
     stronger_claims,
@@ -76,6 +77,7 @@ from gatelock.widgets import (
 __all__ = [
     "DEFAULT_WRAP",
     "QUEUE_DEADLINE_SECONDS",
+    "QUEUE_HEARTBEAT_SECONDS",
     "QUEUE_POLL_SECONDS",
     "RANK_DIET_GUARD",
     "RANK_SCREEN_LOCKER",

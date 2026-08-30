@@ -30,6 +30,11 @@ _logger: Final = logging.getLogger(__name__)
 
 QUEUE_POLL_SECONDS: Final = 2.0
 QUEUE_DEADLINE_SECONDS: Final = 6 * 60 * 60
+# How often to re-state a still-blocked wait at WARNING. A long wait used
+# to produce exactly one INFO line at the moment it started and nothing
+# else until it ended: on 2026-08-30 screen_locker sat behind wake_alarm
+# for 2h58m and `systemctl status` showed a healthy, active, silent unit.
+QUEUE_HEARTBEAT_SECONDS: Final = 300.0
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -75,6 +80,7 @@ def wait_for_turn(
     *,
     poll: float = QUEUE_POLL_SECONDS,
     deadline: float = QUEUE_DEADLINE_SECONDS,
+    on_state: Callable[[tuple[str, ...], float], None] | None = None,
     sleep: Callable[[float], None] | None = None,
     now: Callable[[], float] | None = None,
 ) -> QueueResult:
@@ -86,6 +92,11 @@ def wait_for_turn(
         poll: Seconds between checks. Liveness comes from ``flock``, so a
             SIGKILLed incumbent is noticed on the very next tick.
         deadline: Runaway backstop in seconds.
+        on_state: Called with ``(blocked_by, elapsed)`` each time the
+            blocked set is first seen or changes, and once with an empty
+            tuple when the wait ends. Lets a caller publish the wait
+            somewhere observable -- from outside, a blocked process is
+            indistinguishable from a hung one.
         sleep: Injected for tests.
         now: Injected monotonic clock, for tests.
 
@@ -97,6 +108,12 @@ def wait_for_turn(
 
     started = clock()
     seen: list[str] = []
+    next_heartbeat = QUEUE_HEARTBEAT_SECONDS
+
+    def _publish(blocked: tuple[str, ...], elapsed: float) -> None:
+        if on_state is not None:
+            on_state(blocked, elapsed)
+
     while True:
         blockers = stronger_claims(arbiter)
         if not blockers:
@@ -108,13 +125,16 @@ def wait_for_turn(
                     waited,
                     ", ".join(seen),
                 )
+            _publish((), waited)
             return QueueResult(
                 waited_seconds=waited, blocked_by=tuple(seen), timed_out=False
             )
 
+        newly_seen = False
         for claim in blockers:
             if claim.app not in seen:
                 seen.append(claim.app)
+                newly_seen = True
                 _logger.info(
                     "%s is queued behind %s (rank %d) -- waiting with no window",
                     arbiter.claim.app,
@@ -123,6 +143,23 @@ def wait_for_turn(
                 )
 
         elapsed = clock() - started
+        if newly_seen:
+            _publish(tuple(seen), elapsed)
+        # Re-state a long wait periodically. Silence here is what made a
+        # 2h58m block look identical to a healthy idle unit.
+        if elapsed >= next_heartbeat:
+            _logger.warning(
+                "%s has been queued behind %s for %.0fs with no window -- "
+                "still waiting (deadline %.0fs)",
+                arbiter.claim.app,
+                ", ".join(seen),
+                elapsed,
+                deadline,
+            )
+            _publish(tuple(seen), elapsed)
+            while next_heartbeat <= elapsed:
+                next_heartbeat += QUEUE_HEARTBEAT_SECONDS
+
         if elapsed >= deadline:
             _logger.error(
                 "%s waited %.0fs behind %s and gave up waiting -- arming "
@@ -131,6 +168,7 @@ def wait_for_turn(
                 elapsed,
                 ", ".join(seen),
             )
+            _publish((), elapsed)
             return QueueResult(
                 waited_seconds=elapsed, blocked_by=tuple(seen), timed_out=True
             )
