@@ -6,7 +6,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from gatelock import RANK_DIET_GUARD, RANK_SCREEN_LOCKER, RANK_WAKE_ALARM, Arbiter
-from gatelock._queue import stronger_claims, wait_for_turn
+from gatelock._queue import (
+    QUEUE_HEARTBEAT_SECONDS,
+    Timebase,
+    stronger_claims,
+    wait_for_turn,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,7 +44,7 @@ def test_an_empty_ladder_arms_immediately(tmp_path: Path) -> None:
     arbiter = make_arbiter("leetcode_guard", _RANK_LEETCODE_GUARD, tmp_path)
     clock = FakeClock()
 
-    result = wait_for_turn(arbiter, sleep=clock.sleep, now=clock.now)
+    result = wait_for_turn(arbiter, timebase=Timebase(sleep=clock.sleep, now=clock.now))
 
     assert not result.queued
     assert not result.timed_out
@@ -65,7 +70,7 @@ def test_we_queue_behind_the_workout_lock_and_arm_when_it_finishes(
             released["done"] = True
 
     with caplog.at_level(logging.INFO):
-        result = wait_for_turn(ours, sleep=sleep, now=clock.now)
+        result = wait_for_turn(ours, timebase=Timebase(sleep=sleep, now=clock.now))
 
     assert result.queued
     assert result.blocked_by == ("screen_locker",)
@@ -80,7 +85,7 @@ def test_a_lower_ranked_locker_is_not_waited_for(tmp_path: Path) -> None:
     ours = make_arbiter("leetcode_guard", _RANK_LEETCODE_GUARD, tmp_path)
     clock = FakeClock()
 
-    result = wait_for_turn(ours, sleep=clock.sleep, now=clock.now)
+    result = wait_for_turn(ours, timebase=Timebase(sleep=clock.sleep, now=clock.now))
 
     assert not result.queued
     diet.release()
@@ -98,7 +103,7 @@ def test_every_higher_ranked_app_is_named_once(tmp_path: Path) -> None:
         alarm.release()
         workout.release()
 
-    result = wait_for_turn(ours, sleep=sleep, now=clock.now)
+    result = wait_for_turn(ours, timebase=Timebase(sleep=sleep, now=clock.now))
 
     assert set(result.blocked_by) == {"wake_alarm", "screen_locker"}
     ours.release()
@@ -114,7 +119,10 @@ def test_the_deadline_arms_anyway_rather_than_leaving_the_pc_unlocked(
 
     with caplog.at_level(logging.ERROR):
         result = wait_for_turn(
-            ours, poll=10.0, deadline=30.0, sleep=clock.sleep, now=clock.now
+            ours,
+            poll=10.0,
+            deadline=30.0,
+            timebase=Timebase(sleep=clock.sleep, now=clock.now),
         )
 
     assert result.timed_out
@@ -140,4 +148,94 @@ def test_a_dead_holder_stops_blocking_us(tmp_path: Path) -> None:
     assert len(stronger_claims(ours)) == 1
     workout.release()
     assert stronger_claims(ours) == ()
+    ours.release()
+
+
+def test_a_long_wait_is_restated_periodically(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A block used to announce itself once, at INFO, then go silent.
+
+    On 2026-08-30 screen_locker sat behind wake_alarm for 10716s and
+    ``systemctl status`` showed an active, quiet, apparently healthy unit.
+    """
+    theirs = make_arbiter("wake_alarm", RANK_WAKE_ALARM, tmp_path)
+    ours = make_arbiter("screen_locker", RANK_SCREEN_LOCKER, tmp_path)
+    clock = FakeClock()
+    released = 3 * QUEUE_HEARTBEAT_SECONDS + 10.0
+
+    def sleep(seconds: float) -> None:
+        clock.sleep(seconds)
+        if clock.value >= released:
+            theirs.release()
+
+    with caplog.at_level(logging.WARNING):
+        result = wait_for_turn(ours, timebase=Timebase(sleep=sleep, now=clock.now))
+
+    heartbeats = [r for r in caplog.records if "still waiting" in r.message]
+    assert len(heartbeats) == 3
+    assert all(r.levelname == "WARNING" for r in heartbeats)
+    assert result.blocked_by == ("wake_alarm",)
+    ours.release()
+
+
+def test_the_wait_is_published_while_it_happens(tmp_path: Path) -> None:
+    """A blocked process cannot answer for itself, so it must be observable."""
+    theirs = make_arbiter("wake_alarm", RANK_WAKE_ALARM, tmp_path)
+    ours = make_arbiter("screen_locker", RANK_SCREEN_LOCKER, tmp_path)
+    clock = FakeClock()
+    seen: list[tuple[tuple[str, ...], float]] = []
+
+    def sleep(seconds: float) -> None:
+        clock.sleep(seconds)
+        if clock.value >= QUEUE_HEARTBEAT_SECONDS + 10.0:
+            theirs.release()
+
+    wait_for_turn(
+        ours,
+        on_state=lambda blocked, elapsed: seen.append((blocked, elapsed)),
+        timebase=Timebase(sleep=sleep, now=clock.now),
+    )
+
+    # First sighting, then at least one heartbeat, then the clear.
+    assert seen[0][0] == ("wake_alarm",)
+    assert any(blocked == ("wake_alarm",) for blocked, _ in seen[1:-1])
+    assert seen[-1][0] == ()
+    ours.release()
+
+
+def test_an_unblocked_wait_publishes_only_the_clear(tmp_path: Path) -> None:
+    """The common case must not spam an observer that has nothing to show."""
+    ours = make_arbiter("screen_locker", RANK_SCREEN_LOCKER, tmp_path)
+    clock = FakeClock()
+    seen: list[tuple[str, ...]] = []
+
+    wait_for_turn(
+        ours,
+        on_state=lambda blocked, _elapsed: seen.append(blocked),
+        timebase=Timebase(sleep=clock.sleep, now=clock.now),
+    )
+
+    assert seen == [()]
+    ours.release()
+
+
+def test_hitting_the_deadline_publishes_the_clear_too(tmp_path: Path) -> None:
+    """Arming anyway must not leave an observer thinking we are still queued."""
+    theirs = make_arbiter("wake_alarm", RANK_WAKE_ALARM, tmp_path)
+    ours = make_arbiter("screen_locker", RANK_SCREEN_LOCKER, tmp_path)
+    clock = FakeClock()
+    seen: list[tuple[str, ...]] = []
+
+    result = wait_for_turn(
+        ours,
+        poll=10.0,
+        deadline=30.0,
+        on_state=lambda blocked, _elapsed: seen.append(blocked),
+        timebase=Timebase(sleep=clock.sleep, now=clock.now),
+    )
+
+    assert result.timed_out
+    assert seen[-1] == ()
+    theirs.release()
     ours.release()

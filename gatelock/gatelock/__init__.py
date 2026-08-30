@@ -39,6 +39,7 @@ from gatelock._queue import (
     QUEUE_HEARTBEAT_SECONDS,
     QUEUE_POLL_SECONDS,
     QueueResult,
+    Timebase,
     stronger_claims,
     wait_for_turn,
 )
@@ -112,6 +113,7 @@ __all__ = [
     "SurfaceDelta",
     "SurfaceInfo",
     "SurfaceSet",
+    "Timebase",
     "TypeRole",
     "WidgetGroup",
     "assert_not_under_pytest",
