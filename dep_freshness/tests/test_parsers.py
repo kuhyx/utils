@@ -63,7 +63,7 @@ def test_a_missing_lockfile_is_a_library_not_a_violation(tmp_path):
 
 def test_pubspec_reads_the_lockfile_when_one_is_committed(tmp_path):
     write(tmp_path, "pubspec.yaml", PUBSPEC)
-    write(tmp_path, "pubspec.lock", "packages:\n  http:\n    version: \"1.5.0\"\n")
+    write(tmp_path, "pubspec.lock", 'packages:\n  http:\n    version: "1.5.0"\n')
     deps = _by_name(pubspec.parse(tmp_path / "pubspec.yaml"))
     assert deps["http"].locked == "1.5.0"
 
@@ -84,7 +84,8 @@ def test_requirements_bare_names_parse_as_unpinned(tmp_path):
 
 def test_requirements_handles_extras_markers_and_pins(tmp_path):
     path = write(
-        tmp_path, "requirements.txt",
+        tmp_path,
+        "requirements.txt",
         'ruff==0.16.5\nuvicorn[standard]==0.30.0\nfoo>=1.0 ; python_version>"3.9"\n',
     )
     deps = {d.name: d for d in python.parse_requirements(path)}
@@ -94,7 +95,10 @@ def test_requirements_handles_extras_markers_and_pins(tmp_path):
 
 
 def test_pyproject_reads_project_and_group_dependencies(tmp_path):
-    path = write(tmp_path, "pyproject.toml", """\
+    path = write(
+        tmp_path,
+        "pyproject.toml",
+        """\
 [project]
 requires-python = ">=3.10"
 dependencies = ["httpx==0.28.1"]
@@ -102,7 +106,8 @@ dependencies = ["httpx==0.28.1"]
 dev = ["pytest==8.4.2"]
 [dependency-groups]
 lint = ["ruff==0.16.5"]
-""")
+""",
+    )
     deps = {d.name: d for d in python.parse_pyproject(path)}
     assert deps["httpx"].pinned == "0.28.1"
     assert deps["pytest"].pinned == "8.4.2"
@@ -123,18 +128,21 @@ def test_a_package_manager_without_a_version_is_ignored(tmp_path):
 
 
 def test_peer_dependencies_are_marked_as_such(tmp_path):
-    path = write(tmp_path, "package.json",
-                 '{"peerDependencies": {"react": ">=19"}}')
+    path = write(tmp_path, "package.json", '{"peerDependencies": {"react": ">=19"}}')
     assert javascript.parse_package_json(path)[0].peer
 
 
 def test_package_json_reads_engines_and_overrides(tmp_path):
-    path = write(tmp_path, "package.json", """\
+    path = write(
+        tmp_path,
+        "package.json",
+        """\
 {"engines": {"node": "24.20.0"},
  "dependencies": {"react": "19.2.0", "local": "workspace:*"},
  "devDependencies": {"vitest": "^4.1.10"},
  "resolutions": {"semver": "7.7.1"}}
-""")
+""",
+    )
     deps = {d.name: d for d in javascript.parse_package_json(path)}
     assert deps["node"].pinned == "24.20.0"
     assert deps["react"].pinned == "19.2.0"
@@ -144,18 +152,28 @@ def test_package_json_reads_engines_and_overrides(tmp_path):
 
 
 def test_cargo_treats_a_two_part_version_as_a_range(tmp_path):
-    path = write(tmp_path, "Cargo.toml", """\
+    path = write(
+        tmp_path,
+        "Cargo.toml",
+        """\
 [dependencies]
 serde = "1.0.229"
 loose = "1.0"
 local = { path = "../x" }
 tabled = { version = "0.20.0" }
-""")
+bevy = "=0.19.1"
+exact_table = { version = "=1.2.3", features = ["x"] }
+""",
+    )
     deps = {d.name: d for d in rust.parse(path)}
     assert deps["serde"].pinned == "1.0.229"
     assert deps["loose"].pinned is None
     assert deps["tabled"].pinned == "0.20.0"
     assert "local" not in deps
+    # Cargo's real exact operator; the constraint keeps the `=` for the report.
+    assert deps["bevy"].pinned == "0.19.1"
+    assert deps["bevy"].constraint == "=0.19.1"
+    assert deps["exact_table"].pinned == "1.2.3"
 
 
 def test_fvmrc_channel_is_not_a_version(tmp_path):

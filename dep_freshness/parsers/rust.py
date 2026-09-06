@@ -4,11 +4,14 @@ A dependency is either a bare string (`serde = "1.0.229"`) or a table with a
 `version` key; path and git dependencies have no registry version and are
 skipped. Cargo's bare `"1.0"` is a caret range, so only a full three-part
 version counts as pinned — `"1.0"` is reported unpinned, which is correct.
+Cargo's own exact operator is a single `=` (`"=1.0.229"`), which the shared
+EXACT regex does not know (it spells pip's `==`), so it is stripped here.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+
 import tomllib
 
 from dep_freshness._tables import CARGO
@@ -40,12 +43,18 @@ def parse(path: Path) -> list[Dep]:
                 constraint = str(spec)
             if not constraint:
                 continue
-            pinned = exact_pin(constraint)
+            pinned = exact_pin(constraint.strip().removeprefix("="))
             if pinned and pinned.count(".") < 2:
                 pinned = None  # "1.0" is a caret range in Cargo, not a pin
-            deps.append(Dep(
-                ecosystem=CARGO, name=str(name), constraint=constraint,
-                path=path, line=lines.get(str(name), 0), pinned=pinned,
-                dev=is_dev,
-            ))
+            deps.append(
+                Dep(
+                    ecosystem=CARGO,
+                    name=str(name),
+                    constraint=constraint,
+                    path=path,
+                    line=lines.get(str(name), 0),
+                    pinned=pinned,
+                    dev=is_dev,
+                )
+            )
     return deps
