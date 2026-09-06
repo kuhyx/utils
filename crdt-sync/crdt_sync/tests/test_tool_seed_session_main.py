@@ -51,6 +51,12 @@ def test_todo_is_among_the_default_apps() -> None:
     assert "todo" in ss.DEFAULT_APPS
 
 
+def test_home_guard_is_among_the_default_apps() -> None:
+    """The fifth gatelock sibling; ``home_guard._sync_client`` calls
+    ``firebase_client_for("home_guard")`` from the systemd-run gate."""
+    assert "home_guard" in ss.DEFAULT_APPS
+
+
 def test_a_single_app_can_be_selected() -> None:
     """--app narrows the run, which is what a rerun after a failure uses."""
     with (
