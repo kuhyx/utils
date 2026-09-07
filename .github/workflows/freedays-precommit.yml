@@ -1,0 +1,29 @@
+name: freedays pre-commit
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as freedays: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['freedays/**', '.github/workflows/freedays-precommit.yml']
+  pull_request:
+    branches: [main]
+    paths: ['freedays/**', '.github/workflows/freedays-precommit.yml']
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install sibling packages
+        run: pip install ./gatelock ./crdt-sync
+      - name: Install dependencies
+        working-directory: freedays
+        run: pip install -r requirements.txt
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --config freedays/.pre-commit-config.yaml --all-files

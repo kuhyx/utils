@@ -1,0 +1,41 @@
+name: freedays tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as freedays: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['freedays/**', '.github/workflows/freedays-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['freedays/**', '.github/workflows/freedays-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: freedays
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # freedays imports gatelock (audit signing) and crdt-sync (the merge
+      # scheme and the Firebase transport). Both are siblings in this repo, so
+      # they install from the checkout rather than from a tag -- CI must test
+      # what is on this branch, not what was last released.
+      - name: Install sibling packages
+        run: pip install ../gatelock ../crdt-sync
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install --no-deps -e .
+
+      # No display needed: freedays draws nothing. It is policy, a JSON file
+      # and a CLI.
+      - name: Run tests with coverage
+        run: python -m pytest -v
