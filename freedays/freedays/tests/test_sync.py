@@ -159,3 +159,43 @@ def test_the_pool_can_be_pointed_elsewhere_wholesale(tmp_path: Path) -> None:
     mark(LATER, now=TODAY, paths=paths)
     sync(client=FakeRemote(), paths=paths)
     assert is_free_day(LATER, log_path=paths.log, now=TODAY)
+
+
+def test_an_expired_credential_mid_sync_does_not_fail_the_timer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A refresh token expiring during the tick, not at client construction."""
+
+    class ExpiringRemote(FakeRemote):
+        def list_directory(self, path: str) -> list[str]:
+            msg = f"refresh token rejected while listing {path}"
+            raise FirebaseAuthError(msg)
+
+    monkeypatch.setattr(
+        "freedays._sync.firebase_client_for", lambda _app: ExpiringRemote()
+    )
+    assert sync_quietly() is False
+
+
+def test_an_unexpected_error_is_logged_with_a_traceback_and_swallowed(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The contract is "never fail", and it must not hold only by coincidence.
+
+    FirebaseAuthError happens to subclass RemoteSyncError today. Something
+    that does not -- a bug, a changed upstream hierarchy -- must still leave
+    the timer green rather than turning it red every 15 minutes.
+    """
+
+    class BrokenRemote(FakeRemote):
+        def list_directory(self, path: str) -> list[str]:
+            msg = f"something nobody predicted, at {path}"
+            raise RuntimeError(msg)
+
+    monkeypatch.setattr(
+        "freedays._sync.firebase_client_for", lambda _app: BrokenRemote()
+    )
+    with caplog.at_level("ERROR"):
+        assert sync_quietly() is False
+    assert "failed unexpectedly" in caplog.text
+    assert "RuntimeError" in caplog.text

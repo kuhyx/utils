@@ -115,14 +115,29 @@ def sync(
 
 
 def sync_quietly(*, paths: Paths | None = None) -> bool:
-    """Sync, swallowing unavailability. Returns whether it actually ran.
+    """Sync, swallowing every failure. Returns whether it actually ran.
 
     For callers on a timer that want a fresher pool but must not fail, and
-    must not say anything, if the network is down.
+    must not say anything, when the sync cannot happen.
+
+    The broad catch is deliberate and is the whole point of this function.
+    Today ``FirebaseAuthError`` happens to subclass ``RemoteSyncError`` and
+    ``requests``' ``JSONDecodeError`` happens to subclass
+    ``RequestException``, so the narrow handler above would in fact catch an
+    expired refresh token or a malformed payload. But that is an upstream
+    class hierarchy, not a promise to this package -- and a background sync
+    whose contract is "never fail" must not have that contract hold only by
+    coincidence. Anything unexpected is logged with its traceback, so a real
+    bug is loud in the journal while the timer stays green.
     """
     try:
         sync(paths=paths)
     except SyncUnavailableError as exc:
+        # The expected case -- offline, or not configured yet. Debug level:
+        # this is normal on a laptop and must not fill the journal.
         _logger.debug("free-day sync skipped: %s", exc)
+        return False
+    except Exception:
+        _logger.exception("free-day sync failed unexpectedly")
         return False
     return True
