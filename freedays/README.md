@@ -85,7 +85,7 @@ where you are standing, it is Tuesday.
 ## Development
 
 ```console
-$ pip install ../gatelock ../crdt-sync
+$ pip install ../crdt-sync
 $ pip install -r requirements.txt && pip install --no-deps -e .
 $ python -m pytest              # 100% branch coverage is enforced
 $ pre-commit run --config .pre-commit-config.yaml --all-files

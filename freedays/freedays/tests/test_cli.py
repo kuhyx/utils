@@ -130,3 +130,25 @@ def test_sync_failure_is_reported_without_a_traceback(
 def test_a_missing_subcommand_is_rejected() -> None:
     with pytest.raises(SystemExit):
         main([])
+
+
+def test_sync_quiet_reports_success(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr("freedays._sync.firebase_client_for", lambda _app: FakeRemote())
+    assert main(["sync-quiet"]) == 0
+    assert "pool synced" in capsys.readouterr().out
+
+
+def test_sync_quiet_exits_zero_when_there_is_no_remote(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The timer must not go red just because the machine is offline."""
+
+    def _refuse() -> None:
+        msg = "no credentials on this machine"
+        raise SyncUnavailableError(msg)
+
+    monkeypatch.setattr("freedays._sync.get_client", _refuse)
+    assert main(["sync-quiet"]) == 0
+    assert "no remote available" in capsys.readouterr().out

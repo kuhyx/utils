@@ -7,9 +7,8 @@ from datetime import date
 import json
 from typing import TYPE_CHECKING
 
-from gatelock.log_integrity import verify_entry_hmac
-
 from freedays._audit import record_event
+from freedays._hmac import verify
 from freedays._paths import Paths
 
 if TYPE_CHECKING:
@@ -50,14 +49,14 @@ def test_the_signing_key_is_generated_on_first_use(state_dir: Path) -> None:
 def test_the_written_entry_verifies_against_the_key(state_dir: Path) -> None:
     record_event("mark", DAY, actor="device-1")
     (entry,) = _lines(state_dir / "audit.jsonl")
-    assert verify_entry_hmac(entry, key_file=state_dir / "hmac.key")
+    assert verify(entry, key_file=state_dir / "hmac.key")
 
 
 def test_a_tampered_entry_stops_verifying(state_dir: Path) -> None:
     record_event("mark", DAY, actor="device-1")
     (entry,) = _lines(state_dir / "audit.jsonl")
     entry["day"] = "2026-12-25"
-    assert not verify_entry_hmac(entry, key_file=state_dir / "hmac.key")
+    assert not verify(entry, key_file=state_dir / "hmac.key")
 
 
 def test_an_existing_key_is_reused_rather_than_regenerated(state_dir: Path) -> None:
@@ -71,7 +70,7 @@ def test_explicit_paths_are_honoured(tmp_path: Path) -> None:
     elsewhere = tmp_path / "elsewhere"
     record_event("mark", DAY, actor="device-1", paths=Paths.under(elsewhere))
     (entry,) = _lines(elsewhere / "audit.jsonl")
-    assert verify_entry_hmac(entry, key_file=elsewhere / "hmac.key")
+    assert verify(entry, key_file=elsewhere / "hmac.key")
 
 
 def test_an_unwritable_trail_warns_but_never_raises(

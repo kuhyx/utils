@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Install sibling packages
-        run: pip install ./gatelock ./crdt-sync
+      - name: Install the sibling package
+        run: pip install ./crdt-sync
       - name: Install dependencies
         working-directory: freedays
         run: pip install -r requirements.txt

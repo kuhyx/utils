@@ -1,0 +1,19 @@
+[Unit]
+Description=Sync the shared free-day pool periodically
+Documentation=file:///home/kuhy/utils/freedays/README.md
+
+[Timer]
+# Every 15 minutes. A free day marked on the phone should reach the PC well
+# before the next gate fires, and the gates that run most often (wake-alarm
+# every minute, the lockers every 5) read the *local* file, so this interval
+# bounds staleness rather than gating anything.
+OnBootSec=2min
+OnUnitActiveSec=15min
+
+# A laptop that was asleep at the scheduled tick should sync on waking, not
+# silently wait another 15 minutes -- the overnight case is exactly when a
+# day gets marked from bed and needs to be there by morning.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

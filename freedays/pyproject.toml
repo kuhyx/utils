@@ -7,8 +7,11 @@ name = "freedays"
 version = "0.1.0"
 description = "Shared pre-declared free-day pool: one global list of days on which every gate app stands down"
 requires-python = ">=3.14"
+# Deliberately NOT gatelock. Its __init__ imports tkinter for the lock-window
+# machinery, which would give this headless policy library a hard dependency
+# on a GUI toolkit -- `import freedays` then fails anywhere without Tk. The
+# ~15 lines of HMAC that were wanted live in freedays/_hmac.py instead.
 dependencies = [
-    "gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.7.3#subdirectory=gatelock",
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.1#subdirectory=crdt-sync",
 ]
 

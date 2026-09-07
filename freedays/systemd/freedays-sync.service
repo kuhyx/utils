@@ -1,0 +1,19 @@
+[Unit]
+Description=Pull and push the shared free-day pool
+Documentation=file:///home/kuhy/utils/freedays/README.md
+# Without a network this exits 0 having done nothing, by design -- the gates
+# read the last-merged local file and a stale pool is never a reason to fail.
+After=network-online.target
+
+[Service]
+Type=oneshot
+# `sync-quiet` rather than `sync`: this unit must never report failure just
+# because the machine is offline or the credential has not been set up yet.
+# A real bug still shows up in the journal via the library's own logging.
+ExecStart=%h/.local/share/freedays/venv/bin/freedays sync-quiet
+
+# A hung network call must not leave a unit running until the next tick.
+TimeoutStartSec=120
+
+[Install]
+WantedBy=default.target

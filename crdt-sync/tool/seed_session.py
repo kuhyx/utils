@@ -42,38 +42,9 @@ from crdt_sync._remote import RemoteSyncError
 
 # Importable as a package module (tool/__init__.py exists) so the loopback
 # OAuth flow is shared, not reimplemented.
+from tool._seeded_apps import DEFAULT_APPS
 from tool.google_id_token import TokenError, fetch_id_token
 
-# Every app that calls firebase_client_for/mirror_client_for from the desktop,
-# and so keeps a refresh token under ~/.config/<app>/. Named here rather than
-# discovered from ~/.config: a missing directory is exactly the case that
-# needs seeding, so discovery would skip the app that needs this most.
-# The remaining Flutter-only apps (home_inventory, workout_app) are absent on
-# purpose: they authenticate in-app on the phone and have no desktop session.
-# `todo` used to be grouped with them, but it grew a real desktop wrapper
-# (lib/desktop/wrapper_server.dart) with its own Firebase REST client that
-# needs a session exactly like the Python daemons do -- see
-# lib/sync/firebase_backend.dart and lib/desktop/wrapper_server.dart in
-# ~/todo. Its credential cache lives at ~/.config/todo/firebase_auth.json,
-# same shape as every entry below, even though the reader is Dart, not
-# Python: FirebaseCredentials.fromJson in crdt_sync_dart parses the exact
-# {id_token, refresh_token, expires_at} shape credential_store_for writes.
-#
-# Re-derive rather than guess when adding one; a repo-by-repo sweep missed two
-# of these. Grep all of ~ for the string literal passed to firebase_client_for,
-# mirror_client_for and credential_store_for across every *.py. That still
-# misses call sites passing a constant (wake_alarm._constants.SYNC_APP_NAME,
-# home_guard._constants.APP_NAME), so check those by name too. "interop" is
-# tool/interop_seed.py's own scratch store, not an app.
-DEFAULT_APPS = (
-    "diet_guard",
-    "wake_alarm",
-    "screen_locker",
-    "byox_ladder",
-    "leetcode_guard",
-    "todo",
-    "home_guard",
-)
 
 # A fixed default so the redirect URI is stable enough to register once on the
 # Web client. Arbitrary but out of the ephemeral range, and free on this box.

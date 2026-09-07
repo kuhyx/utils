@@ -17,9 +17,8 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from gatelock.log_integrity import compute_entry_hmac, generate_hmac_key
-
 from freedays._day import to_iso
+from freedays._hmac import generate_key, sign
 from freedays._paths import Paths, resolve_paths
 
 if TYPE_CHECKING:
@@ -56,13 +55,10 @@ def record_event(
     key_target = resolved.hmac_key
     if not key_target.exists():
         # First run on this machine. Generating it here rather than in an
-        # installer means the trail is signed from the very first entry, and
-        # that gatelock never gets to warn about a key that was simply never
-        # created yet.
-        key_target.parent.mkdir(parents=True, exist_ok=True)
-        generate_hmac_key(key_target)
-        key_target.chmod(0o600)
-    entry["hmac"] = compute_entry_hmac(entry, key_file=key_target)
+        # installer means the trail is signed from its very first entry,
+        # with no setup step that can be skipped.
+        generate_key(key_target)
+    entry["hmac"] = sign(entry, key_file=key_target)
     target = resolved.audit
     try:
         target.parent.mkdir(parents=True, exist_ok=True)

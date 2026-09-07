@@ -1,9 +1,14 @@
 """The ``freedays`` command: the only thing that ever talks about free days.
 
-Every subcommand is pull, never push. Nothing here runs on a timer, nothing
-notifies, and no gate ever invokes it to nag -- the apps consult
+Every subcommand that says anything is pull, never push: nothing notifies,
+and no gate ever invokes this to nag -- the apps consult
 :func:`freedays.is_free_day` silently and say nothing either way. If you
 want to know where the pool stands, you ask; otherwise it is invisible.
+
+``sync-quiet`` is the one subcommand a timer runs, and it exists precisely
+so that the timer stays silent: it moves data between devices and reports
+success even when there is no network, because a unit that goes red every
+time the laptop is offline is a unit you learn to ignore.
 """
 
 from __future__ import annotations
@@ -18,7 +23,7 @@ from freedays._cli_output import emit, emit_error
 from freedays._constants import DEFAULT_ANNUAL_BUDGET
 from freedays._day import resolve, to_iso
 from freedays._errors import FreeDayError
-from freedays._sync import SyncUnavailableError, sync
+from freedays._sync import SyncUnavailableError, sync, sync_quietly
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -54,6 +59,10 @@ def _build_parser() -> argparse.ArgumentParser:
     give.add_argument("day", help="YYYY-MM-DD, or 'today'/'tomorrow'")
 
     sub.add_parser("sync", help="pull and push the pool now")
+    sub.add_parser(
+        "sync-quiet",
+        help="sync, but exit 0 when the network or credential is unavailable",
+    )
     return parser
 
 
@@ -98,6 +107,17 @@ def _do_sync() -> int:
     return _EXIT_OK
 
 
+def _do_sync_quiet() -> int:
+    """Sync on a timer's behalf, treating unavailability as success.
+
+    A systemd unit that goes red every time the laptop is offline trains you
+    to ignore it, which is worse than not having it. A genuine bug still
+    reaches the journal through the library's own logging.
+    """
+    emit("pool synced" if sync_quietly() else "pool not synced (no remote available)")
+    return _EXIT_OK
+
+
 def _dispatch(args: argparse.Namespace) -> int:
     if args.command == "status":
         return _show_status(args.year)
@@ -107,7 +127,9 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _do_mark(args.day, args.reason)
     if args.command == "release":
         return _do_release(args.day)
-    return _do_sync()
+    if args.command == "sync":
+        return _do_sync()
+    return _do_sync_quiet()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
