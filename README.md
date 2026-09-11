@@ -72,6 +72,20 @@ published to PyPI). Consumed via pip by `screen-locker`, `diet-guard`, and
 gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.1.0#subdirectory=gatelock
 ```
 
+## music_theory/
+
+Music theory from first principles as typed Python (package: `music_theory`,
+not published to PyPI): pitch, tuning, scales, chords, progressions, a numpy
+synth and a `Recipe` → WAV composer with a `degrade` transform. Follows Luke
+Haas's "Music Theory for Programmers" section by section; `python -m
+music_theory demo all --out DIR` renders one WAV per section. Consumed by
+`roadside-assistance` for its three world-state music beds.
+
+Consume via:
+```
+music_theory @ git+https://github.com/kuhyx/utils@music-theory-v0.1.0#subdirectory=music_theory
+```
+
 ## unified-design-system/
 
 Not a package — the frozen design tokens (colors, spacing, type, radius,

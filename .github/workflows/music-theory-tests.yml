@@ -1,0 +1,31 @@
+name: music_theory tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as music_theory: editing only this file used
+    # to trigger nothing, so a fix to the job itself could never prove itself.
+    paths: ['music_theory/**', '.github/workflows/music-theory-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['music_theory/**', '.github/workflows/music-theory-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: music_theory
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: python -m pytest -v
