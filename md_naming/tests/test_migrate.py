@@ -14,8 +14,8 @@ import pytest
 from md_naming.migrate import classify
 from md_naming.migrate.plan import HOME, auto_name, rewrite, slugify
 
-TODO_250 = HOME / "todo" / "refactor_claude_todo.md"
-NEW_250 = HOME / "todo" / "TODO-file-length-250.md"
+TODO_250 = HOME / "src/todo" / "refactor_claude_todo.md"
+NEW_250 = HOME / "src/todo" / "TODO-file-length-250.md"
 
 
 @pytest.mark.parametrize(
@@ -42,8 +42,8 @@ def test_ambiguous_name_needs_qualifying_directory() -> None:
     Pinning the bug that would have rewritten 12 vendored copies of
     qs/.github/SECURITY.md during a dry run.
     """
-    old = HOME / "roadside-assistance" / "PLAN.md"
-    new = HOME / "roadside-assistance" / "DOCS-plan.md"
+    old = HOME / "src/roadside-assistance" / "PLAN.md"
+    new = HOME / "src/roadside-assistance" / "DOCS-plan.md"
     assert rewrite("an unrelated PLAN.md", old, new) == "an unrelated PLAN.md"
     assert (
         rewrite("see roadside-assistance/PLAN.md", old, new)
@@ -59,8 +59,8 @@ def test_distinctive_name_matches_regardless_of_directory() -> None:
     repaired. The narrowing in AMBIGUOUS_NAMES is reserved for names that
     genuinely collide (PLAN.md, README.md, SPEC.md).
     """
-    old = HOME / "utils" / "vmbox" / "SESSION_RESULTS.md"
-    new = HOME / "utils" / "vmbox" / "DOCS-session-results.md"
+    old = HOME / "src/utils" / "vmbox" / "SESSION_RESULTS.md"
+    new = HOME / "src/utils" / "vmbox" / "DOCS-session-results.md"
     assert (
         rewrite("vmbox/SESSION_RESULTS.md", old, new) == "vmbox/DOCS-session-results.md"
     )

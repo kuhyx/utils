@@ -39,7 +39,7 @@ def kuhy_repos() -> list[Path]:
 
 def gate_violations() -> list[Path]:
     """Files the naming gate rejects, across every kuhy-owned repo."""
-    checker = HOME / "utils" / "scripts" / "check_md_naming.sh"
+    checker = HOME / "src/utils" / "scripts" / "check_md_naming.sh"
     found: list[Path] = []
     for repo in kuhy_repos():
         result = subprocess.run(

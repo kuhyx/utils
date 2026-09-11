@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-PROMPT_DIR = Path.home() / "utils" / "dopamine-ux"
+PROMPT_DIR = Path.home() / "src/utils" / "dopamine-ux"
 HOME = Path.home()
 
 PATH_RE = re.compile(r"`(~?/[^`\s]+|[\w.\-]+/[\w./\-]+\.\w+)`")
