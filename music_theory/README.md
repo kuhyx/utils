@@ -91,8 +91,8 @@ one-flag transform on the same seed.
 ```
 pip install -r requirements.txt
 python -m pytest            # 100 % branch coverage is enforced
-pre-commit run --config music_theory/.pre-commit-config.yaml --all-files   # from the utils root
+pre-commit run --config music_theory/.pre-commit-config.yaml --all-files   # from ~/src/utils
 ```
 
-Consumed by `~/roadside-assistance` (`tools/render_music_beds.sh`) for its
+Consumed by `~/src/roadside-assistance` (`tools/render_music_beds.sh`) for its
 three world-state music beds.
