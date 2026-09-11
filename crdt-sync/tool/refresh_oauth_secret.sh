@@ -49,10 +49,18 @@ main() {
     echo "   Client secret. If it says the secret was rotated, copy the NEW one."
     xdg-open "$CONSOLE_URL" </dev/null >/dev/null 2>&1 || echo "   (open manually: $CONSOLE_URL)"
 
-    echo "2. Paste it here and press Enter (not shown):"
     local secret
-    # -s needs a terminal; piped input (tests) falls back to a plain read.
-    if [[ -t 0 ]]; then read -rs secret; echo; else read -r secret; fi
+    if [[ -t 0 ]]; then
+        echo "2. Paste it here and press Enter (not shown):"
+        read -rs secret; echo
+    else
+        # No terminal (run through Claude Code's `!`, or piped): the dialog's
+        # copy button already put the secret on the clipboard, so take it
+        # from there rather than asking for a paste nobody can type.
+        echo "2. Reading the secret from the clipboard (copied from the dialog)."
+        secret="$(xclip -o -selection clipboard 2>/dev/null || cat)"
+        secret="${secret//[$'\r\n ']/}"
+    fi
     if [[ ! $secret =~ ^GOCSPX-[A-Za-z0-9_-]{28}$ ]]; then
         echo "Error: that does not look like a Web client secret (GOCSPX-…, 35 chars)" >&2
         exit 1
