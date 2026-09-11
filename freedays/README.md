@@ -35,6 +35,11 @@ $ freedays check tomorrow      # exit 0 if free, 1 if not -- for scripts
 $ freedays sync                # pull and push now
 ```
 
+Or on the phone: the calendar icon in **Wake Alarm Sync** is the same pool
+(`~/wake-alarm/DOCS-free-days.md`). A day marked there stands the phone's
+own alarm down immediately; a day marked here reaches the phone at its next
+app launch.
+
 ## The rules
 
 | | |
