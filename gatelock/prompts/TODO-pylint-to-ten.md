@@ -1,7 +1,7 @@
 # Session prompt: take gatelock's pylint from 9.06 to 10.00
 
 Paste everything below the line into a fresh Claude Code session started in
-`~/utils` (the monorepo root — **not** `~/utils/gatelock`; pre-commit runs
+`~/src/utils` (the monorepo root — **not** `~/src/utils/gatelock`; pre-commit runs
 hooks from the git root and every path in the hook config is relative to it).
 
 ---
@@ -13,14 +13,14 @@ weakening the linter.
 
 The pylint hook runs with `--fail-under=8.0`, so 9.06 passes while carrying
 ~394 findings. The same job was done in the sibling package
-`~/utils/crdt-sync` on 2026-08-21 (8.58 -> 10.00), so the conventions and the
+`~/src/utils/crdt-sync` on 2026-08-21 (8.58 -> 10.00), so the conventions and the
 gate are already proven one directory over — read that package's
 `crdt_sync/tests/conftest.py` and the commits `1b8c99d` / `2005c40` in
-`~/utils` for the worked example.
+`~/src/utils` for the worked example.
 
 Measured on this machine, 2026-08-21, with
 `~/.cache/pre-commit/repo01lfw04p/py_env-python3/bin/pylint --rcfile=pyproject.toml gatelock`
-run from `~/utils/gatelock`:
+run from `~/src/utils/gatelock`:
 
 | category | count |
 |---|---|
@@ -40,7 +40,7 @@ It is dominated by **pytest fixture idiom**, which makes it a different job:
 - `protected-access` (141) is tests reaching into the private members that
   are the unit under test.
 
-Note for context: `~/screen-locker`'s tests hook already disables
+Note for context: `~/src/screen-locker`'s tests hook already disables
 `protected-access` / `unused-argument` / `duplicate-code` for exactly this
 reason. gatelock does not, and that gap is most of the 0.94.
 
@@ -94,10 +94,10 @@ suppressing: it sometimes flags a real latent IndexError.
 
 ## Gates
 
-- `python -m pytest -q` from `~/utils/gatelock` — **389 passing at 100%
+- `python -m pytest -q` from `~/src/utils/gatelock` — **389 passing at 100%
   branch coverage** (measured 2026-08-21). Both numbers must hold.
 - `pre-commit run --config gatelock/.pre-commit-config.yaml --files <changed>`
-  — run it from `~/utils`, and note the config's `files:` filter means paths
+  — run it from `~/src/utils`, and note the config's `files:` filter means paths
   must be repo-root-relative (`gatelock/...`) or the hooks silently skip.
 - `ruff format` will reformat what you touch; re-run the suite afterwards.
 

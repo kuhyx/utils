@@ -1,6 +1,6 @@
 [Unit]
 Description=Sync the shared free-day pool periodically
-Documentation=file:///home/kuhy/utils/freedays/README.md
+Documentation=file:///home/kuhy/src/utils/freedays/README.md
 
 [Timer]
 # Every 15 minutes. A free day marked on the phone should reach the PC well

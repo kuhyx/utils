@@ -40,7 +40,7 @@ def _owns_the_shared_gate(repo: Path) -> bool:
 
     Without this the installer "fixes drift" in the one repo whose copy is
     supposed to differ, and the result execs itself: the delegate resolves
-    the shared gate to `$HOME/utils/scripts/check_dependency_freshness.sh`,
+    the shared gate to `$HOME/src/utils/scripts/check_dependency_freshness.sh`,
     which is the file it just overwrote.
     """
     return (repo / "dep_freshness" / "check.py").is_file()

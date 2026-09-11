@@ -58,16 +58,16 @@ def test_excluded_dir() -> None:
 
 
 def test_third_party() -> None:
-    assert rules.is_third_party(Path("/home/kuhy/warriorjs/docs/x.md"))
+    assert rules.is_third_party(Path("/home/kuhy/vendor/warriorjs/docs/x.md"))
     assert rules.is_third_party(
-        Path("/home/kuhy/screen-locker-backup-20260705-200741/x.md")
+        Path("/home/kuhy/archive/2026-07-05-screen-locker-backup-200741/x.md")
     )
-    assert not rules.is_third_party(Path("/home/kuhy/todo/x.md"))
+    assert not rules.is_third_party(Path("/home/kuhy/src/todo/x.md"))
 
 
 def test_vendored_skill_bundle() -> None:
-    assert rules.is_vendored(Path("/home/kuhy/todo/.agents/skills/a/SKILL.md"))
-    assert not rules.is_vendored(Path("/home/kuhy/todo/docs/x.md"))
+    assert rules.is_vendored(Path("/home/kuhy/src/todo/.agents/skills/a/SKILL.md"))
+    assert not rules.is_vendored(Path("/home/kuhy/src/todo/docs/x.md"))
 
 
 @pytest.mark.parametrize(
@@ -97,12 +97,12 @@ def test_generated() -> None:
 
 def test_is_exempt_combines_every_rule() -> None:
     assert rules.is_exempt(Path("/r/node_modules/a.md"))
-    assert rules.is_exempt(Path("/home/kuhy/warriorjs/a.md"))
+    assert rules.is_exempt(Path("/home/kuhy/vendor/warriorjs/a.md"))
     assert rules.is_exempt(Path("/r/.agents/skills/a/SKILL.md"))
     assert rules.is_exempt(Path("/r/.github/a.md"))
     assert rules.is_exempt(Path("/r/CONTRIBUTING.md"))
     assert rules.is_exempt(Path("/r/generated/a.md"))
-    assert not rules.is_exempt(Path("/home/kuhy/todo/docs/a.md"))
+    assert not rules.is_exempt(Path("/home/kuhy/src/todo/docs/a.md"))
 
 
 def test_is_todo() -> None:

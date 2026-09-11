@@ -28,7 +28,7 @@ anywhere), games (their repeated identifiers are game constants like
 invariants make the *window* non-reusable, though its leaf widgets are fair
 game).
 
-`~/testsAndMisc/pomodoro_app` and `horatio` no longer exist. **`workout_app`
+`~/src/testsAndMisc/pomodoro_app` and `horatio` no longer exist. **`workout_app`
 does not exist either** — it is named in the source plan and in several skill
 docs, but no directory under `~` matches `*workout*`. Anything citing it as a
 consumer is stale.

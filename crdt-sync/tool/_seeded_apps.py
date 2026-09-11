@@ -38,7 +38,7 @@ DEFAULT_APPS: Final = (
     "leetcode_guard",
     "todo",
     "home_guard",
-    # The shared free-day pool (~/utils/freedays), not an app: its systemd
+    # The shared free-day pool (~/src/utils/freedays), not an app: its systemd
     # timer is headless and it has no session of its own to inherit, so
     # without this a day marked on the phone never reaches the PC.
     "freedays",

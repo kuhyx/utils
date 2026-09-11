@@ -115,7 +115,7 @@ that reads as a supported feature — an honest `n/a` beats a lie about scope.
 Haptics and sound are likewise `n/a` there: it is a fullscreen desktop lock
 surface with no haptic hardware.
 
-Only `~/todo` consumes `design_system` as a package; `diet-guard`, `workout_app`
+Only `~/src/todo` consumes `design_system` as a package; `diet-guard`, `workout_app`
 and `wake_alarm` hand-transcribe these values into local `lib/ui/theme.dart`
 copies. Tokens added here therefore reach exactly one app automatically — the
 rest is per-app work, which is what dopamine-ux prompts 03–09 are for.

@@ -1,6 +1,6 @@
 [Unit]
 Description=Pull and push the shared free-day pool
-Documentation=file:///home/kuhy/utils/freedays/README.md
+Documentation=file:///home/kuhy/src/utils/freedays/README.md
 # Without a network this exits 0 having done nothing, by design -- the gates
 # read the last-merged local file and a stale pool is never a reason to fail.
 After=network-online.target

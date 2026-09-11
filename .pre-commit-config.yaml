@@ -29,7 +29,7 @@ repos:
 
       # Four markdown namespaces (README / CLAUDE* / DOCS* / TODO*), plus the
       # rule that a TODO carries "REMOVE ME AFTER FINISH" and nothing else may.
-      # Shared gate in ~/utils owns the namespaces and the exemption list, so
+      # Shared gate in ~/src/utils owns the namespaces and the exemption list, so
       # one repo's idea of a valid name cannot drift from every other repo's.
       - id: md-naming
         name: markdown naming convention

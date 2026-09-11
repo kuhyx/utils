@@ -1,9 +1,9 @@
 /*
  * The frozen design tokens, shared by every one of kuhy's web repos.
  *
- * Source of truth: ~/utils/unified-design-system/tokens.md (values) and
+ * Source of truth: ~/src/utils/unified-design-system/tokens.md (values) and
  * README.md (the CSS custom-property names). The same numbers ship for Dart in
- * ~/utils/design_system, so a change here is a change there — do not edit one
+ * ~/src/utils/design_system, so a change here is a change there — do not edit one
  * side alone, and do not introduce a value that is not on a scale below.
  *
  * Dark is the default; light is an override, matching the README.
@@ -95,7 +95,7 @@
   --focus-ring: #b8862e; /* = accent */
 
   /* Motion ----------------------------------------------------------------- */
-  /* Frozen in ~/utils/unified-design-system/motion.md, which carries the
+  /* Frozen in ~/src/utils/unified-design-system/motion.md, which carries the
    * rationale per step. The same numbers ship for Dart as AppDuration /
    * AppCurve — a change here is a change there. Four steps only: a longer
    * duration vocabulary gets picked from at random, which is drift wearing a

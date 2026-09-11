@@ -1,8 +1,8 @@
-Implement Phase 2 of the shared component work: extend `~/utils/gatelock` (Python/Tk) with the composite widgets that four guard apps each reimplemented. Treat this as `override` on the spec gate — the spec is below, it is complete, and I do not want a round of questions before you start.
+Implement Phase 2 of the shared component work: extend `~/src/utils/gatelock` (Python/Tk) with the composite widgets that four guard apps each reimplemented. Treat this as `override` on the spec gate — the spec is below, it is complete, and I do not want a round of questions before you start.
 
 **Goal.** gatelock already owns the design tokens (`LockConfig`) and the Tk plumbing, and has four consumers. Its scope stops short of composite widgets, so each consumer grew its own. Move those into gatelock and retire the copies in two proof consumers.
 
-**This is NOT a new package.** Add to `~/utils/gatelock`, which already exists and is consumed as `gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.4.1#subdirectory=gatelock`.
+**This is NOT a new package.** Add to `~/src/utils/gatelock`, which already exists and is consumed as `gatelock @ git+https://github.com/kuhyx/utils@gatelock-v0.4.1#subdirectory=gatelock`.
 
 **Build these four, in order:**
 
@@ -25,4 +25,4 @@ Implement Phase 2 of the shared component work: extend `~/utils/gatelock` (Pytho
 
 **Done means:** the four items exist in gatelock with tests, the two proof consumers import them with their local copies deleted, `<Return>` verifiably activates a button in each gate under xvfb, and everything is committed and pushed.
 
-Context, if you want it: `~/utils/unified-design-system/nielsen-audit.md` has the full grid and the Phase 1 record. Phase 1 (`~/utils/design_system`, Dart) is done — 7 exports, 100% coverage, six consumers — and is the pattern to imitate: `publish_to: none`, own analysis config, own tests, own coverage gate, tag-pinned git dep.
+Context, if you want it: `~/src/utils/unified-design-system/nielsen-audit.md` has the full grid and the Phase 1 record. Phase 1 (`~/src/utils/design_system`, Dart) is done — 7 exports, 100% coverage, six consumers — and is the pattern to imitate: `publish_to: none`, own analysis config, own tests, own coverage gate, tag-pinned git dep.

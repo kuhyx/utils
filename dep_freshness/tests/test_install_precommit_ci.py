@@ -1,7 +1,7 @@
 """The fourth install piece: teaching an existing pre-commit workflow the gate.
 
 These assertions are about a failure that is invisible locally -- the delegate
-resolves through `~/utils` on this machine and through nothing at all on a
+resolves through `~/src/utils` on this machine and through nothing at all on a
 runner -- so they check the runner-visible facts: that the shared repo is
 checked out, that `UTILS_ROOT` points at it, and that the insert lands after
 the workflow's own checkout rather than before it.

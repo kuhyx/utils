@@ -51,7 +51,7 @@ dep, as todo, untools, focus_owner, kuhylog, epopeja_karta and billsplit now
 do. These six were never off-palette — they transcribe the right values by
 hand — so this is duplication cleanup, not a visual fix.
 
-### Phase 2 — Python/Tk (`~/utils/gatelock`), SHIPPED (gatelock 0.5.0)
+### Phase 2 — Python/Tk (`~/src/utils/gatelock`), SHIPPED (gatelock 0.5.0)
 
 > **Status: done.** `make_button`, `heading`/`row`, `ScrollableSurface` and
 > `WidgetGroup` all ship in gatelock 0.5.0 (`c963cd8`, `d82107a`, `d25f288`);
@@ -89,7 +89,7 @@ gain.
 > path. Then launch each gate under `xvfb-run -s "-screen 0 1366x768x24"` and
 > confirm buttons render and **`<Return>` activates** them.
 
-### Phase 3 — TypeScript (`~/utils/web_ui`), SHIPPED (web_ui-v0.3.1)
+### Phase 3 — TypeScript (`~/src/utils/web_ui`), SHIPPED (web_ui-v0.3.1)
 
 > **Status: done** — see `phase3-record.md` for what shipped and, importantly,
 > why `FilterBar` was *not* extracted (a name collision, not a duplicate).

@@ -3,10 +3,10 @@
 Hands-off publishing of kuhy's Flutter apps to the AUR.
 
 ```bash
-~/utils/aur-publish/publish.sh              # wait for registration, then publish
-~/utils/aur-publish/publish.sh --dry-run    # everything except the push
-~/utils/aur-publish/publish.sh --skip-wait  # account already works
-~/utils/aur-publish/publish.sh --only habit-stack
+~/src/utils/aur-publish/publish.sh              # wait for registration, then publish
+~/src/utils/aur-publish/publish.sh --dry-run    # everything except the push
+~/src/utils/aur-publish/publish.sh --skip-wait  # account already works
+~/src/utils/aur-publish/publish.sh --only habit-stack
 ```
 
 ## What it does

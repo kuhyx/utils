@@ -29,7 +29,7 @@ things; one that celebrates *capturing* keeps the backlog honest.
 
 ## where
 
-Repo: `~/todo`.
+Repo: `~/src/todo`.
 
 **First step — bump the dependency.** `pubspec.yaml` pins `design_system` at git
 ref `design_system-v0.1.0`, which predates the motion tokens. Bump it to
@@ -63,7 +63,7 @@ pattern the other prompts copy**:
 
 Theme: no local file. `lib/main.dart` ~:4 imports `design_system`; ~:60-61 wires
 `theme: buildLightTheme(), darkTheme: buildDarkTheme()`. Source of truth is
-`~/utils/design_system/lib/src/theme.dart`.
+`~/src/utils/design_system/lib/src/theme.dart`.
 
 ## must
 
@@ -124,8 +124,8 @@ Theme: no local file. `lib/main.dart` ~:4 imports `design_system`; ~:60-61 wires
 3. Wizard step transitions and page navigation use shared motion tokens; no
    inline `Duration` remains for animation purposes (the 250ms search debounce
    and 5s auto-sync debounce stay as they are — they are not motion).
-4. `cd ~/todo && flutter analyze` is clean.
-5. `cd ~/todo && flutter test` passes.
+4. `cd ~/src/todo && flutter analyze` is clean.
+5. `cd ~/src/todo && flutter test` passes.
 6. With OS "remove animations" enabled, the app works and durations are zero.
 7. Step 2: the sound toggle flips, persists across restart, and silences the cue.
 
@@ -135,7 +135,7 @@ Theme: no local file. `lib/main.dart` ~:4 imports `design_system`; ~:60-61 wires
 
 ```
 adb devices                      # confirm 23181JEGR08034
-cd ~/todo
+cd ~/src/todo
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -156,11 +156,11 @@ can go stale independently — but this prompt's done-condition is the phone.
   toggle pattern, in full, before writing the sound switch.
 - `lib/ui/capture_screen_sync.dart` ~:76-78 — how `showToast`/`showError` are
   used today; the shared helpers live in
-  `~/utils/design_system/lib/src/feedback.dart`.
-- `~/utils/design_system/lib/src/feedback.dart` — `showToast`/`showError`, `_show`
+  `~/src/utils/design_system/lib/src/feedback.dart`.
+- `~/src/utils/design_system/lib/src/feedback.dart` — `showToast`/`showError`, `_show`
   ~:50. `confirm.dart` beside it **already imports `flutter/services.dart`**, so
   if prompt 01 added a shared haptic helper it lives near here.
-- `~/utils/unified-design-system/motion.md` — the vocabulary from prompt 01.
+- `~/src/utils/unified-design-system/motion.md` — the vocabulary from prompt 01.
   **Prompt 01 must have run first, and its tag must be cut.**
 - `pubspec.yaml` — read the comment explaining why there is no local theme.
 

@@ -89,7 +89,7 @@ class LockConfig:
             spacing scale, in pixels. Use for ``padx``/``pady``/``ipadx``.
 
     All color/font defaults come from the ``unified-design-system`` docs
-    (``~/utils/unified-design-system/tokens.md``) -- the same palette used by
+    (``~/src/utils/unified-design-system/tokens.md``) -- the same palette used by
     every one of kuhy's apps, Flutter and web included.
     """
 

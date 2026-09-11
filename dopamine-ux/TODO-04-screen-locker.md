@@ -31,7 +31,7 @@ the data already exists, is already true, and needs no new state.
 
 ## where
 
-Repo: `~/screen-locker`.
+Repo: `~/src/screen-locker`.
 
 Primary:
 - `screen_locker/_status_sections.py` — the section renderers used by the status
@@ -98,7 +98,7 @@ Primary:
 - optional: a daily streak alongside the weekly one. Note this **would** be new
   state (the existing streak is consecutive-*weeks*), so it triggers the conftest
   requirement above. diet-guard's consecutive-*day* streak
-  (`~/diet-guard/diet_guard/_daystatus.py` ~:144) is the precedent to mirror.
+  (`~/src/diet-guard/diet_guard/_daystatus.py` ~:144) is the precedent to mirror.
 
 ## done
 
@@ -106,7 +106,7 @@ Primary:
    the current streak, bonus hours and early-bird state — with the real values
    from `extra_benefits_state.json`, not placeholders.
 2. A week-transition milestone reaches the UI instead of only `_logger.info`.
-3. `cd ~/screen-locker && python -m pytest` passes.
+3. `cd ~/src/screen-locker && python -m pytest` passes.
 4. `pre-commit run --files <changed files>` is clean — including the 250-line cap
    (`scripts/check_file_length.py`) and the silent-failure check.
 5. `git diff` touches no enforcement logic: no change to lock decisions, weekly
@@ -117,7 +117,7 @@ Primary:
 Desktop — this is a desktop Python app.
 
 ```
-cd ~/screen-locker
+cd ~/src/screen-locker
 python -m screen_locker --status          # CLI: confirm the values it prints
 screen-locker-status                      # the Tk window: confirm they render
 ```
@@ -138,7 +138,7 @@ Current real state for comparison: `screen_locker/extra_benefits_state.json` and
   (the enforcement invariant) and the reward strings ~:130-139.
 - `screen_locker/_unlock_view.py` — the existing celebration, for tone.
 - `screen_locker/status_view.py` — check its line count **before** editing.
-- `~/screen-locker/CLAUDE.md` — repo rules (no silent failures, ruff `select=ALL`).
+- `~/src/screen-locker/CLAUDE.md` — repo rules (no silent failures, ruff `select=ALL`).
 
 ## context you would otherwise rediscover
 
@@ -158,7 +158,7 @@ Current real state for comparison: `screen_locker/extra_benefits_state.json` and
   tunable is a module-level constant. An opt-out toggle has no existing home;
   for a self-restriction tool, requiring a code edit to disable is arguably
   correct, so prefer a constant in `_constants.py` over new state.
-- `~/gatelock` is **not** a repo — it is `~/utils/gatelock/gatelock/`, consumed as
+- `~/gatelock` is **not** a repo — it is `~/src/utils/gatelock/gatelock/`, consumed as
   a pinned git dep, and it holds no workout state.
 - Manual workouts were **not** removed: `_manual_workout.py` implements a
   rate-limited, evidence-gated subsystem (budget 2 per 7 days, 10 per 30).

@@ -71,8 +71,8 @@ the discriminator, and it is asserted by grep, not read by eye.
 ## Worked example: testing the real shutdown installer
 
 ```bash
-vm share ~/testsAndMisc                 # read-only bind, not a symlink
-vm share ~/utils                        # guard-lib lives here
+vm share ~/src/testsAndMisc                 # read-only bind, not a symlink
+vm share ~/src/utils                        # guard-lib lives here
 vm new st --rtc 2026-08-22T20:55:00     # inside the 21:00-05:00 window
 vm run st 'git clone --no-hardlinks -q /mnt/hostrepo/testsAndMisc ~/tam'
 vm run st 'echo y | sudo bash ~/tam/linux_configuration/scripts/periodic_background/digital_wellbeing/setup_midnight_shutdown.sh enable'

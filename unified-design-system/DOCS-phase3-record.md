@@ -1,4 +1,4 @@
-# Phase 3 record — `~/utils/web_ui` (`@kuhyx/web-ui`)
+# Phase 3 record — `~/src/utils/web_ui` (`@kuhyx/web-ui`)
 
 The web counterpart to Phase 1's Dart `design_system`. Companion to
 `nielsen-audit.md`, which holds the grid and the deferred clusters.
@@ -82,7 +82,7 @@ was nearly indistinguishable under deuteranopia.
 ## Follow-ups
 
 1. **Dart side does not have the ramp.** `tokens.md` is the source of truth for
-   both stacks and now documents `cat-1…6`, but `~/utils/design_system` ships
+   both stacks and now documents `cat-1…6`, but `~/src/utils/design_system` ships
    only the original palette. A `design_system` bump should add it, so the
    "same hex values everywhere" invariant holds. Deliberately not done here:
    Phase 1 is tagged with six consumers, and that retag is its own change.

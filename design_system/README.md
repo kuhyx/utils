@@ -2,7 +2,7 @@
 
 The shared Flutter component layer for kuhy's apps.
 
-`~/utils/unified-design-system/` froze the **token** layer — one palette, one
+`~/src/utils/unified-design-system/` froze the **token** layer — one palette, one
 spacing scale, one type scale — but it is documentation only: 1220 lines of
 prose and annotated HTML, zero importable code. Every repo transcribed the
 token table by hand, and then drifted from it.

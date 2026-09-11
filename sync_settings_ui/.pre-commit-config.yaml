@@ -2,7 +2,7 @@
 # Install:  pre-commit install && pre-commit install --hook-type pre-push
 # Run:      pre-commit run --all-files
 
-# NOTE: this subproject lives inside the ~/utils monorepo, whose git root is
+# NOTE: this subproject lives inside the ~/src/utils monorepo, whose git root is
 # one level up. pre-commit always runs hooks from the git root, so every path
 # below is written relative to THAT, not to this directory, and the top-level
 # `files` key keeps these hooks off the sibling subprojects. CI invokes this

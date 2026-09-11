@@ -1,11 +1,11 @@
 # @kuhyx/web-ui
 
 The shared token + component layer for kuhy's web apps — the web counterpart to
-`~/utils/design_system` (Dart). Owns the frozen palette, the spacing/radius/type
+`~/src/utils/design_system` (Dart). Owns the frozen palette, the spacing/radius/type
 scales, and the components that were each reimplemented in two or more repos.
 
 Consumers import the tokens rather than transcribing the token table by hand.
-Source of truth for the *values* is `~/utils/unified-design-system/DOCS-tokens.md`;
+Source of truth for the *values* is `~/src/utils/unified-design-system/DOCS-tokens.md`;
 this package is its executable form for the web.
 
 ## Install
@@ -62,7 +62,7 @@ hue separation is the whole point of a categorical scale. The values were chosen
 by search under a ≥20 CIE ΔE floor across normal vision *and* deuteranopia,
 protanopia and tritanopia, ≥3:1 contrast on **both** backgrounds, and a
 monotonic lightness staircase so the ramp survives greyscale. Re-run the proof
-with `python3 ~/utils/unified-design-system/scripts/ramp_check.py` — it exits
+with `python3 ~/src/utils/unified-design-system/scripts/ramp_check.py` — it exits
 non-zero if an edit breaks any of it. A seventh hue is not available: the best
 candidate reaches only ΔE 17.9. Group the tail into "other" instead.
 

@@ -26,7 +26,7 @@ the streak/progress reacting visibly rather than blinking into existence.
 
 ## where
 
-Repo: `~/diet-guard`. Flutter app: `~/diet-guard/app` (package `diet_guard_app`).
+Repo: `~/src/diet-guard`. Flutter app: `~/src/diet-guard/app` (package `diet_guard_app`).
 
 Primary:
 - `app/lib/screens/log_meal_screen.dart` — `_onLogMeal()` (line 122-168 as of
@@ -98,7 +98,7 @@ Settings (for the sound opt-out in step 2):
   and salience are fair game — the numbers are not.
 - must not: add a celebratory cue to *deleting* or editing a meal. Only the
   record-creating act gets it.
-- must not: touch `~/diet-guard/diet_guard/` (the Python desktop side) — it has
+- must not: touch `~/src/diet-guard/diet_guard/` (the Python desktop side) — it has
   its own streak logic and is out of scope here.
 - optional: a progress ring instead of the plain kcal text. The article's
   near-miss point applies honestly here — a ring at 80% of budget is truthful
@@ -108,8 +108,8 @@ Settings (for the sound opt-out in step 2):
 
 1. Logging a meal on the phone produces a haptic within ~50ms of the tap, an
    explicit confirmation, and a visible (not instant) update of the streak/progress.
-2. `cd ~/diet-guard/app && flutter analyze` is clean.
-3. `cd ~/diet-guard/app && flutter test` passes.
+2. `cd ~/src/diet-guard/app && flutter analyze` is clean.
+3. `cd ~/src/diet-guard/app && flutter test` passes.
 4. With OS "remove animations" enabled, the screen still works and durations are
    zero — verified by toggling it, not by reading the code.
 5. Step 2 only: the settings toggle flips, persists across an app restart, and
@@ -121,7 +121,7 @@ Settings (for the sound opt-out in step 2):
 
 ```
 adb devices                      # confirm 23181JEGR08034 is attached
-cd ~/diet-guard/app
+cd ~/src/diet-guard/app
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -142,10 +142,10 @@ whitelist entry before it can be tested.
 - `app/lib/services/app_settings_service.dart` — the `dailyKcalGoal` field
   (~:34/:40) is the pattern to copy for a new bool. Note the `_writeToDisk`
   comment.
-- `~/diet-guard/diet_guard/_calendar_view.py` — `streaks_text()` ~:136 and
+- `~/src/diet-guard/diet_guard/_calendar_view.py` — `streaks_text()` ~:136 and
   `ytd_text()` ~:154. The Dart `streak_summary_row.dart` docstring says it mirrors
   this formatting; keep them consistent if you change wording.
-- `~/utils/unified-design-system/motion.md` — the motion/haptic vocabulary from
+- `~/src/utils/unified-design-system/motion.md` — the motion/haptic vocabulary from
   prompt 01. **Prompt 01 must have run first.**
 
 ## context you would otherwise rediscover
@@ -165,6 +165,6 @@ whitelist entry before it can be tested.
   making existing true data feel like something, not inventing a new metric.
 - diet-guard state lives under XDG (`~/.local/share/diet_guard`), unlike
   screen-locker's in-repo JSON. Tests isolate it via
-  `~/diet-guard/diet_guard/tests/conftest.py:97` `_isolate_state`.
+  `~/src/diet-guard/diet_guard/tests/conftest.py:97` `_isolate_state`.
 
 REMOVE ME AFTER FINISH

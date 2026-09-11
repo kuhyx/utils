@@ -10,7 +10,7 @@ Wire dufs-cloud's Flutter app to the shared design_system
 
 ## what
 
-`~/dufs-cloud/app/lib/ui/theme.dart` is a **fifth, uncompared copy of the
+`~/src/dufs-cloud/app/lib/ui/theme.dart` is a **fifth, uncompared copy of the
 palette**. Verified 2026-08-16: the Flutter app has no `design_system`
 dependency at all — it hand-restates every hex (`Color(0xFF211D1B) // ink`,
 `Color(0xFFB8862E) // accent`, …) with the shared token names appearing only in
@@ -27,7 +27,7 @@ becoming a sixth hand-copy.
 
 ## where
 
-Repo: `~/dufs-cloud`. Flutter app: `~/dufs-cloud/app` (package `dufs_client`).
+Repo: `~/src/dufs-cloud`. Flutter app: `~/src/dufs-cloud/app` (package `dufs_client`).
 
 - `app/pubspec.yaml` — current deps: `archive, cupertino_icons, flutter,
   flutter_secure_storage, http, image_picker, media_kit*, path, path_provider,
@@ -37,19 +37,19 @@ Repo: `~/dufs-cloud`. Flutter app: `~/dufs-cloud/app` (package `dufs_client`).
   exported symbols rather than trusting any list here.
 
 Source of truth:
-- `~/utils/design_system/lib/src/tokens.dart` — `AppPalette`, `AppSpacing`,
+- `~/src/utils/design_system/lib/src/tokens.dart` — `AppPalette`, `AppSpacing`,
   `AppRadius`, `AppTextSize` (plus `AppDuration`/`AppCurve` if prompt 01 ran).
-- `~/utils/design_system/lib/src/theme.dart` — `buildLightTheme()`,
+- `~/src/utils/design_system/lib/src/theme.dart` — `buildLightTheme()`,
   `buildDarkTheme()`.
 
-Reference implementation: `~/todo` is the only app already on the package. Its
+Reference implementation: `~/src/todo` is the only app already on the package. Its
 `pubspec.yaml` uses a **git ref** (`design_system-v0.1.0`) and it has
 deliberately **no local `theme.dart`**. Copy that shape.
 
 ## must
 
 - Add `design_system` to `app/pubspec.yaml` using the **git ref** style matching
-  `~/todo` — not a local `path:` dependency. One dependency convention across the
+  `~/src/todo` — not a local `path:` dependency. One dependency convention across the
   fleet. Pin the tag prompt 01 cut (`design_system-v0.2.0` or whatever it
   printed); if prompt 01 has not run, pin `design_system-v0.1.0` and let prompt
   08 do the bump.
@@ -70,7 +70,7 @@ deliberately **no local `theme.dart`**. Copy that shape.
 - must not: add motion/animation here. That is prompt 08. This prompt is
   dependency plumbing only, so that a visual regression has exactly one possible
   cause.
-- must not: touch `~/dufs-cloud/web/` — its `@kuhyx/web-ui` wiring is already
+- must not: touch `~/src/dufs-cloud/web/` — its `@kuhyx/web-ui` wiring is already
   correct.
 - must not: leave a partial migration. Either the local theme file is gone (or
   reduced to app-specific extras) and everything resolves through the package, or
@@ -88,11 +88,11 @@ deliberately **no local `theme.dart`**. Copy that shape.
 2. No hard-coded palette hex remains in `app/lib/`. A grep for `Color(0xFF` in
    `app/lib/ui/theme.dart` returns nothing (or only app-specific values that are
    not palette tokens — name them if so).
-3. `cd ~/dufs-cloud/app && flutter analyze` is clean.
-4. `cd ~/dufs-cloud/app && flutter test` passes.
+3. `cd ~/src/dufs-cloud/app && flutter analyze` is clean.
+4. `cd ~/src/dufs-cloud/app && flutter test` passes.
 5. The app looks **the same** as before on device — verified by screenshot
    comparison, not by reasoning about the diff.
-6. `python3 ~/utils/unified-design-system/scripts/palette_check.py` still exits 0.
+6. `python3 ~/src/utils/unified-design-system/scripts/palette_check.py` still exits 0.
 
 ## verify
 
@@ -101,7 +101,7 @@ verified by showing nothing changed.
 
 ```
 adb devices
-cd ~/dufs-cloud/app
+cd ~/src/dufs-cloud/app
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -113,18 +113,18 @@ starting (from the currently installed build) and after, and compare them. Never
 
 ## read first
 
-- `~/dufs-cloud/app/lib/ui/theme.dart` — in full, before touching anything. The
+- `~/src/dufs-cloud/app/lib/ui/theme.dart` — in full, before touching anything. The
   comments naming each token are your mapping table.
-- `~/todo/pubspec.yaml` — the git-ref dependency line to copy, and the comment
+- `~/src/todo/pubspec.yaml` — the git-ref dependency line to copy, and the comment
   explaining why no local theme exists.
-- `~/utils/design_system/lib/src/tokens.dart` — the canonical names.
-- `~/dufs-cloud/DESIGN_AUDIT_TODO.md` — a prior audit of this repo; check whether
+- `~/src/utils/design_system/lib/src/tokens.dart` — the canonical names.
+- `~/src/dufs-cloud/DESIGN_AUDIT_TODO.md` — a prior audit of this repo; check whether
   it already records theme findings so you do not contradict it.
 
 ## context you would otherwise rediscover
 
 - The web half consumes `@kuhyx/web-ui` at tag **`web_ui-v0.3.1`**, declared in
-  `~/dufs-cloud/web/package.json` as
+  `~/src/dufs-cloud/web/package.json` as
   `"github:kuhyx/utils#web_ui-v0.3.1&path:/web_ui"`. It is correctly wired; the
   only app-local CSS value is `--overlay: rgba(33, 29, 27, 0.82)` in
   `web/src/index.css`. Prompt 08 bumps that tag — not this prompt.

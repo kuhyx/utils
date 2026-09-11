@@ -36,7 +36,7 @@ reward — the operations are genuinely slow and the progress is genuinely knowa
 
 ## where
 
-Repo: `~/dufs-cloud`. Web: `web/`. Flutter: `app/` (package `dufs_client`).
+Repo: `~/src/dufs-cloud`. Web: `web/`. Flutter: `app/` (package `dufs_client`).
 
 **First step — bump both dependencies** to pick up prompt 01's motion tokens:
 - `web/package.json`: `"@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.3.1&path:/web_ui"`
@@ -142,9 +142,9 @@ Other surfaces:
 3. `web/src/index.css` has a `prefers-reduced-motion` block; with the OS setting
    on, transitions are suppressed.
 4. Long-press multi-select produces a haptic on the phone.
-5. `cd ~/dufs-cloud/web && pnpm install && pnpm build && pnpm test` passes
+5. `cd ~/src/dufs-cloud/web && pnpm install && pnpm build && pnpm test` passes
    (use the repo's actual script names).
-6. `cd ~/dufs-cloud/app && flutter analyze && flutter test` clean.
+6. `cd ~/src/dufs-cloud/app && flutter analyze && flutter test` clean.
 7. No fabricated progress value anywhere in the diff.
 
 ## verify
@@ -159,7 +159,7 @@ A jsdom test cannot verify this — it has no layout and no perceived latency.
 Flutter, on the phone:
 ```
 adb devices
-cd ~/dufs-cloud/app
+cd ~/src/dufs-cloud/app
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -175,8 +175,8 @@ report what you saw. State the haptic as a physical observation.
 - `web/src/lib/download.ts` and `app/lib/services/download_zip.dart` — same.
 - `web/src/components/gallery.tsx` — the `setBusy` call sites; they are the
   inventory of every operation currently reduced to one static string.
-- `~/dufs-cloud/DESIGN_AUDIT_TODO.md` — prior findings for this repo.
-- `~/utils/unified-design-system/motion.md` — vocabulary from prompt 01.
+- `~/src/dufs-cloud/DESIGN_AUDIT_TODO.md` — prior findings for this repo.
+- `~/src/utils/unified-design-system/motion.md` — vocabulary from prompt 01.
 
 ## context you would otherwise rediscover
 

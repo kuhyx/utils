@@ -46,7 +46,7 @@ The union shipped; this donor was never deleted. Retired in
 
 ## RESOLVED — `DeviceCodeDialog` + `GitHubDeviceAuth` ×4
 
-**Extracted 2026-08-15** into `~/utils/github_device_auth` (v0.3.0). All four
+**Extracted 2026-08-15** into `~/src/utils/github_device_auth` (v0.3.0). All four
 apps migrated, local copies deleted, all four suites green, all four release
 APKs installed on the phone.
 
@@ -84,7 +84,7 @@ extracted.
 
 ## RESOLVED — `Clock` + mulberry32 RNG
 
-**Extracted 2026-08-15** into `~/utils/ts_core` (`@kuhyx/ts-core` v0.1.0).
+**Extracted 2026-08-15** into `~/src/utils/ts_core` (`@kuhyx/ts-core` v0.1.0).
 konbini-67, iron-and-anvil and europe-county-map migrated; all three green.
 
 Deliberately its own package, not part of `web_ui`: that ships `tokens.css`

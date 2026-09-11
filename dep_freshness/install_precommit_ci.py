@@ -2,7 +2,7 @@
 
 The fourth piece of the install, and the one that is easy to forget because
 nothing local reveals it: `.pre-commit-config.yaml` gains a hook that execs
-`scripts/check_dependency_freshness.sh`, which delegates to `~/utils`. That
+`scripts/check_dependency_freshness.sh`, which delegates to `~/src/utils`. That
 path exists on this machine and does not exist on a runner, so a repo whose
 `pre-commit` workflow runs `pre-commit/action` against a bare checkout goes red
 with "shared gate not found at /home/runner/utils/..." -- green locally, red in

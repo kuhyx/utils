@@ -51,7 +51,7 @@ def no_shared_allowlist(tmp_path, monkeypatch) -> Path:
     """Point the fleet-wide allowlist at a path that does not exist.
 
     AUTOUSE for the same reason as `cache_dir`: repos inherit the real
-    ~/utils/dependency-freshness.allowlist.yaml, so without this every test
+    ~/src/utils/dependency-freshness.allowlist.yaml, so without this every test
     silently reads whatever is currently excused fleet-wide and starts
     depending on it.
     """

@@ -26,30 +26,30 @@ motion tokens added by prompt 01 inherit the same hole. A `--duration-fast: 120m
 is invisible to every parser: CI passes while the stacks drift apart.
 
 Worse, `scripts/palette_map.py:159` claims structural values are "checked by the
-scale check" — **no such script exists anywhere in `~/utils`**. That comment
+scale check" — **no such script exists anywhere in `~/src/utils`**. That comment
 describes a check that was never written. This prompt writes it.
 
 ## where
 
-Repo: `~/utils`.
+Repo: `~/src/utils`.
 
-**Create** `~/utils/unified-design-system/scripts/structural_check.py`.
+**Create** `~/src/utils/unified-design-system/scripts/structural_check.py`.
 
-**Edit** `~/utils/.github/workflows/palette-drift.yml` — add a step invoking it.
+**Edit** `~/src/utils/.github/workflows/palette-drift.yml` — add a step invoking it.
 The workflow deliberately has no `paths:` filter; keep it that way.
 
-**Fix** the stale comment at `~/utils/unified-design-system/scripts/palette_map.py`
+**Fix** the stale comment at `~/src/utils/unified-design-system/scripts/palette_map.py`
 (~:159) to name the real script.
 
 Sources to compare (three code stacks + the prose freeze):
 
 | Role | Path |
 |---|---|
-| prose freeze | `~/utils/unified-design-system/tokens.md` (spacing/radius/type) |
-| motion freeze | `~/utils/unified-design-system/motion.md` (**created by prompt 01** — run it first) |
-| web/React | `~/utils/web_ui/src/tokens.css` |
-| Flutter/Dart | `~/utils/design_system/lib/src/tokens.dart` |
-| Python/Tkinter | `~/utils/gatelock/gatelock/_window.py` (`class LockConfig`) |
+| prose freeze | `~/src/utils/unified-design-system/tokens.md` (spacing/radius/type) |
+| motion freeze | `~/src/utils/unified-design-system/motion.md` (**created by prompt 01** — run it first) |
+| web/React | `~/src/utils/web_ui/src/tokens.css` |
+| Flutter/Dart | `~/src/utils/design_system/lib/src/tokens.dart` |
+| Python/Tkinter | `~/src/utils/gatelock/gatelock/_window.py` (`class LockConfig`) |
 
 ## must
 
@@ -67,7 +67,7 @@ Sources to compare (three code stacks + the prose freeze):
   honest `n/a` with a reason is correct — a fabricated constant is not.
 - **Adjudicate with exit codes.** Exit non-zero on drift with a message naming
   the token and the disagreeing files. No warnings-only mode.
-- Keep every file ≤ **250 lines** (`~/utils/file_length/config.py`). Note
+- Keep every file ≤ **250 lines** (`~/src/utils/file_length/config.py`). Note
   `palette_check.py` is 231 and `palette_map.py` is 162 — that pair was split
   precisely to stay under the cap. **Split yours the same way from the start**
   (`structural_check.py` + `structural_map.py`) rather than discovering the
@@ -91,13 +91,13 @@ Sources to compare (three code stacks + the prose freeze):
 
 ## done
 
-1. `python3 ~/utils/unified-design-system/scripts/structural_check.py` exits 0,
+1. `python3 ~/src/utils/unified-design-system/scripts/structural_check.py` exits 0,
    and exits non-zero when you deliberately break one stack copy (**test both
    directions** — a checker that never fails is not a checker).
-2. It is wired into `~/utils/.github/workflows/palette-drift.yml` and the
+2. It is wired into `~/src/utils/.github/workflows/palette-drift.yml` and the
    workflow passes.
 3. `palette_map.py`'s "scale check" comment names the real script.
-4. `~/utils/scripts/check_file_length.sh --all` reports no new violations.
+4. `~/src/utils/scripts/check_file_length.sh --all` reports no new violations.
 5. The session summary states what drift, if any, the first run found.
 
 ## verify
@@ -109,24 +109,24 @@ the passing run alone proves nothing.
 
 ## read first
 
-- `~/utils/unified-design-system/scripts/palette_check.py` — the design to
+- `~/src/utils/unified-design-system/scripts/palette_check.py` — the design to
   mirror. Read `NON_COLOUR_CSS`: it is the regex that currently *excludes*
   spacing/radius/type/shadow from the colour check, and therefore the precise
   list of what you are now covering.
-- `~/utils/unified-design-system/scripts/palette_map.py` — the `PALETTE` tuple of
+- `~/src/utils/unified-design-system/scripts/palette_map.py` — the `PALETTE` tuple of
   `Token(canonical, md, css, dart, tk, why)` rows. Your map wants the same shape,
   including the `why` field.
-- `~/utils/.github/workflows/palette-drift.yml` — how `palette_check.py` and
+- `~/src/utils/.github/workflows/palette-drift.yml` — how `palette_check.py` and
   `ramp_check.py` are invoked; add your step alongside.
-- `~/utils/unified-design-system/motion.md` — what prompt 01 created.
-- `~/utils/unified-design-system/tokens.md` — the spacing/radius/type tables.
+- `~/src/utils/unified-design-system/motion.md` — what prompt 01 created.
+- `~/src/utils/unified-design-system/tokens.md` — the spacing/radius/type tables.
   **Do not edit it**; it is 260 lines and already over the cap.
 
 ## context you would otherwise rediscover
 
 - The four "stack copies" are really **three code stacks plus a prose freeze**.
   There is no fourth code stack; do not hunt for one.
-- `~/dufs-cloud/app/lib/ui/theme.dart` is a **fifth, uncompared copy** of the
+- `~/src/dufs-cloud/app/lib/ui/theme.dart` is a **fifth, uncompared copy** of the
   palette (the Flutter app has no `design_system` dependency and hand-restates
   every hex). It is out of scope here — prompt 07 wires it up properly. Do not
   add it as a source to this checker; wait until 07 has removed it.
@@ -134,6 +134,6 @@ the passing run alone proves nothing.
   hand-transcribe tokens into local `lib/ui/theme.dart` files. Those are
   deliberately outside the checker's scope for now — bringing them in is a much
   larger job than this prompt.
-- `~/utils/gatelock/` is a package inside this monorepo, not a separate repo.
+- `~/src/utils/gatelock/` is a package inside this monorepo, not a separate repo.
 
 REMOVE ME AFTER FINISH

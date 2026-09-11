@@ -138,7 +138,7 @@ instead — pick `fg` from `bg`, don't hardcode it per call site.
 
 For screen-locker/wake_alarm/diet_guard specifically: this lives on
 `gatelock.LockConfig` (the shared token source already vendored in this same
-`~/utils` monorepo, see [`../gatelock/`](../gatelock/)) rather than a
+`~/src/utils` monorepo, see [`../gatelock/`](../gatelock/)) rather than a
 per-repo duplicate, since all three already depend on it. Extending
 `LockConfig` requires production verification
 (`/usr/bin/python3 -c "import gatelock"`) since it backs 3 live systemd

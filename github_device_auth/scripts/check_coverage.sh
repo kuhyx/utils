@@ -3,7 +3,7 @@
 # ============================================================================
 # Fail if lcov line coverage drops below a threshold.
 #
-# Thin delegate to the shared gate in ~/utils/scripts, which owns the parsing
+# Thin delegate to the shared gate in ~/src/utils/scripts, which owns the parsing
 # and the threshold comparison. This file used to be a byte-identical copy of
 # that logic; three such copies existed, which is how one package's idea of
 # "covered" drifts from every other package's.

@@ -11,7 +11,7 @@ Add motion and haptics to the wake-alarm phone app
 
 ## what
 
-`~/wake-alarm/phone_app` is the smallest surface in this project: 12 Dart files,
+`~/src/wake-alarm/phone_app` is the smallest surface in this project: 12 Dart files,
 a sync companion that sets a time, syncs it, and hands off to the system clock
 app. It has **zero motion, zero haptics, zero audio, zero progress feedback** —
 verified 2026-08-16. Its settings screen is a 56-line `StatelessWidget` with two
@@ -25,7 +25,7 @@ project's sharpest hazard — see `must not` about alarm audio.
 
 ## where
 
-Repo: `~/wake-alarm`. Flutter app: `~/wake-alarm/phone_app` (**underscore**, not
+Repo: `~/src/wake-alarm`. Flutter app: `~/src/wake-alarm/phone_app` (**underscore**, not
 `phone-app`). The repo root is a Python package; the Flutter app is only the
 `phone_app/` subdirectory.
 
@@ -78,12 +78,12 @@ Primary:
 - To add any toggle here you must do three things the other apps do not require:
   (a) convert `SettingsScreen` from `StatelessWidget` to `StatefulWidget`,
   (b) create a preferences class — there is no `AppSettings` equivalent; model it
-  on `~/todo/lib/data/app_settings.dart`, and note `shared_preferences: ^2.3.0`
+  on `~/src/todo/lib/data/app_settings.dart`, and note `shared_preferences: ^2.3.0`
   is **already a dependency**, (c) add the `SwitchListTile` to the `ListView`.
 
 **Both steps:**
 
-- must not: **touch anything under `~/wake-alarm/wake_alarm/`.** That is the
+- must not: **touch anything under `~/src/wake-alarm/wake_alarm/`.** That is the
   desktop Python daemon that produces the real alarm noise — sine-tone WAVs via
   `paplay` → `aplay` → `speaker-test` (`_audio.py`, `_play_on_all_sinks` ~:218,
   pcspkr evdev fallback `_beep_pcspkr` ~:81), escalating 440Hz → 1000Hz → loud in
@@ -107,10 +107,10 @@ Primary:
    time that was set.
 2. Page transitions use the shared motion tokens; no inline animation `Duration`
    remains (the 3s intent timeout stays).
-3. `cd ~/wake-alarm/phone_app && flutter analyze` is clean.
-4. `cd ~/wake-alarm/phone_app && flutter test` passes.
+3. `cd ~/src/wake-alarm/phone_app && flutter analyze` is clean.
+4. `cd ~/src/wake-alarm/phone_app && flutter test` passes.
 5. With OS "remove animations" enabled, the app works and durations are zero.
-6. `git diff` shows **no changes under `~/wake-alarm/wake_alarm/`**.
+6. `git diff` shows **no changes under `~/src/wake-alarm/wake_alarm/`**.
 7. The summary states whether sound was added or deliberately skipped.
 
 ## verify
@@ -119,7 +119,7 @@ Primary:
 
 ```
 adb devices                      # confirm 23181JEGR08034
-cd ~/wake-alarm/phone_app
+cd ~/src/wake-alarm/phone_app
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -142,9 +142,9 @@ involves the desktop daemon and real noise.
   including the timeout and the `_status` string handling.
 - `phone_app/lib/ui/theme.dart` — note what it does **not** declare before
   writing any widget.
-- `~/todo/lib/data/app_settings.dart` — the preferences-class pattern, only if
+- `~/src/todo/lib/data/app_settings.dart` — the preferences-class pattern, only if
   you decide to do step 2.
-- `~/utils/unified-design-system/motion.md` — vocabulary from prompt 01.
+- `~/src/utils/unified-design-system/motion.md` — vocabulary from prompt 01.
   **Prompt 01 must have run first.**
 
 ## context you would otherwise rediscover
@@ -153,7 +153,7 @@ involves the desktop daemon and real noise.
   `assets:` block; `assets/` contains only launcher icons. It fires an Android
   `SET_ALARM` intent and the **system Clock app** rings. The desktop Python
   daemon is an entirely separate program on a different machine.
-- The repo root (`~/wake-alarm/wake_alarm/`, `wake_alarm.egg-info`) is the Python
+- The repo root (`~/src/wake-alarm/wake_alarm/`, `wake_alarm.egg-info`) is the Python
   package. Only `phone_app/` is Flutter.
 - This app has **no `design_system` dependency** and the thinnest local theme in
   the fleet. Adding the dependency is out of scope here (see prompt 07 for what

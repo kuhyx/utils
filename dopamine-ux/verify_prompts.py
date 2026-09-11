@@ -47,8 +47,8 @@ SKIP_SUBSTRINGS = (
 # Files a prompt CREATES. Citing them forward is correct, so absence is expected
 # -- but pairing each with its creating prompt still catches a typo.
 CREATED_BY_PROMPT = {
-    "~/utils/unified-design-system/motion.md": "01",
-    "~/utils/unified-design-system/scripts/structural_check.py": "02",
+    "~/src/utils/unified-design-system/motion.md": "01",
+    "~/src/utils/unified-design-system/scripts/structural_check.py": "02",
 }
 
 # Cited precisely to state that they do NOT exist.
@@ -60,7 +60,7 @@ ASSERTED_ABSENT = {
     # two-directional: a finished prompt reappearing in a repo is itself a
     # failure, because the next session would re-run it. Move a row here as each
     # prompt completes.
-    "~/utils/prompts/dopamine-ux-01-motion-tokens.md",
+    "~/src/utils/prompts/dopamine-ux-01-motion-tokens.md",
 }
 
 # Generic prose fragments rather than citations of one specific file.
@@ -68,56 +68,56 @@ PROSE_FRAGMENTS = {"lib/ui/theme.dart", "lib/main.dart", "pubspec.yaml"}
 
 # Symbols each prompt claims exist, as (repo-relative file, symbol).
 SYMBOL_CLAIMS = [
-    ("~/diet-guard/app/lib/screens/log_meal_screen.dart", "_onLogMeal"),
-    ("~/diet-guard/app/lib/widgets/today_progress_card.dart", "TodayProgressCard"),
-    ("~/diet-guard/app/lib/widgets/streak_summary_row.dart", "StreakSummaryRow"),
-    ("~/diet-guard/app/lib/screens/log_meal_progress.dart", "buildTodayProgress"),
-    ("~/diet-guard/app/lib/services/app_settings_service.dart", "_writeToDisk"),
-    ("~/screen-locker/screen_locker/_status_types.py", "StatusSnapshot"),
-    ("~/screen-locker/screen_locker/_extra_benefits.py", "process_week_transition"),
-    ("~/screen-locker/screen_locker/_extra_benefits.py", "current_streak"),
-    ("~/screen-locker/screen_locker/_unlock_view.py", "unlock_screen"),
-    ("~/screen-locker/screen_locker/_log_mixin.py", "write_signed_entry"),
-    ("~/screen-locker/screen_locker/tests/conftest.py", "_ISOLATED_STATE"),
-    ("~/screen-locker/screen_locker/_weekly_check.py", "WEEKLY_WORKOUT_MINIMUM"),
+    ("~/src/diet-guard/app/lib/screens/log_meal_screen.dart", "_onLogMeal"),
+    ("~/src/diet-guard/app/lib/widgets/today_progress_card.dart", "TodayProgressCard"),
+    ("~/src/diet-guard/app/lib/widgets/streak_summary_row.dart", "StreakSummaryRow"),
+    ("~/src/diet-guard/app/lib/screens/log_meal_progress.dart", "buildTodayProgress"),
+    ("~/src/diet-guard/app/lib/services/app_settings_service.dart", "_writeToDisk"),
+    ("~/src/screen-locker/screen_locker/_status_types.py", "StatusSnapshot"),
+    ("~/src/screen-locker/screen_locker/_extra_benefits.py", "process_week_transition"),
+    ("~/src/screen-locker/screen_locker/_extra_benefits.py", "current_streak"),
+    ("~/src/screen-locker/screen_locker/_unlock_view.py", "unlock_screen"),
+    ("~/src/screen-locker/screen_locker/_log_mixin.py", "write_signed_entry"),
+    ("~/src/screen-locker/screen_locker/tests/conftest.py", "_ISOLATED_STATE"),
+    ("~/src/screen-locker/screen_locker/_weekly_check.py", "WEEKLY_WORKOUT_MINIMUM"),
     (
-        "~/screen-locker/stronglift_replacement/workout_app/lib/screens/"
+        "~/src/screen-locker/stronglift_replacement/workout_app/lib/screens/"
         "workout_screen_session.dart",
         "_playBreakEndCue",
     ),
     (
-        "~/screen-locker/stronglift_replacement/workout_app/lib/screens/"
+        "~/src/screen-locker/stronglift_replacement/workout_app/lib/screens/"
         "workout_screen_finish.dart",
         "_persistFinishedWorkout",
     ),
     (
-        "~/screen-locker/stronglift_replacement/workout_app/lib/widgets/"
+        "~/src/screen-locker/stronglift_replacement/workout_app/lib/widgets/"
         "workout_summary_dialog.dart",
         "WorkoutSummaryDialog",
     ),
     (
-        "~/screen-locker/stronglift_replacement/workout_app/lib/services/"
+        "~/src/screen-locker/stronglift_replacement/workout_app/lib/services/"
         "storage_service.dart",
         "_getSetting",
     ),
     (
-        "~/screen-locker/stronglift_replacement/workout_app/lib/widgets/"
+        "~/src/screen-locker/stronglift_replacement/workout_app/lib/widgets/"
         "exercise_tile_rows.dart",
         "AnimatedContainer",
     ),
-    ("~/todo/lib/data/app_settings.dart", "withAdvancedMode"),
-    ("~/todo/lib/ui/settings_screen.dart", "SwitchListTile"),
-    ("~/dufs-cloud/web/src/hooks/use-cloud-index.ts", "walkInto"),
-    ("~/dufs-cloud/app/lib/services/cloud_index.dart", "buildCloudIndex"),
-    ("~/dufs-cloud/web/src/lib/download.ts", "buildSelectionZip"),
-    ("~/dufs-cloud/app/lib/services/download_zip.dart", "buildSelectionZip"),
-    ("~/wake-alarm/phone_app/lib/screens/home_screen.dart", "_setPhoneAlarm"),
-    ("~/wake-alarm/wake_alarm/_audio.py", "_play_on_all_sinks"),
-    ("~/utils/unified-design-system/scripts/palette_check.py", "NON_COLOUR_CSS"),
-    ("~/utils/unified-design-system/scripts/palette_map.py", "PALETTE"),
-    ("~/utils/design_system/lib/src/feedback.dart", "showToast"),
-    ("~/utils/design_system/lib/src/tokens.dart", "AppSpacing"),
-    ("~/utils/gatelock/gatelock/_window.py", "LockConfig"),
+    ("~/src/todo/lib/data/app_settings.dart", "withAdvancedMode"),
+    ("~/src/todo/lib/ui/settings_screen.dart", "SwitchListTile"),
+    ("~/src/dufs-cloud/web/src/hooks/use-cloud-index.ts", "walkInto"),
+    ("~/src/dufs-cloud/app/lib/services/cloud_index.dart", "buildCloudIndex"),
+    ("~/src/dufs-cloud/web/src/lib/download.ts", "buildSelectionZip"),
+    ("~/src/dufs-cloud/app/lib/services/download_zip.dart", "buildSelectionZip"),
+    ("~/src/wake-alarm/phone_app/lib/screens/home_screen.dart", "_setPhoneAlarm"),
+    ("~/src/wake-alarm/wake_alarm/_audio.py", "_play_on_all_sinks"),
+    ("~/src/utils/unified-design-system/scripts/palette_check.py", "NON_COLOUR_CSS"),
+    ("~/src/utils/unified-design-system/scripts/palette_map.py", "PALETTE"),
+    ("~/src/utils/design_system/lib/src/feedback.dart", "showToast"),
+    ("~/src/utils/design_system/lib/src/tokens.dart", "AppSpacing"),
+    ("~/src/utils/gatelock/gatelock/_window.py", "LockConfig"),
 ]
 
 

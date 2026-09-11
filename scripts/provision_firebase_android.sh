@@ -143,7 +143,7 @@ main() {
 
     # The release store password lives in a key.properties committed nowhere;
     # any app's copy will do since they share one keystore.
-    local props="$HOME/home_inventory/android/key.properties"
+    local props="$HOME/src/home_inventory/android/key.properties"
     if [[ ! -f "$props" ]]; then
         echo "Error: $props not found; needed for the release keystore password" >&2
         exit 1

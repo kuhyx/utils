@@ -35,15 +35,15 @@ beating a PB) and todo (reward capture, not completion count).
 
 | # | File | Repo | Findings |
 |---|---|---|---|
-| 01 | `01-motion-tokens.md` | `~/utils` | 3 |
-| 02 | `02-structural-check.md` | `~/utils` | 2 |
-| 03 | `03-diet-guard.md` | `~/diet-guard` | 4 |
-| 04 | `04-screen-locker.md` | `~/screen-locker` | 3 |
-| 05 | `05-workout-app.md` | `~/screen-locker/stronglift_replacement/workout_app` | 4 |
-| 06 | `06-todo.md` | `~/todo` | 3 |
-| 07 | `07-dufs-theme.md` | `~/dufs-cloud` | 2 |
-| 08 | `08-dufs-motion.md` | `~/dufs-cloud` | 4 |
-| 09 | `09-wake-alarm.md` | `~/wake-alarm` | 2 |
+| 01 | `01-motion-tokens.md` | `~/src/utils` | 3 |
+| 02 | `02-structural-check.md` | `~/src/utils` | 2 |
+| 03 | `03-diet-guard.md` | `~/src/diet-guard` | 4 |
+| 04 | `04-screen-locker.md` | `~/src/screen-locker` | 3 |
+| 05 | `05-workout-app.md` | `~/src/screen-locker/stronglift_replacement/workout_app` | 4 |
+| 06 | `06-todo.md` | `~/src/todo` | 3 |
+| 07 | `07-dufs-theme.md` | `~/src/dufs-cloud` | 2 |
+| 08 | `08-dufs-motion.md` | `~/src/dufs-cloud` | 4 |
+| 09 | `09-wake-alarm.md` | `~/src/wake-alarm` | 2 |
 
 **27 ranked findings total.**
 
@@ -78,15 +78,15 @@ of truth** — if a prompt needs correcting, fix it here and re-distribute.
 
 | Prompt | Distributed to |
 |---|---|
-| 01 | `~/utils/prompts/dopamine-ux-01-motion-tokens.md` — deleted (done) |
-| 02 | `~/utils/prompts/dopamine-ux-02-structural-check.md` |
-| 03 | `~/diet-guard/prompts/dopamine-ux-diet-guard.md` |
-| 04 | `~/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |
-| 05 | `~/screen-locker/prompts/dopamine-ux-05-workout-app.md` |
-| 06 | `~/todo/prompts/dopamine-ux-todo.md` |
-| 07 | `~/dufs-cloud/prompts/dopamine-ux-07-theme.md` |
-| 08 | `~/dufs-cloud/prompts/dopamine-ux-08-motion.md` |
-| 09 | `~/wake-alarm/prompts/dopamine-ux-wake-alarm.md` |
+| 01 | `~/src/utils/prompts/dopamine-ux-01-motion-tokens.md` — deleted (done) |
+| 02 | `~/src/utils/prompts/dopamine-ux-02-structural-check.md` |
+| 03 | `~/src/diet-guard/prompts/dopamine-ux-diet-guard.md` |
+| 04 | `~/src/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |
+| 05 | `~/src/screen-locker/prompts/dopamine-ux-05-workout-app.md` |
+| 06 | `~/src/todo/prompts/dopamine-ux-todo.md` |
+| 07 | `~/src/dufs-cloud/prompts/dopamine-ux-07-theme.md` |
+| 08 | `~/src/dufs-cloud/prompts/dopamine-ux-08-motion.md` |
+| 09 | `~/src/wake-alarm/prompts/dopamine-ux-wake-alarm.md` |
 
 When a session finishes a prompt it **deletes its repo copy** (in the same
 commit as the implementation) and **appends a row below**. A finished prompt left
@@ -113,7 +113,7 @@ what remains instead.
 Every path and symbol cited across these files is machine-checked:
 
 ```
-python3 ~/utils/dopamine-ux/verify_prompts.py
+python3 ~/src/utils/dopamine-ux/verify_prompts.py
 ```
 
 Exit 0 means every cited path resolves and every cited symbol is still greppable
@@ -143,7 +143,7 @@ Verified 2026-08-16: 146 paths, 30 symbols, all passing.
    prompt stages them separately so a short session still lands the valuable
    half, and sound stays independently revertable.
 5. **Sound ships on (opt-out), never in screen-locker enforcement paths.**
-6. **250-line cap** applies to code and prose alike (`~/utils/file_length`).
+6. **250-line cap** applies to code and prose alike (`~/src/utils/file_length`).
 
 ## Source
 

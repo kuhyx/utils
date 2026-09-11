@@ -1,6 +1,6 @@
 /// The shared component layer for kuhy's Flutter apps.
 ///
-/// `~/utils/unified-design-system/` froze the *token* layer as prose — one
+/// `~/src/utils/unified-design-system/` froze the *token* layer as prose — one
 /// palette, one spacing scale, one type scale — but shipped no importable
 /// code, so every repo transcribed the table by hand and drifted. This
 /// package is that same token set as Dart, plus the handful of widgets and

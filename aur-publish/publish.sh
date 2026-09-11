@@ -29,15 +29,15 @@ readonly SCRIPT_DIR
 readonly GATE="$SCRIPT_DIR/anubis_gate.py"
 readonly AUR_HOST="aur.archlinux.org"
 readonly SSH_KEY="$HOME/.ssh/aur"
-readonly AUR_ROOT="$HOME/aur"
+readonly AUR_ROOT="$HOME/sdk/aur"
 
 # package:repo:wrapper-process:cli-name:expected-startup-string
 # The wrapper process name is NOT derivable from the package name
 # (diet-guard-app runs diet_guard_desktop), so it is listed explicitly.
 readonly PACKAGES=(
-    "todo-flutter:$HOME/todo:todo_desktop:todo:serving on http://localhost:8730"
-    "habit-stack:$HOME/habit_stack:habit_stack_desktop:habit-stack:serving on http://localhost:8731"
-    "diet-guard-app:$HOME/diet-guard:diet_guard_desktop:diet-guard-app:serving on http://localhost:8732"
+    "todo-flutter:$HOME/src/todo:todo_desktop:todo:serving on http://localhost:8730"
+    "habit-stack:$HOME/src/habit_stack:habit_stack_desktop:habit-stack:serving on http://localhost:8731"
+    "diet-guard-app:$HOME/src/diet-guard:diet_guard_desktop:diet-guard-app:serving on http://localhost:8732"
 )
 
 POLL_SECONDS=300
