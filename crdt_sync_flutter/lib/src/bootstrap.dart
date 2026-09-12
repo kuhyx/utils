@@ -67,9 +67,9 @@ Future<FirebaseRestClient?> openSync(
     // A stored refresh token IS a signed-in device, even with no account
     // marker beside it. Treating the marker as the source of truth made a
     // phone with a live session sync over the mirror and fail forever.
-    return _clientFromStoredSession(app, storage: storage);
+    return await _clientFromStoredSession(app, storage: storage);
   }
-  return firebaseClientFor(
+  return await firebaseClientFor(
     config: app.project.configFor(account.email),
     store: keystoreCredentialStore(storage: storage),
     // A Google-provisioned account stores an empty password. Passing ''

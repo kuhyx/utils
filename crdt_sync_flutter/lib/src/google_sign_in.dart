@@ -46,7 +46,7 @@ Future<String?> googleIdToken({
   required String serverClientId,
   Future<String?> Function()? signInFn,
 }) async {
-  if (signInFn != null) return signInFn();
+  if (signInFn != null) return await signInFn();
   if (serverClientId.isEmpty) {
     log(
       'Google sign-in unavailable: no server client id was compiled in; '

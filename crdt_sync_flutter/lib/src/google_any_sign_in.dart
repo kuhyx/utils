@@ -85,9 +85,9 @@ Future<String?> googleAnyIdToken({
     // flow, and whether any runs at all -- is pure and fully covered.
     // coverage:ignore-start
     case GoogleFlow.plugin:
-      return googleIdToken(serverClientId: serverClientId);
+      return await googleIdToken(serverClientId: serverClientId);
     case GoogleFlow.desktop:
-      return googleDesktopIdToken(clientId: desktopClientId);
+      return await googleDesktopIdToken(clientId: desktopClientId);
     // coverage:ignore-end
     case GoogleFlow.none:
       return null;

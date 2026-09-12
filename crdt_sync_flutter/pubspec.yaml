@@ -18,7 +18,7 @@ dependencies:
   crypto: 3.0.7
   flutter:
     sdk: flutter
-  flutter_secure_storage: 11.0.0
+  flutter_secure_storage: 11.1.1
   # A real dependency, not a dev one: lib/testing/ ships the keystore fake so
   # consuming apps can test their own sync wiring without rebuilding it.
   flutter_test:
@@ -34,4 +34,4 @@ dependencies:
   uuid: 4.6.0
 
 dev_dependencies:
-  very_good_analysis: ^10.3.0
+  very_good_analysis: ^11.0.0
