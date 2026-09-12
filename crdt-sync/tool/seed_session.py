@@ -45,7 +45,6 @@ from crdt_sync._remote import RemoteSyncError
 from tool._seeded_apps import DEFAULT_APPS
 from tool.google_id_token import TokenError, fetch_id_token
 
-
 # A fixed default so the redirect URI is stable enough to register once on the
 # Web client. Arbitrary but out of the ephemeral range, and free on this box.
 _DEFAULT_REDIRECT_PORT = 8765
