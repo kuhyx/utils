@@ -24,6 +24,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+          cache: pip
+          cache-dependency-path: freedays/requirements.txt
 
       # crdt-sync is a sibling in this repo, so it installs from the checkout
       # rather than from a tag -- CI must test what is on this branch, not

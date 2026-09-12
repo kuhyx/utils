@@ -3,10 +3,10 @@ name: crdt-sync pre-commit
 on:
   push:
     branches: [main]
-    paths: ['crdt-sync/**']
+    paths: ['crdt-sync/**', '.github/workflows/crdt-sync-precommit.yml']
   pull_request:
     branches: [main]
-    paths: ['crdt-sync/**']
+    paths: ['crdt-sync/**', '.github/workflows/crdt-sync-precommit.yml']
 
 jobs:
   pre-commit:
@@ -16,9 +16,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+          cache: pip
+          cache-dependency-path: crdt-sync/requirements.txt
       - name: Install dependencies
         working-directory: crdt-sync
         run: pip install -r requirements.txt
-      - uses: pre-commit/action@v3.0.1
+
+      # Keyed on THIS package's config. pre-commit/action@v3.0.1 caches on
+      # hashFiles('.pre-commit-config.yaml') -- the repo ROOT's -- so all three
+      # package jobs shared one key, raced to overwrite it with hook sets built
+      # from four different configs, and editing a per-package config did not
+      # invalidate it. The cache was therefore silently wrong rather than
+      # missing, and the hooks reinstalled from scratch on every run (38-49s).
+      - uses: actions/cache@v4
         with:
-          extra_args: --config crdt-sync/.pre-commit-config.yaml --all-files
+          path: ~/.cache/pre-commit
+          key: >-
+            pre-commit-crdt-sync-${{ env.pythonLocation }}-${{
+            hashFiles('crdt-sync/.pre-commit-config.yaml') }}
+      - name: Run the hooks
+        run: >-
+          pre-commit run --config crdt-sync/.pre-commit-config.yaml
+          --all-files --show-diff-on-failure
