@@ -20,6 +20,7 @@ import pytest
 from crdt_sync._config import ConfigError
 from crdt_sync._firebase_auth import FirebaseAuthError
 from crdt_sync.tests.test_tool_seed_session import _CONFIG, _ID_VALUE
+from tool import google_id_token as git
 from tool import seed_session as ss
 from tool.google_id_token import TokenError
 
@@ -32,7 +33,7 @@ def test_main_seeds_every_default_app(caplog: pytest.LogCaptureFixture) -> None:
     """With no --app, all of DEFAULT_APPS are seeded."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", return_value=list(ss.DEFAULT_APPS)) as seeded,
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):
@@ -62,7 +63,7 @@ def test_a_single_app_can_be_selected() -> None:
     """--app narrows the run, which is what a rerun after a failure uses."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", return_value=["diet_guard"]) as seeded,
     ):
         code = ss.main([*_ARGV, "--app", "diet_guard"])
@@ -75,7 +76,7 @@ def test_the_app_flag_is_repeatable() -> None:
     """Rerunning two failed apps should not need two invocations."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", return_value=["diet_guard", "todo"]) as seeded,
     ):
         ss.main([*_ARGV, "--app", "diet_guard", "--app", "todo"])
@@ -98,7 +99,7 @@ def test_the_consent_flow_receives_the_client_and_port() -> None:
     """A Web client needs the registered port verbatim, not a free one."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE) as fetch,
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE) as fetch,
         patch.object(ss, "seed_apps", return_value=[]),
     ):
         ss.main([*_ARGV, "--port", "9999", "--no-browser"])
@@ -111,7 +112,7 @@ def test_the_default_port_is_the_registered_one() -> None:
     """8765 is what is registered on the Web client as http://localhost:8765."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE) as fetch,
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE) as fetch,
         patch.object(ss, "seed_apps", return_value=[]),
     ):
         ss.main(_ARGV)
@@ -125,7 +126,7 @@ def test_the_expected_uid_is_announced_before_the_flow(
     """So the wrong Google account can be spotted at the picker, not after."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", return_value=[]),
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):
@@ -150,7 +151,7 @@ def test_the_named_failures_return_1(
     """Each is reported, not raised as a traceback."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", side_effect=failure),
+        patch.object(git, "fetch_id_token", side_effect=failure),
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):
         code = ss.main(_ARGV)
@@ -163,7 +164,7 @@ def test_an_unexpected_error_is_not_swallowed() -> None:
     """The reason the handler names its four types instead of Exception."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", side_effect=RuntimeError("a real bug")),
+        patch.object(git, "fetch_id_token", side_effect=RuntimeError("a real bug")),
         pytest.raises(RuntimeError, match="a real bug"),
     ):
         ss.main(_ARGV)
@@ -175,7 +176,7 @@ def test_a_total_failure_suggests_rerunning_every_app(
     """Nothing verified, so nothing may be reported as already working."""
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", side_effect=ss.SeedError("all dead")),
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):
@@ -194,7 +195,7 @@ def test_a_partial_failure_reports_what_already_works(
 
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", side_effect=partial),
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):
@@ -212,7 +213,7 @@ def test_the_rerun_line_excludes_the_apps_that_already_work(
 
     with (
         patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
-        patch.object(ss, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
         patch.object(ss, "seed_apps", side_effect=partial),
         caplog.at_level(logging.INFO, logger="seed_session"),
     ):

@@ -17,10 +17,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from crdt_sync._log import merge_logs
-
-if TYPE_CHECKING:
-    from crdt_sync._log import Log
-
 from crdt_sync._pull import _pull_remote_logs, _PullContext, _remote_revs
 from crdt_sync._revisions import revision_of
 from crdt_sync._syncargs import LogCodec, RevisionTracking, SyncTarget
@@ -30,6 +26,9 @@ from crdt_sync._syncstate import (
     SyncState,
     SyncStateStore,
 )
+
+if TYPE_CHECKING:
+    from crdt_sync._log import Log
 
 # Named explicitly so the autofixer cannot prune an import that exists for its
 # re-export: crdt_sync/__init__.py imports all of these from here.

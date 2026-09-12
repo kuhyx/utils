@@ -43,34 +43,21 @@ import sys
 import urllib.parse
 import webbrowser
 
-import requests
-
 from tool._oauth_callback import (
     _CONSENT_TIMEOUT_SECONDS,
     _CallbackHandler,
     _free_port,
     _start_callback_server,
 )
+from tool._token_exchange import TokenError, _authorization_code, _exchange_code
 
 _AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-
-# Assembled from host and path rather than written as one literal: a string
-# ending in "/token" trips ruff's hardcoded-password check (S105), and the
-# honest fix is to not have the literal rather than to silence the rule.
-_OAUTH_HOST = "https://oauth2.googleapis.com"
-_TOKEN_EXCHANGE_URL = f"{_OAUTH_HOST}/token"
 
 # openid gets an ID token at all; email makes the token carry the address, so
 # link_google.py can show which account is about to be linked.
 _SCOPES = "openid email profile"
 
-_TIMEOUT_SECONDS = 30
-
 _logger = logging.getLogger("google_id_token")
-
-
-class TokenError(Exception):
-    """The authorization flow did not produce an ID token."""
 
 
 def fetch_id_token(
@@ -129,51 +116,18 @@ def fetch_id_token(
     thread.join(timeout=_CONSENT_TIMEOUT_SECONDS)
     server.server_close()
 
-    params = _CallbackHandler.result
-    if not params:
-        msg = f"no response on {redirect_uri} within {_CONSENT_TIMEOUT_SECONDS}s"
-        raise TokenError(msg)
-    if "error" in params:
-        msg = f"authorization was refused: {params['error']}"
-        raise TokenError(msg)
-    if params.get("state") != state:
-        msg = "the callback state did not match; ignoring the response"
-        raise TokenError(msg)
-    code = params.get("code")
-    if not code:
-        msg = f"the callback carried no authorization code: {params}"
-        raise TokenError(msg)
-
-    try:
-        response = requests.post(
-            _TOKEN_EXCHANGE_URL,
-            data={
-                "code": code,
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-            timeout=_TIMEOUT_SECONDS,
-        )
-    except requests.RequestException as exc:
-        msg = f"network error exchanging the code: {exc}"
-        raise TokenError(msg) from exc
-
-    if not response.ok:
-        msg = f"token exchange failed: HTTP {response.status_code} {response.text}"
-        raise TokenError(msg)
-
-    id_token = response.json().get("id_token")
-    if not id_token:
-        msg = "the token response carried no id_token; was 'openid' in the scopes?"
-        raise TokenError(msg)
-    return str(id_token)
+    code = _authorization_code(_CallbackHandler.result, redirect_uri, state)
+    return _exchange_code(code, client_id, client_secret, redirect_uri)
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Fetch an ID token and print or save it. Returns an exit code."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+def add_consent_args(
+    parser: argparse.ArgumentParser, *, port_default: int, port_help: str
+) -> None:
+    """Register the client-credential and consent options every flow CLI takes.
+
+    Shared with :mod:`tool.seed_session`, which runs the same consent flow
+    before seeding; only the port default and its explanation differ.
+    """
     parser.add_argument("--client-id", required=True, help="Web OAuth client id.")
     parser.add_argument(
         "--client-secret",
@@ -181,35 +135,45 @@ def main(argv: list[str] | None = None) -> int:
         help="Web OAuth client secret.",
     )
     parser.add_argument(
-        "--output",
-        help="Write the token here (mode 0600) instead of printing it.",
-    )
-    parser.add_argument(
         "--no-browser",
         action="store_true",
         help="Print the consent URL without launching a browser.",
     )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=0,
-        help=(
+    parser.add_argument("--port", type=int, default=port_default, help=port_help)
+
+
+def fetch_id_token_for(args: argparse.Namespace) -> str:
+    """Run :func:`fetch_id_token` from options added by :func:`add_consent_args`."""
+    return fetch_id_token(
+        args.client_id,
+        args.client_secret,
+        open_browser=not args.no_browser,
+        port=args.port,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Fetch an ID token and print or save it. Returns an exit code."""
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    add_consent_args(
+        parser,
+        port_default=0,
+        port_help=(
             "Fixed loopback port for the redirect URI. Required for a Web "
             "application client, which must have http://localhost:<port> "
             "registered verbatim; 0 (the default) picks a free port and "
             "suits a Desktop app client."
         ),
     )
+    parser.add_argument(
+        "--output",
+        help="Write the token here (mode 0600) instead of printing it.",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(message)s")
 
     try:
-        token = fetch_id_token(
-            args.client_id,
-            args.client_secret,
-            open_browser=not args.no_browser,
-            port=args.port,
-        )
+        token = fetch_id_token_for(args)
     except TokenError:
         _logger.exception("  FAIL")
         return 1

@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
+from tool import _token_exchange as tx
 from tool import google_id_token as git
 
 _CLIENT_ID = "client-id-for-the-web-application"
@@ -68,7 +69,7 @@ def _run(result: dict[str, str], post: MagicMock | Exception, **kwargs: object) 
     """Drive ``fetch_id_token`` against a canned callback and exchange."""
     starter, free_port, handler, _, _ = _fake_flow(result)
     with starter, free_port, handler:
-        target = patch.object(git.requests, "post")
+        target = patch.object(tx.requests, "post")
         with target as posted:
             if isinstance(post, Exception):
                 posted.side_effect = post
@@ -91,7 +92,7 @@ def test_the_exchange_posts_the_code_and_the_matching_redirect_uri() -> None:
     starter, free_port, handler, _, _ = _fake_flow(
         {"code": "the-auth-code", "state": _STATE}, port=8765
     )
-    with starter, free_port, handler, patch.object(git.requests, "post") as posted:
+    with starter, free_port, handler, patch.object(tx.requests, "post") as posted:
         posted.return_value = _response(payload={"id_token": _ID_VALUE})
         git.fetch_id_token(_CLIENT_ID, _CLIENT_CREDENTIAL, port=8765)
 
@@ -110,7 +111,7 @@ def test_a_fixed_port_is_used_verbatim_rather_than_a_free_one() -> None:
     starter, free_port, handler, _, _ = _fake_flow(
         {"code": "c", "state": _STATE}, port=9999
     )
-    with starter, free_port as picked, handler, patch.object(git.requests, "post") as p:
+    with starter, free_port as picked, handler, patch.object(tx.requests, "post") as p:
         p.return_value = _response(payload={"id_token": _ID_VALUE})
         git.fetch_id_token(_CLIENT_ID, _CLIENT_CREDENTIAL, port=8765)
 
@@ -120,7 +121,7 @@ def test_a_fixed_port_is_used_verbatim_rather_than_a_free_one() -> None:
 def test_port_zero_falls_back_to_a_free_port() -> None:
     """The Desktop-app case: any loopback port is acceptable."""
     starter, free_port, handler, _, _ = _fake_flow({"code": "c", "state": _STATE})
-    with starter, free_port as picked, handler, patch.object(git.requests, "post") as p:
+    with starter, free_port as picked, handler, patch.object(tx.requests, "post") as p:
         p.return_value = _response(payload={"id_token": _ID_VALUE})
         git.fetch_id_token(_CLIENT_ID, _CLIENT_CREDENTIAL, port=0)
 

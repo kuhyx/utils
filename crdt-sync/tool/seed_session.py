@@ -44,7 +44,7 @@ from crdt_sync._remote import RemoteSyncError
 # Importable as a package module (tool/__init__.py exists) so the loopback
 # OAuth flow is shared, not reimplemented.
 from tool._seeded_apps import DEFAULT_APPS
-from tool.google_id_token import TokenError, fetch_id_token
+from tool.google_id_token import TokenError, add_consent_args, fetch_id_token_for
 
 # A fixed default so the redirect URI is stable enough to register once on the
 # Web client. Arbitrary but out of the ephemeral range, and free on this box.
@@ -142,11 +142,15 @@ def seed_apps(
 def main(argv: list[str] | None = None) -> int:
     """Run the consent flow and seed every app. Returns an exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--client-id", required=True, help="Web OAuth client id.")
-    parser.add_argument(
-        "--client-secret",
-        required=True,
-        help="Web OAuth client secret.",
+    add_consent_args(
+        parser,
+        port_default=_DEFAULT_REDIRECT_PORT,
+        port_help=(
+            "Loopback port for the OAuth redirect. Must be registered on the "
+            "Web client as http://localhost:<port>, exactly -- a Web client "
+            "does not accept arbitrary loopback ports the way a Desktop "
+            "client does."
+        ),
     )
     parser.add_argument(
         "--app",
@@ -162,22 +166,6 @@ def main(argv: list[str] | None = None) -> int:
             + ", ".join(DEFAULT_APPS)
         ),
     )
-    parser.add_argument(
-        "--no-browser",
-        action="store_true",
-        help="Print the consent URL without launching a browser.",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=_DEFAULT_REDIRECT_PORT,
-        help=(
-            "Loopback port for the OAuth redirect. Must be registered on the "
-            "Web client as http://localhost:<port>, exactly -- a Web client "
-            "does not accept arbitrary loopback ports the way a Desktop "
-            "client does."
-        ),
-    )
     args = parser.parse_args(argv)
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(message)s")
 
@@ -190,12 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         config = FirebaseConfig.load()
         _logger.info("  ..  seeding %s", ", ".join(app_names))
         _logger.info("  ..  expecting uid %s (%s)", config.uid, config.email)
-        token = fetch_id_token(
-            args.client_id,
-            args.client_secret,
-            open_browser=not args.no_browser,
-            port=args.port,
-        )
+        token = fetch_id_token_for(args)
         seeded = seed_apps(config, token, app_names)
     except (ConfigError, FirebaseAuthError, TokenError, SeedError) as exc:
         # logging.exception already renders the exception and its traceback.

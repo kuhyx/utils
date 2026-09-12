@@ -13,14 +13,14 @@ from dataclasses import dataclass
 import logging
 from typing import TYPE_CHECKING
 
+from crdt_sync._revisions import revision_of
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from crdt_sync._log import Log
     from crdt_sync._remote import RemoteStore
     from crdt_sync._syncstate import SyncState
-
-from crdt_sync._revisions import revision_of
 
 _logger = logging.getLogger(__name__)
 

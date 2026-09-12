@@ -83,12 +83,29 @@ color_output = true
 exclude = [".venv/"]
 
 [tool.pylint.main]
+# The repo root on the path, so pylint resolves the package's own imports the
+# same way pytest does instead of reporting import-error for them.
+init-hook = "import sys; sys.path.insert(0, 'crdt-sync')"
 analyse-fallback-blocks = true
 persistent = true
 jobs = 0
 py-version = "3.14"
 ignore = [".venv", "__pycache__"]
+# Test suites intentionally use patterns (protected-access, fixture-arg
+# shadowing) that don't apply to source code; ruff's per-file-ignores carry
+# the equivalent exemptions, so tests stay linted -- by ruff. This is the same
+# source-only pylint scope wake-alarm / diet-guard / testsAndMisc use. It has
+# to be `ignore-paths`, not `ignore = ["tests"]`: `ignore` only matches the
+# basename of what pylint is *given*, and pre-commit hands it explicit file
+# paths, so a directory name in `ignore` never fires under the hook.
+ignore-paths = ["^(.*/)?tests/.*$"]
 ignore-patterns = [".*\\.pyi$"]
+
+[tool.pylint.basic]
+# snake_case, plus the ``do_<METHOD>`` names http.server dispatches on: the
+# stdlib looks handlers up as ``"do_" + command``, so ``do_GET`` is the only
+# spelling that works and cannot be renamed to satisfy the style.
+method-rgx = "([^\\W\\dA-Z][^\\WA-Z]{2,}|_[^\\WA-Z]*|__[^\\W\\dA-Z][^\\WA-Z]+__|do_[A-Z]+)$"
 
 [tool.pylint.messages_control]
 enable = "all"
