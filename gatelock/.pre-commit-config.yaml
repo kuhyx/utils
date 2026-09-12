@@ -106,7 +106,7 @@ repos:
       - id: pylint
         args:
           - --rcfile=gatelock/pyproject.toml
-          - --fail-under=8.0
+          - --fail-under=10
           - --jobs=4
         additional_dependencies:
           - pytest

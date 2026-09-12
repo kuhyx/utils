@@ -117,7 +117,7 @@ class SurfaceSet:
         width = self._root.winfo_screenwidth()
         height = self._root.winfo_screenheight()
         self._root.geometry(f"{width}x{height}+0+0")
-        self._root.configure(bg=self._config.bg, cursor="arrow")
+        self._root.configure(bg=self._config.palette.bg, cursor="arrow")
 
     def apply(self, scan: OutputScan) -> SurfaceDelta:
         """Bring the surface set in line with ``scan``.
@@ -201,7 +201,7 @@ class SurfaceSet:
         window.withdraw()
         if self._config.resolved_overrideredirect():
             window.overrideredirect(boolean=True)
-        window.configure(bg=self._config.bg, cursor="arrow")
+        window.configure(bg=self._config.palette.bg, cursor="arrow")
         set_geometry(window, info.rect)
         if not self._config.resolved_overrideredirect():
             window.attributes("-topmost", _TOPMOST_ON)

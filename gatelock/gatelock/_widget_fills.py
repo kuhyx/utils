@@ -42,7 +42,7 @@ def _button_fills(config: LockConfig) -> dict[ButtonVariant, tuple[str, str]]:
     variant instead of letting each call site invent its own hex pair.
     """
     return {
-        "primary": (config.accent, config.on_fill),
-        "secondary": (config.field_bg, config.fg),
-        "danger": (config.danger, config.on_fill),
+        "primary": (config.palette.accent, config.palette.on_fill),
+        "secondary": (config.palette.field_bg, config.palette.fg),
+        "danger": (config.palette.danger, config.palette.on_fill),
     }

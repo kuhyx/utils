@@ -55,9 +55,11 @@ class MyGate:
 
 `LockConfig`'s `mode` preset bundles the common combination ("soft" = topmost
 only, typeable, WM-escapable; "hard" = overrideredirect + global grab +
-VT-disable). Each axis (`overrideredirect`, `grab`, `disable_vt`,
-`grab_retry_ms`) can be set explicitly to reproduce a consumer's exact prior
-behavior where it diverges from the preset.
+VT-disable). `overrideredirect` and the `grab=GrabPolicy(kind=..., disable_vt=...,
+retry_ms=...)` axes can be set explicitly to reproduce a consumer's exact prior
+behavior where it diverges from the preset. Colours, type scale and spacing are
+the `palette`, `typography` and `spacing` records (`gatelock.LockPalette` etc.),
+overridden as a unit.
 
 `gatelock.log_integrity` ports the HMAC-signed state module used by all three
 projects; `DEFAULT_HMAC_KEY_FILE` (`/etc/workout-locker/hmac.key`) is

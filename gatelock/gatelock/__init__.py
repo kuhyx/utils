@@ -15,6 +15,7 @@ from gatelock._arbiter import (
     Arbiter,
 )
 from gatelock._claims import ArbiterVerdict, Claim, default_runtime_dir, grab_strength
+from gatelock._config import GrabPolicy
 from gatelock._detect import OutputChangeDetector
 from gatelock._escape import (
     EscapeDraft,
@@ -53,6 +54,7 @@ from gatelock._surfaces import (
     mirror_text_widgets,
     needs_backdrop_root,
 )
+from gatelock._theme import LockPalette, LockSpacing, LockTypography
 from gatelock._vt import disable_vt_switching, restore_vt_switching
 from gatelock._window import (
     LockConfig,
@@ -92,7 +94,11 @@ __all__ = [
     "EscapeTracker",
     "FitResult",
     "GateRoot",
+    "GrabPolicy",
     "LockConfig",
+    "LockPalette",
+    "LockSpacing",
+    "LockTypography",
     "LockWindow",
     "LockWindowHooks",
     "Output",

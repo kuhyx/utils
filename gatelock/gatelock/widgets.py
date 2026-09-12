@@ -167,8 +167,8 @@ def heading(parent: tk.Misc, config: LockConfig, text: str) -> tk.Label:
         parent,
         text=text,
         font=config.font("body", bold=True),
-        fg=config.accent,
-        bg=config.bg,
+        fg=config.palette.accent,
+        bg=config.palette.bg,
         anchor="w",
     )
     label.pack(
@@ -212,8 +212,8 @@ def row(
         parent,
         text=text,
         font=config.font(role),
-        fg=color if color is not None else config.fg,
-        bg=config.bg,
+        fg=color if color is not None else config.palette.fg,
+        bg=config.palette.bg,
         anchor="w",
         justify="left",
         wraplength=max(_MIN_WRAP, wrap),

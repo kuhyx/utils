@@ -107,7 +107,7 @@ class RecoveryLoop:
                 _logger.debug("output-change signal received; re-asserting the lock")
                 self.tick()
         # Same fail-open reasoning as _verify.
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             _logger.exception("drain tick raised; the lock loop keeps running")
         finally:
             self._schedule_drain()
@@ -124,7 +124,7 @@ class RecoveryLoop:
         """
         try:
             self.tick()
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             _logger.exception("verify tick raised; the lock loop keeps running")
         finally:
             self._schedule_verify()

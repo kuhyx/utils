@@ -80,13 +80,13 @@ class ScrollableSurface:
         """
         self._config = config
         self._center_when_fits = center_when_fits
-        self.container = tk.Frame(parent, bg=config.bg)
+        self.container = tk.Frame(parent, bg=config.palette.bg)
         self.canvas = tk.Canvas(
             self.container,
-            bg=config.bg,
-            highlightthickness=config.focus_thickness,
-            highlightcolor=config.focus_ring,
-            highlightbackground=config.bg,
+            bg=config.palette.bg,
+            highlightthickness=config.spacing.focus_thickness,
+            highlightcolor=config.palette.focus_ring,
+            highlightbackground=config.palette.bg,
             borderwidth=0,
             # Tk gives Canvas no key bindings, so it is not a focus stop by
             # default and the viewport becomes pointer-only. Opt in.
@@ -111,7 +111,7 @@ class ScrollableSurface:
             self.canvas.configure(yscrollcommand=self._scrollbar.set)
         self.canvas.pack(side="left", fill="both", expand=True)
 
-        self.content = tk.Frame(self.canvas, bg=config.bg)
+        self.content = tk.Frame(self.canvas, bg=config.palette.bg)
         # anchor="n": top-anchored, so overflow scrolls instead of shearing
         # the header and the submit button off opposite edges.
         self._content_id = self.canvas.create_window(

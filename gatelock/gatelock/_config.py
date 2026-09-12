@@ -13,38 +13,37 @@ import LockConfig`` keeps working for the modules and tests that already do.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from gatelock import _density
 from gatelock._arbiter import RANK_SCREEN_LOCKER
+from gatelock._theme import (
+    LockPalette,
+    LockSpacing,
+    LockTypography,
+    SpaceStep,
+    TypeRole,
+)
 
 GrabKind = Literal["none", "local", "global"]
 LockMode = Literal["soft", "hard"]
-TypeRole = Literal["display", "title", "subtitle", "body", "label", "caption"]
-SpaceStep = Literal["xs", "sm", "md", "lg", "xl", "xxl"]
 
 
 @dataclass(frozen=True)
-class LockConfig:
-    """Declarative knobs for one :class:`LockWindow` instance.
+class GrabPolicy:
+    """How the lock takes and keeps the input grab.
 
-    Each field left as ``None`` is derived from ``mode``; an explicit value
-    always overrides the preset for that one axis.
+    Each field left as ``None`` is derived from :attr:`LockConfig.mode`; an
+    explicit value always overrides the preset for that one axis.
 
     Attributes:
-        mode: Preset bundling the common combination. "soft" = topmost only,
-            typeable, WM-escapable. "hard" = overrideredirect + global grab +
-            VT-disable (the production lock for all three apps).
-        overrideredirect: Force a WM-unmanaged window. None = derive from mode.
-            Note that per-output placement *requires* this: a window manager
-            rewrites a managed window's geometry wholesale.
-        grab: Input grab strategy. None = derive from mode.
+        kind: Input grab strategy. None = derive from mode.
         disable_vt: Disable Ctrl+Alt+Fn VT switching. None = derive from mode.
-        grab_retry_ms: Retry interval in ms for a "global" grab that initially
+        retry_ms: Retry interval in ms for a "global" grab that initially
             fails. 0 means "try once, then fall back to a local grab". Left
             unset (None), a "global" grab retries forever every 200ms.
-        grab_log_every: Log a warning every N failed retry-forever attempts.
+        log_every: Log a warning every N failed retry-forever attempts.
         preempt_weaker_holder: SIGTERM a lower-ranked incumbent that is
             blocking our grab, instead of retrying against it forever. Only
             the *direction* the arbiter's own ranking already sanctions: we
@@ -56,82 +55,55 @@ class LockConfig:
             with the obligation unmet. Only an app whose own dismissal is
             harmless -- or which genuinely outranks every enforcer -- should
             turn this on, and only after considering who it can now evict.
+    """
+
+    kind: GrabKind | None = None
+    disable_vt: bool | None = None
+    retry_ms: int | None = None
+    log_every: int = 25
+    preempt_weaker_holder: bool = False
+
+
+@dataclass(frozen=True)
+class LockConfig:
+    """Declarative knobs for one :class:`LockWindow` instance.
+
+    ``overrideredirect`` and the grab policy's ``None`` fields are derived
+    from ``mode``; an explicit value always overrides the preset for that one
+    axis. The visual vocabulary lives in the three :mod:`gatelock._theme`
+    records, overridden as a unit.
+
+    Attributes:
+        mode: Preset bundling the common combination. "soft" = topmost only,
+            typeable, WM-escapable. "hard" = overrideredirect + global grab +
+            VT-disable (the production lock for all three apps).
+        overrideredirect: Force a WM-unmanaged window. None = derive from mode.
+            Note that per-output placement *requires* this: a window manager
+            rewrites a managed window's geometry wholesale.
+        grab: How the input grab is taken and kept; see :class:`GrabPolicy`.
         app_name: This app's name, used in arbitration logs so a blocked app
             can say who is actually holding the screen.
         rank: Arbitration priority; higher wins. See the ``RANK_*`` constants
             in :mod:`gatelock._arbiter`.
         recovery_tick_ms: Interval of the full re-assertion pass.
         detect_drain_ms: Interval of the cheap "did anything change?" drain.
-        bg: Background color for the lock surfaces.
-        fg: Primary (near-white) text color.
-        muted: Secondary/caption text color.
-        field_bg: Background for "raised" surfaces (entry/spinbox fields,
-            input wells) -- one step lighter than ``bg``.
-        accent: The shared brand accent (buttons, primary actions).
-        success: Positive/on-track status color.
-        warning: Caution/pending status color.
-        danger: Negative/error status color.
-        on_fill: Text/icon color for anything drawn on top of a filled
-            accent/success/warning/danger surface (e.g. a button's label) --
-            NOT ``fg``. All four fills sit in the same mid-light band, so
-            near-white text under-contrasts on every one of them; callers
-            must pick ``fg`` vs. ``on_fill`` based on the widget's own
-            background, never hardcode one for all buttons.
-        font_family: Default font family for lock-window widgets.
-        focus_ring: Color of the *focused* widget's highlight ring. Defaults to
-            ``accent``, because Tk's own default is black -- invisible against
-            ``bg``. Pass to ``highlightcolor``; note ``highlightbackground`` is
-            the *unfocused* ring, so setting that one inverts the affordance.
-        focus_thickness: Ring width in px. Never set 0 on a focusable widget.
-        type_display, type_title, type_subtitle, type_body, type_label,
-            type_caption: The type scale, in **pixels**. Do not pass these to
-            Tk directly -- use :meth:`font`, which applies the sign convention.
-        space_xs, space_sm, space_md, space_lg, space_xl, space_xxl: The 4px
-            spacing scale, in pixels. Use for ``padx``/``pady``/``ipadx``.
-
-    All color/font defaults come from the ``unified-design-system`` docs
-    (``~/src/utils/unified-design-system/tokens.md``) -- the same palette used by
-    every one of kuhy's apps, Flutter and web included.
+        palette: Colours; see :class:`gatelock._theme.LockPalette`.
+        typography: Font family and type scale;
+            see :class:`gatelock._theme.LockTypography`.
+        spacing: Spacing scale and focus-ring width;
+            see :class:`gatelock._theme.LockSpacing`.
     """
 
     mode: LockMode = "hard"
     overrideredirect: bool | None = None
-    grab: GrabKind | None = None
-    disable_vt: bool | None = None
-    grab_retry_ms: int | None = None
-    grab_log_every: int = 25
-    preempt_weaker_holder: bool = False
+    grab: GrabPolicy = field(default_factory=GrabPolicy)
     app_name: str = "gatelock"
     rank: int = RANK_SCREEN_LOCKER
     recovery_tick_ms: int = 1000
     detect_drain_ms: int = 100
-    bg: str = "#211D1B"
-    fg: str = "#ECEAE9"
-    muted: str = "#AAA09A"
-    field_bg: str = "#2B2624"
-    accent: str = "#B8862E"
-    success: str = "#8A9A3C"
-    warning: str = "#E0A63C"
-    danger: str = "#E2585F"
-    on_fill: str = "#211D1B"
-    font_family: str = "Arial"
-    focus_ring: str = "#B8862E"
-    focus_thickness: int = 2
-    # Type scale in PIXELS (unified-design-system tokens.md). Convert via
-    # font(); a raw positive value handed to Tk means *points*, ~37% bigger.
-    type_display: int = 32
-    type_title: int = 24
-    type_subtitle: int = 20
-    type_body: int = 16
-    type_label: int = 14
-    type_caption: int = 12
-    # 4px spacing scale, in pixels.
-    space_xs: int = 4
-    space_sm: int = 8
-    space_md: int = 16
-    space_lg: int = 24
-    space_xl: int = 32
-    space_xxl: int = 48
+    palette: LockPalette = field(default_factory=LockPalette)
+    typography: LockTypography = field(default_factory=LockTypography)
+    spacing: LockSpacing = field(default_factory=LockSpacing)
 
     def type_px(self, role: TypeRole = "body") -> int:
         """Return the type-scale size for ``role``, in pixels.
@@ -141,14 +113,14 @@ class LockConfig:
         surface has to fit one screen and cannot scroll its way out of being
         too tall.
         """
-        return _density.scale_type(int(getattr(self, f"type_{role}")))
+        return _density.scale_type(int(getattr(self.typography, role)))
 
     def space(self, step: SpaceStep = "md") -> int:
         """Return the spacing-scale value for ``step``, in pixels.
 
         Compacted on short displays, exactly like :meth:`type_px`.
         """
-        return _density.scale_space(int(getattr(self, f"space_{step}")))
+        return _density.scale_space(int(getattr(self.spacing, step)))
 
     def font(
         self,
@@ -171,7 +143,7 @@ class LockConfig:
         Args:
             role: Type-scale role.
             bold: Append Tk's ``"bold"`` weight.
-            family: Override the font family. Defaults to ``font_family``.
+            family: Override the font family. Defaults to the typography's.
             scale: Multiplier for display-only emphasis (e.g. an oversized
                 countdown). Kept explicit so outliers are visible rather than
                 hidden behind a fresh literal.
@@ -180,7 +152,7 @@ class LockConfig:
             A Tk font tuple with a negative (pixel) size.
         """
         px = max(1, round(self.type_px(role) * scale))
-        name = family if family is not None else self.font_family
+        name = family if family is not None else self.typography.font_family
         return (name, -px, "bold") if bold else (name, -px)
 
     def focus_kwargs(self) -> dict[str, str | int]:
@@ -192,9 +164,9 @@ class LockConfig:
         black-on-``bg``, which reads as no ring at all.
         """
         return {
-            "highlightcolor": self.focus_ring,
-            "highlightbackground": self.bg,
-            "highlightthickness": self.focus_thickness,
+            "highlightcolor": self.palette.focus_ring,
+            "highlightbackground": self.palette.bg,
+            "highlightthickness": self.spacing.focus_thickness,
         }
 
     def resolved_overrideredirect(self) -> bool:
@@ -205,12 +177,12 @@ class LockConfig:
 
     def resolved_grab(self) -> GrabKind:
         """Return the effective grab strategy."""
-        if self.grab is not None:
-            return self.grab
+        if self.grab.kind is not None:
+            return self.grab.kind
         return "global" if self.mode == "hard" else "none"
 
     def resolved_disable_vt(self) -> bool:
         """Return whether VT switching should be disabled."""
-        if self.disable_vt is not None:
-            return self.disable_vt
+        if self.grab.disable_vt is not None:
+            return self.grab.disable_vt
         return self.mode == "hard"

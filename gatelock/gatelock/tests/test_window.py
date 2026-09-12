@@ -6,6 +6,8 @@ from __future__ import annotations
 import tkinter as tk
 from unittest.mock import MagicMock, patch
 
+from gatelock._config import GrabPolicy
+from gatelock._theme import LockPalette
 from gatelock._window import LockConfig
 from gatelock.tests.conftest import make_window
 
@@ -29,7 +31,9 @@ class TestLockConfigResolution:
 
     def test_explicit_overrides_win_over_mode(self) -> None:
         """Explicit fields override the mode preset (screen-locker demo case)."""
-        config = LockConfig(mode="soft", overrideredirect=True, grab="local")
+        config = LockConfig(
+            mode="soft", overrideredirect=True, grab=GrabPolicy(kind="local")
+        )
         assert config.resolved_overrideredirect() is True
         assert config.resolved_grab() == "local"
         assert config.resolved_disable_vt() is False
@@ -37,7 +41,9 @@ class TestLockConfigResolution:
     def test_explicit_false_overrides_hard_mode(self) -> None:
         """An explicit False/none is respected even under mode="hard"."""
         config = LockConfig(
-            mode="hard", overrideredirect=False, grab="none", disable_vt=False
+            mode="hard",
+            overrideredirect=False,
+            grab=GrabPolicy(kind="none", disable_vt=False),
         )
         assert config.resolved_overrideredirect() is False
         assert config.resolved_grab() == "none"
@@ -86,7 +92,7 @@ class TestSetup:
     def test_uses_configured_background(self, mock_root: MagicMock) -> None:
         """The configured bg color is passed to root.configure."""
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="soft", bg="#000000")
+            mock_root, config=LockConfig(mode="soft", palette=LockPalette(bg="#000000"))
         )
 
         window.setup()
@@ -104,7 +110,7 @@ class TestGrabInput:
     def test_global_grab_dispatches_to_acquire(self, mock_root: MagicMock) -> None:
         """grab="global" triggers the retry-aware acquisition path."""
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="soft", grab="global")
+            mock_root, config=LockConfig(mode="soft", grab=GrabPolicy(kind="global"))
         )
 
         with patch("gatelock._arming.acquire_global_grab") as mock_acquire:
@@ -116,7 +122,7 @@ class TestGrabInput:
     def test_local_grab_calls_grab_set(self, mock_root: MagicMock) -> None:
         """grab="local" calls grab_set directly, no retry logic."""
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="soft", grab="local")
+            mock_root, config=LockConfig(mode="soft", grab=GrabPolicy(kind="local"))
         )
 
         window.grab_input()
@@ -127,7 +133,7 @@ class TestGrabInput:
         """A TclError from grab_set (e.g. window already gone) is swallowed."""
         mock_root.grab_set.side_effect = tk.TclError("gone")
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="soft", grab="local")
+            mock_root, config=LockConfig(mode="soft", grab=GrabPolicy(kind="local"))
         )
 
         window.grab_input()  # must not raise
@@ -135,7 +141,7 @@ class TestGrabInput:
     def test_none_grab_takes_no_grab_action(self, mock_root: MagicMock) -> None:
         """grab="none" calls neither grab_set nor grab_set_global."""
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="soft", grab="none")
+            mock_root, config=LockConfig(mode="soft", grab=GrabPolicy(kind="none"))
         )
 
         window.grab_input()

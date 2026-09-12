@@ -95,7 +95,7 @@ def maybe_preempt(
             this entirely and defaults to off.
         preempted_pids: Pids already signalled, so each is signalled once.
     """
-    if not config.preempt_weaker_holder or arbiter is None:
+    if not config.grab.preempt_weaker_holder or arbiter is None:
         return
     if holder.rank >= arbiter.claim.rank:
         return

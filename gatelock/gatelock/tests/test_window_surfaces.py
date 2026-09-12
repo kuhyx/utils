@@ -10,6 +10,7 @@ from gatelock._arbiter import (
     RANK_SCREEN_LOCKER,
 )
 from gatelock._claims import Claim
+from gatelock._config import GrabPolicy
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
 from gatelock._window import LockConfig
@@ -84,7 +85,10 @@ class TestGrabBlockedLogging:
             instance_id="t",
         )
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="hard", preempt_weaker_holder=False)
+            mock_root,
+            config=LockConfig(
+                mode="hard", grab=GrabPolicy(preempt_weaker_holder=False)
+            ),
         )
         window._arbiter = arbiter
         with patch("gatelock._preempt._logger") as logger:

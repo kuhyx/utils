@@ -9,6 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from unittest.mock import MagicMock, patch
 
+from gatelock._config import GrabPolicy
 from gatelock._window import LockConfig
 from gatelock.tests.conftest import make_window
 
@@ -41,7 +42,7 @@ class TestAcquireGlobalGrab:
         """grab_retry_ms=0 falls back to a local grab on the first failure."""
         mock_root.grab_set_global.side_effect = tk.TclError("held by another client")
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="hard", grab_retry_ms=0)
+            mock_root, config=LockConfig(mode="hard", grab=GrabPolicy(retry_ms=0))
         )
 
         window._acquire_global_grab(attempt=1)
@@ -56,7 +57,7 @@ class TestAcquireGlobalGrab:
         mock_root.grab_set_global.side_effect = tk.TclError("held")
         mock_root.grab_set.side_effect = tk.TclError("also gone")
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="hard", grab_retry_ms=0)
+            mock_root, config=LockConfig(mode="hard", grab=GrabPolicy(retry_ms=0))
         )
 
         window._acquire_global_grab(attempt=1)  # must not raise
@@ -80,7 +81,7 @@ class TestAcquireGlobalGrab:
         """A warning is logged only when attempt is a multiple of grab_log_every."""
         mock_root.grab_set_global.side_effect = tk.TclError("held")
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="hard", grab_log_every=5)
+            mock_root, config=LockConfig(mode="hard", grab=GrabPolicy(log_every=5))
         )
 
         with patch("gatelock._preempt._logger") as mock_logger:
@@ -95,7 +96,7 @@ class TestAcquireGlobalGrab:
         """An explicit positive grab_retry_ms is used as the reschedule delay."""
         mock_root.grab_set_global.side_effect = tk.TclError("held")
         window, _hooks = make_window(
-            mock_root, config=LockConfig(mode="hard", grab_retry_ms=50)
+            mock_root, config=LockConfig(mode="hard", grab=GrabPolicy(retry_ms=50))
         )
 
         window._acquire_global_grab(attempt=1)

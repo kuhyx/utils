@@ -157,7 +157,7 @@ def acquire_global_grab(
         collab: The window's arming collaborators.
         attempt: 1-based attempt counter, used only to throttle the log.
     """
-    retry_ms = collab.config.grab_retry_ms
+    retry_ms = collab.config.grab.retry_ms
     try:
         root.grab_set_global()
     except tk.TclError:
@@ -167,7 +167,7 @@ def acquire_global_grab(
                 root.grab_set()
             return
         effective_retry_ms = retry_ms or _DEFAULT_GRAB_RETRY_MS
-        if not attempt % collab.config.grab_log_every:
+        if not attempt % collab.config.grab.log_every:
             collab.log_grab_blocked(attempt)
         root.after(
             effective_retry_ms,

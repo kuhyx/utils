@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from gatelock._config import GrabPolicy
 from gatelock._outputs import Output, OutputRect, OutputScan
 from gatelock._surfaces import (
     SurfaceSet,
@@ -41,9 +42,14 @@ class TestNeedsBackdropRoot:
         [
             (LockConfig(mode="hard"), True),
             (LockConfig(mode="soft"), False),
-            (LockConfig(mode="soft", grab="global"), True),
-            (LockConfig(mode="soft", grab="local"), True),
-            (LockConfig(mode="hard", overrideredirect=False, grab="none"), False),
+            (LockConfig(mode="soft", grab=GrabPolicy(kind="global")), True),
+            (LockConfig(mode="soft", grab=GrabPolicy(kind="local")), True),
+            (
+                LockConfig(
+                    mode="hard", overrideredirect=False, grab=GrabPolicy(kind="none")
+                ),
+                False,
+            ),
         ],
     )
     def test_predicate(self, config: LockConfig, *, expected: bool) -> None:

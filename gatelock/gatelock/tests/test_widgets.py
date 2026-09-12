@@ -125,7 +125,7 @@ def test_every_variant_draws_text_on_its_own_fill(
 
     fill = button.cget("bg")
     text_color = button.cget("fg")
-    expected = config.fg if variant == "secondary" else config.on_fill
+    expected = config.palette.fg if variant == "secondary" else config.palette.on_fill
     assert text_color == expected
     assert fill != text_color
 
@@ -137,8 +137,8 @@ def test_every_variant_has_a_visible_focus_ring(
     """Tk's default ring is 1px black -- invisible on this palette."""
     button = make_button(root, config, "Go", lambda: None, ButtonStyle(variant=variant))
 
-    assert int(button.cget("highlightthickness")) == config.focus_thickness
-    assert str(button.cget("highlightcolor")) == config.focus_ring
+    assert int(button.cget("highlightthickness")) == config.spacing.focus_thickness
+    assert str(button.cget("highlightcolor")) == config.palette.focus_ring
 
 
 def test_primary_reads_larger_than_the_other_variants(
@@ -168,7 +168,7 @@ def test_the_active_fill_is_lighter_than_the_resting_fill(
     """Hover feedback is a lighter fill, not a glow shadow."""
     button = make_button(root, config, "Go", lambda: None)
 
-    assert button.cget("activebackground") == _lighten(config.accent)
+    assert button.cget("activebackground") == _lighten(config.palette.accent)
     assert button.cget("activebackground") != button.cget("bg")
 
 
@@ -185,7 +185,7 @@ def test_heading_uses_the_accent_and_returns_the_label(
     label = heading(root, config, "Right now")
 
     assert label.cget("text") == "Right now"
-    assert str(label.cget("fg")) == config.accent
+    assert str(label.cget("fg")) == config.palette.accent
     assert label.winfo_manager() == "pack"
 
 
@@ -193,15 +193,15 @@ def test_row_defaults_to_the_body_foreground(root: tk.Tk, config: LockConfig) ->
     """An uncoloured row is ordinary text, not a status."""
     label = row(root, config, "Earned all-time: 3")
 
-    assert str(label.cget("fg")) == config.fg
+    assert str(label.cget("fg")) == config.palette.fg
     assert int(label.cget("wraplength")) == DEFAULT_WRAP
 
 
 def test_row_honours_an_explicit_status_colour(root: tk.Tk, config: LockConfig) -> None:
     """Status colours are load-bearing, so a caller can set one."""
-    label = row(root, config, "LOCKED", RowStyle(color=config.danger))
+    label = row(root, config, "LOCKED", RowStyle(color=config.palette.danger))
 
-    assert str(label.cget("fg")) == config.danger
+    assert str(label.cget("fg")) == config.palette.danger
 
 
 def test_row_wraps_at_the_width_it_is_given(root: tk.Tk, config: LockConfig) -> None:
