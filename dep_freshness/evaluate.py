@@ -19,7 +19,7 @@ from dep_freshness._tables import GITCOMMIT, MATRIX, TOOLCHAIN
 from dep_freshness.constraints import lower_bound, satisfies
 from dep_freshness.models import Dep, Finding, Severity
 from dep_freshness.resolve import Answer
-from dep_freshness.versions import behind
+from dep_freshness.versions import behind, google_api_key
 
 # What JitPack accepts as a version, and what a bump pastes into the catalog.
 _SHORT_SHA = 10
@@ -43,6 +43,24 @@ def _commit(dep: Dep, heads: str) -> Finding | None:
         short,
         detail="no branch of the source repository points at this commit any "
         "more; a commit pin has no release to wait for",
+    )
+
+
+def _generation(dep: Dep, pin, latest: str) -> Finding | None:
+    """A Google API client is judged inside its own generation only."""
+    gen, rank = pin
+    for candidate in latest.split():
+        key = google_api_key(candidate)
+        if key is None or key[0] != gen:
+            continue
+        if key[1] > rank:
+            return Finding(dep, Severity.STALE, candidate)
+        return None
+    return Finding(
+        dep,
+        Severity.UNKNOWN,
+        None,
+        detail=f"the registry has no {gen} generation of this client any more",
     )
 
 
@@ -112,6 +130,9 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
         return _toolchain(dep, latest)
     if dep.ecosystem == GITCOMMIT:
         return _commit(dep, latest)
+    pin = google_api_key(dep.pinned or "")
+    if pin is not None:
+        return _generation(dep, pin, latest)
 
     if dep.peer:
         # A peerDependency declares what a CONSUMER may bring, so exact-pinning

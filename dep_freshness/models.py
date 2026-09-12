@@ -76,10 +76,31 @@ class Exception_:
 
     @property
     def transitive(self) -> bool:
-        """True when this is a predicate entry that never expires on a date."""
+        """True when a named transitive dependency is what holds the pin."""
         from dep_freshness._tables import TRANSITIVE_PREFIX
 
         return self.blocked_by.startswith(TRANSITIVE_PREFIX)
+
+    @property
+    def upstream(self) -> bool:
+        """True when the fork's upstream still pinning this version holds it."""
+        from dep_freshness._tables import UPSTREAM_PREFIX
+
+        return self.blocked_by.startswith(UPSTREAM_PREFIX)
+
+    @property
+    def predicate(self) -> bool:
+        """True for either self-clearing class; False means a calendar expiry."""
+        return self.transitive or self.upstream
+
+    @property
+    def upstream_repo(self) -> str | None:
+        """`owner/repo` of the upstream an `upstream:` entry names."""
+        from dep_freshness._tables import UPSTREAM_PREFIX
+
+        if not self.upstream:
+            return None
+        return self.blocked_by[len(UPSTREAM_PREFIX):].strip()
 
     @property
     def blocker(self) -> tuple[str, str] | None:

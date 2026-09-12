@@ -27,7 +27,9 @@ from dep_freshness.evaluate import judge
 from dep_freshness.models import Finding, Severity
 from dep_freshness.quarantine import installable_latest
 from dep_freshness.registries import http
+from dep_freshness.registries.http import Offline
 from dep_freshness.resolve import Answer, Resolver
+from dep_freshness.upstream import still_pins
 
 
 def repo_root(start: Path) -> Path:
@@ -45,8 +47,9 @@ def repo_root(start: Path) -> Path:
 
 def _excuse(
     findings: list[Finding], entries, shared: Path | None = None,
-    whole_repo: bool = True,
-) -> tuple[list[Finding], list]:
+    whole_repo: bool = True, root: Path | None = None,
+    degraded: list[str] | None = None,
+) -> tuple[list[Finding], list, dict[str, bool]]:
     """Split findings into (still failing, excused), and flag dead entries.
 
     A `transitive:` entry clears itself the moment its dependency is no longer
@@ -68,6 +71,7 @@ def _excuse(
     """
     by_label = {f"{e.ecosystem}:{e.package}": e for e in entries}
     used: set[str] = set()
+    blocking: dict[str, bool] = {}
     failing: list[Finding] = []
     excused: list[Finding] = []
     for finding in findings:
@@ -76,8 +80,17 @@ def _excuse(
             used.add(finding.label)  # the entry applies here, even if it
             # does not excuse this particular pin -- that is a stale pin to
             # fix, not allowlist rot to delete.
+            blocking[finding.label] = True
         if entry is None or not _covers(entry, finding):
             failing.append(finding)
+            continue
+        if entry.upstream and not _upstream_holds(entry, finding, root, degraded):
+            blocking[finding.label] = False
+            failing.append(Finding(
+                finding.dep, finding.severity, finding.latest,
+                f"{entry.upstream_repo} no longer pins {entry.pinned}: drop the "
+                "allowlist entry and take the bump",
+            ))
             continue
         excused.append(Finding(
             finding.dep, finding.severity, finding.latest, finding.detail,
@@ -89,7 +102,17 @@ def _excuse(
         and f"{e.ecosystem}:{e.package}" not in used
         and (shared is None or e.source != shared)
     ]
-    return failing, dead
+    return failing, dead, blocking
+
+
+def _upstream_holds(entry, finding: Finding, root, degraded) -> bool:
+    """Offline, an `upstream:` entry is trusted and the run is marked degraded."""
+    try:
+        return still_pins(entry, finding, root or Path.cwd())
+    except Offline as exc:
+        if degraded is not None:
+            degraded.append(f"{entry.blocked_by} unverified: {exc}")
+        return True
 
 
 def _covers(entry, finding: Finding) -> bool:
@@ -187,13 +210,11 @@ def main(argv: list[str] | None = None) -> int:
     resolver = Resolver(refresh=args.refresh)
     findings = collect(_targets(args, root), resolver)
     shared = shared_path()
-    failing, dead = _excuse(
+    failing, dead, still_blocking = _excuse(
         findings, entries,
         shared=None if root == shared.parent else shared,
-        whole_repo=args.all,
+        whole_repo=args.all, root=root, degraded=resolver.degraded,
     )
-
-    still_blocking = {f.label: True for f in findings}
     report.exceptions_block(entries, still_blocking)
 
     unknown = [f for f in failing if f.severity is Severity.UNKNOWN]

@@ -13,7 +13,9 @@ layer.
 through `newest_stable` like every other ecosystem. Only when NO repository
 has a stable release at all does the newest pre-release become the reference
 (`versions.reference`), which is how `androidx.biometric:biometric-ktx`,
-alpha-only since 2021, gets a checkable answer.
+alpha-only since 2021, gets a checkable answer. Google's API clients
+(`v3-rev20260901-2.0.0`) are neither: for those the answer is the newest
+revision of every generation, and the judge picks the pin's own.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from xml.etree import ElementTree
 
 from dep_freshness._tables import MAVEN_REPOS
 from dep_freshness.registries.http import get_text
-from dep_freshness.versions import newest_stable, reference
+from dep_freshness.versions import newest_per_generation, newest_stable, reference
 
 
 def metadata_url(repo: str, name: str) -> str | None:
@@ -60,4 +62,4 @@ def latest(name: str) -> str | None:
         if stable is not None:
             return stable
         seen.extend(versions)
-    return reference(seen)
+    return reference(seen) or newest_per_generation(seen)

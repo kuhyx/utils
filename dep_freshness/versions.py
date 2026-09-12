@@ -73,6 +73,8 @@ def is_prerelease(raw: str) -> bool:
 
 
 def _canonical(raw: str) -> str:
+    if GOOGLE_API.match(raw.strip()):
+        return raw.strip()  # the leading `v` is the API generation, not noise
     prefix, tail = split_tag_prefix(raw)
     return prefix + tail.lstrip("v")
 
@@ -110,6 +112,35 @@ def reference(candidates) -> str | None:
     """
     candidates = list(candidates)
     return newest_stable(candidates) or _newest(candidates, prereleases=True)
+
+
+# Google's API clients: `v3-rev20260901-2.0.0` is generation v3 of the API,
+# revision 20260901 of the discovery document, built on library 2.0.0. No
+# ordering across generations exists (v2 and v3 are different APIs), so the
+# registry answers with the newest revision of EVERY generation and the
+# judge picks the pin's own.
+GOOGLE_API = re.compile(r"^(?P<gen>v\d+)-rev(?P<rev>\d+)-(?P<lib>\d+(?:\.\d+)*)$")
+
+
+def google_api_key(raw: str) -> tuple[str, tuple[Version, int]] | None:
+    """`("v3", (Version("2.0.0"), 20260901))` for a Google API client version."""
+    match = GOOGLE_API.match(raw.strip())
+    if not match:
+        return None
+    return (match.group("gen"), (Version(match.group("lib")), int(match.group("rev"))))
+
+
+def newest_per_generation(candidates) -> str | None:
+    """Space-joined newest Google API client per generation, or None."""
+    best: dict[str, tuple[tuple[Version, int], str]] = {}
+    for raw in candidates:
+        key = google_api_key(raw or "")
+        if key is None:
+            continue
+        gen, rank = key
+        if gen not in best or rank > best[gen][0]:
+            best[gen] = (rank, raw.strip())
+    return " ".join(best[gen][1] for gen in sorted(best)) or None
 
 
 def behind(pinned: str, latest: str) -> bool:

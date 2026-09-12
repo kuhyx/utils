@@ -7,12 +7,13 @@ allowlist is that every not-latest pin stays visible.
 
 from __future__ import annotations
 
-from datetime import date, datetime
 import json
-from pathlib import Path
 import sys
+from datetime import date, datetime
+from pathlib import Path
 
 from dep_freshness.models import Exception_, Finding, Severity
+
 
 def _err(stream):
     """Resolve stderr at call time.
@@ -58,7 +59,7 @@ def exceptions_block(
     print(f"\n⚠️  DEPENDENCY EXCEPTION IN USE — {len(entries)} active", file=stream)
     for entry in entries:
         print(f"  {entry.package} {entry.pinned} ({entry.ecosystem})", file=stream)
-        if entry.transitive:
+        if entry.predicate:
             state = "still blocking" if still_blocking.get(
                 f"{entry.ecosystem}:{entry.package}", True) else "CLEARED"
             print(f"    blocked_by: {entry.blocked_by}  [{state}]", file=stream)
@@ -76,7 +77,7 @@ def machine_lines(entries: list[Exception_]) -> list[str]:
         head = (f"[DEP-EXCEPTION] {entry.ecosystem}:{entry.package} {entry.pinned}")
         if entry.latest_known:
             head += f" < {entry.latest_known}"
-        if entry.transitive:
+        if entry.predicate:
             out.append(f"{head} blocked_by={entry.blocked_by} [still blocking]")
         else:
             left = _days_left(entry.expires or "")
@@ -107,7 +108,7 @@ def violations(findings: list[Finding], root: Path, stream=None) -> None:
             )
             if finding.detail:
                 print(f"        {finding.detail}", file=stream)
-        print("", file=stream)
+        print(file=stream)
     print(
         "Bump them to latest stable, or record an exception in "
         "dependency-freshness.allowlist.yaml with reason + blocked_by.",

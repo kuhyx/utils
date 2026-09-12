@@ -6,6 +6,9 @@ Two entry classes, and the distinction is the whole point:
   re-evaluated every run and the entry clears itself when upstream moves. It
   never expires on a calendar, because a date nobody can act on turns the gate
   red for a reason no commit can fix.
+* `blocked_by: upstream:<owner>/<repo>` is the fork's predicate: it holds
+  while that repository's copy of the same manifest pins the same version
+  (`upstream.py`), and dies the day upstream bumps.
 * anything else is **discretionary**: it needs `expires`, capped at 90 days,
   and fails once past.
 
@@ -15,12 +18,11 @@ allowlist that rots silently is a suppression, not an exception.
 
 from __future__ import annotations
 
+import os
 from datetime import date, datetime
 from pathlib import Path
 
 import yaml
-
-import os
 
 from dep_freshness._tables import (
     ALLOWLIST_FILE,
@@ -79,17 +81,19 @@ def _entry(raw: object, source: Path, position: int) -> Exception_:
         expires=(str(raw["expires"]).strip() if raw.get("expires") else None),
         source=source,
     )
-    if entry.transitive:
+    if entry.predicate:
         if entry.expires:
             raise AllowlistError(
-                f"{where}: a transitive: entry must NOT set expires -- it clears "
+                f"{where}: a predicate entry must NOT set expires -- it clears "
                 "itself when the blocker lifts, and a date nobody can act on "
                 "only turns the gate red for no actionable reason"
             )
-        if not entry.blocker or not all(entry.blocker):
+        if entry.transitive and (not entry.blocker or not all(entry.blocker)):
             raise AllowlistError(
                 f"{where}: blocked_by must read transitive:<package>@<version>"
             )
+        if entry.upstream and len((entry.upstream_repo or "").split("/")) != 2:
+            raise AllowlistError(f"{where}: blocked_by must read upstream:<owner>/<repo>")
         return entry
     if not entry.expires:
         raise AllowlistError(f"{where}: a discretionary entry requires expires")
@@ -98,7 +102,7 @@ def _entry(raw: object, source: Path, position: int) -> Exception_:
 
 def check_expiry(entry: Exception_, today: date | None = None) -> None:
     """Raise if a discretionary entry is past due or reaches too far out."""
-    if entry.transitive or not entry.expires:
+    if entry.predicate or not entry.expires:
         return
     now = today or date.today()
     when = _parse_date(entry.expires, f"{entry.source}: {entry.package}")
