@@ -31,6 +31,18 @@ repos:
       # rule that a TODO carries "REMOVE ME AFTER FINISH" and nothing else may.
       # Shared gate in ~/src/utils owns the namespaces and the exemption list, so
       # one repo's idea of a valid name cannot drift from every other repo's.
+      # Since the 2026-09-11 reorganisation ~ holds eleven visible entries and
+      # home-tidy sweeps anything else to inbox/ within the hour. The migration's
+      # rewriter matched *literal* /home/kuhy/<name> strings, so paths assembled
+      # at run time survived it -- the todo wrapper exported to a dead ~/todo for
+      # a day while its MCP read ~/src/todo. This gate matches the shape, so it
+      # stays correct as repos come and go.
+      - id: home-path-layout
+        name: home-relative paths stay inside the ~ layout
+        entry: bash scripts/check_home_paths.sh
+        language: system
+        pass_filenames: true
+
       - id: md-naming
         name: markdown naming convention
         entry: scripts/check_md_naming.sh
