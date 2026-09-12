@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for what the recovery loop re-asserts on each tick.
 
 Split from ``test_recovery.py`` (250-line cap). That file keeps the static

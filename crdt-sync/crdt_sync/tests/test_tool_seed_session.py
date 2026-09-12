@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``seed_apps`` in ``tool/seed_session``.
 
 ``main()`` is covered in :mod:`test_tool_seed_session_main`, split to stay

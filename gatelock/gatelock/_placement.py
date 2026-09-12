@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Where a lock surface sits, and putting it back when it drifts.
 
 Split from :mod:`gatelock._surfaces`, which owns creating and destroying the

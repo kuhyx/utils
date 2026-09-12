@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Minimal GitHub Contents API client used as dumb file storage.
 
 GitHub is used purely as file storage via the REST Contents API, not a git

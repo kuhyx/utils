@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for Firebase Authentication over the REST API.
 
 The HTTP layer is fully mocked, so every branch -- sign-in, refresh, rotated

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Pushing and pulling the pool, so a day taken on the phone lands on the PC.
 
 Sync is a *separate* operation from every decision in :mod:`freedays._api`.

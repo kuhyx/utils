@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the keyboard affordances every lock surface depends on.
 
 A lock takes a global grab with no other window on screen: a control that

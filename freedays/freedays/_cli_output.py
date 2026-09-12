@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The one stdout/stderr sink every ``freedays`` subcommand writes through.
 
 A thin wrapper over ``sys.stdout.write`` (the shape diet-guard and home-guard

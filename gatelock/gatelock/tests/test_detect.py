@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for layered output-change detection."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Escaping arbitrary strings into Firebase Realtime Database keys.
 
 Split from :mod:`crdt_sync._firebase`, which keeps the client. RTDB forbids

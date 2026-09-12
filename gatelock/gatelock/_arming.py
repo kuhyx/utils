@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Bringing the lock up: VT-disable, backdrop, surfaces, and the input grab.
 
 Split out of :mod:`gatelock._window`, which keeps the object's construction

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Downloading peers' logs, skipping the ones we already have.
 
 Split from :mod:`crdt_sync._sync`, which keeps the push half and the

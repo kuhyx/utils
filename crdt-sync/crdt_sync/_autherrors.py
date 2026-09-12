@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Turning a Firebase auth response into a message, and reading its verdict.
 
 Split from :mod:`crdt_sync._firebase_auth`, which keeps the token provider.

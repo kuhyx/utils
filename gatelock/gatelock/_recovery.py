@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Keep the lock covering every live output, and never weaken it.
 
 This loop is the watchdog the 2026-07-25 incident needed. A monitor that comes

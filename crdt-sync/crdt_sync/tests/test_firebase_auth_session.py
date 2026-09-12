@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the auth session lifecycle.
 
 Split from ``test_firebase_auth.py`` (250-line cap);

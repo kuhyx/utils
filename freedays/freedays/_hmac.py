@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Signing the audit trail, using nothing but the standard library.
 
 This deliberately does not call ``gatelock.log_integrity``, even though the

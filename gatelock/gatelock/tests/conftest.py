@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Shared fixtures for gatelock tests.
 
 ``LockWindow`` takes its Tk root as a constructor argument (composition, not

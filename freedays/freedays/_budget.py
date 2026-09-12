@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Calendar-year accounting for the pool.
 
 One global pool, shared by every app: a day is either free everywhere or

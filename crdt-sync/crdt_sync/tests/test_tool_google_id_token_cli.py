@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``tool/google_id_token``'s command line entry point.
 
 Split from :mod:`test_tool_google_id_token` to stay under the repo's 250-line

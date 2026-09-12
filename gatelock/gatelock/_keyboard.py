@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 r"""Keyboard-operability helpers for lock surfaces.
 
 Every function here works around a **Tk default**, not an application mistake.

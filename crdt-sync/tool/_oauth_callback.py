@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The one-shot local HTTP server that catches Google's OAuth redirect.
 
 Split from :mod:`google_id_token`, which keeps the token exchange. Google

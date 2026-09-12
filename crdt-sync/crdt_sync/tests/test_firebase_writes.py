@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for Firebase writes, string maps and deletion.
 
 Split from ``test_firebase.py`` (250-line cap), which keeps key escaping

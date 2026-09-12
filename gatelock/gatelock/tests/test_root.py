@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for GateRoot's safe callback-exception handling."""
 
 from __future__ import annotations

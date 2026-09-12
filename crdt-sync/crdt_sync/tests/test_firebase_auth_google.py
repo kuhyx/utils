@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the Google sign-in path.
 
 Split from ``test_firebase_auth.py`` (250-line cap), which keeps credential

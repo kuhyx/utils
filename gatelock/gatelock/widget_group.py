@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """One logical widget, fanned out across every output's surface.
 
 A gate covers every monitor the user can see, so each surface needs its own

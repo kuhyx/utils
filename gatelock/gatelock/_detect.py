@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Notice output changes fast, by four means at once.
 
 The lock must react the moment a monitor wakes up, and must not miss a monitor

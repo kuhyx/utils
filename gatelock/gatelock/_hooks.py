@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The callback interface an app embedding :class:`~gatelock.LockWindow` fills.
 
 Split out of :mod:`gatelock._window` so the pure *interface* -- what an app

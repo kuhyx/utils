@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for VT-switch disable/restore."""
 
 from __future__ import annotations

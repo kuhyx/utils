@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """This device's stable sync identity.
 
 Every device that pushes into a namespace needs an id that is *its own*: it

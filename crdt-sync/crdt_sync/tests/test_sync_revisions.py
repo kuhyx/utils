@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the revision tracking that keeps sync inside the free tier.
 
 Two savings, both measured against the GitHub-backed history this replaces:

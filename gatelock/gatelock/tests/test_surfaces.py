@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the surface set: one lock window per live output."""
 
 from __future__ import annotations

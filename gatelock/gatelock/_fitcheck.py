@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Measure whether a lock screen fits its surface, at a chosen resolution.
 
 A lock surface is fullscreen, grabbed and (on the production path) VT-locked:

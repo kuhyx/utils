@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Declarative configuration and design tokens for :class:`LockWindow`.
 
 Split out of :mod:`gatelock._window` so that the runtime mechanics (grab, VT,

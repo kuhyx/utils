@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Sync: convergence across devices, and silence when the network is not there."""
 
 from __future__ import annotations

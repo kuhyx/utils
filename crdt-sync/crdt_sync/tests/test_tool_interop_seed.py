@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``tool/interop_seed``, the Python half of the interop check.
 
 Patched at the module's own boundary -- ``firebase_client_for``,

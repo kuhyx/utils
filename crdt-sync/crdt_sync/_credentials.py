@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Firebase credentials and the stores that persist them.
 
 Split from :mod:`crdt_sync._firebase_auth`, which keeps the token provider.

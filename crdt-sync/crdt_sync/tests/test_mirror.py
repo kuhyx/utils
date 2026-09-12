@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the dual-write client used during the GitHub -> Firebase cutover.
 
 The asymmetry is the whole point and is what these assert: a primary failure

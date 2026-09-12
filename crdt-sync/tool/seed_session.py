@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 r"""Reseed each app's desktop Firebase session by signing in with Google.
 
 The sync account moved to Google-only sign-in, so the password flow that used

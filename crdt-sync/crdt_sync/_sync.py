@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Domain-agnostic pull/merge/push sync orchestration.
 
 Generalizes diet_guard's original ``_sync.py`` (pull every other device's

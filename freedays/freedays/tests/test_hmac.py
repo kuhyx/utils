@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Signing, and the ways it is allowed to fail."""
 
 from __future__ import annotations

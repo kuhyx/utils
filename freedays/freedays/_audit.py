@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Append-only, HMAC-signed trail of every mark and release.
 
 Nothing reads this to make a decision -- the CRDT log is the truth, and this

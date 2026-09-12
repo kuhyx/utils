@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Link a Google identity to the existing sync account, keeping the same uid.
 
 The security rules pin exactly one uid (``auth.uid === '<uid>'``), so signing

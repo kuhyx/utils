@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The errors the GitHub sync backend raises.
 
 Split from :mod:`crdt_sync._github` for the 250-line cap. Kept separate so a

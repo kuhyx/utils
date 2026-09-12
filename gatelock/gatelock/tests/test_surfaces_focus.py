@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for focus handling, the backdrop, teardown and the text mirror.
 
 Split from ``test_surfaces.py`` to hold the shared 250-line cap.

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Screen-height-derived compaction for the design-system type/space scales.
 
 The token scales in :class:`~gatelock._window.LockConfig` are authored in

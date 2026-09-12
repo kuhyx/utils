@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Firebase Realtime Database as dumb keyed storage, over its REST API.
 
 The RTDB REST endpoints are plain HTTPS, so this works identically under

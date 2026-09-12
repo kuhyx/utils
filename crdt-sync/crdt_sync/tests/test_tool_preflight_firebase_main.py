@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``tool/preflight_firebase``'s loaders and ``main()``.
 
 Split from :mod:`test_tool_preflight_firebase` to stay under the 250-line file

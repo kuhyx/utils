@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Why a mark or un-mark was refused.
 
 Each of these is a *policy* refusal with a message meant to be shown to the

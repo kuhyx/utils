@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for revision handling across peers.
 
 Split from ``test_sync_revisions.py`` (250-line cap), which keeps revision

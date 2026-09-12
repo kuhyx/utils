@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for backends without bulk map reads, and publishing order.
 
 Split from ``test_sync_revisions.py`` (250-line cap);

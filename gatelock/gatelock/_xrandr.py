@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Reading outputs by shelling out to `xrandr --query`.
 
 Split from :mod:`gatelock._outputs`, which keeps the value types and the

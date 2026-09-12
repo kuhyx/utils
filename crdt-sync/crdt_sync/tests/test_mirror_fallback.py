@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for mirror fallback reads, revision maps and lifecycle.
 
 Split from ``test_mirror.py`` (250-line cap), which keeps plain writes,

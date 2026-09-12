@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Composite widgets every gate app was rebuilding from the same tokens.
 
 ``LockConfig`` already owns the palette and the type scale, but a palette is
@@ -24,15 +25,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import tkinter as tk
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
+
+from gatelock._widget_fills import ButtonVariant, _button_fills, _lighten
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from gatelock._window import LockConfig, TypeRole
-
-ButtonVariant = Literal["primary", "secondary", "danger"]
-"""Emphasis role for :func:`make_button`, not a colour."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,36 +92,8 @@ class RowStyle:
 # spacing scale).
 _BUTTON_PADY = 12
 _BUTTON_PADX = 24
-# Blend fraction toward white for a button's hover/active fill.
-_HOVER_LIGHTEN = 0.12
-_HEX_CHANNEL_OFFSETS = (1, 3, 5)
-_RGB_MAX = 255
 # Narrowest wrap worth honouring; below this a "wrapped" line is one word.
 _MIN_WRAP = 320
-
-
-def _lighten(hex_color: str, amount: float = _HOVER_LIGHTEN) -> str:
-    """Blend ``hex_color`` toward white by ``amount``, for a hover state."""
-    channels = (
-        int(hex_color[offset : offset + 2], 16) for offset in _HEX_CHANNEL_OFFSETS
-    )
-    return "#" + "".join(
-        f"{round(channel + (_RGB_MAX - channel) * amount):02x}" for channel in channels
-    )
-
-
-def _button_fills(config: LockConfig) -> dict[ButtonVariant, tuple[str, str]]:
-    """Return the fill/text pair for each variant, read from the palette.
-
-    All three pairs use ``on_fill`` (never ``fg``) for text drawn on a filled
-    surface, per tokens.md -- which is the whole point of keying off a
-    variant instead of letting each call site invent its own hex pair.
-    """
-    return {
-        "primary": (config.accent, config.on_fill),
-        "secondary": (config.field_bg, config.fg),
-        "danger": (config.danger, config.on_fill),
-    }
 
 
 # The one high-emphasis button per screen reads larger than everything else

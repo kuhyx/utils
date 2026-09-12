@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Pooled HTTP sessions, so every request does not re-handshake.
 
 Every call site in this package used the module-level ``requests.get`` /

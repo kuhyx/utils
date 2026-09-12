@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``main()`` in ``tool/seed_session``.
 
 Split from :mod:`test_tool_seed_session` to stay under the 250-line cap.

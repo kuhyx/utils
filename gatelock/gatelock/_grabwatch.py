@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Deciding whether this application still holds the input grab.
 
 Split from :mod:`gatelock._recovery`, which re-asserts the grab when this

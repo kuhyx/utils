@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for local Log persistence (dump/load and atomic file read/write)."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 r"""Fetch a Google ID token for this project, via a local loopback OAuth flow.
 
 ``link_google.py`` needs a Google ID token whose ``aud`` claim is an OAuth

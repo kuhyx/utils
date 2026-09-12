@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """On-disk locations, remote paths and the one policy number that matters.
 
 Every path here is a *default*. Public functions take the corresponding

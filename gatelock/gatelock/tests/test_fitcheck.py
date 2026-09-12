@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the pre-ship fit measurement.
 
 This is the harness every consuming app gates its layout on, so it has to be

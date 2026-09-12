@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the python-xlib RandR backend and the enumerator over it.
 
 Split from ``test_outputs.py`` (250-line cap), which keeps rect geometry,

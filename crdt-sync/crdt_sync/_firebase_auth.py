@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Firebase Authentication over its REST API, with no SDK dependency.
 
 The Firebase Admin SDK authenticates with a service-account key, which

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``main()`` in ``tool/migrate_github_to_firebase``.
 
 Split from :mod:`test_tool_migrate_github` to stay under the 250-line cap.

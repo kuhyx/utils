@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for log_integrity HMAC signing and verification."""
 
 from __future__ import annotations

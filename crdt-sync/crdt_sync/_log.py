@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Log: a collection of Records keyed by id, with a union-merge."""
 
 from __future__ import annotations

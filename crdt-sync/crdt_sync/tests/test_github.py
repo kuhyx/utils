@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the GitHub Contents API sync client.
 
 The HTTP layer is fully mocked (``requests.get``/``requests.put``), so every

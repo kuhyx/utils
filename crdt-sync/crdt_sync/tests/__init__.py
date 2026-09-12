@@ -1,1 +1,2 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the crdt_sync package."""

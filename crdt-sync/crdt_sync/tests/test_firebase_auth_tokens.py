@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ID-token refresh and the session lifecycle.
 
 Split from ``test_firebase_auth.py`` (250-line cap), which keeps credential

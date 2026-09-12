@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for an arbiter claim's life after it is taken.
 
 Split from ``test_arbiter.py`` (250-line cap): that file covers grab

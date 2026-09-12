@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The claim an app publishes while it holds the screen, and how to read one.
 
 Split from :mod:`gatelock._arbiter`, which keeps the arbiter itself. A claim

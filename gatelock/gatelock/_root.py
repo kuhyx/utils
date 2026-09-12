@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Safe Tk root window that never lets a callback exception escape."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The path bundle itself, exercised unpatched.
 
 The autouse redirect in ``conftest`` replaces ``resolve_paths`` *as imported

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``_read_token`` and ``main()`` in ``tool/link_google``.
 
 Split from :mod:`test_tool_link_google` to stay under the 250-line cap.

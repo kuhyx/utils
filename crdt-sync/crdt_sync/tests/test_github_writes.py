@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for GitHub writes and access checks.
 
 Split from ``test_github.py`` (250-line cap), which keeps the read paths.

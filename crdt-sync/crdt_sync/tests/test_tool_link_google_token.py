@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``describe_google_token`` in ``tool/link_google``.
 
 Split from :mod:`test_tool_link_google` (which covers linking) and

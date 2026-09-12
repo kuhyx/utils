@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the individual checks in ``tool/preflight_firebase``.
 
 ``main()`` and the loading helpers are covered in

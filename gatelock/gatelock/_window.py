@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Lock window orchestration: surfaces, input grab, VT-disable, safe lifecycle.
 
 Generalizes the window mechanics that wake_alarm, screen-locker, and

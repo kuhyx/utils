@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The audit trail: best-effort, signed, and never in the way."""
 
 from __future__ import annotations

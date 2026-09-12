@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for LockWindow signal handling, keepalive, close, and run lifecycle."""
 
 from __future__ import annotations

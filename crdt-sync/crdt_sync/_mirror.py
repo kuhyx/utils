@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """A remote store that writes to two backends and reads from both.
 
 Exists for the GitHub -> Firebase cutover: each app can move to Firebase

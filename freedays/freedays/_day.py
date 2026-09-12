@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """What "today" means, in one place.
 
 The apps this package serves disagreed about this before it existed:

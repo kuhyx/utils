@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Date handling: the one place allowed an opinion about "today"."""
 
 from __future__ import annotations

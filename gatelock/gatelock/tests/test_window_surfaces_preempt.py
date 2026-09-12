@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for standing a weaker grab holder down.
 
 Split from ``test_window_surfaces.py`` to hold the shared 250-line cap;

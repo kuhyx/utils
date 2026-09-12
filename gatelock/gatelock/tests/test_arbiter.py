@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for cross-app arbitration.
 
 The strength-check table is the most important thing here: it is the invariant

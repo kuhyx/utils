@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for identifying the current holder and releasing a claim.
 
 Split from ``test_arbiter.py`` (250-line cap). ``test_arbiter_lifecycle.py``

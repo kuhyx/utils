@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Record translation, and the CRDT properties the design leans on."""
 
 from __future__ import annotations

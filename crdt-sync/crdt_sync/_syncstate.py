@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Where a device records what it has already pushed and pulled.
 
 Split from :mod:`crdt_sync._sync`, which keeps the sync itself. The state is

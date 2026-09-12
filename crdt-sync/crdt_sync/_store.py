@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Local JSON persistence for a ``Log``.
 
 Mirrors ``crdt_sync_dart``'s ``logToJson``/``FileLogPersistence`` serialization

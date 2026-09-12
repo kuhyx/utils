@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Translating between a free day and a crdt-sync ``Record``.
 
 The record id *is* the ISO date, so two devices marking the same day produce

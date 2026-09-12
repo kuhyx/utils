@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Every file this package owns, as one value that can be swapped wholesale.
 
 Threading five separate ``*_path`` keyword arguments through the API was the

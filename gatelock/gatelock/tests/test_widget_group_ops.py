@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Reading a group, focusing it, and binding across it.
 
 Focus is the one operation that deliberately does *not* fan out, and

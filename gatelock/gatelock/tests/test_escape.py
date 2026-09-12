@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the shared escape hatch.
 
 The load-bearing property is that nothing here can ever *widen* the budget:

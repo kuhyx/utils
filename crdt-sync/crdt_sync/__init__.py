@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Shared CRDT merge scheme + pluggable remote sync transports."""
 
 from __future__ import annotations

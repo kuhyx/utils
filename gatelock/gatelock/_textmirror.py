@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Keeping several Text widgets showing the same string.
 
 Split from :mod:`gatelock._surfaces` for the 250-line cap. A lock renders one

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for token inspection and linking in ``tool/link_google``.
 
 ``main()`` and ``_read_token`` are covered in

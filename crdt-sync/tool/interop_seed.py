@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Write the Python half of the live cross-language interop check.
 
 ``crdt_sync_dart/tool/interop_check.dart`` merges a Dart record into

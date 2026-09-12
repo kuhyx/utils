@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the shared Firebase configuration loader.
 
 Every failure mode here is one that would otherwise surface as an

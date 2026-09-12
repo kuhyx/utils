@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The value types one recovery tick produces and consumes.
 
 Split from :mod:`gatelock._recovery` for the 250-line cap. Data only -- no

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """A sanctioned, rate-limited way out of a lock.
 
 A hard lock without an escape hatch is a trap. screen-locker learned this and

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for output enumeration and the live-vs-dark predicate.
 
 The regression that matters most is :data:`XRANDR_INCIDENT`: on 2026-07-25 an

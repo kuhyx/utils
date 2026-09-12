@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The policy, history and draft types the escape hatch works with.
 
 Split from :mod:`gatelock._escape`, which keeps the tracker. Data and two date

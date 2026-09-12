@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for reading the sync password and building a client from config.
 
 Split from ``test_config.py`` (250-line cap), which keeps loading and

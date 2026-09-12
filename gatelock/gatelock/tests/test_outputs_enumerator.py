@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for OutputEnumerator and the scan it returns.
 
 Split from ``test_outputs.py`` (250-line cap). ``test_outputs_randr.py``

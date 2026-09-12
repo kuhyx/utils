@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """HMAC-based integrity checking for signed state entries.
 
 Ported from the byte-for-byte-duplicated copies in testsAndMisc's

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the Realtime Database sync client.
 
 The HTTP layer is fully mocked, so every branch -- success, absent path,

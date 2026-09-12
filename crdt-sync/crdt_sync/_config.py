@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The one place every app learns how to reach Firebase.
 
 Before this module each caller re-read ``~/.config/crdt-sync/firebase.json``

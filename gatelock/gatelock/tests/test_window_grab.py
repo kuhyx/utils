@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for acquiring the global input grab and its retry loop.
 
 Split from ``test_window.py`` to hold the shared 250-line cap.

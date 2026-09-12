@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The value types describing a display output and a scan of them.
 
 Split from :mod:`gatelock._outputs` so the two backends

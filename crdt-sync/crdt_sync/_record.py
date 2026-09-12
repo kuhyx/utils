@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Record: a per-field LWW map with a sticky (monotonic) delete flag.
 
 This is the unit CRDT merges operate on. It's deliberately domain-agnostic --

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Which apps keep a desktop Firebase session, and why the list is hand-kept.
 
 Split out of ``seed_session.py`` for the 250-line cap. The rationale is worth

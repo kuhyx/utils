@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Keyboard and wheel scrolling for a :class:`~gatelock._scrollable.ScrollableSurface`.
 
 Split out of :mod:`gatelock._scrollable`, which keeps the viewport's geometry

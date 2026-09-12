@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for scrolling a specific widget into view.
 
 Split from ``test_scrollable.py`` (250-line cap), which keeps the fit states

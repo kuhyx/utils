@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Hybrid Logical Clock: a totally-ordered, monotonic per-node timestamp.
 
 An HLC combines wall-clock time with a logical counter so that two ticks

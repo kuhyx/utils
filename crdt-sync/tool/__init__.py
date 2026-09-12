@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """One-shot operational scripts for crdt_sync.
 
 A package rather than a loose directory so the linter treats these as real

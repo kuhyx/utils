@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Deciding whether a focus change was driven by the user or by the app.
 
 Split out of :mod:`gatelock._scrollable`, which owns the viewport itself.

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for focus notification and close on a lock window.
 
 Split from ``test_window_surfaces.py`` to hold the shared 250-line cap.

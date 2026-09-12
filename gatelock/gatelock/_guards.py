@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Safety guards shared by every locker app.
 
 Both guards here were duplicated across the consuming repos (and one of them

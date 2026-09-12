@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """One shared pool of pre-declared days on which every gate app stands down.
 
 The whole point of this package fits in one call. A gate app asks::

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The three argument bundles :func:`crdt_sync.sync_log` takes.
 
 Split from :mod:`crdt_sync._sync` for the 250-line cap. Grouping sync_log's

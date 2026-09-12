@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Wait our turn instead of fighting for the screen.
 
 The lockers form a ladder (see ``_arbiter.py``'s module docstring: wake up,

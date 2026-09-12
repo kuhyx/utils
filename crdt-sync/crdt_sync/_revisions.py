@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The revision string a device publishes alongside its log.
 
 Split from :mod:`crdt_sync._sync` so both the push and pull halves can import

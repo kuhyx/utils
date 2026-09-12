@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the one-shot OAuth redirect catcher in ``tool/_oauth_callback``.
 
 No network access: everything binds 127.0.0.1 on a port the module itself

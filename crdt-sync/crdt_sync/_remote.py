@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Backend-neutral remote-storage contract that sync talks through.
 
 Deliberately tiny: :func:`crdt_sync.sync_log` and every app-level sync

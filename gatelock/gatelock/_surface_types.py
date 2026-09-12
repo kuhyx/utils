@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The value types describing a lock surface and a change to the set of them.
 
 Split from :mod:`gatelock._surfaces` for the 250-line cap. Data and one

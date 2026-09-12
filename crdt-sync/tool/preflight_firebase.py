@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Validate ``~/.config/crdt-sync`` before anything is migrated.
 
 Every failure this catches is one that would otherwise surface *after* data

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Static checks that the recovery loop *cannot* weaken the lock.
 
 Split from ``test_recovery.py`` (250-line cap). These read the source with

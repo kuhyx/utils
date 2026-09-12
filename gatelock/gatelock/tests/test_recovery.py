@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the monotonic recovery loop.
 
 Three layers, per the release plan: a static AST check that the weakening calls

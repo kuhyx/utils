@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """VT-switch (Ctrl+Alt+Fn) disable/restore via setxkbmap.
 
 Disabling VT switching is what stops a locked window from being bypassed by

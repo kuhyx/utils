@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The viewport moves for the user, and for nobody else.
 
 These run against real Tk: the behaviour under test is Tk's own focus

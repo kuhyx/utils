@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The errors the Firebase sync backend raises.
 
 Split from :mod:`crdt_sync._firebase` for the 250-line cap, mirroring

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for building a sync client from a config file.
 
 Split from ``test_config.py`` (250-line cap);

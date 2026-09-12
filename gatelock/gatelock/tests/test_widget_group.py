@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """A group holds every per-output copy, and survives losing one.
 
 Membership and lifecycle: what a group contains, what ``discard``/``clear``/

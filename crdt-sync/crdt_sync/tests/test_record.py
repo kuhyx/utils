@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for Record, merge_field, and merge_record."""
 
 from __future__ import annotations

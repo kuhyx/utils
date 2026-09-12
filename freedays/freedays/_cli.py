@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The ``freedays`` command: the only thing that ever talks about free days.
 
 Every subcommand that says anything is pull, never push: nothing notifies,

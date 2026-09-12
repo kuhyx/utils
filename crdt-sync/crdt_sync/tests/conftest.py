@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Shared pytest fixtures for crdt_sync's test suite."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Shared lock-window and HMAC log-integrity backend for blocking-overlay apps.
 
 Used by ``screen-locker``, ``diet-guard`` and ``wake-alarm``, which all need

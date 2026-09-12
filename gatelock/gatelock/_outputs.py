@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Enumerate X11 outputs and tell live ones apart from dark ones.
 
 The distinction this module exists to make is ``connected`` versus **live**.

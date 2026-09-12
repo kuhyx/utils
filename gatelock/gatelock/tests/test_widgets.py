@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """A button the keyboard can actually press, in colours that always contrast.
 
 Run against real Tk: the two defects these widgets exist to prevent are Tk's

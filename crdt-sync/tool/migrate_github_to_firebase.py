@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """One-shot migration of the GitHub-backed sync repo into Firebase RTDB.
 
 Reads through the GitHub API rather than a local clone: a checkout goes stale

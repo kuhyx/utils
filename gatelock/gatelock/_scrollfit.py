@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Measuring a scroll viewport's content and switching its layout to match.
 
 Split out of :mod:`gatelock._scrollable`, which keeps the widget wiring, focus

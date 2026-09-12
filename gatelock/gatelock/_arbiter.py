@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Decide which of N locker apps may hold the screen.
 
 On 2026-07-25 two lockers armed at the same boot. One won the X grab; the

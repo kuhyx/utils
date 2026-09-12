@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the peer files sync_log declines to merge.
 
 Split from ``test_sync.py`` (250-line cap). A peer whose pushed file is

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for ``tool/google_id_token``, the loopback OAuth ID-token minter.
 
 No network and no browser. The callback server is replaced wholesale so the

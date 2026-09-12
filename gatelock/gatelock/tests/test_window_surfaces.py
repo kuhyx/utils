@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for LockWindow's v0.2.0 behaviour: arming, holder naming, teardown."""
 
 from __future__ import annotations

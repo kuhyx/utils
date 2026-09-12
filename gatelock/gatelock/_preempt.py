@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Diagnosing and clearing a blocked global input grab.
 
 Split out of :mod:`gatelock._window`, which owns the *acquisition* loop; this

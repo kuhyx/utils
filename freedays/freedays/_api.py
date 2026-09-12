@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Ask, mark, release, report -- the whole public surface.
 
 :func:`is_free_day` is the one every gate app calls, and it is deliberately

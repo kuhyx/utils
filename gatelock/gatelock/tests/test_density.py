@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the screen-height-derived compaction of the token scales."""
 
 from __future__ import annotations

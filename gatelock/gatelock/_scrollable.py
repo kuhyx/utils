@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """A keyboard-scrollable, focus-following viewport for lock-surface content.
 
 Build it inside a lock surface, pack widgets into :attr:`content`, then call

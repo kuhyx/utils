@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the GitHub-reading half of ``tool/migrate_github_to_firebase``.
 
 ``main()`` is covered in :mod:`test_tool_migrate_github_main`, split to stay

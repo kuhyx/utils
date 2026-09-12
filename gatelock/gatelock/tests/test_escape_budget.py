@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Tests for the escape-hatch budget, lockout and recording.
 
 Split from ``test_escape.py`` (250-line cap), which keeps policy defaults,

@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Own every lock window: one per live output, plus the backdrop.
 
 This is the **only** module allowed to create, move or destroy windows. That
@@ -50,6 +51,7 @@ from gatelock._surface_types import (
     SurfaceDelta,
     SurfaceInfo,
 )
+from gatelock._surfaces_focus import focus_surface, preferred_focus_index
 from gatelock._textmirror import TextMirror, mirror_text_widgets
 
 # Names this module re-exports after the 250-line split. Listed explicitly so
@@ -185,21 +187,11 @@ class SurfaceSet:
 
     def focus_surface(self, index: int) -> SurfaceInfo | None:
         """Move keyboard focus to one surface, returning what got it."""
-        for surface in self._surfaces.values():
-            if surface.info.index == index:
-                surface.window.focus_force()
-                return surface.info
-        return None
+        return focus_surface(self._surfaces, index)
 
     def preferred_focus_index(self) -> int:
-        """Index of the surface that should take initial focus.
-
-        The live primary output if there is one, else the first surface.
-        """
-        for surface in self._surfaces.values():
-            if surface.info.is_primary:
-                return surface.info.index
-        return 0
+        """Index of the surface that should take initial focus."""
+        return preferred_focus_index(self._surfaces)
 
     def _create(self, info: SurfaceInfo) -> None:
         """Create one surface window and let the app build its UI inside."""

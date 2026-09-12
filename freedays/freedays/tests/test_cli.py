@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """The command line: the only surface that ever mentions free days."""
 
 from __future__ import annotations

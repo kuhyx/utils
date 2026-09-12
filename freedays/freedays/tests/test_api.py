@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Marking, releasing, and the budget arithmetic behind both."""
 
 from __future__ import annotations

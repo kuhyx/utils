@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Krzysztof Rudnicki
 """Redirect every on-disk path away from real user state, for every test.
 
 This is one ``monkeypatch`` of one function, and that is the whole point.
