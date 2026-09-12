@@ -17,9 +17,10 @@ fails closed on it (exit 2) instead of honouring it silently.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from functools import cache
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 #: Basename of the per-repo exemption list, looked up in the gate's cwd.
 EXEMPT_FILE = ".file-length-exempt"
@@ -53,6 +54,35 @@ def parse(text: str) -> list[Exemption]:
     return entries
 
 
+def glob_to_regex(pattern: str) -> re.Pattern[str]:
+    """A repo-relative glob as an anchored regex.
+
+    `**` spans directories, `*` and `?` stop at a slash. Hand-rolled rather
+    than `PurePath.full_match` because that needs Python 3.13 and the gate
+    runs on whatever `python3` a CI runner ships (3.12 broke it in the
+    TachiyomiSY fork's first CI run).
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(pattern):
+        char = pattern[i]
+        if pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+            if pattern.startswith("/", i):
+                out[-1] = "(?:.*/)?"
+                i += 1
+            continue
+        if char == "*":
+            out.append("[^/]*")
+        elif char == "?":
+            out.append("[^/]")
+        else:
+            out.append(re.escape(char))
+        i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
 @cache
 def load(root: Path) -> tuple[Exemption, ...]:
     """The exemptions for the repo at `root`, empty when it has no file."""
@@ -72,10 +102,10 @@ def repo_exempt_reason(path: Path, root: Path) -> str | None:
     if not entries:
         return None
     try:
-        relative = PurePosixPath(path.relative_to(root).as_posix())
+        relative = path.relative_to(root).as_posix()
     except ValueError:
         return None
     for entry in entries:
-        if relative.full_match(entry.pattern):
+        if glob_to_regex(entry.pattern).match(relative):
             return f"repo exemption: {entry.reason}"
     return None

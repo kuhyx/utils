@@ -10,6 +10,7 @@ from file_length.repo_exempt import (
     EXEMPT_FILE,
     ExemptFileError,
     Exemption,
+    glob_to_regex,
     load,
     parse,
     repo_exempt_reason,
@@ -64,3 +65,21 @@ def test_reason_none_for_paths_outside_root(tmp_path: Path) -> None:
     write(tmp_path, EXEMPT_FILE, "**/*.kt  # everything\n")
     outside = tmp_path.parent / "elsewhere.kt"
     assert repo_exempt_reason(outside, tmp_path) is None
+
+
+@pytest.mark.parametrize(
+    ("pattern", "hit", "miss"),
+    [
+        ("a/*.kt", "a/x.kt", "a/b/x.kt"),
+        ("a/**/*.kt", "a/b/c/x.kt", "b/x.kt"),
+        ("a/**/*.kt", "a/x.kt", "a/x.kts"),
+        ("**/tags/*.kt", "tags/x.kt", "tags/sub/x.kt"),
+        ("a/?.kt", "a/x.kt", "a/xy.kt"),
+        ("a/**", "a/b/c.kt", "b/a"),
+        ("a.b", "a.b", "axb"),
+    ],
+)
+def test_glob_to_regex(pattern: str, hit: str, miss: str) -> None:
+    regex = glob_to_regex(pattern)
+    assert regex.match(hit), (pattern, hit)
+    assert not regex.match(miss), (pattern, miss)
