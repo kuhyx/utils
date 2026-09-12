@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 
+
 #: The four namespaces. A markdown file in a kuhy-owned repo must match one.
 #:
 #: README  -- what this directory is and how to run it.
@@ -82,8 +83,15 @@ EXEMPT_SUBPATHS = (
     "/android/app/src/",
 )
 
+#: A dated backup is never a live repo, so its markdown is not ours to name.
+#: Matched by *shape* rather than by listing each one: the 2026-09-11 ~
+#: reorganisation renamed every backup into ~/archive/YYYY-MM-DD-<name>, which
+#: silently invalidated the hand-listed
+#: "screen-locker-backup-20260705-200741" and left this gate red on main.
+DATED_BACKUP = re.compile(r"^\d{4}-\d{2}-\d{2}-")
+
 #: Repos under ~ that are clones of other people's work, in addition to the
-#: shared THIRD_PARTY_REPOS list. A dated backup clone is not a live repo.
+#: shared THIRD_PARTY_REPOS list.
 EXTRA_THIRD_PARTY = frozenset(
     {
         # Dotfile clones of other people's projects. These live outside ~/*/
@@ -96,7 +104,6 @@ EXTRA_THIRD_PARTY = frozenset(
         ".pyenv",
         ".fzf",
         ".tmux",
-        "screen-locker-backup-20260705-200741",
         "flax-editor",
         "flax-mcp-test",
         "diet-guard-peer-backup",

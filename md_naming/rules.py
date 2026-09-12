@@ -22,6 +22,7 @@ from md_naming._tables import (
     ALLOWED_PATTERN,
     COMMUNITY_NAMES,
     EXEMPT_SUBPATHS,
+    DATED_BACKUP,
     EXTRA_THIRD_PARTY,
     HARNESS_NAMES,
     MARKER,
@@ -51,7 +52,7 @@ def is_third_party(path: Path) -> bool:
     """
     parts = path.as_posix().split("/")
     repos = THIRD_PARTY_REPOS | EXTRA_THIRD_PARTY
-    return any(part in repos for part in parts)
+    return any(part in repos for part in parts) or any(DATED_BACKUP.match(part) for part in parts)
 
 
 def is_vendored(path: Path) -> bool:
