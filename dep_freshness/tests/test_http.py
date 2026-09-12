@@ -120,3 +120,12 @@ class _Response:
 
     def __exit__(self, *_exc):
         return False
+
+
+def test_get_text_returns_the_raw_body_and_none_on_404(monkeypatch):
+    _reachable(monkeypatch)
+    monkeypatch.setattr(http, "urlopen", lambda *a, **k: _Response(b"<x/>"))
+    assert http.get_text("https://repo1.maven.org/x") == "<x/>"
+    monkeypatch.setattr(http, "urlopen", _raiser(
+        HTTPError("u", 404, "Not Found", {}, None)))
+    assert http.get_text("https://repo1.maven.org/x") is None

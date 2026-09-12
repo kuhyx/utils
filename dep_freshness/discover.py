@@ -8,14 +8,21 @@ could ever fix, so reporting it only teaches the user to ignore the gate.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 
 from dep_freshness._tables import EXCLUDED_DIRS, MANIFEST_GLOBS, REQUIREMENTS_PATTERN
 from dep_freshness.models import Dep
 from dep_freshness.parsers import (
-    fvm, golang, javascript, pubspec, python, rust, workflow,
+    fvm,
+    golang,
+    gradle,
+    javascript,
+    pubspec,
+    python,
+    rust,
+    workflow,
 )
 
 _REQUIREMENTS = re.compile(REQUIREMENTS_PATTERN)
@@ -29,6 +36,8 @@ _BY_NAME = {
     ".fvmrc": fvm.parse,
     ".nvmrc": javascript.parse_nvmrc,
     ".python-version": python.parse_python_version,
+    gradle.CATALOG_NAME: gradle.parse_catalog,
+    gradle.WRAPPER_NAME: gradle.parse_wrapper,
 }
 
 

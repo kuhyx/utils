@@ -11,11 +11,19 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from dep_freshness._tables import (
-    CARGO, GITTAG, GOMOD, MAX_WORKERS, NPM, PUB, PYPI, TOOLCHAIN,
+    CARGO,
+    GITTAG,
+    GOMOD,
+    MAVEN,
+    MAX_WORKERS,
+    NPM,
+    PUB,
+    PYPI,
+    TOOLCHAIN,
 )
 from dep_freshness.cache import Cache
 from dep_freshness.models import Dep
-from dep_freshness.registries import cargo, gittag, gomod, npmjs, pub, pypi
+from dep_freshness.registries import cargo, gittag, gomod, maven, npmjs, pub, pypi
 from dep_freshness.registries import toolchain as tc
 from dep_freshness.registries.http import Offline
 
@@ -26,6 +34,7 @@ _LOOKUP = {
     CARGO: cargo.latest,
     GOMOD: gomod.latest,
     GITTAG: gittag.latest,
+    MAVEN: maven.latest,
 }
 
 
@@ -47,6 +56,8 @@ def _toolchain_latest(name: str) -> str | None:
         return tc.node_latest()
     if name == "python":
         return tc.python_installed()
+    if name == "gradle":
+        return tc.gradle_latest()
     return None
 
 

@@ -15,7 +15,7 @@ PUBSPEC = "name: demo\ndependencies:\n  http: 1.6.0\n"
 @pytest.mark.parametrize("name", [
     "pubspec.yaml", "pyproject.toml", "package.json", "Cargo.toml", "go.mod",
     ".fvmrc", ".nvmrc", ".python-version", "requirements.txt",
-    "requirements-dev.txt",
+    "requirements-dev.txt", "libs.versions.toml", "gradle-wrapper.properties",
 ])
 def test_manifest_names_are_recognised(name):
     assert is_manifest(Path(name))

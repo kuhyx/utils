@@ -55,12 +55,10 @@ def host_reachable(url: str) -> bool:
     return _reachable[host]
 
 
-def get_json(url: str, accept: str | None = None) -> Any:
-    """Fetch and decode JSON, or raise `Offline` / return None on 404.
+def get_text(url: str, accept: str | None = None) -> str | None:
+    """Fetch a body as text, or raise `Offline` / return None on 404.
 
-    `Offline` means "ask the cache"; None means "the registry answered and
-    this package genuinely is not there", which is a real finding rather than
-    a degraded run and must not be papered over with a stale cache entry.
+    Same contract as `get_json`; Maven metadata is XML, not JSON.
     """
     if not host_reachable(url):
         raise Offline(url)
@@ -70,10 +68,26 @@ def get_json(url: str, accept: str | None = None) -> Any:
     request = Request(url, headers=headers)
     try:
         with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            return json.loads(response.read().decode("utf-8"))
+            return response.read().decode("utf-8")
     except HTTPError as exc:
         if exc.code == 404:
             return None
         raise Offline(f"{url}: HTTP {exc.code}") from exc
     except (URLError, TimeoutError, OSError, ValueError) as exc:
+        raise Offline(f"{url}: {exc}") from exc
+
+
+def get_json(url: str, accept: str | None = None) -> Any:
+    """Fetch and decode JSON, or raise `Offline` / return None on 404.
+
+    `Offline` means "ask the cache"; None means "the registry answered and
+    this package genuinely is not there", which is a real finding rather than
+    a degraded run and must not be papered over with a stale cache entry.
+    """
+    body = get_text(url, accept)
+    if body is None:
+        return None
+    try:
+        return json.loads(body)
+    except ValueError as exc:
         raise Offline(f"{url}: {exc}") from exc

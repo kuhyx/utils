@@ -17,13 +17,14 @@ NPM: Final = "npm"
 CARGO: Final = "cargo"
 GOMOD: Final = "gomod"
 GITTAG: Final = "gittag"
+MAVEN: Final = "maven"
 TOOLCHAIN: Final = "toolchain"
 # The constraint a workflow parser writes for a version MATRIX. Standing
 # decision (kuhy, 2026-08-28): one toolchain version per repo, always newest,
 # so a matrix is a finding to delete rather than a range to satisfy.
 MATRIX: Final = "matrix"
 
-ECOSYSTEMS: Final = (PUB, PYPI, NPM, CARGO, GOMOD, GITTAG, TOOLCHAIN)
+ECOSYSTEMS: Final = (PUB, PYPI, NPM, CARGO, GOMOD, GITTAG, MAVEN, TOOLCHAIN)
 
 # --- Registry endpoints -----------------------------------------------------
 
@@ -37,6 +38,14 @@ FLUTTER_RELEASES: Final = (
     "releases_linux.json"
 )
 NODE_RELEASES: Final = "https://nodejs.org/dist/index.json"
+GRADLE_RELEASES: Final = "https://services.gradle.org/versions/current"
+# Asked in order; a 404 moves on. Google first because AndroidX and the
+# Android Gradle plugin exist nowhere else, and Central answers 404 fast.
+MAVEN_REPOS: Final = (
+    "https://dl.google.com/dl/android/maven2/",
+    "https://repo1.maven.org/maven2/",
+    "https://plugins.gradle.org/m2/",
+)
 UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
 
 # pnpm 11 quarantines packages younger than this before it will install them,
@@ -84,6 +93,8 @@ MANIFEST_GLOBS: Final = (
     ".fvmrc",
     ".nvmrc",
     ".python-version",
+    "libs.versions.toml",
+    "gradle-wrapper.properties",
 )
 REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"
 

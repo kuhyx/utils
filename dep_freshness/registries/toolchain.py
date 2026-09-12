@@ -11,6 +11,7 @@ import platform
 
 from dep_freshness._tables import (
     FLUTTER_RELEASES,
+    GRADLE_RELEASES,
     NODE_CHANNEL,
     NODE_RELEASES,
 )
@@ -49,3 +50,11 @@ def node_latest(channel: str = NODE_CHANNEL) -> str | None:
 def python_installed() -> str:
     """The interpreter this gate is running under — the Python target."""
     return platform.python_version()
+
+
+def gradle_latest() -> str | None:
+    """Newest Gradle release, from services.gradle.org (never a nightly/RC)."""
+    payload = get_json(GRADLE_RELEASES)
+    if not payload:
+        return None
+    return newest_stable([payload.get("version")])
