@@ -48,6 +48,22 @@ jobs:
           # than a wrong hook, and cache still re-saves under the new
           # exact key after a prefix-only hit.
           restore-keys: pre-commit-crdt-sync-${{ env.pythonLocation }}-
+      # mypy re-analyses the stdlib and every third-party stub from scratch
+      # without this, which measured 10s of the hook step in CI against 0.25s
+      # warm locally -- a 19MB cache dir does the whole difference. Keyed on
+      # the config, not the sources: mypy's own cache metadata records the
+      # interpreter, the flag set and a hash per source file, so it re-checks
+      # what changed and cannot pass stale code. Deliberately NOT keyed on
+      # github.sha -- that re-saves 19MB x3 every commit and would evict the
+      # 68MB hook caches under the repo's 10GB LRU budget. A fixed key keeps
+      # the expensive part, the dependency analysis, which is what costs 10s.
+      - uses: actions/cache@v4
+        with:
+          path: .mypy_cache
+          key: >-
+            mypy-crdt-sync-${{ env.pythonLocation }}-${{
+            hashFiles('crdt-sync/.pre-commit-config.yaml') }}
+          restore-keys: mypy-crdt-sync-${{ env.pythonLocation }}-
       - name: Run the hooks
         run: >-
           pre-commit run --config crdt-sync/.pre-commit-config.yaml
