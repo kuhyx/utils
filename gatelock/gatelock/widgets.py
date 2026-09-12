@@ -32,7 +32,7 @@ from gatelock._widget_fills import ButtonVariant, _button_fills, _lighten
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from gatelock._window import LockConfig, TypeRole
+    from gatelock._config import LockConfig, TypeRole
 
 
 @dataclass(frozen=True, slots=True)

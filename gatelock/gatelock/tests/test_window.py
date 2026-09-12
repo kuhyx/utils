@@ -6,9 +6,8 @@ from __future__ import annotations
 import tkinter as tk
 from unittest.mock import MagicMock, patch
 
-from gatelock._config import GrabPolicy
+from gatelock._config import GrabPolicy, LockConfig
 from gatelock._theme import LockPalette
-from gatelock._window import LockConfig
 from gatelock.tests.conftest import make_window
 
 

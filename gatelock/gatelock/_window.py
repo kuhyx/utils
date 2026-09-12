@@ -33,15 +33,7 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 
 from gatelock import _arming, _preempt
-from gatelock._config import (
-    GrabKind,
-    LockConfig,
-    LockMode,
-    SpaceStep,
-    TypeRole,
-)
 from gatelock._detect import OutputChangeDetector
-from gatelock._hooks import LockWindowHooks
 from gatelock._outputs import OutputEnumerator
 from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
 from gatelock._surfaces import SurfaceSet
@@ -51,21 +43,10 @@ if TYPE_CHECKING:
     from types import FrameType
 
     from gatelock._arbiter import Arbiter
+    from gatelock._config import LockConfig
+    from gatelock._hooks import LockWindowHooks
 
 _logger = logging.getLogger(__name__)
-
-# Re-exported so `from gatelock._window import LockConfig` -- which several
-# sibling modules and the test suite already do -- keeps resolving after the
-# declarative half moved to :mod:`gatelock._config`.
-__all__ = [
-    "GrabKind",
-    "LockConfig",
-    "LockMode",
-    "LockWindow",
-    "LockWindowHooks",
-    "SpaceStep",
-    "TypeRole",
-]
 
 # Periodic no-op so a grabbed, event-starved loop keeps handing control back
 # to Python, letting SIGTERM/SIGINT be serviced promptly.
@@ -132,6 +113,22 @@ class LockWindow:
     def surfaces(self) -> SurfaceSet:
         """The live surface set, for apps that need to fan work out over it."""
         return self._arming.surfaces
+
+    @property
+    def recovery(self) -> RecoveryLoop:
+        """The re-assertion loop, for an app that suspends the lock.
+
+        Releasing the grab while this runs is pointless: it re-takes the grab
+        within a tick. An app that hands the screen to something else
+        (leetcode-guard's study mode) stops this and :attr:`detector` first,
+        and starts both again when it re-arms.
+        """
+        return self._arming.recovery
+
+    @property
+    def detector(self) -> OutputChangeDetector:
+        """The output-change watcher; see :attr:`recovery` for when to stop it."""
+        return self._arming.detector
 
     # -- window mechanics -----------------------------------------------------
 

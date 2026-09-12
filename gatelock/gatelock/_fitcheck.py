@@ -29,8 +29,8 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 
 from gatelock import _density
+from gatelock._config import LockConfig
 from gatelock._scrollable import ScrollableSurface
-from gatelock._window import LockConfig
 
 if TYPE_CHECKING:
     from collections.abc import Callable

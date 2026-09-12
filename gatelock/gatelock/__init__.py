@@ -15,7 +15,7 @@ from gatelock._arbiter import (
     Arbiter,
 )
 from gatelock._claims import ArbiterVerdict, Claim, default_runtime_dir, grab_strength
-from gatelock._config import GrabPolicy
+from gatelock._config import GrabPolicy, LockConfig, SpaceStep, TypeRole
 from gatelock._detect import OutputChangeDetector
 from gatelock._escape import (
     EscapeDraft,
@@ -25,6 +25,7 @@ from gatelock._escape import (
 )
 from gatelock._fitcheck import FitResult, measure_fit, report_fit
 from gatelock._guards import assert_not_under_pytest, wait_for_x_server
+from gatelock._hooks import LockWindowHooks
 from gatelock._keyboard import bind_activate, bind_cancel, escape_text_tab_trap
 from gatelock._outputs import (
     Output,
@@ -56,13 +57,7 @@ from gatelock._surfaces import (
 )
 from gatelock._theme import LockPalette, LockSpacing, LockTypography
 from gatelock._vt import disable_vt_switching, restore_vt_switching
-from gatelock._window import (
-    LockConfig,
-    LockWindow,
-    LockWindowHooks,
-    SpaceStep,
-    TypeRole,
-)
+from gatelock._window import LockWindow
 from gatelock._xrandr import parse_xrandr_query
 from gatelock.widget_group import WidgetGroup
 from gatelock.widgets import (

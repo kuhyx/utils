@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from gatelock._window import LockConfig
+    from gatelock._config import LockConfig
 
 ButtonVariant = Literal["primary", "secondary", "danger"]
 """Emphasis role for :func:`gatelock.widgets.make_button`, not a colour."""

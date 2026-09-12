@@ -68,8 +68,8 @@ __all__ = [
 ]
 
 if TYPE_CHECKING:
+    from gatelock._config import LockConfig
     from gatelock._outputs import OutputScan
-    from gatelock._window import LockConfig
 
 _logger = logging.getLogger(__name__)
 

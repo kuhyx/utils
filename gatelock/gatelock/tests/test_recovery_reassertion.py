@@ -17,7 +17,7 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from gatelock._window import LockConfig
+from gatelock._config import LockConfig
 from gatelock.tests.conftest import BOTH, DEAD_PRIMARY, build_loop
 
 if TYPE_CHECKING:

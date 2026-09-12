@@ -17,10 +17,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from gatelock._config import LockConfig
 from gatelock._outputs import Output, OutputRect, OutputScan
 from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
 from gatelock._surfaces import SurfaceSet
-from gatelock._window import LockConfig, LockWindow
+from gatelock._window import LockWindow
 
 if TYPE_CHECKING:
     from collections.abc import Generator

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from gatelock._config import LockConfig
 from gatelock._outputs import Output, OutputRect, OutputScan
 from gatelock._surfaces import (
     SurfaceInfo,
@@ -17,7 +18,6 @@ from gatelock._surfaces import (
     TextMirror,
     mirror_text_widgets,
 )
-from gatelock._window import LockConfig
 
 DP0 = Output("DP-0", connected=True, rect=OutputRect(0, 0, 3840, 2160), primary=True)
 HDMI = Output("HDMI-0", connected=True, rect=OutputRect(3840, 0, 2560, 1440))

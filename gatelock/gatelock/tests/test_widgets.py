@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gatelock._window import LockConfig
+from gatelock._config import LockConfig
 from gatelock.widgets import (
     DEFAULT_WRAP,
     ButtonStyle,

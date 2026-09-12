@@ -32,7 +32,7 @@ from gatelock._scrollkeys import bind_scroll_keys, track_focus
 from gatelock._userintent import UserIntentTracker, viewport_targets
 
 if TYPE_CHECKING:
-    from gatelock._window import LockConfig
+    from gatelock._config import LockConfig
 
 # Extra px kept visible around a widget scrolled into view, so a focused
 # field never sits flush against the viewport edge.

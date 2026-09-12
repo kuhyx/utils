@@ -12,9 +12,9 @@ from unittest.mock import MagicMock, patch
 from gatelock._arbiter import (
     RANK_DIET_GUARD,
 )
+from gatelock._config import LockConfig
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
-from gatelock._window import LockConfig
 from gatelock.tests.conftest import make_window
 
 # Captured before the autouse hermetic fixture replaces it.

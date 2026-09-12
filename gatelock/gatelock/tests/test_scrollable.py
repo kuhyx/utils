@@ -20,8 +20,8 @@ import tkinter as tk
 
 import pytest
 
+from gatelock._config import LockConfig
 from gatelock._scrollable import ScrollableSurface
-from gatelock._window import LockConfig
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("DISPLAY"),

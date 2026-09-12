@@ -6,9 +6,6 @@ lifecycle) and the *declarative* surface an embedding app actually fills in
 can each be read in one piece. :class:`LockConfig` carries no behaviour beyond
 resolving its own presets and the design-system scales, and nothing here
 imports the window machinery -- the dependency runs one way only.
-
-Imported from :mod:`gatelock._window` as well, so ``from gatelock._window
-import LockConfig`` keeps working for the modules and tests that already do.
 """
 
 from __future__ import annotations

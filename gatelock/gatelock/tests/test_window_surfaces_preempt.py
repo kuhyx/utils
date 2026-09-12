@@ -17,10 +17,9 @@ from gatelock._arbiter import (
     RANK_WAKE_ALARM,
 )
 from gatelock._claims import Claim
-from gatelock._config import GrabPolicy
+from gatelock._config import GrabPolicy, LockConfig
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
-from gatelock._window import LockConfig
 from gatelock.tests.conftest import make_window
 
 # Captured before the autouse hermetic fixture replaces it.
