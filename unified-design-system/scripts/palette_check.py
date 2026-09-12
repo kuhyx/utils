@@ -39,9 +39,10 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKENS_MD = ROOT / "unified-design-system" / "DOCS-tokens.md"
 TOKENS_CSS = ROOT / "web_ui" / "src" / "tokens.css"
 TOKENS_DART = ROOT / "design_system" / "lib" / "src" / "tokens.dart"
-# LockConfig moved out of _window.py when that file was split for the
-# 250-line cap; the palette lives with the dataclass, not the window.
-LOCKCONFIG_PY = ROOT / "gatelock" / "gatelock" / "_config.py"
+# The palette moved twice: out of _window.py in the 250-line split, then out
+# of LockConfig into the LockPalette record (gatelock 0.8.0). The colours live
+# with that record, not with the behavioural config.
+LOCKCONFIG_PY = ROOT / "gatelock" / "gatelock" / "_theme.py"
 
 
 @dataclass
@@ -121,16 +122,16 @@ def parse_dart(text: str) -> dict[str, str]:
 
 
 def parse_tk(text: str) -> dict[str, str]:
-    """Parse `field: str = "#RRGGBB"` defaults out of the LockConfig block."""
+    """Parse `field: str = "#RRGGBB"` defaults out of the LockPalette block."""
     found: dict[str, str] = {}
-    start = text.find("class LockConfig")
+    start = text.find("class LockPalette")
     if start == -1:
         # Fail closed. Returning {} here made every tk comparison vacuously
         # pass when LockConfig moved to _config.py during the 250-line split:
         # "0 parsed token(s)" read as success, and the drift guard was off
         # for the whole gatelock stack without anything going red.
         msg = (
-            "LockConfig not found in the file palette_check reads. It has "
+            "LockPalette not found in the file palette_check reads. It has "
             "moved; update LOCKCONFIG_PY rather than letting the tk stack go "
             "unchecked."
         )

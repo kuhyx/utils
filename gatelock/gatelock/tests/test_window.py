@@ -102,6 +102,13 @@ class TestSetup:
         topmost_on = True
         mock_root.attributes.assert_any_call("-topmost", topmost_on)
 
+    def test_suspend_handles_are_the_armed_collaborators(self, mock_root) -> None:
+        """An app that suspends the lock stops the very loop and watcher it arms."""
+        window, _hooks = make_window(mock_root, config=LockConfig(mode="soft"))
+
+        assert window.recovery is window._arming.recovery
+        assert window.detector is window._arming.detector
+
 
 class TestGrabInput:
     """Tests for LockWindow.grab_input."""
