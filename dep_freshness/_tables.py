@@ -18,13 +18,27 @@ CARGO: Final = "cargo"
 GOMOD: Final = "gomod"
 GITTAG: Final = "gittag"
 MAVEN: Final = "maven"
+# A JitPack artifact pinned to a commit hash instead of a tag. "Newest" is
+# the source repository's default-branch HEAD: a hash pin has no release to
+# wait for, so the only reading of "current" it admits is "at HEAD".
+GITCOMMIT: Final = "gitcommit"
 TOOLCHAIN: Final = "toolchain"
 # The constraint a workflow parser writes for a version MATRIX. Standing
 # decision (kuhy, 2026-08-28): one toolchain version per repo, always newest,
 # so a matrix is a finding to delete rather than a range to satisfy.
 MATRIX: Final = "matrix"
 
-ECOSYSTEMS: Final = (PUB, PYPI, NPM, CARGO, GOMOD, GITTAG, MAVEN, TOOLCHAIN)
+ECOSYSTEMS: Final = (
+    PUB,
+    PYPI,
+    NPM,
+    CARGO,
+    GOMOD,
+    GITTAG,
+    MAVEN,
+    GITCOMMIT,
+    TOOLCHAIN,
+)
 
 # --- Registry endpoints -----------------------------------------------------
 
@@ -34,19 +48,25 @@ NPM_API: Final = "https://registry.npmjs.org/{name}"
 CRATES_API: Final = "https://crates.io/api/v1/crates/{name}"
 GOPROXY_API: Final = "https://proxy.golang.org/{name}/@latest"
 FLUTTER_RELEASES: Final = (
-    "https://storage.googleapis.com/flutter_infra_release/releases/"
-    "releases_linux.json"
+    "https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json"
 )
 NODE_RELEASES: Final = "https://nodejs.org/dist/index.json"
 GRADLE_RELEASES: Final = "https://services.gradle.org/versions/current"
 # Asked in order; a 404 moves on. Google first because AndroidX and the
 # Android Gradle plugin exist nowhere else, and Central answers 404 fast.
+# JitPack last: it serves tag metadata for `com.github.*` artifacts that
+# were never published anywhere else (PhotoView, DirectionalViewPager, ...).
 MAVEN_REPOS: Final = (
     "https://dl.google.com/dl/android/maven2/",
     "https://repo1.maven.org/maven2/",
     "https://plugins.gradle.org/m2/",
+    "https://jitpack.io/",
 )
 UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
+# JitPack coordinates: `com.github.<owner>:<repo>` or
+# `com.github.<owner>.<repo>:<module>`; the GitHub repo is what "HEAD" means.
+JITPACK_GROUP_PREFIX: Final = "com.github."
+GITHUB_REMOTE: Final = "https://github.com/{repo}"
 
 # pnpm 11 quarantines packages younger than this before it will install them,
 # to blunt the window in which a compromised publish is live. The gate matches
@@ -67,7 +87,7 @@ CACHE_PATH_ENV: Final = "DEP_FRESHNESS_CACHE"
 DEFAULT_CACHE_DIR: Final = "~/.cache/dep-freshness"
 CACHE_FILE: Final = "registry.json"
 TTL_SECONDS: Final = 6 * 3600
-TTL_GITTAG_SECONDS: Final = 24 * 3600
+TTL_GITTAG_SECONDS: Final = 24 * 3600  # also gitcommit: both cost a subprocess
 HTTP_TIMEOUT: Final = 10.0
 PROBE_TIMEOUT: Final = 2.0
 MAX_WORKERS: Final = 8
@@ -101,28 +121,66 @@ REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"
 # repo being checked. Without it `--all` walks utils' own manifests and fails
 # the consuming repo for staleness in a directory that repo does not own --
 # which is exactly how punchme's first green local run turned red in CI.
-EXCLUDED_DIRS: Final = frozenset({
-    ".git", "node_modules", "build", "dist", ".dart_tool", ".venv", "venv",
-    "__pycache__", "target", "vendor", ".gradle", "ios", "macos", "windows",
-    ".mypy_cache", ".pytest_cache", ".ruff_cache", "coverage", "htmlcov",
-    ".idea", ".vscode", "Pods", ".fvm", ".utils",
-})
+EXCLUDED_DIRS: Final = frozenset(
+    {
+        ".git",
+        "node_modules",
+        "build",
+        "dist",
+        ".dart_tool",
+        ".venv",
+        "venv",
+        "__pycache__",
+        "target",
+        "vendor",
+        ".gradle",
+        "ios",
+        "macos",
+        "windows",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "coverage",
+        "htmlcov",
+        ".idea",
+        ".vscode",
+        "Pods",
+        ".fvm",
+        ".utils",
+    }
+)
 
 # --- Constraint policy ------------------------------------------------------
 
 # Q13: these resolve from the Flutter/Dart SDK or are lint packages coupled to
 # it, so a caret range is allowed. An exact pin is still checked for staleness.
-PUB_CARET_ALLOWED: Final = frozenset({
-    "flutter", "flutter_test", "flutter_localizations", "flutter_driver",
-    "flutter_web_plugins", "integration_test", "sky_engine",
-    "flutter_lints", "very_good_analysis", "lints",
-})
+PUB_CARET_ALLOWED: Final = frozenset(
+    {
+        "flutter",
+        "flutter_test",
+        "flutter_localizations",
+        "flutter_driver",
+        "flutter_web_plugins",
+        "integration_test",
+        "sky_engine",
+        "flutter_lints",
+        "very_good_analysis",
+        "lints",
+    }
+)
 
 # Packages that ship with the Flutter SDK: no registry version exists.
-PUB_SDK_PACKAGES: Final = frozenset({
-    "flutter", "flutter_test", "flutter_localizations", "flutter_driver",
-    "flutter_web_plugins", "integration_test", "sky_engine",
-})
+PUB_SDK_PACKAGES: Final = frozenset(
+    {
+        "flutter",
+        "flutter_test",
+        "flutter_localizations",
+        "flutter_driver",
+        "flutter_web_plugins",
+        "integration_test",
+        "sky_engine",
+    }
+)
 
 # `dependency_overrides` is an unpinned dependency wearing a disguise.
 PUB_OVERRIDE_KEY: Final = "dependency_overrides"

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dep_freshness._tables import PYPI_ACCEPT, PYPI_API
 from dep_freshness.registries.http import get_json
-from dep_freshness.versions import newest_stable
+from dep_freshness.versions import reference
 
 _SUFFIXES = (".tar.gz", ".zip", ".whl", ".tar.bz2", ".egg")
 
@@ -44,5 +44,5 @@ def latest(name: str) -> str | None:
             if found:
                 live.add(found)
         if live:
-            return newest_stable(live)
-    return newest_stable(versions)
+            return reference(live)
+    return reference(versions)

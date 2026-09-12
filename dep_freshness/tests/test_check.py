@@ -111,3 +111,23 @@ def _offline(_ecosystem, _name):
 
 def test_the_cache_directory_is_honoured(cache_dir):
     assert os.environ["DEP_FRESHNESS_CACHE"] == str(cache_dir)
+
+
+def test_an_undeterminable_package_is_reported_beside_a_stale_one(
+    repo, run, capsys, monkeypatch
+):
+    """Hidden behind the stale finding it only surfaced after the bump, as a
+    fresh red run nobody could have planned for."""
+    from dep_freshness.registries.http import Offline
+
+    def fetch(ecosystem, package):
+        if package == "http":
+            return "1.7.0"
+        raise Offline(package)
+
+    monkeypatch.setattr("dep_freshness.resolve._fetch", fetch)
+    write(repo, "pubspec.yaml", STALE_PUBSPEC)
+    assert run("--all", "--strict") == 1
+    err = capsys.readouterr().err
+    assert "pub:http" in err
+    assert "DEGRADED" in err

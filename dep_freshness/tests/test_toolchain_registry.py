@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from dep_freshness.registries import gittag
+from dep_freshness.registries import _git, gittag
 from dep_freshness.registries import toolchain as tc
 from dep_freshness.registries.http import Offline
 
@@ -75,7 +75,7 @@ LS_REMOTE = (
 
 @pytest.fixture
 def ls_remote(monkeypatch):
-    monkeypatch.setattr(gittag, "host_reachable", lambda _url: True)
+    monkeypatch.setattr(_git, "host_reachable", lambda _url: True)
 
     def install(stdout="", returncode=0, error=None):
         def fake_run(*_args, **_kwargs):
@@ -114,6 +114,6 @@ def test_a_missing_git_binary_degrades_to_offline(ls_remote):
 
 
 def test_an_unreachable_remote_degrades_to_offline(monkeypatch):
-    monkeypatch.setattr(gittag, "host_reachable", lambda _url: False)
+    monkeypatch.setattr(_git, "host_reachable", lambda _url: False)
     with pytest.raises(Offline):
         gittag.latest("crdt_sync_dart")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dep_freshness._tables import PUB_API
 from dep_freshness.registries.http import get_json
-from dep_freshness.versions import newest_stable
+from dep_freshness.versions import newest_stable, reference
 
 
 def latest(name: str) -> str | None:
@@ -20,4 +20,4 @@ def latest(name: str) -> str | None:
     if candidate and newest_stable([candidate]):
         return candidate
     versions = [v.get("version") for v in payload.get("versions") or []]
-    return newest_stable(versions)
+    return reference(versions)

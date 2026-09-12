@@ -1,14 +1,19 @@
 """Maven repositories: newest stable of `group:artifact`, from maven-metadata.
 
-Three repositories, asked in order until one knows the artifact: Google
+Four repositories, asked in order until one knows the artifact: Google
 Maven (every `androidx.*` and `com.android.*` artifact lives ONLY there),
-Maven Central, and the Gradle plugin portal (plugin marker artifacts
-`<id>:<id>.gradle.plugin`). A 404 means "not here", not "not anywhere", so
-it moves on; anything else surfaces as `Offline` from the HTTP layer.
+Maven Central, the Gradle plugin portal (plugin marker artifacts
+`<id>:<id>.gradle.plugin`) and JitPack (tag metadata for `com.github.*`
+artifacts published nowhere else). A 404 means "not here", not "not
+anywhere", so it moves on; anything else surfaces as `Offline` from the HTTP
+layer.
 
 `<latest>` and `<release>` in the metadata are not trusted: AndroidX writes
 `1.2.0-alpha03` into `<latest>` routinely. The full `<versions>` list goes
-through `newest_stable` like every other ecosystem.
+through `newest_stable` like every other ecosystem. Only when NO repository
+has a stable release at all does the newest pre-release become the reference
+(`versions.reference`), which is how `androidx.biometric:biometric-ktx`,
+alpha-only since 2021, gets a checkable answer.
 """
 
 from __future__ import annotations
@@ -17,7 +22,7 @@ from xml.etree import ElementTree
 
 from dep_freshness._tables import MAVEN_REPOS
 from dep_freshness.registries.http import get_text
-from dep_freshness.versions import newest_stable
+from dep_freshness.versions import newest_stable, reference
 
 
 def metadata_url(repo: str, name: str) -> str | None:
@@ -42,6 +47,7 @@ def versions_in(xml: str) -> list[str]:
 
 
 def latest(name: str) -> str | None:
+    seen: list[str] = []
     for repo in MAVEN_REPOS:
         url = metadata_url(repo, name)
         if url is None:
@@ -49,7 +55,9 @@ def latest(name: str) -> str | None:
         body = get_text(url)
         if body is None:
             continue
-        stable = newest_stable(versions_in(body))
+        versions = versions_in(body)
+        stable = newest_stable(versions)
         if stable is not None:
             return stable
-    return None
+        seen.extend(versions)
+    return reference(seen)

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from dep_freshness._tables import (
     CARGO,
+    GITCOMMIT,
     GITTAG,
     GOMOD,
     MAVEN,
@@ -23,7 +24,16 @@ from dep_freshness._tables import (
 )
 from dep_freshness.cache import Cache
 from dep_freshness.models import Dep
-from dep_freshness.registries import cargo, gittag, gomod, maven, npmjs, pub, pypi
+from dep_freshness.registries import (
+    cargo,
+    gitcommit,
+    gittag,
+    gomod,
+    maven,
+    npmjs,
+    pub,
+    pypi,
+)
 from dep_freshness.registries import toolchain as tc
 from dep_freshness.registries.http import Offline
 
@@ -35,6 +45,7 @@ _LOOKUP = {
     GOMOD: gomod.latest,
     GITTAG: gittag.latest,
     MAVEN: maven.latest,
+    GITCOMMIT: gitcommit.latest,
 }
 
 
@@ -43,8 +54,8 @@ class Answer:
     """Latest stable for one package, and how confident we are in it."""
 
     version: str | None
-    stale_cache_days: float | None = None   # served from an expired entry
-    unavailable: bool = False               # no network and no cache at all
+    stale_cache_days: float | None = None  # served from an expired entry
+    unavailable: bool = False  # no network and no cache at all
 
 
 def _toolchain_latest(name: str) -> str | None:

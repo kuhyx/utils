@@ -33,7 +33,7 @@ from typing import Any
 
 import tomllib
 
-from dep_freshness._tables import MAVEN, TOOLCHAIN
+from dep_freshness._tables import GITCOMMIT, JITPACK_GROUP_PREFIX, MAVEN, TOOLCHAIN
 from dep_freshness.models import Dep
 from dep_freshness.parsers._lines import index
 from dep_freshness.versions import exact_pin
@@ -43,6 +43,15 @@ WRAPPER_NAME = "gradle-wrapper.properties"
 _DISTRIBUTION = re.compile(
     r"gradle-(?P<version>\d+(?:\.\d+)*(?:-[0-9A-Za-z.-]+?)?)-(?:bin|all)\.zip"
 )
+# JitPack accepts any commit as a version; 7 to 40 hex digits and nothing
+# else is one. `1.0.0` never matches (dots), and a tag like `v2.3.0` has a
+# letter outside a-f.
+_COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def _commit_pin(name: str, version: str) -> bool:
+    """True for `com.github.*` at a commit hash: a gitcommit dep, not maven."""
+    return name.startswith(JITPACK_GROUP_PREFIX) and bool(_COMMIT.match(version))
 
 
 def _rich(value: Any) -> str:
@@ -104,14 +113,17 @@ def parse_catalog(path: Path) -> list[Dep]:
                 continue  # BOM-managed, or a dangling ref the build itself rejects
             if plugin:
                 name = f"{name}:{name}.gradle.plugin"
+            ecosystem, pinned = MAVEN, exact_pin(version)
+            if _commit_pin(name, version):
+                ecosystem, pinned = GITCOMMIT, version.strip()
             deps.append(
                 Dep(
-                    ecosystem=MAVEN,
+                    ecosystem=ecosystem,
                     name=name,
                     constraint=version,
                     path=path,
                     line=line,
-                    pinned=exact_pin(version),
+                    pinned=pinned,
                 )
             )
     return deps

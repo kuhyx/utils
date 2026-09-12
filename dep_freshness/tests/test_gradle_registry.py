@@ -1,4 +1,4 @@
-"""Maven metadata across three repositories, and the Gradle release feed."""
+"""Maven metadata across four repositories, and the Gradle release feed."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from dep_freshness.registries.http import Offline
 from dep_freshness.resolve import _toolchain_latest
 from dep_freshness.tests.conftest import write
 
-GOOGLE, CENTRAL, PORTAL = maven.MAVEN_REPOS
+GOOGLE, CENTRAL, PORTAL, JITPACK = maven.MAVEN_REPOS
 
 
 def metadata(*versions: str, latest: str | None = None) -> str:
@@ -66,6 +66,31 @@ def test_a_repo_with_only_prereleases_does_not_stop_the_search(repos):
     repos[maven.metadata_url(GOOGLE, "g:a")] = metadata("1.0.0-beta01")
     repos[maven.metadata_url(CENTRAL, "g:a")] = metadata("0.9.0")
     assert maven.latest("g:a") == "0.9.0"
+
+
+def test_jitpack_is_asked_last_and_reads_tag_metadata(repos):
+    """PhotoView was never published anywhere but JitPack; `v`-tags and bare
+    tags both appear and the newest wins."""
+    name = "com.github.chrisbanes:PhotoView"
+    repos[maven.metadata_url(JITPACK, name)] = metadata("v1.3.1", "2.2.0", "2.3.0")
+    assert maven.latest(name) == "2.3.0"
+
+
+def test_a_project_named_tag_is_read_as_its_version(repos):
+    """`java-nat-sort` is tagged `natural-comparator-1.1`, not `1.1`."""
+    name = "com.github.gpanther:java-nat-sort"
+    repos[maven.metadata_url(JITPACK, name)] = metadata("natural-comparator-1.1")
+    assert maven.latest(name) == "natural-comparator-1.1"
+
+
+def test_a_package_with_no_stable_anywhere_falls_back_to_newest_prerelease(repos):
+    """biometric-ktx has been alpha-only since 2021: the newest alpha is the
+    reference, and a stable release in ANY repo would still win over it."""
+    name = "androidx.biometric:biometric-ktx"
+    repos[maven.metadata_url(GOOGLE, name)] = metadata(
+        "1.2.0-alpha05", "1.4.0-alpha02", "1.3.0-alpha01"
+    )
+    assert maven.latest(name) == "1.4.0-alpha02"
 
 
 def test_unknown_everywhere_or_malformed_name_is_none(repos):

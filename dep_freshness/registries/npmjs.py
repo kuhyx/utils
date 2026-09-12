@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dep_freshness._tables import NPM_ACCEPT, NPM_API
 from dep_freshness.registries.http import get_json
-from dep_freshness.versions import is_prerelease, newest_stable
+from dep_freshness.versions import is_prerelease, reference
 
 
 def latest(name: str) -> str | None:
@@ -20,4 +20,4 @@ def latest(name: str) -> str | None:
     tag = (payload.get("dist-tags") or {}).get("latest")
     if tag and not is_prerelease(str(tag)):
         return str(tag)
-    return newest_stable((payload.get("versions") or {}).keys())
+    return reference((payload.get("versions") or {}).keys())

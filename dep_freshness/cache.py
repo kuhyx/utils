@@ -8,17 +8,18 @@ user, because `--no-verify` is banned.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import tempfile
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
 from dep_freshness._tables import (
     CACHE_FILE,
     CACHE_PATH_ENV,
     DEFAULT_CACHE_DIR,
+    GITCOMMIT,
     GITTAG,
     TTL_GITTAG_SECONDS,
     TTL_SECONDS,
@@ -32,8 +33,8 @@ def cache_dir() -> Path:
 
 
 def ttl_for(ecosystem: str) -> int:
-    """Git tags move rarely and cost a subprocess, so they cache longer."""
-    return TTL_GITTAG_SECONDS if ecosystem == GITTAG else TTL_SECONDS
+    """Git refs move rarely and cost a subprocess, so they cache longer."""
+    return TTL_GITTAG_SECONDS if ecosystem in (GITTAG, GITCOMMIT) else TTL_SECONDS
 
 
 @dataclass

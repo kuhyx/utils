@@ -15,9 +15,9 @@ banned here, so a hook that hard-fails offline would leave no way to commit.
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from dep_freshness import report
 from dep_freshness._tables import NPM
@@ -213,10 +213,13 @@ def main(argv: list[str] | None = None) -> int:
         print(report.as_json(failing, entries, code))
         return code
 
+    # Both sections print when both apply: an undeterminable package hidden
+    # behind a stale one only surfaces after the bump, as a fresh red run.
+    if unknown or resolver.degraded:
+        report.degraded(resolver.degraded or [f.label for f in unknown])
     if real:
         report.violations(real, root)
         return 1
     if unknown or resolver.degraded:
-        report.degraded(resolver.degraded or [f.label for f in unknown])
         return 3 if args.strict else 0
     return 0

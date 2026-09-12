@@ -15,11 +15,30 @@ purpose:
 
 from __future__ import annotations
 
-from dep_freshness._tables import MATRIX, TOOLCHAIN
+from dep_freshness._tables import GITCOMMIT, MATRIX, TOOLCHAIN
 from dep_freshness.constraints import lower_bound, satisfies
 from dep_freshness.models import Dep, Finding, Severity
 from dep_freshness.resolve import Answer
 from dep_freshness.versions import behind
+
+# What JitPack accepts as a version, and what a bump pastes into the catalog.
+_SHORT_SHA = 10
+
+
+def _commit(dep: Dep, head: str) -> Finding | None:
+    """A hash pin is current when the default branch's HEAD still starts with it."""
+    short = head[:_SHORT_SHA]
+    if not dep.pinned:
+        return Finding(dep, Severity.UNPINNED, short, detail=f"pin a commit ({short})")
+    if head.lower().startswith(dep.pinned.lower()):
+        return None
+    return Finding(
+        dep,
+        Severity.STALE,
+        short,
+        detail="the source repository's default branch has moved on; a commit "
+        "pin has no release to wait for",
+    )
 
 
 def _toolchain(dep: Dep, latest: str) -> Finding | None:
@@ -86,6 +105,8 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
 
     if dep.ecosystem == TOOLCHAIN:
         return _toolchain(dep, latest)
+    if dep.ecosystem == GITCOMMIT:
+        return _commit(dep, latest)
 
     if dep.peer:
         # A peerDependency declares what a CONSUMER may bring, so exact-pinning
