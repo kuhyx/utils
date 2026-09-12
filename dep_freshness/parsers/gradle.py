@@ -2,6 +2,8 @@
 
 The version catalog is the one place a Gradle build should declare versions,
 which makes it a manifest the gate can read without evaluating Kotlin DSL.
+A build may have several (`settings.gradle.kts` can `from(files(...))` any
+`*.versions.toml`; TachiyomiSY has three), so the suffix is what is matched.
 Three shapes appear in `[libraries]` and `[plugins]`:
 
     foo = "group:artifact:1.2.3"                         # inline string
@@ -36,7 +38,7 @@ from dep_freshness.models import Dep
 from dep_freshness.parsers._lines import index
 from dep_freshness.versions import exact_pin
 
-CATALOG_NAME = "libs.versions.toml"
+CATALOG_SUFFIX = ".versions.toml"  # libs.versions.toml, but also sy.versions.toml
 WRAPPER_NAME = "gradle-wrapper.properties"
 _DISTRIBUTION = re.compile(
     r"gradle-(?P<version>\d+(?:\.\d+)*(?:-[0-9A-Za-z.-]+?)?)-(?:bin|all)\.zip"
@@ -137,3 +139,8 @@ def parse_wrapper(path: Path) -> list[Dep]:
             )
         ]
     return []
+
+
+def is_catalog(path: Path) -> bool:
+    """True for `libs.versions.toml` and any sibling catalog a build declares."""
+    return path.name.endswith(CATALOG_SUFFIX)

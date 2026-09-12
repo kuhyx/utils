@@ -57,7 +57,7 @@ jobs:
           key:
             dep-freshness-${{ hashFiles('**/pubspec.yaml', '**/pyproject.toml',
             '**/requirements*.txt', '**/package.json', '**/Cargo.toml', '**/go.mod',
-            '**/libs.versions.toml') }}
+            '**/*.versions.toml') }}
           restore-keys: dep-freshness-
 
       - name: Every dependency is on newest stable

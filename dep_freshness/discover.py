@@ -36,7 +36,6 @@ _BY_NAME = {
     ".fvmrc": fvm.parse,
     ".nvmrc": javascript.parse_nvmrc,
     ".python-version": python.parse_python_version,
-    gradle.CATALOG_NAME: gradle.parse_catalog,
     gradle.WRAPPER_NAME: gradle.parse_wrapper,
 }
 
@@ -46,6 +45,7 @@ def is_manifest(path: Path) -> bool:
         path.name in MANIFEST_GLOBS
         or bool(_REQUIREMENTS.match(path.name))
         or workflow.is_workflow(path)
+        or gradle.is_catalog(path)
     )
 
 
@@ -58,6 +58,8 @@ def parse_manifest(path: Path) -> list[Dep]:
         return python.parse_requirements(path)
     if workflow.is_workflow(path):
         return workflow.parse(path)
+    if gradle.is_catalog(path):
+        return gradle.parse_catalog(path)
     return []
 
 
@@ -68,7 +70,9 @@ def _git_ignored(paths: list[Path], root: Path) -> set[Path]:
         result = subprocess.run(
             ["git", "-C", str(root), "check-ignore", "--stdin"],
             input="\n".join(str(p) for p in paths),
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
     except OSError:
         return set()

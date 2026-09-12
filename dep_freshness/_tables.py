@@ -93,7 +93,6 @@ MANIFEST_GLOBS: Final = (
     ".fvmrc",
     ".nvmrc",
     ".python-version",
-    "libs.versions.toml",
     "gradle-wrapper.properties",
 )
 REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"

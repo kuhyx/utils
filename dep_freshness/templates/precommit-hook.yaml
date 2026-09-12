@@ -18,5 +18,5 @@
           |package\.json|package-lock\.json|pnpm-lock\.yaml
           |Cargo\.(toml|lock)|go\.(mod|sum)
           |\.fvmrc|\.nvmrc|\.python-version
-          |libs\.versions\.toml|gradle-wrapper\.properties
+          |\.versions\.toml|gradle-wrapper\.properties
           |\.github/workflows/.*\.ya?ml)$
