@@ -31,11 +31,6 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from gatelock.log_integrity import compute_entry_hmac, verify_entry_hmac
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
 from gatelock._escape_types import (
     EscapeDraft,
     EscapeHistory,
@@ -43,6 +38,10 @@ from gatelock._escape_types import (
     _parse_iso,
     _today_iso,
 )
+from gatelock.log_integrity import compute_entry_hmac, verify_entry_hmac
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 

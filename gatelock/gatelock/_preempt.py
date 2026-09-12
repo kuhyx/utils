@@ -19,7 +19,8 @@ import signal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from gatelock._arbiter import Arbiter, Claim
+    from gatelock._arbiter import Arbiter
+    from gatelock._claims import Claim
     from gatelock._config import LockConfig
 
 _logger = logging.getLogger(__name__)

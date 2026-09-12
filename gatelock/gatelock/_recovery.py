@@ -56,11 +56,7 @@ class RecoveryLoop:
     def __init__(self, root: tk.Misc, collaborators: RecoveryCollaborators) -> None:
         """Wire the loop to the pieces it re-asserts over."""
         self._root = root
-        self._config = collaborators.config
-        self._surfaces = collaborators.surfaces
-        self._enumerator = collaborators.enumerator
-        self._detector = collaborators.detector
-        self._hooks = collaborators.hooks
+        self._parts = collaborators
         self._running = False
         self._ticks = 0
         self._drain_job: str | None = None
@@ -92,18 +88,22 @@ class RecoveryLoop:
         """Queue the next cheap drain tick."""
         if not self._running:
             return
-        self._drain_job = self._root.after(self._config.detect_drain_ms, self._drain)
+        self._drain_job = self._root.after(
+            self._parts.config.detect_drain_ms, self._drain
+        )
 
     def _schedule_verify(self) -> None:
         """Queue the next full verify tick."""
         if not self._running:
             return
-        self._verify_job = self._root.after(self._config.recovery_tick_ms, self._verify)
+        self._verify_job = self._root.after(
+            self._parts.config.recovery_tick_ms, self._verify
+        )
 
     def _drain(self) -> None:
         """Run a full tick only if a push signal arrived. Cheap otherwise."""
         try:
-            if self._detector.take_pending():
+            if self._parts.detector.take_pending():
                 _logger.debug("output-change signal received; re-asserting the lock")
                 self.tick()
         # Same fail-open reasoning as _verify.
@@ -136,7 +136,7 @@ class RecoveryLoop:
             What this pass saw and corrected.
         """
         self._ticks += 1
-        scan = self._enumerator.scan()
+        scan = self._parts.enumerator.scan()
 
         if not scan.ok:
             # No information is not a reason to change anything. Keep every
@@ -146,9 +146,9 @@ class RecoveryLoop:
             )
             return RecoveryReport(scan_ok=False, source=scan.source)
 
-        self._surfaces.update_backdrop()
-        delta = self._surfaces.apply(scan)
-        corrected = self._surfaces.enforce()
+        self._parts.surfaces.update_backdrop()
+        delta = self._parts.surfaces.apply(scan)
+        corrected = self._parts.surfaces.enforce()
         grab_reasserted = self._reassert_grab()
         vt_reasserted = self._reassert_vt()
         if delta.created:
@@ -191,7 +191,7 @@ class RecoveryLoop:
         Returns:
             True if the grab had to be re-taken.
         """
-        if self._config.resolved_grab() != "global":
+        if self._parts.config.resolved_grab() != "global":
             return False
         if self.holds_grab():
             return False
@@ -226,8 +226,8 @@ class RecoveryLoop:
         that widget the actual Tk focus target.
         """
         with contextlib.suppress(tk.TclError):
-            index = self._surfaces.preferred_focus_index()
-            self._hooks.on_focus_ready(self._surfaces.focus_surface(index))
+            index = self._parts.surfaces.preferred_focus_index()
+            self._parts.hooks.on_focus_ready(self._parts.surfaces.focus_surface(index))
 
     def _reassert_vt(self) -> bool:
         """Periodically re-disable VT switching. Never re-enables it.
@@ -235,7 +235,7 @@ class RecoveryLoop:
         Returns:
             True on ticks where the re-assert ran.
         """
-        if not self._config.resolved_disable_vt():
+        if not self._parts.config.resolved_disable_vt():
             return False
         if self._ticks % _VT_REASSERT_EVERY:
             return False

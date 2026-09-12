@@ -13,11 +13,8 @@ from gatelock._arbiter import (
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
     Arbiter,
-    ArbiterVerdict,
-    Claim,
-    default_runtime_dir,
-    grab_strength,
 )
+from gatelock._claims import ArbiterVerdict, Claim, default_runtime_dir, grab_strength
 from gatelock._detect import OutputChangeDetector
 from gatelock._escape import (
     EscapeDraft,

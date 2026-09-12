@@ -42,7 +42,6 @@ from gatelock._claims import (
     Claim,
     _try_lock,
     default_runtime_dir,
-    grab_strength,
     live_claims,
     read_claim_if_held,
 )
@@ -51,20 +50,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 _logger = logging.getLogger(__name__)
-
-# Re-exported after the 250-line split: `from gatelock._arbiter import
-# Claim` is used by _window, the tests and gatelock's own __init__.
-__all__ = [
-    "RANK_DIET_GUARD",
-    "RANK_SCREEN_LOCKER",
-    "RANK_WAKE_ALARM",
-    "Arbiter",
-    "ArbiterVerdict",
-    "Claim",
-    "default_runtime_dir",
-    "grab_strength",
-]
-
 
 RANK_WAKE_ALARM: Final = 300
 RANK_SCREEN_LOCKER: Final = 200

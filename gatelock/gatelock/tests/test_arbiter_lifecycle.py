@@ -18,8 +18,8 @@ from gatelock._arbiter import (
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
     Arbiter,
-    Claim,
 )
+from gatelock._claims import Claim
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

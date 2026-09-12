@@ -122,7 +122,7 @@ class TestScheduling:
         """No change signal means no full pass."""
         recovery, enumerator, _surfaces = loop
         enumerator.scan.return_value = BOTH
-        recovery._detector.take_pending.return_value = False
+        recovery._parts.detector.take_pending.return_value = False
         recovery._running = True
         recovery._drain()
         enumerator.scan.assert_not_called()
@@ -133,7 +133,7 @@ class TestScheduling:
         """A pending change triggers a full pass."""
         recovery, enumerator, _surfaces = loop
         enumerator.scan.return_value = BOTH
-        recovery._detector.take_pending.return_value = True
+        recovery._parts.detector.take_pending.return_value = True
         recovery._running = True
         recovery._drain()
         enumerator.scan.assert_called_once_with()
@@ -172,7 +172,7 @@ class TestScheduling:
         """Same for the cheap cadence."""
         recovery, enumerator, _surfaces = loop
         enumerator.scan.side_effect = RuntimeError("boom")
-        recovery._detector.take_pending.return_value = True
+        recovery._parts.detector.take_pending.return_value = True
         recovery._running = True
         with caplog.at_level(logging.ERROR):
             recovery._drain()

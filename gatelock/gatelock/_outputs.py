@@ -17,11 +17,11 @@ Two backends compute the same predicate:
 * **``xrandr --query``** text -- a re-derivation of the same predicate for
   systems without ``python-xlib``.
 
-``python-xlib`` is an optional dependency, so its import lives inside a
-function rather than at module scope. That is deliberate and load-bearing: a
-module-scope ``try/except ImportError`` is resolved at import time, which makes
-the ``except`` arm permanently unreachable for branch coverage -- and this is
-precisely the degradation path that must stay tested.
+``python-xlib`` is an optional dependency, loaded on demand through
+:mod:`gatelock._xlib` rather than at module scope. That is deliberate and
+load-bearing: a module-scope ``try/except ImportError`` is resolved at import
+time, which makes the ``except`` arm permanently unreachable for branch
+coverage -- and this is precisely the degradation path that must stay tested.
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import tkinter as tk
-
 from gatelock._output_types import Output, OutputRect, OutputScan
 from gatelock._randr import RandrBackend
 from gatelock._xrandr import parse_xrandr_query, scan_xrandr
+
+if TYPE_CHECKING:
+    import tkinter as tk
 
 # Re-exported after the 250-line split, so `from gatelock._outputs import
 # Output` -- which the tests and sibling modules do -- keeps resolving.

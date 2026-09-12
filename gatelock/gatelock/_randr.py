@@ -13,6 +13,7 @@ import logging
 from typing import TYPE_CHECKING, Protocol
 
 from gatelock._output_types import Output, OutputRect
+from gatelock._xlib import load_xlib
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -41,23 +42,27 @@ if TYPE_CHECKING:
         output: int
 
     class _XRoot(Protocol):
-        def xrandr_get_screen_resources(self) -> _ScreenResources: ...
+        def xrandr_get_screen_resources(self) -> _ScreenResources:
+            """Mirror ``root.xrandr_get_screen_resources()``."""
 
-        def xrandr_get_output_primary(self) -> _PrimaryReply: ...
+        def xrandr_get_output_primary(self) -> _PrimaryReply:
+            """Mirror ``root.xrandr_get_output_primary()``."""
 
     class _XScreen(Protocol):
         root: _XRoot
 
     class _XDisplay(Protocol):
-        def screen(self) -> _XScreen: ...
+        def screen(self) -> _XScreen:
+            """Mirror ``Display.screen()``."""
 
-        def xrandr_get_output_info(
-            self, output: int, timestamp: int
-        ) -> _OutputInfo: ...
+        def xrandr_get_output_info(self, output: int, timestamp: int) -> _OutputInfo:
+            """Mirror ``Display.xrandr_get_output_info()``."""
 
-        def xrandr_get_crtc_info(self, crtc: int, timestamp: int) -> _CrtcInfo: ...
+        def xrandr_get_crtc_info(self, crtc: int, timestamp: int) -> _CrtcInfo:
+            """Mirror ``Display.xrandr_get_crtc_info()``."""
 
-        def close(self) -> None: ...
+        def close(self) -> None:
+            """Mirror ``Display.close()``."""
 
 
 _logger = logging.getLogger(__name__)
@@ -88,16 +93,15 @@ class RandrBackend:
     @classmethod
     def create(cls) -> RandrBackend | None:
         """Open an X connection for RandR queries, or None if unavailable."""
-        try:
-            from Xlib import display as xdisplay
-        except ImportError:
+        modules = load_xlib("Xlib.display")
+        if modules is None:
             _logger.debug(
                 "python-xlib is not installed; RandR events and RandR "
                 "enumeration are unavailable, falling back to xrandr"
             )
             return None
         try:
-            return cls(xdisplay.Display())
+            return cls(modules[0].Display())
         except (OSError, ValueError) as exc:
             _logger.warning("could not open an X display for RandR: %s", exc)
             return None

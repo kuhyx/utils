@@ -101,7 +101,7 @@ repos:
           - --disable-error-code=list-item
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: v3.3.2
+    rev: v4.0.8
     hooks:
       - id: pylint
         args:

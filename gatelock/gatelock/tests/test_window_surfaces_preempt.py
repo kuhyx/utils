@@ -15,8 +15,8 @@ from gatelock._arbiter import (
     RANK_DIET_GUARD,
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
-    Claim,
 )
+from gatelock._claims import Claim
 from gatelock._detect import _RandrEventSource
 from gatelock._outputs import Output, OutputRect
 from gatelock._window import LockConfig

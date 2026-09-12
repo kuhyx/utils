@@ -32,6 +32,8 @@ import threading
 import tkinter as tk
 from typing import Any
 
+from gatelock._xlib import load_xlib
+
 _logger = logging.getLogger(__name__)
 
 _SELECT_TIMEOUT_S = 0.5
@@ -64,15 +66,14 @@ class _RandrEventSource:
 
     def _connect(self) -> bool:
         """Open the connection and subscribe to layout changes."""
-        try:
-            from Xlib import display as xdisplay
-            from Xlib.ext import randr
-        except ImportError:
+        modules = load_xlib("Xlib.display", "Xlib.ext.randr")
+        if modules is None:
             _logger.info(
                 "python-xlib is not installed; falling back to Tk <Configure> "
                 "plus xrandr polling for output-change detection"
             )
             return False
+        xdisplay, randr = modules
         try:
             self._display = xdisplay.Display()
             root = self._display.screen().root

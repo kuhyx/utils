@@ -95,16 +95,40 @@ color_output = true
 exclude = [".venv/"]
 
 [tool.pylint.main]
+# pre-commit runs from the monorepo root (~/src/utils), so the package dir
+# goes on the path for `import gatelock` to resolve the same way it does
+# under pytest -- otherwise pylint reports import-error for the package's
+# own modules.
+init-hook = "import sys; sys.path.insert(0, 'gatelock')"
 analyse-fallback-blocks = true
 persistent = true
 jobs = 0
 py-version = "3.14"
 ignore = [".venv", "__pycache__"]
+# Test suites intentionally use patterns (protected-access, fixture-arg
+# shadowing) that don't apply to source code; ruff's per-file-ignores carry
+# the equivalent exemptions, so tests stay linted -- by ruff. This is the same
+# source-only pylint scope wake-alarm / diet-guard / testsAndMisc use. It has
+# to be `ignore-paths`, not `ignore = ["tests"]`: `ignore` only matches the
+# basename of what pylint is *given*, and pre-commit hands it explicit file
+# paths, so a directory name in `ignore` never fires under the hook.
+ignore-paths = ["^(.*/)?tests/.*$"]
 ignore-patterns = [".*\\.pyi$"]
 
 [tool.pylint.messages_control]
 enable = "all"
-disable = []
+# Globally disabled checks, matching wake-alarm / diet-guard: each is a
+# stylistic preference that conflicts with deliberate, clearer code.
+# Everything else stays at max strictness.
+disable = [
+    # use-implicit-booleaness family (C1803/C1804/C1805): pylint wants
+    # `not x` / `not s` instead of `x == 0` / `s == ""`. Explicit comparisons
+    # against 0 and "" state numeric/string intent more clearly than truthiness
+    # (and are not equivalent when the value may be None), so we keep them.
+    "use-implicit-booleaness-not-comparison",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+]
 
 [tool.pylint.design]
 min-public-methods = 0

@@ -103,25 +103,27 @@ class LockWindow:
         self._closed = False
         self._focus_notified = False
         self._preempted_pids: set[int] = set()
-        self._surfaces = SurfaceSet(root, config, hooks)
-        self._enumerator = OutputEnumerator(root)
-        self._detector = OutputChangeDetector(root)
-        self._recovery = RecoveryLoop(
+        surfaces = SurfaceSet(root, config, hooks)
+        enumerator = OutputEnumerator(root)
+        detector = OutputChangeDetector(root)
+        recovery = RecoveryLoop(
             root,
             RecoveryCollaborators(
                 config=config,
-                surfaces=self._surfaces,
-                enumerator=self._enumerator,
-                detector=self._detector,
+                surfaces=surfaces,
+                enumerator=enumerator,
+                detector=detector,
                 hooks=hooks,
             ),
         )
+        # The arming bundle is also where the window reaches its
+        # collaborators afterwards; it is the one owner of those four.
         self._arming = _arming.ArmingCollaborators(
             config=config,
-            surfaces=self._surfaces,
-            enumerator=self._enumerator,
-            detector=self._detector,
-            recovery=self._recovery,
+            surfaces=surfaces,
+            enumerator=enumerator,
+            detector=detector,
+            recovery=recovery,
             notify_focus_ready=self._notify_focus_ready,
             log_grab_blocked=self._log_grab_blocked,
         )
@@ -129,7 +131,7 @@ class LockWindow:
     @property
     def surfaces(self) -> SurfaceSet:
         """The live surface set, for apps that need to fan work out over it."""
-        return self._surfaces
+        return self._arming.surfaces
 
     # -- window mechanics -----------------------------------------------------
 
@@ -179,8 +181,8 @@ class LockWindow:
             return
         self._focus_notified = True
         with contextlib.suppress(tk.TclError):
-            index = self._surfaces.preferred_focus_index()
-            self._hooks.on_focus_ready(self._surfaces.focus_surface(index))
+            index = self._arming.surfaces.preferred_focus_index()
+            self._hooks.on_focus_ready(self._arming.surfaces.focus_surface(index))
 
     # -- lifecycle --------------------------------------------------------
 
@@ -222,15 +224,15 @@ class LockWindow:
         if self._closed:
             return
         self._closed = True
-        self._recovery.stop()
-        self._detector.stop()
+        self._arming.recovery.stop()
+        self._arming.detector.stop()
         self._hooks.on_close()
         self._restore_vt()
         if self._arbiter is not None:
             self._arbiter.release()
-        self._enumerator.close()
+        self._arming.enumerator.close()
         with contextlib.suppress(tk.TclError):
-            self._surfaces.destroy_all()
+            self._arming.surfaces.destroy_all()
         with contextlib.suppress(tk.TclError):
             self.root.destroy()
 

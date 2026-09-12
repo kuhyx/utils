@@ -150,9 +150,9 @@ def request_content_size(target: FitTarget) -> None:
     """
     wanted_w = target.content.winfo_reqwidth()
     wanted_h = target.content.winfo_reqheight()
-    bar = target.scrollbar.winfo_reqwidth() if target.scrollbar else 0
+    bar_w = target.scrollbar.winfo_reqwidth() if target.scrollbar else 0
     target.canvas.configure(
-        width=max(1, min(wanted_w, target.canvas.winfo_screenwidth() - bar)),
+        width=max(1, min(wanted_w, target.canvas.winfo_screenwidth() - bar_w)),
         height=max(1, min(wanted_h, target.canvas.winfo_screenheight())),
     )
 
@@ -173,7 +173,7 @@ def report_overflow(target: FitTarget) -> None:
     # A viewport Tk has not laid out yet reports 1px, which is not an
     # overflow -- reporting it would cry wolf on every startup and teach
     # the reader to ignore the one message that matters.
-    if view_h > _UNMAPPED_VIEWPORT_PX and wanted_h > view_h:
+    if _UNMAPPED_VIEWPORT_PX < view_h < wanted_h:
         _logger.warning(
             "lock content overflows its surface: %dpx of content in a "
             "%dpx viewport (%dpx off-screen); it is reachable only by "

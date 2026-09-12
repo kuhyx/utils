@@ -40,7 +40,8 @@ QUEUE_HEARTBEAT_SECONDS: Final = 300.0
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from gatelock._arbiter import Arbiter, Claim
+    from gatelock._arbiter import Arbiter
+    from gatelock._claims import Claim
 
 
 @dataclass(frozen=True)
