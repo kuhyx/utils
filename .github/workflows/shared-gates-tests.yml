@@ -38,3 +38,13 @@ jobs:
 
       - name: md_naming
         run: PYTHONPATH=. python -m pytest md_naming/tests -q
+
+      # Whole package at 100% branch: the gate is enforced in every repo and
+      # now reads a per-repo `.file-length-exempt`, whose fail-closed rule is
+      # exactly the kind of branch a partial suite would leave green by accident.
+      - name: file_length — 100% branch coverage on the gate itself
+        run: |
+          PYTHONPATH=. python -m pytest file_length/tests -q \
+            --cov=file_length --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=100

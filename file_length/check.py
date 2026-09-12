@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 if __package__ in (None, ""):  # invoked as a plain script
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -27,6 +27,7 @@ from file_length.config import (
     is_session_artifact,
     is_vendored,
 )
+from file_length.repo_exempt import ExemptFileError, load, repo_exempt_reason
 
 
 def count_lines(path: Path) -> int | None:
@@ -68,6 +69,9 @@ def exempt_reason(path: Path, lines: int) -> str | None:
         return "not a capped extension"
     if is_vendored(absolutize(path)):
         return "vendored / third-party"
+    repo_reason = repo_exempt_reason(absolutize(path), Path.cwd())
+    if repo_reason is not None:
+        return repo_reason
     if is_session_artifact(absolutize(path)):
         return "frozen session artifact"
     if is_generated(path):
@@ -136,6 +140,15 @@ def main() -> int:
         "--explain", action="store_true", help="also report why files were skipped"
     )
     args = parser.parse_args()
+
+    # Read the repo's own exemption list once, up front: a malformed entry is
+    # a suppression the gate refuses to guess about, so it is exit 2, not a
+    # silent pass on the file it would have covered.
+    try:
+        load(Path.cwd())
+    except ExemptFileError as exc:
+        print(f"File-length gate ERROR: {exc}", file=sys.stderr)
+        return 2
 
     if args.all:
         targets = list(iter_all(Path.cwd()))
