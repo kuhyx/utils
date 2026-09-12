@@ -138,7 +138,7 @@ def sync_quietly(*, paths: Paths | None = None) -> bool:
         # this is normal on a laptop and must not fill the journal.
         _logger.debug("free-day sync skipped: %s", exc)
         return False
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         _logger.exception("free-day sync failed unexpectedly")
         return False
     return True
