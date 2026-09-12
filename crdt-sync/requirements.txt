@@ -8,5 +8,5 @@ pylint==4.0.8
 pytest==9.1.1
 pytest-cov==7.1.0
 requests==2.34.2
-ruff==0.16.5
-types-requests==2.33.0.20260712
+ruff==0.16.7
+types-requests==2.33.0.20260906
