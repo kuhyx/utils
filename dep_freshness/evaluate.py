@@ -25,19 +25,24 @@ from dep_freshness.versions import behind
 _SHORT_SHA = 10
 
 
-def _commit(dep: Dep, head: str) -> Finding | None:
-    """A hash pin is current when the default branch's HEAD still starts with it."""
-    short = head[:_SHORT_SHA]
+def _commit(dep: Dep, heads: str) -> Finding | None:
+    """A hash pin is current while SOME branch head still starts with it.
+
+    `heads` is the registry's space-joined list, default branch first; the
+    default head is what a stale finding proposes.
+    """
+    short = heads.split()[0][:_SHORT_SHA]
     if not dep.pinned:
         return Finding(dep, Severity.UNPINNED, short, detail=f"pin a commit ({short})")
-    if head.lower().startswith(dep.pinned.lower()):
+    pin = dep.pinned.lower()
+    if any(head.lower().startswith(pin) for head in heads.split()):
         return None
     return Finding(
         dep,
         Severity.STALE,
         short,
-        detail="the source repository's default branch has moved on; a commit "
-        "pin has no release to wait for",
+        detail="no branch of the source repository points at this commit any "
+        "more; a commit pin has no release to wait for",
     )
 
 

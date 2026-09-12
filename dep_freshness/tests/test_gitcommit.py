@@ -22,6 +22,7 @@ from dep_freshness.resolve import _LOOKUP, Answer
 from dep_freshness.tests.conftest import write
 
 HEAD = "844a07002c3d2f2b68a6b26a25e8e401777c73e7"
+SIDE = "c80135339b6f4c2d8e1a7b3f9d0e5c6a2b4d8f10"
 
 
 @pytest.fixture
@@ -60,19 +61,25 @@ def test_the_github_repo_behind_a_jitpack_coordinate(name, expected):
     assert gitcommit.source_repo(name) == expected
 
 
-def test_latest_is_the_default_branch_head(ls_remote):
-    calls = ls_remote(f"{HEAD}\tHEAD\n{HEAD}\trefs/heads/master\n")
-    assert gitcommit.latest("com.github.arkon.FlexibleAdapter:flexible-adapter") == HEAD
-    assert calls[-1] == [
-        "git",
-        "ls-remote",
-        "https://github.com/arkon/FlexibleAdapter",
-        "HEAD",
-    ]
+def test_latest_lists_every_branch_head_default_first(ls_remote):
+    calls = ls_remote(
+        f"{SIDE}\trefs/heads/fix-build2\n{HEAD}\tHEAD\n{HEAD}\trefs/heads/master\n"
+        f"{SIDE}\trefs/pull/1/head\n"
+    )
+    assert (
+        gitcommit.latest("com.github.arkon.FlexibleAdapter:flexible-adapter")
+        == f"{HEAD} {SIDE}"
+    )
+    assert calls[-1] == ["git", "ls-remote", "https://github.com/arkon/FlexibleAdapter"]
+
+
+def test_a_repo_with_no_default_head_still_lists_its_branches(ls_remote):
+    ls_remote(f"{SIDE}\trefs/heads/dev\n")
+    assert gitcommit.latest("com.github.mihonapp:image-decoder") == SIDE
 
 
 def test_no_head_line_means_no_answer(ls_remote):
-    ls_remote("\n  \nabc\trefs/heads/dev\n")
+    ls_remote("\n  \nabc\trefs/tags/v1\n")
     assert gitcommit.latest("com.github.mihonapp:image-decoder") is None
 
 
@@ -144,17 +151,19 @@ def dep(pinned: str | None = "844a07002c") -> Dep:
     )
 
 
-def test_a_pin_at_head_passes_whatever_its_length_or_case():
+def test_a_pin_at_any_branch_head_passes_whatever_its_length_or_case():
     assert judge(dep("844a07002c"), Answer(HEAD)) is None
     assert judge(dep("844A070"), Answer(HEAD)) is None
     assert judge(dep(HEAD), Answer(HEAD)) is None
+    # fix-build2's head, not master's: still current.
+    assert judge(dep("c8013533"), Answer(f"{HEAD} {SIDE}")) is None
 
 
-def test_a_pin_behind_head_is_stale_and_reports_the_short_sha():
-    finding = judge(dep("c8013533"), Answer(HEAD))
+def test_a_pin_on_no_branch_head_is_stale_and_proposes_the_default_head():
+    finding = judge(dep("0123abc"), Answer(f"{HEAD} {SIDE}"))
     assert finding.severity is Severity.STALE
     assert finding.latest == "844a07002c"
-    assert "default branch has moved" in finding.detail
+    assert "no branch" in finding.detail
 
 
 def test_a_missing_pin_is_reported_unpinned_with_head_to_use():

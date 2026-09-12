@@ -6,9 +6,10 @@ version, so the gate's question becomes the only one a commit pin admits:
 is the pinned commit still what the source repository's default branch
 points at? (kuhy, 2026-09-12: chosen over never-expiring allowlist entries.)
 
-The answer is the full HEAD sha; `evaluate` compares by prefix so a 7-, 10-
-or 40-character pin all work, and reports the first ten characters, which
-is what JitPack accepts as a version.
+The answer is every branch head's full sha, default branch first; `evaluate`
+compares by prefix so a 7-, 10- or 40-character pin all work, and reports
+the default head's first ten characters, which is what JitPack accepts as
+a version.
 """
 
 from __future__ import annotations
@@ -36,12 +37,27 @@ def source_repo(name: str) -> str | None:
 
 
 def latest(name: str) -> str | None:
-    """The default branch's HEAD sha, or None when `name` is not a JitPack pin."""
+    """Every branch head of the source repo, default branch first, space-joined.
+
+    A pin is current when it is SOME branch's head, not only the default one:
+    Mihon pins `deadlock-fix` of sqldelight-androidx-driver and Tachiyomi
+    pins `fix-build2` of FlexibleAdapter, both side branches whose heads are
+    exactly the pinned commits. Comparing those against `master` alone
+    called two current pins stale. None when `name` is not a JitPack pin.
+    """
     repo = source_repo(name)
     if repo is None:
         return None
-    for line in ls_remote(GITHUB_REMOTE.format(repo=repo), "HEAD"):
+    default: str | None = None
+    heads: list[str] = []
+    # No `--heads`: that filter drops the symbolic HEAD line, which is the
+    # only way to learn WHICH head is the default branch's.
+    for line in ls_remote(GITHUB_REMOTE.format(repo=repo)):
         sha, _, ref = line.partition("\t")
-        if ref.strip() == "HEAD" and sha:
-            return sha.strip()
-    return None
+        sha, ref = sha.strip(), ref.strip()
+        if ref == "HEAD":
+            default = sha
+        elif ref.startswith("refs/heads/"):
+            heads.append(sha)
+    ordered = ([default] if default else []) + [h for h in heads if h != default]
+    return " ".join(ordered) or None
