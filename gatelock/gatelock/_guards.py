@@ -15,11 +15,21 @@ So the rule now is: **output count never gates arming.** Zero live outputs
 means lock without showing, not decline to lock. This function may only answer
 "can we talk to an X server at all", because without one there is no Tk and
 genuinely nothing to do. It must never ask how many outputs are live.
+
+The clock does not gate arming either (2026-09-13). The wait used to give up
+after 60 s, and a boot-time ``Persistent=true`` catch-up starts one second
+after the user manager, long before X exists: on a slow boot the deadline
+passed, the unit exited, and nothing locked until the next timer slot -- which
+systemd had already marked as fired. No X server means the user cannot use the
+machine either, so waiting forever costs nothing and cannot be a bypass. The
+wait now polls until the server answers and re-states itself at WARNING every
+five minutes, so ``systemctl status`` never shows a healthy, silent unit.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import time
 import tkinter as tk
@@ -30,8 +40,11 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
-_DEFAULT_TIMEOUT_S = 60.0
 _DEFAULT_INTERVAL_S = 1.0
+# How often a still-missing X server is re-stated at WARNING. Same reasoning
+# as ``_queue.QUEUE_HEARTBEAT_SECONDS``: a long silent wait is
+# indistinguishable from a hung unit.
+X_WAIT_HEARTBEAT_S = 300.0
 
 
 def assert_not_under_pytest(what: str) -> None:
@@ -66,7 +79,7 @@ def assert_not_under_pytest(what: str) -> None:
 
 def wait_for_x_server(
     *,
-    timeout_s: float = _DEFAULT_TIMEOUT_S,
+    timeout_s: float | None = None,
     interval_s: float = _DEFAULT_INTERVAL_S,
     sleep: Callable[[float], None] = time.sleep,
     monotonic: Callable[[], float] = time.monotonic,
@@ -80,26 +93,42 @@ def wait_for_x_server(
     is a reason to lock silently, never a reason to skip locking.
 
     Args:
-        timeout_s: Give up after this long.
+        timeout_s: Give up after this long. ``None`` (the default) waits for
+            as long as it takes; see the module docstring for why a bound is
+            the wrong tool here.
         interval_s: Seconds between attempts.
         sleep: Injected for tests.
         monotonic: Injected for tests.
         probe: Injected for tests; defaults to opening a throwaway Tk root.
 
     Returns:
-        True if an X server answered, False on timeout.
+        True once an X server answered, False only if ``timeout_s`` was set
+        and passed.
     """
     attempt = probe if probe is not None else _probe_x_server
-    deadline = monotonic() + timeout_s
+    started = monotonic()
+    next_heartbeat = X_WAIT_HEARTBEAT_S
     while True:
         if attempt():
+            elapsed = monotonic() - started
+            if elapsed >= interval_s:
+                _logger.warning("X server answered after %.0fs; arming now", elapsed)
             return True
-        if monotonic() >= deadline:
+        elapsed = monotonic() - started
+        if timeout_s is not None and elapsed >= timeout_s:
             _logger.error(
                 "no X server answered within %.0fs; cannot build a lock window",
                 timeout_s,
             )
             return False
+        if elapsed >= next_heartbeat:
+            _logger.warning(
+                "no X server on %s after %.0fs -- still waiting, nothing is locked",
+                os.environ.get("DISPLAY", "<unset>"),
+                elapsed,
+            )
+            while next_heartbeat <= elapsed:
+                next_heartbeat += X_WAIT_HEARTBEAT_S
         sleep(interval_s)
 
 

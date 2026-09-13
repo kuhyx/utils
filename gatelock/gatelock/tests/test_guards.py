@@ -3,17 +3,45 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import tkinter as tk
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from gatelock._guards import (
+    X_WAIT_HEARTBEAT_S,
     _probe_x_server,
     assert_not_under_pytest,
     wait_for_x_server,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+
+class FakeClock:
+    """A monotonic clock that only moves when something sleeps."""
+
+    def __init__(self) -> None:
+        self.value = 0.0
+        self.slept: list[float] = []
+
+    def now(self) -> float:
+        return self.value
+
+    def sleep(self, seconds: float) -> None:
+        self.slept.append(seconds)
+        self.value += seconds
+
+
+def _false_then_true(after: int) -> Iterator[bool]:
+    for _ in range(after):
+        yield False
+    while True:
+        yield True
 
 
 class TestAssertNotUnderPytest:
@@ -59,18 +87,73 @@ class TestWaitForXServer:
         )
         assert sleeps == [1.0, 1.0]
 
-    def test_times_out(self) -> None:
-        """A display that never arrives gives up and says so."""
-        clock = iter([0.0, 100.0])
-        assert (
-            wait_for_x_server(
-                probe=lambda: False,
-                sleep=lambda _s: None,
-                monotonic=lambda: next(clock),
-                timeout_s=1.0,
+    def test_an_explicit_timeout_gives_up_and_says_so(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Opt-in only: a caller that asks for a bound gets one."""
+        clock = FakeClock()
+        with caplog.at_level(logging.ERROR):
+            assert (
+                wait_for_x_server(
+                    probe=lambda: False,
+                    sleep=clock.sleep,
+                    monotonic=clock.now,
+                    timeout_s=2.5,
+                )
+                is False
             )
-            is False
-        )
+        assert clock.slept == [1.0, 1.0, 1.0]
+        assert "cannot build a lock window" in caplog.text
+
+    def test_the_default_wait_outlives_the_old_sixty_second_deadline(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """The 2026-09-13 rule: time never gates arming. A server that takes
+        ten minutes to appear is still waited for, and the wait says so."""
+        clock = FakeClock()
+        probe = _false_then_true(after=600)
+        with caplog.at_level(logging.WARNING):
+            assert (
+                wait_for_x_server(
+                    probe=lambda: next(probe),
+                    sleep=clock.sleep,
+                    monotonic=clock.now,
+                )
+                is True
+            )
+        assert len(clock.slept) == 600
+        assert "X server answered after 600s; arming now" in caplog.text
+
+    def test_a_long_wait_heartbeats_at_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A silent wait looks like a hung unit; it must re-state itself."""
+        clock = FakeClock()
+        probe = _false_then_true(after=int(X_WAIT_HEARTBEAT_S * 2) + 1)
+        with caplog.at_level(logging.WARNING):
+            wait_for_x_server(
+                probe=lambda: next(probe), sleep=clock.sleep, monotonic=clock.now
+            )
+        heartbeats = [r for r in caplog.records if "still waiting" in r.message]
+        assert len(heartbeats) == 2
+        assert all(r.levelno == logging.WARNING for r in heartbeats)
+        assert "nothing is locked" in heartbeats[0].message
+
+    def test_a_heartbeat_skips_ahead_after_a_long_sleep(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """One coarse sleep past several heartbeat slots logs once, not once
+        per missed slot, and the next heartbeat lands on a future slot."""
+        clock = FakeClock()
+        probe = _false_then_true(after=2)
+        with caplog.at_level(logging.WARNING):
+            wait_for_x_server(
+                probe=lambda: next(probe),
+                sleep=clock.sleep,
+                monotonic=clock.now,
+                interval_s=X_WAIT_HEARTBEAT_S * 3,
+            )
+        assert sum("still waiting" in r.message for r in caplog.records) == 1
 
     def test_zero_live_outputs_does_not_block_arming(self) -> None:
         """THE 2b rule: a connected X server with dark monitors still arms.
