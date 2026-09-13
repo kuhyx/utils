@@ -71,14 +71,21 @@ the discriminator, and it is asserted by grep, not read by eye.
 ## Worked example: testing the real shutdown installer
 
 ```bash
-vm share ~/src/testsAndMisc                 # read-only bind, not a symlink
-vm share ~/src/utils                        # guard-lib lives here
+vm share ~/src/digital-wellbeing            # read-only bind, not a symlink
+vm share ~/src/utils/guard-lib              # the config guard it installs
 vm new st --rtc 2026-08-22T20:55:00     # inside the 21:00-05:00 window
-vm run st 'git clone --no-hardlinks -q /mnt/hostrepo/testsAndMisc ~/tam'
-vm run st 'echo y | sudo bash ~/tam/linux_configuration/scripts/periodic_background/digital_wellbeing/setup_midnight_shutdown.sh enable'
+vm repo st ~/src/digital-wellbeing --worktree
+vm repo st ~/src/utils/guard-lib --worktree
+vm run st 'sudo bash ~/guard-lib/install.sh'
+vm run st 'sudo MIDNIGHT_SHUTDOWN_CONFIRM=y bash ~/digital-wellbeing/setup_midnight_shutdown.sh enable'
 vm run st 'sudo systemctl poweroff'     # -> VERDICT: clean poweroff
 vm reset st                             # back to pristine
 ```
+
+The full night-lockdown flow (lightdm topology, a hanging `openrgb` shim, the
+per-minute timer, mask/stop, black screen, morning unlock) is scripted in
+`digital-wellbeing/tests/vmbox_night_lockdown.sh` and is the reference for
+how `vm lightdm` and `vm shim` fit together.
 
 Verified: the config lands at `/etc/shutdown-schedule.conf` under guard-lib's
 immutable protection, and `shutdown-timer-monitor.service`,
@@ -88,9 +95,10 @@ timestamp and `/etc/hosts` kept its `+i` flag.
 
 Two things that installer taught us, both worth knowing before you run it:
 
-- **It is interactive.** It ends on `read -r -p 'Do you want to proceed?'`.
+- **It refuses to run unattended.** It ends on a confirmation prompt, and
   `vm run` closes stdin on purpose (installers that prompt would otherwise
-  hang forever), so pipe `echo y |` when you actually want it to proceed.
+  hang forever). Piping `echo y |` no longer works either -- with no terminal
+  it declines by design. Set `MIDNIGHT_SHUTDOWN_CONFIRM=y` to proceed.
 - **It is subcommand-driven** (`enable` / `status`). Bare invocation prints
   usage and exits 1 without changing anything.
 
@@ -119,14 +127,33 @@ Two things that installer taught us, both worth knowing before you run it:
 | `vm run <name> <cmd...>` | Run a command, print the verdict |
 | `vm ssh <name>` | Interactive shell (starts the VM if needed) |
 | `vm screenshot <name> [out.png]` | Capture the screen (locker/X11 tests) — verified: real 1280x800 PNG of the guest's i3 session, no viewer installed |
+| `vm lightdm <name>` | Switch the sandbox to the host's login topology: lightdm autologin → i3, tty1 a plain getty. Reboots the guest and proves `lightdm.service` is active with an Xorg it owns |
+| `vm shim <name> <tool> [exit[:N]\|hang\|sleep:S]` | Put a fake `<tool>` ahead of the real one on PATH (`/usr/local/sbin`). Every call is logged with an epoch to `/var/log/vmbox-shim/<tool>.log`, so the host can assert what ran and in what order. `hang` reproduces a tool that never returns |
 | `vm reset <name>` | Wipe back to pristine |
 | `vm rm <name>` / `vm list` | Delete / list sandboxes |
 
+## Hardware the guest does not have: shim it
+
+The guest has no RGB controllers, no NVIDIA card and no sound card, and the
+golden image logs in with agetty+startx rather than a display manager. None
+of that is a reason to test on the host. `vm lightdm` gives a sandbox the
+host's login units (the night-lockdown scripts mask/stop `lightdm.service`
+and `getty@.service`, which do not exist under startx), and `vm shim` stands
+in for `openrgb`, `nvidia-smi`, `amixer` with a chosen behaviour and a call
+log. The 2026-09-12 curfew failure -- openrgb 1.0-2 never returning, before
+the teardown -- is `vm shim nl openrgb hang`, and the fix is proven by the
+lockdown completing anyway.
+
+Both mutate a live overlay only. The base image is never rebuilt for this:
+`vm build --force` re-seals a new checksum while every existing sandbox still
+backs onto the old file's *name*, which is silent qcow2 corruption, not a
+loud refusal.
+
 ## Out of scope
 
-A VM cannot cover everything: adb/phone tests (~36 files), GPU monitors, the
-i2c RGB in `setup_night_lockdown.sh`, and the Nextcloud/SearXNG suites (whose
-fixtures assume a Debian layout) all stay on the host or stay untested.
+A VM still cannot cover adb/phone tests (~36 files), real GPU monitors, and
+the Nextcloud/SearXNG suites (whose fixtures assume a Debian layout); those
+stay on the host or stay untested.
 
 ## Tests
 

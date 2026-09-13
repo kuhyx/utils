@@ -28,6 +28,10 @@ Usage: vm <command> [args]
   repo <name> <path> [--worktree]
                               Copy a host repo in (clone=HEAD, --worktree=uncommitted)
   screenshot <name> [out.png] Capture the guest screen (for locker tests)
+  lightdm <name>              Switch the sandbox to lightdm autologin -> i3,
+                              tty1 a plain getty (the host's login topology)
+  shim <name> <tool> [mode]   Fake a hardware tool on PATH: exit[:N] | hang |
+                              sleep:S; calls logged in /var/log/vmbox-shim/
   reset <name>                Wipe back to pristine (sub-second)
   rm <name>                   Delete the sandbox entirely
   list                        List sandboxes and their state
@@ -95,6 +99,8 @@ main() {
         ssh)        source "$VMBOX_LIB_DIR/ssh.sh";                           vm_ssh_interactive "$@" ;;
         scp)        source "$VMBOX_LIB_DIR/ssh.sh";                           cmd_scp "$@" ;;
         screenshot) source "$VMBOX_LIB_DIR/screenshot.sh";                    vm_screenshot "$@" ;;
+        lightdm)    require_host_deps; source "$VMBOX_LIB_DIR/desktop.sh";    cmd_lightdm "$@" ;;
+        shim)       require_host_deps; source "$VMBOX_LIB_DIR/desktop.sh";    cmd_shim "$@" ;;
         repo)       source "$VMBOX_LIB_DIR/repo.sh";                          cmd_repo "$@" ;;
         share)      source "$VMBOX_LIB_DIR/repo.sh";                          repo_share "$@" ;;
         unshare)    source "$VMBOX_LIB_DIR/repo.sh";                          repo_unshare "$@" ;;

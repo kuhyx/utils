@@ -114,9 +114,11 @@ base_provision() {
 
     phase_begin "Provisioning guest (installs Xorg/i3 + dev tools)"
     # provision.sh sources a sibling (provision-desktop.sh) by path, so BOTH
-    # must land in the same directory in the guest -- copying only the entry
+    # must land in the same directory in the guest (and provision-desktop.sh
+    # installs vmbox-x11.sh from beside itself) -- copying only the entry
     # point produces a build that dies partway with "No such file or directory".
     _base_scp "$VMBOX_GUEST_DIR/provision.sh" "/tmp/provision.sh"
+    _base_scp "$VMBOX_GUEST_DIR/vmbox-x11.sh" "/tmp/vmbox-x11.sh"
     _base_scp "$VMBOX_GUEST_DIR/provision-desktop.sh" "/tmp/provision-desktop.sh"
     _base_ssh "chmod +x /tmp/provision.sh /tmp/provision-desktop.sh && sudo /tmp/provision.sh '$VMBOX_GUEST_USER'" ||
         die "provisioning failed -- see $serial"
