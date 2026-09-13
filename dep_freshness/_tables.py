@@ -89,6 +89,10 @@ CACHE_FILE: Final = "registry.json"
 TTL_SECONDS: Final = 6 * 3600
 TTL_GITTAG_SECONDS: Final = 24 * 3600  # also gitcommit: both cost a subprocess
 HTTP_TIMEOUT: Final = 10.0
+# JitPack generates maven-metadata on request and routinely takes longer than
+# the first timeout; one such read failed a whole CI gates run on 2026-09-12.
+# Each retry waits `attempt * HTTP_TIMEOUT`, so three attempts allow a minute.
+HTTP_ATTEMPTS: Final = 3
 PROBE_TIMEOUT: Final = 2.0
 MAX_WORKERS: Final = 8
 

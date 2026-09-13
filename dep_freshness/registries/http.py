@@ -16,7 +16,12 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-from dep_freshness._tables import HTTP_TIMEOUT, PROBE_TIMEOUT, USER_AGENT
+from dep_freshness._tables import (
+    HTTP_ATTEMPTS,
+    HTTP_TIMEOUT,
+    PROBE_TIMEOUT,
+    USER_AGENT,
+)
 
 
 class Offline(Exception):
@@ -66,15 +71,20 @@ def get_text(url: str, accept: str | None = None) -> str | None:
     if accept:
         headers["Accept"] = accept
     request = Request(url, headers=headers)
-    try:
-        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            return response.read().decode("utf-8")
-    except HTTPError as exc:
-        if exc.code == 404:
-            return None
-        raise Offline(f"{url}: HTTP {exc.code}") from exc
-    except (URLError, TimeoutError, OSError, ValueError) as exc:
-        raise Offline(f"{url}: {exc}") from exc
+    # A slow registry is retried with a longer timeout each time; an HTTP
+    # status is an answer and is never retried.
+    for attempt in range(1, HTTP_ATTEMPTS + 1):
+        try:
+            with urlopen(request, timeout=HTTP_TIMEOUT * attempt) as response:
+                return response.read().decode("utf-8")
+        except HTTPError as exc:
+            if exc.code == 404:
+                return None
+            raise Offline(f"{url}: HTTP {exc.code}") from exc
+        except (URLError, TimeoutError, OSError, ValueError) as exc:
+            if attempt == HTTP_ATTEMPTS:
+                raise Offline(f"{url}: {exc}") from exc
+    return None  # the loop always returns or raises; this satisfies the type
 
 
 def get_json(url: str, accept: str | None = None) -> Any:

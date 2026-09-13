@@ -129,3 +129,34 @@ def test_get_text_returns_the_raw_body_and_none_on_404(monkeypatch):
     monkeypatch.setattr(http, "urlopen", _raiser(
         HTTPError("u", 404, "Not Found", {}, None)))
     assert http.get_text("https://repo1.maven.org/x") is None
+
+
+def test_a_slow_registry_is_retried_with_a_longer_timeout_each_time(monkeypatch):
+    """JitPack builds maven-metadata on request; one 10 s timeout failed a
+    whole CI gates run. Timeouts escalate, an HTTP status never retries."""
+    _reachable(monkeypatch)
+    seen: list[float] = []
+
+    def slow_then_ok(_request, timeout):
+        seen.append(timeout)
+        if len(seen) < 3:
+            raise TimeoutError("timed out")
+        return _Response(b"<metadata/>")
+
+    monkeypatch.setattr(http, "urlopen", slow_then_ok)
+    assert http.get_text("https://jitpack.io/x/maven-metadata.xml") == "<metadata/>"
+    assert seen == [10.0, 20.0, 30.0]
+
+
+def test_a_registry_that_never_answers_is_offline_after_the_last_attempt(monkeypatch):
+    _reachable(monkeypatch)
+    calls: list[int] = []
+
+    def never(*_a, **_k):
+        calls.append(1)
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(http, "urlopen", never)
+    with pytest.raises(http.Offline):
+        http.get_text("https://jitpack.io/x/maven-metadata.xml")
+    assert len(calls) == http.HTTP_ATTEMPTS
