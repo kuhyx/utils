@@ -111,6 +111,14 @@ Two things that installer taught us, both worth knowing before you run it:
 - **No root anywhere.** User-mode networking with a per-VM forwarded SSH port;
   VM-to-VM traffic rides a socket multicast segment. No bridge, no libvirt, no
   daemon.
+- **User-mode networking stalls concurrent TCP streams.** Measured 2026-09-14
+  (libslirp 4.9.4, qemu 11.1.1): 5 parallel 60 MB downloads, 2–4 freeze at
+  ~10 MB and time out; one stream does 45 MB/s. The image therefore ships
+  `ParallelDownloads = 1` in pacman.conf — a 90-package `-Syu` that "ran at
+  500 KB/s" for minutes finished in 12 s single-stream. Guest-side TCP knobs
+  (window scaling, rmem) do not help; the real fix would be a tap/bridge NIC,
+  which needs root and is out of scope by design. Rebuild the base (`vm build`)
+  to pick this up; an already-built image lacks it.
 - **The guest clock is pinned** (`--rtc`) and re-applied on *every* launch. The
   shutdown installers gate on a 21:00–05:00 window, so an unpinned clock makes
   their tests pass or fail depending on the time of day. NTP is masked in the

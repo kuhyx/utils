@@ -37,6 +37,16 @@ else
     fi
 fi
 
+# QEMU user-mode networking (libslirp 4.9.4 / qemu 11.1.1, measured
+# 2026-09-14) stalls concurrent TCP streams: with 5 parallel 60 MB curls, 2-4
+# of them freeze at ~10 MB and time out while a single stream does 45 MB/s.
+# pacman's default ParallelDownloads = 5 hit it on every upgrade (a 90-package
+# -Syu sat at "500 KB/s" for minutes, then finished in 12 s single-stream).
+# Nothing guest-side fixes slirp (window scaling and rmem were tried); one
+# stream at a time is the whole fix.
+sed -i 's/^#*ParallelDownloads.*/ParallelDownloads = 1/' /etc/pacman.conf
+grep -q '^ParallelDownloads' /etc/pacman.conf || echo 'ParallelDownloads = 1' >> /etc/pacman.conf
+
 # The cloud image ships an empty package DB; -Syu also picks up any security
 # fixes since the image was cut.
 pacman -Syu --noconfirm --needed \
