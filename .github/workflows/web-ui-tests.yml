@@ -7,6 +7,7 @@ on:
   pull_request:
     branches: [main]
     paths: ['web_ui/**', 'ts_config/**']
+  workflow_dispatch:
 
 jobs:
   test:

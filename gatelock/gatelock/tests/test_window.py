@@ -102,7 +102,9 @@ class TestSetup:
         topmost_on = True
         mock_root.attributes.assert_any_call("-topmost", topmost_on)
 
-    def test_suspend_handles_are_the_armed_collaborators(self, mock_root) -> None:
+    def test_suspend_handles_are_the_armed_collaborators(
+        self, mock_root: MagicMock
+    ) -> None:
         """An app that suspends the lock stops the very loop and watcher it arms."""
         window, _hooks = make_window(mock_root, config=LockConfig(mode="soft"))
 
