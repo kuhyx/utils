@@ -20,8 +20,8 @@ import {
  * would defeat the entire point of the test.
  */
 const GOLDEN_12345 = [
-  0.979_728_267_760_947_3, 0.306_752_264_499_664_3, 0.484_205_421_525_985,
-  0.817_934_412_509_203, 0.509_428_369_347_006_1,
+  0.9797282677609473, 0.3067522644996643, 0.484205421525985,
+  0.817934412509203, 0.5094283693470061,
 ]
 
 describe('mulberry32 core', () => {
@@ -51,7 +51,7 @@ describe('mulberry32 core', () => {
 
   it('stays within [0, 1) across many draws', () => {
     const rng = createRng(42)
-    for (let i = 0; i < 1000; i += 1) {
+    for (let index = 0; index < 1000; index += 1) {
       const value = nextFloat(rng)
       expect(value).toBeGreaterThanOrEqual(0)
       expect(value).toBeLessThan(1)
@@ -68,10 +68,10 @@ describe('nextInt', () => {
   it('is inclusive of both bounds', () => {
     const rng = createRng(3)
     const seen = new Set<number>()
-    for (let i = 0; i < 500; i += 1) {
+    for (let index = 0; index < 500; index += 1) {
       seen.add(nextInt(rng, 1, 3))
     }
-    expect([...seen].sort()).toEqual([1, 2, 3])
+    expect([...seen].toSorted((a, b) => a - b)).toEqual([1, 2, 3])
   })
 
   it('returns the only value when min equals max', () => {
@@ -97,7 +97,7 @@ describe('nextChance', () => {
   it('lands near the requested probability over many draws', () => {
     const rng = createRng(2024)
     let hits = 0
-    for (let i = 0; i < 4000; i += 1) {
+    for (let index = 0; index < 4000; index += 1) {
       if (nextChance(rng, 0.25)) {
         hits += 1
       }
@@ -115,10 +115,10 @@ describe('pick', () => {
   it('eventually returns every element', () => {
     const rng = createRng(4)
     const seen = new Set<string>()
-    for (let i = 0; i < 500; i += 1) {
+    for (let index = 0; index < 500; index += 1) {
       seen.add(pick(rng, ['a', 'b', 'c']))
     }
-    expect([...seen].sort()).toEqual(['a', 'b', 'c'])
+    expect([...seen].toSorted((a, b) => a.localeCompare(b))).toEqual(['a', 'b', 'c'])
   })
 
   it('is deterministic for a given seed', () => {

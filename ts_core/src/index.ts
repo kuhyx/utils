@@ -7,11 +7,11 @@
  * which is how these ended up duplicated four ways to begin with.
  */
 export {
+  type Clock,
   createManualClock,
   createRealClock,
-  realClock,
-  type Clock,
   type ManualClock,
+  realClock,
 } from './clock.ts'
 export {
   createRng,

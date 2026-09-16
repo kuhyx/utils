@@ -13,7 +13,7 @@ const TRACK_WIDTH = 1000;
 if (hasDom) {
   Object.defineProperty(Element.prototype, "getBoundingClientRect", {
     configurable: true,
-    value(): DOMRect {
+    value: (): DOMRect => {
       return {
         bottom: 20,
         height: 20,

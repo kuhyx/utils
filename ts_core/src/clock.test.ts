@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  type Clock,
   createManualClock,
   createRealClock,
   realClock,
-  type Clock,
 } from './clock.ts'
 
 describe('createRealClock', () => {

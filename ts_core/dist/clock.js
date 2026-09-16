@@ -1,7 +1,5 @@
 /** A {@link Clock} backed by the browser's monotonic performance timer. */
-export const createRealClock = () => ({
-    now: () => performance.now(),
-});
+export const createRealClock = () => ({ now: () => performance.now() });
 /**
  * The one real clock instance UI code should pass around.
  *
@@ -15,10 +13,10 @@ export const realClock = createRealClock();
 export const createManualClock = (startMs = 0) => {
     let current = startMs;
     return {
-        now: () => current,
         advance: (deltaMs) => {
             current += deltaMs;
         },
+        now: () => current,
         set: (timeMs) => {
             current = timeMs;
         },

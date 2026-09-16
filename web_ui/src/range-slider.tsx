@@ -22,6 +22,7 @@
 import { useCallback, useState } from "react";
 
 import { fractionFromPointer, nth, quantileValue, valueQuantile } from "./quantile.ts";
+import { keyTarget } from "./stepped-value.ts";
 
 export interface RangeSliderProps {
   /**
@@ -44,40 +45,6 @@ export interface RangeSliderProps {
 
 type Thumb = "hi" | "lo";
 
-/**
- * Steps one thumb by `delta` positions through the distribution. Pure, so the
- * keyboard contract is testable without layout.
- *
- * Steps to the next *distinct* value rather than the next index. Real
- * distributions are lumpy -- awesome-mcp-explorer's star counts hold ~1500
- * duplicate zeros -- and an index step inside a run of equal values changes the
- * index while leaving the value (and therefore the thumb, and the filter)
- * exactly where it was. That reads as a dead arrow key.
- */
-export function steppedValue(
-  values: readonly number[],
-  current: number,
-  delta: number,
-): number {
-  const last = values.length - 1;
-  // Round to a real sample index so a thumb sitting between two samples still
-  // advances rather than stalling on a fractional step.
-  const index = Math.round(valueQuantile(values, current) * last);
-  const direction = Math.sign(delta);
-  if (direction === 0) return nth(values, index);
-
-  let cursor = index;
-  for (let taken = 0; taken < Math.abs(delta); taken++) {
-    let next = cursor + direction;
-    while (next >= 0 && next <= last && nth(values, next) === nth(values, cursor)) {
-      next += direction;
-    }
-    if (next < 0 || next > last) break;
-    cursor = next;
-  }
-  return nth(values, cursor);
-}
-
 export function RangeSlider({
   format,
   hi,
@@ -86,7 +53,7 @@ export function RangeSlider({
   onChange,
   values,
 }: RangeSliderProps): null | React.JSX.Element {
-  const [drag, setDrag] = useState<Thumb | null>(null);
+  const [drag, setDrag] = useState<null | Thumb>(null);
 
   const apply = useCallback(
     (thumb: Thumb, value: number): void => {
@@ -100,29 +67,20 @@ export function RangeSlider({
   // handlers are bound to the track, so currentTarget *is* the track. A ref
   // would add a null branch that cannot happen once the element is mounted.
   const valueAt = useCallback(
-    (track: HTMLElement, clientX: number): number =>
-      quantileValue(values, fractionFromPointer(track.getBoundingClientRect(), clientX)),
+    (track: HTMLElement, clientX: number): number => {
+      const fraction = fractionFromPointer(track.getBoundingClientRect(), clientX);
+      return quantileValue(values, fraction);
+    },
     [values],
   );
 
   const onKeyDown = useCallback(
     (thumb: Thumb, event: React.KeyboardEvent): void => {
       const current = thumb === "lo" ? lo : hi;
-      const step = (delta: number): void => {
-        event.preventDefault();
-        apply(thumb, steppedValue(values, current, delta));
-      };
-      if (event.key === "ArrowLeft" || event.key === "ArrowDown") step(-1);
-      else if (event.key === "ArrowRight" || event.key === "ArrowUp") step(1);
-      else if (event.key === "PageDown") step(-10);
-      else if (event.key === "PageUp") step(10);
-      else if (event.key === "Home") {
-        event.preventDefault();
-        apply(thumb, nth(values, 0));
-      } else if (event.key === "End") {
-        event.preventDefault();
-        apply(thumb, nth(values, values.length - 1));
-      }
+      const target = keyTarget(event.key, values, current);
+      if (target === undefined) return;
+      event.preventDefault();
+      apply(thumb, target);
     },
     [apply, hi, lo, values],
   );
@@ -136,19 +94,21 @@ export function RangeSlider({
   const hiFraction = valueQuantile(values, hi) * 100;
   const name = label ?? "Range";
 
-  const thumbProps = (thumb: Thumb): React.ComponentProps<"button"> => ({
-    "aria-valuemax": highest,
-    "aria-valuemin": lowest,
-    "aria-valuenow": thumb === "lo" ? lo : hi,
-    className: `slider-thumb slider-${thumb}`,
-    onKeyDown: (event): void => {
-      onKeyDown(thumb, event);
-    },
-    role: "slider",
-    style: { left: `${String(thumb === "lo" ? loFraction : hiFraction)}%` },
-    tabIndex: 0,
-    type: "button",
-  });
+  const thumbProps = (thumb: Thumb): React.ComponentProps<"button"> => {
+    return {
+      "aria-valuemax": highest,
+      "aria-valuemin": lowest,
+      "aria-valuenow": thumb === "lo" ? lo : hi,
+      className: `slider-thumb slider-${thumb}`,
+      onKeyDown: (event): void => {
+        onKeyDown(thumb, event);
+      },
+      role: "slider",
+      style: { left: `${String(thumb === "lo" ? loFraction : hiFraction)}%` },
+      tabIndex: 0,
+      type: "button",
+    };
+  };
 
   return (
     <div className="slider">

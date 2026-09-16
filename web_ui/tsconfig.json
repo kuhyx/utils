@@ -1,4 +1,6 @@
 {
+  // Strictness comes from the shared base; only output/lib options live here.
+  "extends": "@kuhyx/ts-config/tsconfig",
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
@@ -7,20 +9,6 @@
     "jsx": "react-jsx",
     "types": ["vitest/globals"],
 
-    /* Strictness: everything on, matching both consumers so a file that
-       compiles here compiles there. */
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "erasableSyntaxOnly": true,
 
     /* This package ships a prebuilt dist/ (ESM + .d.ts) because consumers use
        Vite, which does not transpile dependencies. So unlike the consumers,
@@ -31,10 +19,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": "src",
-
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "rootDir": "src"
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]

@@ -5,6 +5,7 @@
  * `import "@kuhyx/web-ui/tokens.css";`
  */
 export { clamp01, fractionFromPointer, nth, quantileValue, valueQuantile } from "./quantile.js";
-export { RangeSlider, steppedValue } from "./range-slider.js";
+export { RangeSlider } from "./range-slider.js";
+export { keyTarget, steppedValue } from "./stepped-value.js";
 export { fuzzyMatch } from "./text.js";
 //# sourceMappingURL=index.js.map

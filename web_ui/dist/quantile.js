@@ -52,9 +52,7 @@ export function quantileValue(sorted, f) {
  */
 export function valueQuantile(sorted, value) {
     const n = sorted.length;
-    if (n <= 1)
-        return 0;
-    if (value <= nth(sorted, 0))
+    if ((n <= 1) || (value <= nth(sorted, 0)))
         return 0;
     if (value >= nth(sorted, n - 1))
         return 1;

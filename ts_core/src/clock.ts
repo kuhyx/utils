@@ -12,9 +12,7 @@ export interface Clock {
 }
 
 /** A {@link Clock} backed by the browser's monotonic performance timer. */
-export const createRealClock = (): Clock => ({
-  now: (): number => performance.now(),
-})
+export const createRealClock = (): Clock => ({ now: (): number => performance.now() })
 
 /**
  * The one real clock instance UI code should pass around.
@@ -39,10 +37,10 @@ export interface ManualClock extends Clock {
 export const createManualClock = (startMs = 0): ManualClock => {
   let current = startMs
   return {
-    now: (): number => current,
     advance: (deltaMs: number): void => {
       current += deltaMs
     },
+    now: (): number => current,
     set: (timeMs: number): void => {
       current = timeMs
     },

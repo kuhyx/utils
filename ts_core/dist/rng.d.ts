@@ -54,14 +54,14 @@ export declare const pick: <T>(rng: Rng, items: readonly [T, ...T[]]) => T;
  * around rather than threading mutable state through free functions.
  */
 export interface SeededRng {
+    /** True with the given probability in [0, 1]. */
+    chance: (probability: number) => boolean;
     /** Uniform float in [0, 1). */
     float: () => number;
     /** Uniform integer in [minInclusive, maxInclusive]. */
     int: (minInclusive: number, maxInclusive: number) => number;
     /** Uniform element of a non-empty array. */
     pick: <T>(items: readonly T[]) => T;
-    /** True with the given probability in [0, 1]. */
-    chance: (probability: number) => boolean;
 }
 /**
  * Creates a {@link SeededRng} over the same mulberry32 core.

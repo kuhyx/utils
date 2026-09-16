@@ -40,7 +40,7 @@ export const createRng = (seed: number): Rng => ({ s: seed >>> 0 })
  * of it, so they all consume exactly one step per call.
  */
 export const nextFloat = (rng: Rng): number => {
-  rng.s = (rng.s + 0x6d_2b_79_f5) >>> 0
+  rng.s = (rng.s + 0x6D_2B_79_F5) >>> 0
   let t = rng.s
   t = Math.imul(t ^ (t >>> 15), t | 1)
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
@@ -84,14 +84,14 @@ export const pick = <T>(rng: Rng, items: readonly [T, ...T[]]): T => {
  * around rather than threading mutable state through free functions.
  */
 export interface SeededRng {
+  /** True with the given probability in [0, 1]. */
+  chance: (probability: number) => boolean
   /** Uniform float in [0, 1). */
   float: () => number
   /** Uniform integer in [minInclusive, maxInclusive]. */
   int: (minInclusive: number, maxInclusive: number) => number
   /** Uniform element of a non-empty array. */
   pick: <T>(items: readonly T[]) => T
-  /** True with the given probability in [0, 1]. */
-  chance: (probability: number) => boolean
 }
 
 /**
@@ -105,6 +105,7 @@ export const createSeededRng = (seed: number): SeededRng => {
   const state = createRng(seed)
   const float = (): number => nextFloat(state)
   return {
+    chance: (probability: number): boolean => float() < probability,
     float,
     int: (minInclusive: number, maxInclusive: number): number =>
       nextInt(state, minInclusive, maxInclusive),
@@ -115,6 +116,5 @@ export const createSeededRng = (seed: number): SeededRng => {
       }
       return chosen
     },
-    chance: (probability: number): boolean => float() < probability,
   }
 }

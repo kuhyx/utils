@@ -55,8 +55,7 @@ export function quantileValue(sorted: readonly number[], f: number): number {
  */
 export function valueQuantile(sorted: readonly number[], value: number): number {
   const n = sorted.length;
-  if (n <= 1) return 0;
-  if (value <= nth(sorted, 0)) return 0;
+  if ((n <= 1) || (value <= nth(sorted, 0))) return 0;
   if (value >= nth(sorted, n - 1)) return 1;
   // value strictly inside the range, so there is an index hi >= 1 with
   // sorted[hi] >= value and sorted[hi - 1] < value.

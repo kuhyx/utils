@@ -1,42 +1,25 @@
-// Type-aware flat config for the shared component layer.
-//
-// A trimmed version of awesome-mcp-explorer's: typescript-eslint's
-// *type-checked* strict + stylistic presets, so anything they flag is an error.
-// The consumers layer unicorn/sonarjs/perfectionist on top; this package keeps
-// to the presets its own devDependencies actually declare, because a config
-// referencing plugins that are not installed is a lint script that cannot run.
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
+// The shared preset with the React layer, plus one frozen API name. This
+// package is one of the repos the bar is defined for.
+import { defineConfig } from "@kuhyx/ts-config";
 
-export default tseslint.config(
-  // eslint.config.js itself is not in tsconfig.lint.json, so type-aware
-  // rules cannot run on it; linting the linter config buys nothing anyway.
-  { ignores: ["dist", "coverage", "eslint.config.js"] },
-  { linterOptions: { reportUnusedDisableDirectives: "error" } },
-
-  js.configs.recommended,
-  ...tseslint.configs.strictTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
-
-  {
-    files: ["**/*.{ts,tsx}"],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.lint.json"],
-        tsconfigRootDir: import.meta.dirname,
+export default defineConfig({
+  // Flat files under src/, no layers to fence and no alias configured.
+  aliasOnly: false,
+  overrides: [
+    {
+      files: ["src/text.ts"],
+      rules: {
+        // `fuzzyMatch` is public API at four call sites in dufs-cloud and
+        // awesome-mcp-explorer; the preset's prefix list would rename it to
+        // `matchesFuzzy`, a breaking change for no safety gain. Revisit at
+        // the next major.
+        "unicorn/consistent-boolean-name": "off",
       },
     },
-    rules: {
-      // Every exported symbol here is consumed across a package boundary, so
-      // an explicit return type is documentation, not ceremony.
-      "@typescript-eslint/explicit-function-return-type": "error",
-    },
-  },
-
-  {
-    // Tests reach for non-null assertions on queries that cannot return null
-    // in a passing test; asserting them again would only add noise.
-    files: ["**/*.test.{ts,tsx}"],
-    rules: { "@typescript-eslint/no-non-null-assertion": "off" },
-  },
-);
+  ],
+  // tsconfig.json excludes the tests so they never land in dist/; the lint
+  // project widens the include for type-aware rules (see tsconfig.lint.json).
+  project: ["./tsconfig.lint.json"],
+  react: true,
+  tsconfigRootDir: import.meta.dirname,
+});

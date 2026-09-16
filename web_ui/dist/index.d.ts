@@ -5,6 +5,7 @@
  * `import "@kuhyx/web-ui/tokens.css";`
  */
 export { clamp01, fractionFromPointer, nth, quantileValue, valueQuantile } from "./quantile.ts";
-export { RangeSlider, steppedValue, type RangeSliderProps } from "./range-slider.tsx";
+export { RangeSlider, type RangeSliderProps } from "./range-slider.tsx";
+export { keyTarget, steppedValue } from "./stepped-value.ts";
 export { fuzzyMatch } from "./text.ts";
 //# sourceMappingURL=index.d.ts.map

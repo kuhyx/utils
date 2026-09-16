@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("tokens.css", import.meta.url), "utf8");
@@ -13,9 +12,10 @@ const css = readFileSync(new URL("tokens.css", import.meta.url), "utf8");
  */
 
 function declared(name: string): string[] {
-  return [...css.matchAll(new RegExp(`--${name}:\\s*([^;]+);`, "g"))].map((m) =>
-    (m[1] ?? "").trim(),
-  );
+  return css
+    .matchAll(new RegExp(String.raw`--${name}:\s*([^;]+);`, "g"))
+    .map((m) => (m[1] ?? "").trim())
+    .toArray();
 }
 
 describe("tokens.css", () => {
@@ -124,7 +124,7 @@ describe("tokens.css", () => {
     const block = /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1];
     expect(block).toBeDefined();
     for (const step of ["fast", "base", "slow"]) {
-      expect(block).toMatch(new RegExp(`--duration-${step}:\\s*0ms;`));
+      expect(block).toMatch(new RegExp(String.raw`--duration-${step}:\s*0ms;`));
     }
   });
 

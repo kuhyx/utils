@@ -32,7 +32,7 @@ export const createRng = (seed) => ({ s: seed >>> 0 });
  * of it, so they all consume exactly one step per call.
  */
 export const nextFloat = (rng) => {
-    rng.s = (rng.s + 0x6d_2b_79_f5) >>> 0;
+    rng.s = (rng.s + 0x6D_2B_79_F5) >>> 0;
     let t = rng.s;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -72,6 +72,7 @@ export const createSeededRng = (seed) => {
     const state = createRng(seed);
     const float = () => nextFloat(state);
     return {
+        chance: (probability) => float() < probability,
         float,
         int: (minInclusive, maxInclusive) => nextInt(state, minInclusive, maxInclusive),
         pick: (items) => {
@@ -81,7 +82,6 @@ export const createSeededRng = (seed) => {
             }
             return chosen;
         },
-        chance: (probability) => float() < probability,
     };
 };
 //# sourceMappingURL=rng.js.map
