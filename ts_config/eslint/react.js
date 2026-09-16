@@ -45,4 +45,12 @@ export const react = [
     files: ["**/*.tsx", "**/*.jsx"],
     ...reactRefresh.configs.vite,
   },
+  {
+    files: TS_FILES,
+    rules: {
+      // `className` is React's own prop name; in a React codebase the rule
+      // fires on every styled element and cannot be satisfied.
+      "unicorn/no-keyword-prefix": "off",
+    },
+  },
 ];

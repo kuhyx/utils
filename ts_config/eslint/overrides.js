@@ -12,6 +12,13 @@
 /** @type {import("eslint").Linter.Config[]} */
 export const overrides = [
   {
+    // A package's entry point IS a barrel: its whole job is to name the
+    // public API. The rule stays on everywhere else, where a barrel is how
+    // `import { x } from "@/utils"` ends up pulling in forty modules.
+    files: ["src/index.{ts,tsx}", "index.{ts,tsx}"],
+    rules: { "unicorn/no-barrel-files": "off" },
+  },
+  {
     rules: {
       // Directly contradicts unicorn/consistent-class-member-order: one wants
       // a private field before the getter that reads it, the other wants the

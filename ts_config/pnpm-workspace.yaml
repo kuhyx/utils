@@ -1,4 +1,4 @@
 allowBuilds:
-  unrs-resolver: set this to true or false
+  unrs-resolver: false
 minimumReleaseAgeExclude:
   - eslint-plugin-unicorn@75.0.0

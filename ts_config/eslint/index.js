@@ -24,6 +24,7 @@ export { vitestConfig } from "./vitest.js";
  *   consumer's eslint.config.js.
  * @param {string[]} [options.ignores]
  * @param {boolean} [options.aliasOnly]
+ * @param {string[]} [options.project] See base().
  * @param {boolean} [options.react] Stack the React layer.
  * @param {boolean} [options.vitest] Stack the vitest rules (default true).
  * @param {boolean} [options.playwright] Stack the Playwright rules.
@@ -38,12 +39,13 @@ export function defineConfig({
   ignores,
   overrides = [],
   playwright = false,
+  project,
   react: withReact = false,
   tsconfigRootDir,
   vitest = true,
 }) {
   return [
-    ...base({ aliasOnly, ignores, tsconfigRootDir }),
+    ...base({ aliasOnly, ignores, project, tsconfigRootDir }),
     ...(withReact ? react : []),
     ...(vitest ? vitestConfig : []),
     ...(playwright ? playwrightConfig : []),

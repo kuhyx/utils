@@ -51,9 +51,16 @@ export { DEFAULT_IGNORES } from "./ignores.js";
  * @param {boolean} [options.aliasOnly] Ban `../` parent-relative imports so
  *   every cross-directory import goes through the repo's `@/` alias. Default
  *   true; a repo with no alias configured turns it off with a reason.
+ * @param {string[]} [options.project] tsconfig paths for the type-aware
+ *   rules, relative to tsconfigRootDir. Default is the project service
+ *   (nearest tsconfig.json per file). A package whose tsconfig.json excludes
+ *   its tests so they never land in dist/ passes its lint tsconfig here.
  */
-export function base({ aliasOnly = true, ignores = [], tsconfigRootDir }) {
+export function base({ aliasOnly = true, ignores = [], project, tsconfigRootDir }) {
   requireNonEmptyString(tsconfigRootDir, "base() tsconfigRootDir");
+  const parserOptions = project
+    ? { project, tsconfigRootDir }
+    : { projectService: true, tsconfigRootDir };
   return tseslint.config(
     { ignores: [...DEFAULT_IGNORES, ...ignores] },
     { linterOptions: { reportUnusedDisableDirectives: "error" } },
@@ -67,9 +74,7 @@ export function base({ aliasOnly = true, ignores = [], tsconfigRootDir }) {
 
     {
       files: TS_FILES,
-      languageOptions: {
-        parserOptions: { projectService: true, tsconfigRootDir },
-      },
+      languageOptions: { parserOptions },
       rules: {
         // `type X = {}` and `interface X {}` are interchangeable for the
         // shapes this codebase writes; picking one keeps diffs quiet.

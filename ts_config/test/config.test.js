@@ -36,6 +36,17 @@ describe("base()", () => {
     expect(entry?.languageOptions.parserOptions.tsconfigRootDir).toBe(ROOT);
   });
 
+  it("uses an explicit project list instead of the project service when given", () => {
+    const entry = base({ project: ["./tsconfig.lint.json"], tsconfigRootDir: ROOT }).find(
+      (candidate) => candidate.languageOptions?.parserOptions?.project,
+    );
+    expect(entry.languageOptions.parserOptions).toEqual({
+      project: ["./tsconfig.lint.json"],
+      tsconfigRootDir: ROOT,
+    });
+    expect(entry.languageOptions.parserOptions.projectService).toBeUndefined();
+  });
+
   it("drops the alias-only import ban when asked", () => {
     expect(ruleIds(base({ tsconfigRootDir: ROOT }))).toContain("no-restricted-imports");
     expect(ruleIds(base({ aliasOnly: false, tsconfigRootDir: ROOT }))).not.toContain(
