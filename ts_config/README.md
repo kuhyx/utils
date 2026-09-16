@@ -16,7 +16,7 @@ files in three different strictness tiers.
 ```jsonc
 // package.json
 "devDependencies": {
-  "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.0&path:/ts_config",
+  "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.1&path:/ts_config",
   "eslint": "10.10.0",
   "typescript": "6.0.3",
   "typescript-eslint": "8.70.0"
@@ -54,6 +54,24 @@ export default defineConfig({
 `knip.json`: `{ "extends": "@kuhyx/ts-config/knip" }`. `.jscpd.json`: copy
 `jscpd.base.json` (jscpd has no extends). `stryker.config.mjs`:
 `import { strykerBase } from "@kuhyx/ts-config/stryker"; export default { ...strykerBase };`
+
+## Adopting the alias rule in an existing repo
+
+`base()` bans parent-relative imports, so a repo with dozens of `../` paths
+needs them rewritten before the rule can go on. That is a script, not a
+session's worth of hand edits:
+
+```sh
+node ~/src/utils/ts_config/scripts/alias-imports.mjs <repo-root> [src-dir]
+```
+
+Every `import` / `export … from` / `import()` specifier under `src/` that
+starts with `../` and resolves inside `src/` becomes `@/<path from src>`;
+`./sibling`, package imports and a `../` that leaves `src/` are left alone
+(the last one is the lint report's to surface). Extensions are carried over
+untouched. Idempotent. The repo still needs the alias itself: `paths` in
+tsconfig (see above) and `resolve.alias` in vite.config, which vitest reads.
+`test/alias-imports.test.js` runs it over a fixture tree.
 
 ## What is in it
 

@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     coverage: {
-      include: ["eslint/**/*.js", "stryker.base.mjs"],
+      include: ["eslint/**/*.js", "scripts/lib/**/*.mjs", "stryker.base.mjs"],
       provider: "v8",
       // The same bar as ts_core and web_ui: the package every repo's lint
       // runs through does not get to be the least-tested code in the tree.

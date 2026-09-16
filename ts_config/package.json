@@ -1,6 +1,6 @@
 {
   "name": "@kuhyx/ts-config",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "description": "The one lint/TypeScript bar every kuhyx TypeScript repo extends: a strict tsconfig base, ESLint flat-config presets (base, react, vitest, playwright, layer boundaries, a fast editor subset), and Knip / jscpd / Stryker bases. Plain JS, no build step -- consumable straight from a git tag.",
@@ -16,6 +16,7 @@
     "knip.base.json",
     "jscpd.base.json",
     "stryker.base.mjs",
+    "scripts",
     "README.md"
   ],
   "exports": {
