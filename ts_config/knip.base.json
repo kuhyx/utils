@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": ["**/dist/**", "**/coverage/**", "**/*.d.ts"],
+  "ignoreDependencies": ["@kuhyx/ts-config"],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "binaries": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "duplicates": "error",
+    "enumMembers": "error",
+    "exports": "error",
+    "files": "error",
+    "types": "error",
+    "unlisted": "error",
+    "unresolved": "error"
+  }
+}

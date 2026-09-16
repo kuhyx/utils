@@ -96,3 +96,20 @@ component references (`components.html`, `button.html`). Read
 `DOCS-tokens.md` before touching any theme/CSS/style file in any repo. The
 `unified-design-system` Claude Code skill is a thin pointer here, not a
 duplicate.
+
+## ts_config/
+
+`@kuhyx/ts-config` — the one lint / TypeScript bar every kuhyx TypeScript
+repo extends (pnpm only, like `ts_core` and `web_ui`). A strict
+`tsconfig.base.json`, ESLint flat-config presets (`defineConfig()` stacking
+base / react / vitest / playwright / layer `boundaries()`), a type-free
+`eslint/fast` subset for editor hooks, and Knip / jscpd / Stryker bases.
+Plain JS, no build step; the git tag is the release. Every plugin is a
+`dependency` of the package so consumers list none. A fixture repo with one
+planted violation per rule family proves each gate bites.
+
+```jsonc
+"devDependencies": {
+  "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.0&path:/ts_config"
+}
+```

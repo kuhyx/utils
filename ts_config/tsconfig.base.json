@@ -1,0 +1,26 @@
+{
+  // The strictness every kuhyx TypeScript repo compiles under. Nothing here
+  // is about output: lib / jsx / module / outDir / paths stay in the repo's
+  // own tsconfig, which `extends` this one.
+  //
+  // The two flags the article singles out are the two that make a model
+  // state its assumptions: noUncheckedIndexedAccess turns `arr[0]` into
+  // "element or undefined", exactOptionalPropertyTypes stops `undefined`
+  // being smuggled into an optional property.
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}

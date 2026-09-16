@@ -1,0 +1,36 @@
+name: ts_config tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['ts_config/**']
+  pull_request:
+    branches: [main]
+    paths: ['ts_config/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ts_config
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.21.0"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (the preset lints itself)
+        run: pnpm lint
+
+      - name: Fixture + factory tests with the 100% coverage gate
+        run: pnpm coverage

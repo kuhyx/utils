@@ -1,0 +1,18 @@
+{
+  "absolute": true,
+  "exitCode": 1,
+  "format": ["typescript", "tsx", "javascript"],
+  "gitignore": true,
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__fixtures__/**"
+  ],
+  "minLines": 10,
+  "minTokens": 70,
+  "reporters": ["consoleFull"],
+  "threshold": 0
+}

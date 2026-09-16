@@ -1,0 +1,54 @@
+# Pre-commit Configuration for ts_config
+# Install:  pre-commit install && pre-commit install --hook-type pre-push
+# Run:      pre-commit run --config ts_config/.pre-commit-config.yaml --all-files
+
+# NOTE: this subproject lives inside the ~/src/utils monorepo, whose git root is
+# one level up. pre-commit always runs hooks from the git root, so every path
+# below is written relative to THAT, not to this directory, and the top-level
+# `files` key keeps these hooks off the sibling subprojects. Mirrors
+# web_ui/.pre-commit-config.yaml.
+files: ^ts_config/
+# The fixture exists to violate every rule; formatting hooks must not "fix" it.
+exclude: ^ts_config/test/fixture/
+
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        # pnpm 12 writes the lockfile as two YAML documents.
+        args: [--allow-multiple-documents]
+      - id: check-json
+        # tsconfig*.json are JSONC -- TypeScript allows comments.
+        exclude: ^ts_config/tsconfig.*\.json$
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      - id: file-length-cap
+        name: file length <= 250 lines
+        entry: bash scripts/check_file_length.sh
+        language: system
+        pass_filenames: true
+
+      - id: ts-config-lint
+        name: ts_config eslint (the preset lints itself)
+        entry: bash -c 'cd ts_config && pnpm lint'
+        language: system
+        pass_filenames: false
+        files: ^ts_config/.*\.(js|mjs|json)$
+
+      - id: ts-config-test
+        name: ts_config fixture + factory tests, 100% coverage
+        entry: bash -c 'cd ts_config && pnpm coverage'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
