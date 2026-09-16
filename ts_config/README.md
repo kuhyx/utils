@@ -24,7 +24,10 @@ files in three different strictness tiers.
 ```
 
 The three peers are the consumer's; every plugin is a `dependency` of this
-package so a consumer never lists one. Bump every consumer to the same
+package so a consumer never lists one. Inside this monorepo `ts_core` and
+`web_ui` use `link:../ts_config` instead (they track HEAD; their CI installs
+this directory first because `link:` installs nothing inside it) — a
+deliberate split, the same as crdt-sync's tag-pinned library / editable apps. Bump every consumer to the same
 `typescript-eslint` -- two copies in one resolution tree are two plugin
 instances, and flat config rejects the second.
 
