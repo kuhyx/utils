@@ -3,10 +3,10 @@ name: ts_core tests
 on:
   push:
     branches: [main]
-    paths: ['ts_core/**']
+    paths: ['ts_core/**', 'ts_config/**']
   pull_request:
     branches: [main]
-    paths: ['ts_core/**']
+    paths: ['ts_core/**', 'ts_config/**']
 
 jobs:
   test:
@@ -25,6 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24.21.0"
+
+      # The preset is a `link:../ts_config` dependency. pnpm links the
+      # directory but installs nothing inside it, and a flat config imports
+      # its plugins from the preset's own node_modules -- so without this
+      # step the lint dies on "Cannot find package '@eslint/js'".
+      - name: Install the shared lint preset's dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ts_config
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
