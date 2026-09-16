@@ -8,17 +8,14 @@ where a gate quietly stops gating, so they are covered deliberately.
 from __future__ import annotations
 
 from datetime import date, timedelta
-import io
 from pathlib import Path
-import subprocess
 
 import pytest
 
-from dep_freshness import check, discover, report, resolve
+from dep_freshness import resolve
 from dep_freshness.allowlist import _parse_date, load
-from dep_freshness.models import Dep, Exception_, Finding, Severity
+from dep_freshness.models import Dep, Exception_
 from dep_freshness.registries import cargo, gomod, pub, pypi
-from dep_freshness.registries.http import Offline
 from dep_freshness.tests.conftest import write
 from dep_freshness.versions import newest_stable, parse
 

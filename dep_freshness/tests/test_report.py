@@ -7,10 +7,10 @@ git missing, a cleared exception, a malformed expiry, the module entrypoint.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
 import io
-from pathlib import Path
 import subprocess
+from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 

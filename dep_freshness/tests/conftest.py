@@ -7,9 +7,9 @@ cannot pin that behaviour down.
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 

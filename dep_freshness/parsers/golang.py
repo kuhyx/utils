@@ -7,8 +7,8 @@ module graph owns rather than this repo.
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 from dep_freshness._tables import GOMOD, TOOLCHAIN
 from dep_freshness.models import Dep

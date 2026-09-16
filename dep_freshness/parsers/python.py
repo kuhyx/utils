@@ -8,8 +8,9 @@ reported unpinned rather than guessed at.
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
+
 import tomllib
 
 from dep_freshness._tables import GITTAG, PYPI, TOOLCHAIN
