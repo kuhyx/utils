@@ -26,4 +26,4 @@ export const EXPECTED = {
 };
 
 /** Files that must lint clean: proves the presets do not fire on good code. */
-export const CLEAN = ["src/mocks/user.ts", "src/utils/helper.ts"];
+export const CLEAN = ["src/components/item-list.tsx", "src/mocks/user.ts", "src/utils/helper.ts"];

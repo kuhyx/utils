@@ -16,7 +16,7 @@ files in three different strictness tiers.
 ```jsonc
 // package.json
 "devDependencies": {
-  "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.1&path:/ts_config",
+  "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.2&path:/ts_config",
   "eslint": "10.10.0",
   "typescript": "6.0.3",
   "typescript-eslint": "8.70.0"
@@ -51,8 +51,18 @@ export default defineConfig({
 });
 ```
 
-`knip.json`: `{ "extends": "@kuhyx/ts-config/knip" }`. `.jscpd.json`: copy
-`jscpd.base.json` (jscpd has no extends). `stryker.config.mjs`:
+Knip has no `extends` (its schema rejects the key), so `knip.ts` spreads the
+base and adds the repo's entries:
+
+```ts
+import type { KnipConfig } from "knip";
+import base from "@kuhyx/ts-config/knip" with { type: "json" };
+type KnipSettings = Exclude<KnipConfig, (...parameters: never) => unknown>;
+const config: KnipSettings = { ...(base as KnipSettings), entry: ["scripts/*.mjs"] };
+export default config;
+```
+
+`.jscpd.json`: copy `jscpd.base.json` (jscpd has no extends either). `stryker.config.mjs`:
 `import { strykerBase } from "@kuhyx/ts-config/stryker"; export default { ...strykerBase };`
 
 ## Adopting the alias rule in an existing repo

@@ -55,6 +55,12 @@ export const overrides = [
       // warns about is for non-ISO strings.
       "unicorn/prefer-temporal": "off",
 
+      // Same class as prefer-temporal: `Uint8Array.fromBase64` is undefined
+      // on the Node these repos run (24.x, checked 2026-09-16), so the rule's
+      // replacement for `Buffer.from(s, "base64")` throws at runtime. Revisit
+      // when the toolchain gate moves Node past a release that ships it.
+      "unicorn/prefer-uint8array-base64": "off",
+
       // The domain vocabulary is abbreviated on purpose: `os`, `spdx`, `repo`,
       // `env`, `rng` are the names the source data and the maths use, and
       // expanding them would obscure the mapping.

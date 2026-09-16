@@ -48,9 +48,26 @@ export const react = [
   {
     files: TS_FILES,
     rules: {
+      // Same list as naming.js, minus `ref`: @eslint-react's
+      // naming-convention-ref-name wants every useRef() named `ref` or
+      // `*Ref`, and unicorn's `ref -> reference` replacement contradicts it
+      // on every one. `ref` is React's own word, like `props`.
+      "unicorn/name-replacements": ["error", { replacements: { props: false, ref: false } }],
+
       // `className` is React's own prop name; in a React codebase the rule
       // fires on every styled element and cannot be satisfied.
       "unicorn/no-keyword-prefix": "off",
+    },
+  },
+  {
+    files: ["**/*.tsx", "**/*.jsx"],
+    rules: {
+      // `items.map((item) => (<li>…</li>))` is the JSX idiom in every React
+      // codebase and what Prettier formats to; the rule would rewrite each
+      // one to `{ return (…); }`, and cannot even autofix the ones with
+      // multi-line text. It has no option to exempt JSX, so it is off for
+      // JSX files only -- .ts files keep it.
+      "unicorn/consistent-arrow-return-style": "off",
     },
   },
 ];
