@@ -74,10 +74,18 @@ main() {
 	pattern="$(build_pattern)"
 	load_allowlist
 
+	# Untracked or deleted paths are not this gate's business. One git call
+	# for the whole list, not one per file: a CI run hands this every
+	# tracked path (2000+), and two forks per file made it a 5 s gate.
+	local -A tracked=()
+	while IFS= read -r -d '' file; do
+		tracked["$file"]=1
+	done < <(git ls-files -z -- "$@" 2>/dev/null)
+
 	for file in "$@"; do
-		# Untracked or deleted paths are not this gate's business.
-		git ls-files --error-unmatch "$file" >/dev/null 2>&1 || continue
-		grep -qiE "$pattern" <<<"$file" || continue
+		[[ -v "tracked[$file]" ]] || continue
+		# Extensions are matched case-insensitively (grep -i, before).
+		[[ "${file,,}" =~ $pattern ]] || continue
 		is_allowed "$file" && continue
 		echo "BLOCKED: $file"
 		found=1
