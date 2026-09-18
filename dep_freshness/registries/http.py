@@ -1,16 +1,22 @@
 """The only module that touches the network.
 
-Two things matter here. First, a single 2s per-host reachability probe
+Three things matter here. First, a single 2s per-host reachability probe
 short-circuits every later request, so an offline run fails in seconds instead
-of timing out once per package across ~900 lookups. Second, failures are
-returned, never raised: the gate must degrade to a cached answer rather than
-crash a pre-commit hook the user is forbidden from bypassing.
+of timing out once per package across ~900 lookups. Second, each host is
+resolved ONCE per run: `urlopen` asks the resolver (A and AAAA) on every
+connection, and ~900 lookups eight at a time against six registry hosts sent
+a burst the LAN router's DNS forwarder answered by dropping half of the
+queries -- for every client on the LAN, for as long as the gate ran
+(2026-09-18). Third, failures are returned, never raised: the gate must
+degrade to a cached answer rather than crash a pre-commit hook the user is
+forbidden from bypassing.
 """
 
 from __future__ import annotations
 
 import json
 import socket
+import threading
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -29,7 +35,30 @@ class Offline(Exception):
 
 
 _reachable: dict[str, bool] = {}
+# Eight workers start on the same registry at once; without the lock each of
+# them resolves and probes the host itself, and that burst alone (16 queries)
+# was enough for the router's forwarder to drop some and mark Google Maven
+# unreachable for the run.
+_probe_lock = threading.Lock()
 _forced_offline = False
+_addresses: dict[tuple[Any, ...], list[Any]] = {}
+_system_getaddrinfo = socket.getaddrinfo
+
+
+def cached_getaddrinfo(host: Any, port: Any, *args: Any) -> list[Any]:
+    """`socket.getaddrinfo`, memoised per (host, port, hints) for the run.
+
+    `urllib` offers no resolver hook, so this replaces the socket-level
+    function for the process. Failures are not memoised: a host that did not
+    resolve is retried, and `host_reachable` remembers the verdict instead.
+    """
+    key = (host, port, *args)
+    if key not in _addresses:
+        _addresses[key] = _system_getaddrinfo(host, port, *args)
+    return _addresses[key]
+
+
+socket.getaddrinfo = cached_getaddrinfo
 
 
 def force_offline(value: bool = True) -> None:
@@ -39,8 +68,9 @@ def force_offline(value: bool = True) -> None:
 
 
 def reset_probes() -> None:
-    """Forget cached reachability verdicts (tests, and `--refresh`)."""
+    """Forget cached reachability verdicts and addresses (tests, `--refresh`)."""
     _reachable.clear()
+    _addresses.clear()
 
 
 def host_reachable(url: str) -> bool:
@@ -49,15 +79,32 @@ def host_reachable(url: str) -> bool:
         return False
     parts = urlsplit(url)
     host = parts.hostname or ""
-    if host in _reachable:
-        return _reachable[host]
     port = parts.port or (443 if parts.scheme == "https" else 80)
-    try:
-        with socket.create_connection((host, port), timeout=PROBE_TIMEOUT):
-            _reachable[host] = True
-    except OSError:
-        _reachable[host] = False
+    with _probe_lock:
+        if host not in _reachable:
+            _reachable[host] = _probe(host, port)
     return _reachable[host]
+
+
+def _probe(host: str, port: int) -> bool:
+    """One TCP connect; a *temporary* resolver failure is retried.
+
+    `EAI_AGAIN` is the resolver saying "ask again", not "no such host": a
+    LAN forwarder that drops a fifth of its queries produces it a few times
+    per run, and one of them used to mark a registry unreachable for the
+    whole run and degrade a strict gate to exit 3.
+    """
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            with socket.create_connection((host, port), timeout=PROBE_TIMEOUT):
+                return True
+        except socket.gaierror as exc:
+            if exc.errno != socket.EAI_AGAIN or attempt == HTTP_ATTEMPTS:
+                return False
+        except OSError:
+            return False
 
 
 def get_text(url: str, accept: str | None = None) -> str | None:
@@ -73,7 +120,9 @@ def get_text(url: str, accept: str | None = None) -> str | None:
     request = Request(url, headers=headers)
     # A slow registry is retried with a longer timeout each time; an HTTP
     # status is an answer and is never retried.
-    for attempt in range(1, HTTP_ATTEMPTS + 1):
+    attempt = 0
+    while True:
+        attempt += 1
         try:
             with urlopen(request, timeout=HTTP_TIMEOUT * attempt) as response:
                 return response.read().decode("utf-8")
@@ -84,7 +133,6 @@ def get_text(url: str, accept: str | None = None) -> str | None:
         except (URLError, TimeoutError, OSError, ValueError) as exc:
             if attempt == HTTP_ATTEMPTS:
                 raise Offline(f"{url}: {exc}") from exc
-    return None  # the loop always returns or raises; this satisfies the type
 
 
 def get_json(url: str, accept: str | None = None) -> Any:

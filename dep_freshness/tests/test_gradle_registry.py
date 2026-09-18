@@ -68,6 +68,15 @@ def test_a_repo_with_only_prereleases_does_not_stop_the_search(repos):
     assert maven.latest("g:a") == "0.9.0"
 
 
+def test_every_repository_is_asked_and_the_newest_stable_across_them_wins(repos):
+    """gradle-versions-plugin: Central stopped at 0.11.1 in 2016, the plugin
+    portal carries 0.54.0. The first answer is not the answer."""
+    name = "com.github.ben-manes:gradle-versions-plugin"
+    repos[maven.metadata_url(CENTRAL, name)] = metadata("0.11", "0.11.1")
+    repos[maven.metadata_url(PORTAL, name)] = metadata("0.53.0", "0.54.0")
+    assert maven.latest(name) == "0.54.0"
+
+
 def tags(monkeypatch, remote_tags: dict[str, list[str]]):
     """Serve `git ls-remote --tags --refs` for the GitHub remotes in `remote_tags`."""
     calls: list[tuple[str, ...]] = []
@@ -100,7 +109,15 @@ def test_jitpack_artifact_is_answered_from_the_repo_tags(repos, monkeypatch):
 def test_a_project_named_tag_is_read_as_its_version(repos, monkeypatch):
     """`java-nat-sort` is tagged `natural-comparator-1.1`, not `1.1`."""
     name = "com.github.gpanther:java-nat-sort"
-    tags(monkeypatch, {"gpanther/java-nat-sort": ["natural-comparator-1.0", "natural-comparator-1.1"]})
+    tags(
+        monkeypatch,
+        {
+            "gpanther/java-nat-sort": [
+                "natural-comparator-1.0",
+                "natural-comparator-1.1",
+            ]
+        },
+    )
     assert maven.latest(name) == "natural-comparator-1.1"
 
 

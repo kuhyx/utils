@@ -1,10 +1,14 @@
 """Maven repositories: newest stable of `group:artifact`, from maven-metadata.
 
-Three repositories, asked in order until one knows the artifact: Google
-Maven (every `androidx.*` and `com.android.*` artifact lives ONLY there),
-Maven Central and the Gradle plugin portal (plugin marker artifacts
-`<id>:<id>.gradle.plugin`). A 404 means "not here", not "not anywhere", so
-it moves on; anything else surfaces as `Offline` from the HTTP layer.
+Three repositories, ALL asked: Google Maven (every `androidx.*` and
+`com.android.*` artifact lives ONLY there), Maven Central and the Gradle
+plugin portal (plugin marker artifacts `<id>:<id>.gradle.plugin`). The
+version lists are pooled and the newest stable across them wins. Stopping at
+the first repository that knew the artifact graded
+`com.github.ben-manes:gradle-versions-plugin` current at 0.51.0 because
+Central still carries its 2016 releases (0.11.1) while the plugin portal has
+0.54.0 (2026-09-18). A 404 means "not here", not "not anywhere"; anything
+else surfaces as `Offline` from the HTTP layer.
 
 JitPack used to be the fourth: it served tag metadata for `com.github.*`
 artifacts published nowhere else (PhotoView, DirectionalViewPager). Since
@@ -32,7 +36,7 @@ from dep_freshness._tables import GITHUB_REMOTE, MAVEN_REPOS
 from dep_freshness.registries._git import ls_remote
 from dep_freshness.registries.gitcommit import source_repo
 from dep_freshness.registries.http import get_text
-from dep_freshness.versions import newest_per_generation, newest_stable, reference
+from dep_freshness.versions import newest_per_generation, reference
 
 
 def metadata_url(repo: str, name: str) -> str | None:
@@ -72,13 +76,8 @@ def latest(name: str) -> str | None:
         if url is None:
             return None
         body = get_text(url)
-        if body is None:
-            continue
-        versions = versions_in(body)
-        stable = newest_stable(versions)
-        if stable is not None:
-            return stable
-        seen.extend(versions)
+        if body is not None:
+            seen.extend(versions_in(body))
     if not seen:
         seen.extend(github_tags(name))
     return reference(seen) or newest_per_generation(seen)
