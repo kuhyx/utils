@@ -1,12 +1,18 @@
 """Maven repositories: newest stable of `group:artifact`, from maven-metadata.
 
-Four repositories, asked in order until one knows the artifact: Google
+Three repositories, asked in order until one knows the artifact: Google
 Maven (every `androidx.*` and `com.android.*` artifact lives ONLY there),
-Maven Central, the Gradle plugin portal (plugin marker artifacts
-`<id>:<id>.gradle.plugin`) and JitPack (tag metadata for `com.github.*`
-artifacts published nowhere else). A 404 means "not here", not "not
-anywhere", so it moves on; anything else surfaces as `Offline` from the HTTP
-layer.
+Maven Central and the Gradle plugin portal (plugin marker artifacts
+`<id>:<id>.gradle.plugin`). A 404 means "not here", not "not anywhere", so
+it moves on; anything else surfaces as `Offline` from the HTTP layer.
+
+JitPack used to be the fourth: it served tag metadata for `com.github.*`
+artifacts published nowhere else (PhotoView, DirectionalViewPager). Since
+2026-09 that endpoint answers HTTP 401 "No access token" while the artifacts
+themselves still download, so a `com.github.<owner>:<repo>` name that no
+repository knows is answered from the GitHub repo's tags over `git
+ls-remote` (unmetered, no token). JitPack's version IS the tag name, `v`
+prefix included, so the tags are compared as they are.
 
 `<latest>` and `<release>` in the metadata are not trusted: AndroidX writes
 `1.2.0-alpha03` into `<latest>` routinely. The full `<versions>` list goes
@@ -22,7 +28,9 @@ from __future__ import annotations
 
 from xml.etree import ElementTree
 
-from dep_freshness._tables import MAVEN_REPOS
+from dep_freshness._tables import GITHUB_REMOTE, MAVEN_REPOS
+from dep_freshness.registries._git import ls_remote
+from dep_freshness.registries.gitcommit import source_repo
 from dep_freshness.registries.http import get_text
 from dep_freshness.versions import newest_per_generation, newest_stable, reference
 
@@ -48,6 +56,15 @@ def versions_in(xml: str) -> list[str]:
     ]
 
 
+def github_tags(name: str) -> list[str]:
+    """Every tag of the GitHub repo behind a JitPack coordinate; [] otherwise."""
+    repo = source_repo(name)
+    if repo is None:
+        return []
+    lines = ls_remote(GITHUB_REMOTE.format(repo=repo), "--tags", "--refs")
+    return [line.rpartition("refs/tags/")[2] for line in lines if "refs/tags/" in line]
+
+
 def latest(name: str) -> str | None:
     seen: list[str] = []
     for repo in MAVEN_REPOS:
@@ -62,4 +79,6 @@ def latest(name: str) -> str | None:
         if stable is not None:
             return stable
         seen.extend(versions)
+    if not seen:
+        seen.extend(github_tags(name))
     return reference(seen) or newest_per_generation(seen)

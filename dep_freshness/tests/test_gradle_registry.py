@@ -13,7 +13,7 @@ from dep_freshness.registries.http import Offline
 from dep_freshness.resolve import _toolchain_latest
 from dep_freshness.tests.conftest import write
 
-GOOGLE, CENTRAL, PORTAL, JITPACK = maven.MAVEN_REPOS
+GOOGLE, CENTRAL, PORTAL = maven.MAVEN_REPOS
 
 
 def metadata(*versions: str, latest: str | None = None) -> str:
@@ -68,19 +68,72 @@ def test_a_repo_with_only_prereleases_does_not_stop_the_search(repos):
     assert maven.latest("g:a") == "0.9.0"
 
 
-def test_jitpack_is_asked_last_and_reads_tag_metadata(repos):
-    """PhotoView was never published anywhere but JitPack; `v`-tags and bare
-    tags both appear and the newest wins."""
+def tags(monkeypatch, remote_tags: dict[str, list[str]]):
+    """Serve `git ls-remote --tags --refs` for the GitHub remotes in `remote_tags`."""
+    calls: list[tuple[str, ...]] = []
+
+    def fake(remote, *args):
+        calls.append((remote, *args))
+        repo = remote.removeprefix("https://github.com/")
+        if repo not in remote_tags:
+            raise Offline(remote)
+        return [f"{'0' * 40}\trefs/tags/{tag}" for tag in remote_tags[repo]]
+
+    monkeypatch.setattr(maven, "ls_remote", fake)
+    return calls
+
+
+def test_jitpack_artifact_is_answered_from_the_repo_tags(repos, monkeypatch):
+    """PhotoView was never published anywhere but JitPack, whose metadata
+    endpoint now answers 401; the repo's tags are the same list. `v`-tags and
+    bare tags both appear and the newest STABLE wins: a newer pre-release
+    tag is skipped exactly as it would be in maven-metadata."""
     name = "com.github.chrisbanes:PhotoView"
-    repos[maven.metadata_url(JITPACK, name)] = metadata("v1.3.1", "2.2.0", "2.3.0")
+    calls = tags(
+        monkeypatch,
+        {"chrisbanes/PhotoView": ["v1.3.1", "2.2.0", "2.3.0", "v3.0.0-beta1"]},
+    )
     assert maven.latest(name) == "2.3.0"
+    assert calls == [("https://github.com/chrisbanes/PhotoView", "--tags", "--refs")]
 
 
-def test_a_project_named_tag_is_read_as_its_version(repos):
+def test_a_project_named_tag_is_read_as_its_version(repos, monkeypatch):
     """`java-nat-sort` is tagged `natural-comparator-1.1`, not `1.1`."""
     name = "com.github.gpanther:java-nat-sort"
-    repos[maven.metadata_url(JITPACK, name)] = metadata("natural-comparator-1.1")
+    tags(monkeypatch, {"gpanther/java-nat-sort": ["natural-comparator-1.0", "natural-comparator-1.1"]})
     assert maven.latest(name) == "natural-comparator-1.1"
+
+
+def test_a_repository_answer_wins_over_the_tags(repos, monkeypatch):
+    """A `com.github.*` artifact that Central knows is not a JitPack build."""
+    name = "com.github.ben-manes.caffeine:caffeine"
+    repos[maven.metadata_url(CENTRAL, name)] = metadata("3.1.8", "3.2.0")
+    calls = tags(monkeypatch, {})
+    assert maven.latest(name) == "3.2.0"
+    assert calls == []
+
+
+def test_prereleases_from_a_repository_skip_the_tag_lookup(repos, monkeypatch):
+    """Something was found, just nothing stable: the repo answered, so the
+    pre-release fallback applies and the tags are never consulted."""
+    name = "com.github.x:y"
+    repos[maven.metadata_url(CENTRAL, name)] = metadata("1.0.0-beta1")
+    calls = tags(monkeypatch, {})
+    assert maven.latest(name) == "1.0.0-beta1"
+    assert calls == []
+
+
+def test_a_tagless_repo_and_a_non_jitpack_name_are_none(repos, monkeypatch):
+    calls = tags(monkeypatch, {"o/r": [], "o/s": ["HEAD-not-a-tag"]})
+    assert maven.latest("com.github.o:r") is None
+    assert maven.github_tags("g:a") == []
+    assert calls == [("https://github.com/o/r", "--tags", "--refs")]
+
+
+def test_an_unreachable_repo_is_offline(repos, monkeypatch):
+    tags(monkeypatch, {})
+    with pytest.raises(Offline):
+        maven.latest("com.github.o:gone")
 
 
 def test_a_package_with_no_stable_anywhere_falls_back_to_newest_prerelease(repos):

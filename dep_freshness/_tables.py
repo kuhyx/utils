@@ -54,13 +54,15 @@ NODE_RELEASES: Final = "https://nodejs.org/dist/index.json"
 GRADLE_RELEASES: Final = "https://services.gradle.org/versions/current"
 # Asked in order; a 404 moves on. Google first because AndroidX and the
 # Android Gradle plugin exist nowhere else, and Central answers 404 fast.
-# JitPack last: it serves tag metadata for `com.github.*` artifacts that
-# were never published anywhere else (PhotoView, DirectionalViewPager, ...).
+# JitPack is not on the list: since 2026-09 its maven-metadata answers
+# HTTP 401 "No access token" (artifact downloads still work), so `com.github.*`
+# artifacts published nowhere else (PhotoView, DirectionalViewPager, ...)
+# are answered from the source repo's tags instead -- which is all JitPack
+# ever built.
 MAVEN_REPOS: Final = (
     "https://dl.google.com/dl/android/maven2/",
     "https://repo1.maven.org/maven2/",
     "https://plugins.gradle.org/m2/",
-    "https://jitpack.io/",
 )
 UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
 # JitPack coordinates: `com.github.<owner>:<repo>` or
