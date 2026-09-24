@@ -37,3 +37,20 @@ exceptions:
       typescript, which is exactly why the entry lives here and not in eight
       separate files.
     blocked_by: "transitive:typescript-eslint@8.70.0"
+
+  - ecosystem: npm
+    package: typescript-eslint
+    pinned: "8.70.0"
+    latest_known: "8.70.1"
+    reason: >-
+      The meta-package published 8.70.1, but its own dependency
+      @typescript-eslint/scope-manager has not: `pnpm install --force`
+      resolves the tree and fails with ERR_PNPM_NO_MATCHING_VERSION,
+      because typescript-eslint@8.70.1 requires
+      @typescript-eslint/scope-manager@8.70.1 and the npm registry's
+      latest published scope-manager is still 8.70.0. Not installable at
+      any pin, so 8.70.0 -- the last version whose whole dependency tree
+      actually resolves -- is what every repo pinning it stays on.
+      Held fleet-wide for the same reason the typescript entry above is:
+      it blocks every repo pinning typescript-eslint, not just this one.
+    blocked_by: "transitive:@typescript-eslint/scope-manager@8.70.0"

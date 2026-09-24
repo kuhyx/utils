@@ -63,6 +63,26 @@ def test_transitive_entry_parses_and_exposes_its_blocker(tmp_path):
     assert entry.expires is None
 
 
+def test_a_scoped_npm_package_is_not_split_on_its_own_leading_at(tmp_path):
+    """ "@scope/name@1.2.3" has two "@"s; the version is after the last one.
+
+    Found via typescript-eslint@8.70.0, blocked by its own
+    @typescript-eslint/scope-manager not having published 8.70.1 yet:
+    partition() on the first "@" read the package name as "" and left
+    "scope-manager@8.70.0" stuck to the version, which the format check
+    then rejected outright.
+    """
+    _allowlist(
+        tmp_path,
+        TRANSITIVE.replace(
+            "transitive:firebase_core@4.2.0",
+            "transitive:@typescript-eslint/scope-manager@8.70.0",
+        ),
+    )
+    entry = load(tmp_path)[0]
+    assert entry.blocker == ("@typescript-eslint/scope-manager", "8.70.0")
+
+
 def test_discretionary_entry_within_the_cap_is_accepted(tmp_path):
     _allowlist(tmp_path, _discretionary(30))
     entry = load(tmp_path)[0]
@@ -82,14 +102,17 @@ def test_an_expiry_beyond_ninety_days_is_an_error(tmp_path):
 
 
 def test_a_discretionary_entry_without_expires_is_an_error(tmp_path):
-    _allowlist(tmp_path, """\
+    _allowlist(
+        tmp_path,
+        """\
 exceptions:
   - ecosystem: pypi
     package: abandoned
     pinned: "1.4.0"
     reason: "unmaintained"
     blocked_by: "discretionary"
-""")
+""",
+    )
     with pytest.raises(AllowlistError, match="requires expires"):
         load(tmp_path)
 
@@ -100,14 +123,13 @@ def test_a_transitive_entry_may_not_carry_an_expiry(tmp_path):
         load(tmp_path)
 
 
-@pytest.mark.parametrize("field", ["ecosystem", "package", "pinned", "reason",
-                                   "blocked_by"])
+@pytest.mark.parametrize("field", ["ecosystem", "package", "pinned", "reason", "blocked_by"])
 def test_every_required_field_is_required(tmp_path, field):
     # Blank the value rather than deleting the line: dropping `ecosystem:`
     # would also drop the `-` that makes the entry a list item, and the test
     # would then be asserting against a different error entirely.
     body = "\n".join(
-        f"{line.split(field + ':')[0]}{field}: \"\"" if f"{field}:" in line else line
+        f'{line.split(field + ":")[0]}{field}: ""' if f"{field}:" in line else line
         for line in TRANSITIVE.splitlines()
     )
     _allowlist(tmp_path, body + "\n")
@@ -116,16 +138,20 @@ def test_every_required_field_is_required(tmp_path, field):
 
 
 def test_a_malformed_transitive_blocker_is_an_error(tmp_path):
-    _allowlist(tmp_path, TRANSITIVE.replace(
-        "transitive:firebase_core@4.2.0", "transitive:firebase_core"))
+    _allowlist(
+        tmp_path, TRANSITIVE.replace("transitive:firebase_core@4.2.0", "transitive:firebase_core")
+    )
     with pytest.raises(AllowlistError, match="transitive:<package>@<version>"):
         load(tmp_path)
 
 
 def test_a_bad_expiry_format_is_an_error(tmp_path):
-    _allowlist(tmp_path, _discretionary(30).replace(
-        (date.today() + __import__("datetime").timedelta(days=30)).isoformat(),
-        "next tuesday"))
+    _allowlist(
+        tmp_path,
+        _discretionary(30).replace(
+            (date.today() + __import__("datetime").timedelta(days=30)).isoformat(), "next tuesday"
+        ),
+    )
     with pytest.raises(AllowlistError, match="YYYY-MM-DD"):
         load(tmp_path)
 
@@ -158,40 +184,38 @@ def test_the_shared_allowlist_is_inherited(tmp_path, no_shared_allowlist):
     """A fleet-wide blocker must not have to be copied into forty repos."""
     no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
     entries = load(tmp_path)
-    assert [(e.ecosystem, e.package) for e in entries] == [
-        ("pub", "plugin_platform_interface")
-    ]
+    assert [(e.ecosystem, e.package) for e in entries] == [("pub", "plugin_platform_interface")]
 
 
 def test_a_repo_entry_overrides_the_shared_one(tmp_path, no_shared_allowlist):
     no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
-    _allowlist(tmp_path, TRANSITIVE.replace(
-        'reason: "firebase_core 4.2.0 constrains this below latest"',
-        'reason: "this repo has its own reason"'))
+    _allowlist(
+        tmp_path,
+        TRANSITIVE.replace(
+            'reason: "firebase_core 4.2.0 constrains this below latest"',
+            'reason: "this repo has its own reason"',
+        ),
+    )
     entries = load(tmp_path)
     assert len(entries) == 1
     assert entries[0].reason == "this repo has its own reason"
 
 
-def test_shared_and_repo_entries_for_different_packages_both_apply(
-    tmp_path, no_shared_allowlist
-):
+def test_shared_and_repo_entries_for_different_packages_both_apply(tmp_path, no_shared_allowlist):
     no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
     _allowlist(tmp_path, _discretionary(30))
-    assert {e.package for e in load(tmp_path)} == {
-        "plugin_platform_interface", "abandoned"
-    }
+    assert {e.package for e in load(tmp_path)} == {"plugin_platform_interface", "abandoned"}
 
 
 def test_a_malformed_shared_allowlist_is_an_error(tmp_path, no_shared_allowlist):
-    no_shared_allowlist.write_text("exceptions:\n  - just-a-string\n",
-                                   encoding="utf-8")
+    no_shared_allowlist.write_text("exceptions:\n  - just-a-string\n", encoding="utf-8")
     with pytest.raises(AllowlistError, match="must be a mapping"):
         load(tmp_path)
 
 
 def test_the_shared_path_defaults_to_the_gate_repo(monkeypatch):
     from dep_freshness.allowlist import shared_path
+
     monkeypatch.delenv("DEP_FRESHNESS_SHARED_ALLOWLIST", raising=False)
     assert shared_path().name == NAME
     assert shared_path().parent.name == "utils"

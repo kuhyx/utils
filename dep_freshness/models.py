@@ -16,11 +16,11 @@ from pathlib import Path
 class Severity(str, Enum):
     """Why a dependency is being reported."""
 
-    STALE = "stale"                 # pinned below latest stable
-    UNPINNED = "unpinned"           # no exact version to compare against
+    STALE = "stale"  # pinned below latest stable
+    UNPINNED = "unpinned"  # no exact version to compare against
     LOCK_MISMATCH = "lock-mismatch"  # manifest pin != lockfile resolved version
-    OVERRIDE = "override"           # dependency_overrides / resolutions entry
-    UNKNOWN = "unknown"             # latest could not be determined at all
+    OVERRIDE = "override"  # dependency_overrides / resolutions entry
+    UNKNOWN = "unknown"  # latest could not be determined at all
 
 
 @dataclass(frozen=True)
@@ -32,12 +32,12 @@ class Dep:
     constraint: str
     path: Path
     line: int
-    pinned: str | None = None   # exact version, when the constraint is one
-    locked: str | None = None   # version the lockfile resolved to
+    pinned: str | None = None  # exact version, when the constraint is one
+    locked: str | None = None  # version the lockfile resolved to
     dev: bool = False
-    caret_ok: bool = False      # Q13 carve-out: a range is legal here
+    caret_ok: bool = False  # Q13 carve-out: a range is legal here
     override: bool = False
-    peer: bool = False          # a compatibility range, not a build pin
+    peer: bool = False  # a compatibility range, not a build pin
 
 
 @dataclass(frozen=True)
@@ -100,7 +100,7 @@ class Exception_:
 
         if not self.upstream:
             return None
-        return self.blocked_by[len(UPSTREAM_PREFIX):].strip()
+        return self.blocked_by[len(UPSTREAM_PREFIX) :].strip()
 
     @property
     def blocker(self) -> tuple[str, str] | None:
@@ -109,6 +109,11 @@ class Exception_:
 
         if not self.transitive:
             return None
-        rest = self.blocked_by[len(TRANSITIVE_PREFIX):]
-        name, _, version = rest.partition("@")
+        rest = self.blocked_by[len(TRANSITIVE_PREFIX) :]
+        # rpartition, not partition: an npm scoped package name
+        # (@scope/name) carries its own leading "@", so splitting on the
+        # first "@" reads "@scope/name@1.2.3" as name="" and a version that
+        # still has "/name@1.2.3" stuck to it. The version separator is
+        # always the *last* "@" in the string.
+        name, _, version = rest.rpartition("@")
         return (name.strip(), version.strip())
