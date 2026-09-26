@@ -5,7 +5,7 @@ bandit[toml]==1.9.4
 mypy==2.3.1
 numpy==2.5.3
 pre-commit==4.6.2
-pylint==4.0.8
+pylint==4.0.9
 pytest==9.1.1
 pytest-cov==7.1.0
-ruff==0.16.8
+ruff==0.16.9
