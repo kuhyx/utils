@@ -52,6 +52,15 @@ app launch.
 | **Releasing refunds only the future** | Give back a day that has not arrived and it returns to the pool. Give back today, and it does not: those hours were already unguarded. |
 | **Silent** | No notification, no low-budget warning, no prompt when a gate fires. You find out by asking. |
 
+## Weekly workdays
+
+`freedays.WORKDAYS` (`{1, 2, 3}`, Tue/Wed/Thu in `date.weekday()` numbering),
+`NON_WORKDAYS` and `is_workday(day=None)` are the one definition of the weekly
+workdays every gate app reads — screen-locker's relaxed days, leetcode-guard's
+cheap days, wake-alarm's ramp hold and workday stick. Import it; never write
+the set out again. Dart/Kotlin code that cannot import it keeps a literal copy
+guarded by a drift test against this package.
+
 ## Free days are not sick days
 
 screen-locker's sick days stay exactly where they are, with their rolling

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "freedays"
-version = "0.1.0"
+version = "0.3.0"
 description = "Shared pre-declared free-day pool: one global list of days on which every gate app stands down"
 requires-python = ">=3.14"
 # Deliberately NOT gatelock. Its __init__ imports tkinter for the lock-window

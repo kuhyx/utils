@@ -52,9 +52,12 @@ from freedays._errors import (
 from freedays._model import FreeDay
 from freedays._paths import Paths
 from freedays._sync import SyncUnavailableError, sync, sync_quietly
+from freedays._workdays import NON_WORKDAYS, WORKDAYS, is_workday
 
 __all__ = [
     "DEFAULT_ANNUAL_BUDGET",
+    "NON_WORKDAYS",
+    "WORKDAYS",
     "AlreadyFreeError",
     "BudgetExhaustedError",
     "FreeDay",
@@ -68,6 +71,7 @@ __all__ = [
     "free_days_in_year",
     "is_exhausted",
     "is_free_day",
+    "is_workday",
     "load",
     "lookup",
     "mark",
