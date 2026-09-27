@@ -30,7 +30,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@kuhyx/ts-config": "link:../ts_config",
-    "@types/node": "26.6.2",
+    "@types/node": "26.6.3",
     "@vitest/coverage-v8": "5.0.2",
     "eslint": "10.11.0",
     "typescript": "6.0.3",

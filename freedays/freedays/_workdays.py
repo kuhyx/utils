@@ -14,10 +14,12 @@ this one.
 
 from __future__ import annotations
 
-from datetime import date
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from freedays._day import today
+
+if TYPE_CHECKING:
+    from datetime import date
 
 #: Python ``date.weekday()`` numbering: Mon=0 ... Sun=6.
 WORKDAYS: Final[frozenset[int]] = frozenset({1, 2, 3})
