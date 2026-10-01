@@ -9,6 +9,8 @@
 
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=firmware.sh
+source "$(dirname "${BASH_SOURCE[0]}")/firmware.sh"
 
 # The base must never be written to: qcow2 overlays record their backing file's
 # state, so booting the base once silently invalidates EVERY overlay on it.
@@ -46,19 +48,22 @@ _overlay_next_index() {
 }
 
 overlay_new() {
-    local name rtc="" arg
+    local name rtc="" firmware=bios arg
     name="$(validate_vm_name "${1:-}")"; shift || true
 
     while [[ $# -gt 0 ]]; do
         arg="$1"
         case "$arg" in
             --rtc) rtc="${2:-}"; [[ -n "$rtc" ]] || die "--rtc needs a timestamp"; shift 2 ;;
+            --uefi) firmware=uefi; shift ;;
             *) die "unknown option for 'vm new': $arg" ;;
         esac
     done
 
     vm_exists "$name" && die "sandbox '$name' already exists (reset it with: vm reset $name)"
     overlay_verify_base
+    # Fail before anything is created, not halfway through.
+    if [[ "$firmware" == uefi ]]; then _firmware_file executable >/dev/null || exit 1; fi
 
     local dir index
     dir="$(vm_dir "$name")"
@@ -71,9 +76,11 @@ overlay_new() {
     # Stored, not passed once: every `vm run` is a fresh qemu process, so the
     # clock must be re-applied on each launch or boot #2 drifts to wall-clock.
     [[ -n "$rtc" ]] && meta_set "$name" rtc "$rtc"
+    meta_set "$name" firmware "$firmware"
+    [[ "$firmware" == uefi ]] && firmware_init_vars "$name"
 
     _overlay_create_disk "$name"
-    ok "sandbox '$name' ready (ssh port $(( VMBOX_SSH_PORT_BASE + index )), peer ${VMBOX_GUEST_SUBNET}.${index})"
+    ok "sandbox '$name' ready ($firmware) (ssh port $(( VMBOX_SSH_PORT_BASE + index )), peer ${VMBOX_GUEST_SUBNET}.${index})"
 }
 
 _overlay_create_disk() {
@@ -106,6 +113,12 @@ overlay_reset() {
 
     # Discard everything the guest did: the overlay holds 100% of its writes.
     _overlay_create_disk "$name"
+    # The varstore is guest-writable state too (boot entries, systemd's
+    # HibernateLocation), so pristine means a fresh copy of it as well.
+    if [[ -f "$(vm_efivars "$name")" ]]; then
+        rm -f "$(vm_efivars "$name")"
+        firmware_init_vars "$name"
+    fi
     rm -f "$(vm_dir "$name")"/serial.*.log "$(vm_events "$name")" "$(vm_pidfile "$name")"
     ok "sandbox '$name' reset to pristine"
 }

@@ -43,7 +43,11 @@ run_in_vm() {
     local name
     name="$(validate_vm_name "${1:-}")"; shift || true
     require_vm "$name"
-    [[ $# -gt 0 ]] || die "usage: vm run <name> <command...>"
+    # Per-launch firmware override; only matters when this run boots the VM.
+    while [[ "${1:-}" == --uefi || "${1:-}" == --bios ]]; do
+        export VMBOX_FIRMWARE="${1#--}"; shift
+    done
+    [[ $# -gt 0 ]] || die "usage: vm run <name> [--uefi|--bios] <command...>"
 
     local serial_n serial events
     if vm_is_running "$name"; then
@@ -174,6 +178,9 @@ _run_finish() {
     verdict_report "$name" "$serial" "$scoped" || vrc=$?
     rm -f "$scoped"
 
+    # A hibernated guest is left alone: booting it to read the exit code
+    # would resume (and so consume) the very image the caller wants to test.
+    (( vrc == 8 )) && return "$vrc"
     # If the guest stopped, recover the real exit code from the overlay.
     if ! vm_is_running "$name"; then
         local rc

@@ -14,7 +14,7 @@ readonly SCRIPT_DIR
 readonly LINK_DIR="${LINK_DIR:-$HOME/.local/bin}"
 
 # xorriso ships in libisoburn -- there is no package named "xorriso".
-readonly -a PACKAGES=(qemu-base libisoburn openssh python)
+readonly -a PACKAGES=(qemu-base libisoburn openssh python jq edk2-ovmf)
 
 if [[ $EUID -eq 0 ]]; then
     echo "Do not run install.sh as root: it links into \$HOME and would" >&2

@@ -19,8 +19,17 @@ usage() {
 Usage: vm <command> [args]
 
   build                       Build the golden base image (once, ~10 min)
-  new <name> [--rtc <ts>]     Create a sandbox (instant; thin overlay)
-  run <name> <command...>     Run a command in the sandbox, report the verdict
+  new <name> [--rtc <ts>] [--uefi]
+                              Create a sandbox (instant; thin overlay)
+  run <name> [--uefi|--bios] <command...>
+                              Run a command in the sandbox, report the verdict
+  start <name>                Boot the sandbox and wait until ssh answers
+  wake <name> [--accel N] [--max-wait S] [--] <command...>
+                              Run a command that arms the RTC and powers off or
+                              hibernates; power the guest back on when its
+                              CMOS alarm fires (see DOCS-rtc-wake.md)
+  hibernate-setup <name> [--swap-mb N]
+                              Swap + resume= so the guest can hibernate/resume
   ssh <name> [args...]        Interactive shell in the sandbox
   scp <name> <src> <dest>     Copy a host file into the sandbox
   share <host-path>           Expose a host dir to sandboxes (read-only bind)
@@ -40,6 +49,8 @@ Usage: vm <command> [args]
               VM's meta and re-applied on EVERY launch: the shutdown scripts
               are gated on a 21:00-05:00 window, so an unpinned clock makes
               their tests nondeterministic.
+  --uefi      Boot with OVMF instead of SeaBIOS. On `new` it is stored in meta
+              (with a per-sandbox varstore); on `run` it is this launch only.
 
 Examples:
   vm new demo --rtc 2026-08-22T20:55:00
@@ -70,18 +81,30 @@ cmd_scp() {
     ok "copied $src -> $name:$dest"
 }
 
+# Boot without running anything. VMBOX_START_TIMEOUT bounds the ssh wait.
+cmd_start() {
+    local name
+    name="$(validate_vm_name "${1:-}")"
+    require_vm "$name"
+    vm_is_running "$name" && { log "sandbox '$name' is already running"; return 0; }
+    launch_vm "$name" >/dev/null
+    vm_wait_ssh "$name" "${VMBOX_START_TIMEOUT:-150}" ||
+        die "sandbox '$name' did not become reachable"
+    ok "sandbox '$name' is up"
+}
 
 cmd_list() {
     [[ -d "$VMBOX_VMS_DIR" ]] || { echo "no sandboxes yet (create one: vm new <name>)"; return 0; }
-    local found=0 d name state rtc
-    printf '%-20s %-12s %s\n' "NAME" "STATE" "RTC"
+    local found=0 d name state rtc fw
+    printf '%-20s %-12s %-6s %s\n' "NAME" "STATE" "FW" "RTC"
     for d in "$VMBOX_VMS_DIR"/*/; do
         [[ -d "$d" ]] || continue
         found=1
         name="$(basename "$d")"
         if vm_is_running "$name"; then state="running"; else state="stopped"; fi
         rtc="$(meta_get "$name" rtc 2>/dev/null || echo '-')"
-        printf '%-20s %-12s %s\n' "$name" "$state" "${rtc:--}"
+        fw="$(meta_get "$name" firmware 2>/dev/null || echo bios)"
+        printf '%-20s %-12s %-6s %s\n' "$name" "$state" "${fw:-bios}" "${rtc:--}"
     done
     (( found )) || echo "(none)"
 }
@@ -96,6 +119,11 @@ main() {
         reset)      source "$VMBOX_LIB_DIR/overlay.sh";                       overlay_reset "$@" ;;
         rm)         source "$VMBOX_LIB_DIR/overlay.sh";                       overlay_rm "$@" ;;
         run)        require_host_deps; source "$VMBOX_LIB_DIR/run.sh";        run_in_vm "$@" ;;
+        start)      require_host_deps; source "$VMBOX_LIB_DIR/launch.sh"
+                    source "$VMBOX_LIB_DIR/ssh.sh";                           cmd_start "$@" ;;
+        wake)       require_host_deps; source "$VMBOX_LIB_DIR/rtcwake.sh";    cmd_wake "$@" ;;
+        hibernate-setup)
+                    require_host_deps; source "$VMBOX_LIB_DIR/hibernate.sh";  cmd_hibernate_setup "$@" ;;
         ssh)        source "$VMBOX_LIB_DIR/ssh.sh";                           vm_ssh_interactive "$@" ;;
         scp)        source "$VMBOX_LIB_DIR/ssh.sh";                           cmd_scp "$@" ;;
         screenshot) source "$VMBOX_LIB_DIR/screenshot.sh";                    vm_screenshot "$@" ;;

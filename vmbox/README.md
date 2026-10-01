@@ -131,8 +131,11 @@ Two things that installer taught us, both worth knowing before you run it:
 | Command | Effect |
 |---|---|
 | `vm build [--force]` | Build/rebuild the golden image |
-| `vm new <name> [--rtc <ts>]` | Create a sandbox |
-| `vm run <name> <cmd...>` | Run a command, print the verdict |
+| `vm new <name> [--rtc <ts>] [--uefi]` | Create a sandbox (`--uefi`: OVMF + its own varstore) |
+| `vm run <name> [--uefi\|--bios] <cmd...>` | Run a command, print the verdict (hibernate = exit 8) |
+| `vm start <name>` | Boot and wait for ssh, nothing else |
+| `vm wake <name> [--accel N] -- <cmd...>` | Run a command that arms the RTC and powers off / hibernates; power the guest on when its CMOS alarm fires |
+| `vm hibernate-setup <name>` | Swap + `resume=` so `systemctl hibernate` works and resumes |
 | `vm ssh <name>` | Interactive shell (starts the VM if needed) |
 | `vm screenshot <name> [out.png]` | Capture the screen (locker/X11 tests) — verified: real 1280x800 PNG of the guest's i3 session, no viewer installed |
 | `vm lightdm <name>` | Switch the sandbox to the host's login topology: lightdm autologin → i3, tty1 a plain getty. Reboots the guest and proves `lightdm.service` is active with an Xorg it owns |
@@ -157,6 +160,17 @@ Both mutate a live overlay only. The base image is never rebuilt for this:
 backs onto the old file's *name*, which is silent qcow2 corruption, not a
 loud refusal.
 
+## The PC wakes itself: `vm wake` and UEFI mode
+
+QEMU never powers a guest on from S5 or resumes it from S4 when the CMOS
+alarm fires (measured, SeaBIOS and OVMF; only S3 wakes natively). `vm wake`
+plays the firmware: it keeps the stopped guest's CMOS alive, reads the armed
+alarm out of it over QMP, waits (optionally `--accel`erated) and powers the
+guest on at that instant -- a cold boot after poweroff, a resume after
+hibernate. `tests/rtcwake_e2e.sh` proves the arming, the survival and the
+boot/resume units; that real firmware wakes stays a host-only question.
+Details, measurements and limits: [DOCS-rtc-wake.md](DOCS-rtc-wake.md).
+
 ## Out of scope
 
 A VM still cannot cover adb/phone tests (~36 files), real GPU monitors, and
@@ -165,9 +179,10 @@ stay on the host or stay untested.
 
 ## Tests
 
-`bats tests/test_vmbox.bats` — 39 host-side unit tests for name validation,
-meta handling, serial rotation and the full verdict table. They do not boot a
-VM; booting is covered by the destructive end-to-end demo above.
+`bats tests/test_vmbox.bats tests/test_rtcwake.bats` — host-side unit tests
+for name validation, meta handling, serial rotation, the full verdict table,
+firmware selection and the CMOS alarm decoder. They do not boot a VM; booting
+is covered by the end-to-end demos (`tests/*_demo.sh`, `tests/rtcwake_e2e.sh`).
 
 ## Speed
 

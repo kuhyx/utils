@@ -21,6 +21,6 @@ repos:
     hooks:
       - id: file-length-cap
         name: enforce 250-line cap
-        entry: bash -c 'for f in "$@"; do n=$(wc -l < "$f"); if [ "$n" -gt 250 ]; then echo "$f: $n lines exceeds the 250-line cap"; exit 1; fi; done' --
+        entry: bash -c 'for f in "$@"; do n=$(wc -l < "$f"); if [ "$n" -gt 250 ]; then echo "$f has $n lines, over the 250-line cap"; exit 1; fi; done' --
         language: system
         files: ^vmbox/

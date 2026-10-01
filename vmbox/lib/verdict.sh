@@ -15,33 +15,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 readonly POWEROFF_MARKER='reboot: Power down'
 
 # Read the last SHUTDOWN/panic event out of events.jsonl.
-# Echoes one of: guest-shutdown | guest-reset | host-* | panic | none
+# Echoes one of: guest-shutdown | hibernate | guest-reset | host-* | panic | none
 verdict_last_event() {
     local events="$1"
     [[ -s "$events" ]] || { printf 'none'; return 0; }
-    python3 - "$events" <<'PY'
-import json, sys
-
-kind = "none"
-with open(sys.argv[1], encoding="utf-8") as fh:
-    for line in fh:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            msg = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        event = msg.get("event", "")
-        if event == "GUEST_PANICKED":
-            kind = "panic"
-        elif event == "SHUTDOWN":
-            data = msg.get("data", {})
-            reason = data.get("reason", "")
-            # `guest` distinguishes a guest-initiated stop from one we caused.
-            kind = reason if reason else ("guest-shutdown" if data.get("guest") else "host")
-print(kind)
-PY
+    python3 "$VMBOX_LIB_DIR/last_event.py" "$events"
 }
 
 # Did the guest reach the end of its shutdown sequence, or die partway?
@@ -67,6 +45,7 @@ verdict_is_alive() {
 
 # Print the human-readable verdict and return a distinct exit code per outcome:
 #   0 clean poweroff   3 dirty   4 rebooted   5 panicked   6 hung   7 still running
+#   8 hibernated
 verdict_report() {
     local name="$1" serial="$2" events="$3" kind
     kind="$(verdict_last_event "$events")"
@@ -80,6 +59,12 @@ verdict_report() {
             warn "VERDICT: DIRTY shutdown -- the VM stopped, but the serial log never reached"
             warn "         '$POWEROFF_MARKER'; the sequence was cut short (see $serial)"
             return 3
+            ;;
+        hibernate)
+            # Not a failure and not a poweroff: S4 leaves no 'Power down' line,
+            # which used to be misreported as a DIRTY shutdown.
+            ok "VERDICT: hibernated -- the guest entered ACPI S4 (QMP SUSPEND_DISK)"
+            return 8
             ;;
         guest-reset)
             warn "VERDICT: REBOOTED, did not power off -- the guest reset instead of halting"

@@ -54,6 +54,9 @@ fi
 # i3 tools look here when I3SOCK is unset; setting it explicitly avoids a
 # second round of X round-trips in tests that shell out repeatedly.
 if [ -n "${DISPLAY:-}" ] && [ -z "${I3SOCK:-}" ] && command -v i3 >/dev/null 2>&1; then
-    I3SOCK="$(i3 --get-socketpath 2>/dev/null || true)"
+    # Bounded: this is an X round-trip, and after a hibernate resume the
+    # guest's virtio-gpu never completes a fence, so Xorg is wedged and an
+    # unbounded call hung every later `vm run` (measured 2026-10-01).
+    I3SOCK="$(timeout 2 i3 --get-socketpath 2>/dev/null || true)"
     if [ -n "$I3SOCK" ]; then export I3SOCK; else unset I3SOCK; fi
 fi

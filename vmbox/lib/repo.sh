@@ -89,11 +89,14 @@ _repo_clone() {
     ok "$repo_name cloned at $head (committed state)"
 }
 
+# Gitignored files are skipped: build output (a Flutter app's build/ and
+# .dart_tool/ run to gigabytes) is not "the edits in front of you", and
+# pushing it through 9p OOM-killed a 4 GiB-capped harness (2026-10-01).
 _repo_rsync() {
     local name="$1" src="$2" repo_name="$3"
     log "Copying $repo_name into '$name' (working tree, including uncommitted edits)"
     vm_ssh_exec "$name" \
-        "rsync -a --exclude .git $GUEST_MOUNT/$repo_name/ ~/$repo_name/" ||
+        "rsync -a --exclude .git --filter=':- .gitignore' $GUEST_MOUNT/$repo_name/ ~/$repo_name/" ||
         die "rsync failed"
     ok "$repo_name copied (working-tree state)"
 }

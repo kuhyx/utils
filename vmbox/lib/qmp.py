@@ -8,6 +8,9 @@ any VNC or SPICE viewer installed on the host.
 Usage:
   qmp.py <qmp.sock> screendump <out.png>
   qmp.py <qmp.sock> status
+  qmp.py <qmp.sock> pause-on-shutdown   # a guest poweroff/hibernate leaves
+                                        # QEMU alive in 'shutdown' (vm wake)
+  qmp.py <qmp.sock> quit
 """
 
 from __future__ import annotations
@@ -19,17 +22,17 @@ import sys
 from typing import Any, TextIO
 
 
-def _open(path: str) -> tuple[socket.socket, TextIO]:
+def open_session(path: str) -> tuple[socket.socket, TextIO]:
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.settimeout(20)
     sock.connect(path)
     stream = sock.makefile("rw", encoding="utf-8", newline="\n")
     stream.readline()  # greeting
-    _command(stream, "qmp_capabilities")
+    command(stream, "qmp_capabilities")
     return sock, stream
 
 
-def _command(stream: TextIO, name: str, **args: Any) -> dict[str, Any]:
+def command(stream: TextIO, name: str, **args: Any) -> dict[str, Any]:
     """Send one command and return its reply, skipping any events in between."""
     payload: dict[str, Any] = {"execute": name}
     if args:
@@ -55,7 +58,7 @@ def main() -> int:
         print(f"qmp: no such socket: {path} (is the sandbox running?)", file=sys.stderr)
         return 1
 
-    sock, stream = _open(path)
+    sock, stream = open_session(path)
     try:
         if action == "screendump":
             if len(sys.argv) < 4:
@@ -63,9 +66,16 @@ def main() -> int:
                 return 2
             out = os.path.abspath(sys.argv[3])
             # PNG is native to qemu's screendump; no ImageMagick needed.
-            reply = _command(stream, "screendump", filename=out, format="png")
+            reply = command(stream, "screendump", filename=out, format="png")
         elif action == "status":
-            reply = _command(stream, "query-status")
+            reply = command(stream, "query-status")
+        elif action == "pause-on-shutdown":
+            # Runtime equivalent of -no-shutdown, so launch defaults stay as
+            # they are: the machine stops, but its CMOS (and the RTC alarm in
+            # it) stays readable instead of vanishing with the process.
+            reply = command(stream, "set-action", shutdown="pause")
+        elif action == "quit":
+            reply = command(stream, "quit")
         else:
             print(f"qmp: unknown action '{action}'", file=sys.stderr)
             return 2

@@ -11,6 +11,8 @@
 
 # shellcheck source=common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=firmware.sh
+source "$(dirname "${BASH_SOURCE[0]}")/firmware.sh"
 
 readonly VMBOX_MEM="${VMBOX_MEM:-4096}"
 readonly VMBOX_SMP="${VMBOX_SMP:-4}"
@@ -55,7 +57,10 @@ launch_vm() {
     overlay="$(vm_overlay "$name")"
     port="$(meta_get "$name" ssh_port)"
     index="$(meta_get "$name" index)"
-    rtc="$(meta_get "$name" rtc 2>/dev/null || true)"
+    # VMBOX_RTC_ONCE is a one-launch override and is never written to meta:
+    # `vm wake` powers the guest on at the instant its alarm fired, without
+    # moving the sandbox's own pin.
+    rtc="${VMBOX_RTC_ONCE:-$(meta_get "$name" rtc 2>/dev/null || true)}"
     serial_n="$(vm_next_serial "$name")"
     serial="$(vm_serial "$name" "$serial_n")"
     qmp="$(vm_qmp_sock "$name")"
@@ -111,6 +116,9 @@ launch_vm() {
     )
 
     [[ -n "$rtc" ]] && args+=(-rtc "base=$rtc")
+    # One-shot, for `vm wake`: see DOCS-rtc-wake.md ("TCO watchdog").
+    [[ -n "${VMBOX_WATCHDOG_ACTION:-}" ]] && args+=(-action "watchdog=$VMBOX_WATCHDOG_ACTION")
+    firmware_qemu_args "$name" args
 
     _launch_qemu "$name" "$serial" "$qmp" args
     printf '%s' "$serial_n"
