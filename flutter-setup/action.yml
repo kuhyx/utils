@@ -1,0 +1,66 @@
+name: flutter-setup (slim)
+description: >-
+  Flutter for gating jobs (analyze, test, web build) from a slim cached SDK:
+  a depth-1 clone of the release tag plus host and web artifacts only.
+  subosito/flutter-action caches the full 1.6 GB SDK, whose restore alone
+  costs ~38 s per job even on a hit; this cache is 393 MB.
+  Release (APK) builds keep subosito: they need the Android artifacts.
+
+inputs:
+  flutter-version:
+    description: Exact Flutter release tag, e.g. 3.47.6 (never a channel).
+    required: true
+  working-directory:
+    description: The Flutter project, for keying and restoring its pub cache.
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Restore the slim Flutter SDK
+      id: sdk
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/sdk/flutter-slim
+        key: flutter-slim-${{ inputs.flutter-version }}-${{ runner.os }}-${{ runner.arch }}-v1
+
+    # Miss path only: build the SDK once per version, then save it. A depth-1
+    # clone keeps .git at ~40 MB (the tool refuses to run without one).
+    # precache pulls the Android engines even with --no-android; nothing a
+    # gating job runs (test, analyze, build web) touches them, so they go,
+    # along with the desktop profile/release engines. Measured: 393 MB
+    # zstd'd, against 1642 MB for subosito's cache.
+    - name: Build the slim SDK (cache miss)
+      if: steps.sdk.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: |
+        set -euo pipefail
+        git clone --quiet --depth 1 --branch "$FLUTTER_VERSION" \
+          https://github.com/flutter/flutter.git ~/sdk/flutter-slim
+        ~/sdk/flutter-slim/bin/flutter --disable-analytics >/dev/null
+        ~/sdk/flutter-slim/bin/flutter precache --web --no-android --no-ios
+        engine=~/sdk/flutter-slim/bin/cache/artifacts/engine
+        rm -rf "$engine"/android-* "$engine"/linux-x64-profile "$engine"/linux-x64-release
+        ~/sdk/flutter-slim/bin/flutter --version
+
+    - name: Save the slim SDK
+      if: steps.sdk.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/sdk/flutter-slim
+        key: ${{ steps.sdk.outputs.cache-primary-key }}
+
+    - name: Put flutter on PATH
+      shell: bash
+      run: |
+        echo "$HOME/sdk/flutter-slim/bin" >> "$GITHUB_PATH"
+        echo "PUB_CACHE=$HOME/.pub-cache" >> "$GITHUB_ENV"
+
+    - name: Restore the pub cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.pub-cache
+        key: pub-${{ inputs.flutter-version }}-${{ runner.os }}-${{ hashFiles(format('{0}/pubspec.lock', inputs.working-directory)) }}
+        restore-keys: pub-${{ inputs.flutter-version }}-${{ runner.os }}-
