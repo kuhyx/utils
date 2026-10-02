@@ -65,6 +65,13 @@ overridden as a unit.
 projects; `DEFAULT_HMAC_KEY_FILE` (`/etc/workout-locker/hmac.key`) is
 unchanged so existing signed history keeps verifying.
 
+`gatelock.morning_session.morning_skip` is the one reader of wake-alarm's
+signed `morning_session.json` (the wake-early carrot: no lock until the signed
+`exempt_until`, 11:00 for a morning completed in time). screen-locker,
+leetcode-guard and book-guard all call it; the policy itself stays in
+wake-alarm. Path and retry budget are arguments so each consumer's tests keep
+redirecting their own constant.
+
 ## Development
 
 ```bash
