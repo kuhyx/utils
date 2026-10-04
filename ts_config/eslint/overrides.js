@@ -12,6 +12,13 @@
 /** @type {import("eslint").Linter.Config[]} */
 export const overrides = [
   {
+    // A tool config file exists to `export default` the result of a call
+    // (`defineConfig(...)`); that is its entire job, not a hidden side
+    // effect, so the module-purity rule has nothing to protect here.
+    files: ["**/*.config.{js,mjs,cjs,ts,mts,cts}"],
+    rules: { "unicorn/no-top-level-side-effects": "off" },
+  },
+  {
     // A package's entry point IS a barrel: its whole job is to name the
     // public API. The rule stays on everywhere else, where a barrel is how
     // `import { x } from "@/utils"` ends up pulling in forty modules.

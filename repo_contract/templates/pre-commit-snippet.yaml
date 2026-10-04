@@ -1,0 +1,9 @@
+# Add under `repos: - repo: local: hooks:` in a repo's .pre-commit-config.yaml,
+# after copying check_repo_contract.shim.sh to scripts/check_repo_contract.sh.
+# pass_filenames is false: the contract is about the repo, not the staged files.
+      - id: repo-contract
+        name: repo contract (CLAUDE.md Commands + test_changed)
+        entry: scripts/check_repo_contract.sh
+        language: system
+        pass_filenames: false
+        files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$

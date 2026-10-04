@@ -69,20 +69,27 @@ export function rewriteSource(file, text, sourceDirectory) {
 }
 
 /**
- * Rewrite every source file under `<root>/<source>` in place.
+ * Rewrite every source file under `<root>/<source>` in place -- and under
+ * each extra directory, whose imports are still aliased against `source`
+ * (a `tests/` tree importing `../src/x` becomes `@/x`).
  *
  * @param {string} root Repo root.
  * @param {string} [source] Aliased directory, relative to root.
+ * @param {string[]} [extra] More directories to walk, relative to root.
  * @returns {{ files: number, imports: number }} What changed.
  */
-export function aliasImports(root, source = "src") {
+export function aliasImports(root, source = "src", extra = []) {
   const sourceDirectory = path.resolve(root, source);
-  if (!fs.existsSync(sourceDirectory)) {
-    throw new Error(`alias-imports: no such directory ${sourceDirectory}`);
+  const walked = [sourceDirectory, ...extra.map((directory) => path.resolve(root, directory))];
+  for (const directory of walked) {
+    if (!fs.existsSync(directory)) {
+      throw new Error(`alias-imports: no such directory ${directory}`);
+    }
   }
   let files = 0;
   let imports = 0;
-  for (const file of listSourceFiles(sourceDirectory)) {
+  const candidates = walked.flatMap((directory) => listSourceFiles(directory));
+  for (const file of candidates) {
     const before = fs.readFileSync(file, "utf8");
     const { count, text } = rewriteSource(file, before, sourceDirectory);
     if (count === 0) {
@@ -96,19 +103,20 @@ export function aliasImports(root, source = "src") {
 }
 
 /**
- * CLI body: `alias-imports <repo-root> [src-dir]`. Returns the exit code
- * and writes the one-line report, so the shim stays at two lines.
+ * CLI body: `alias-imports <repo-root> [src-dir] [extra-dir...]`. Returns
+ * the exit code and writes the one-line report, so the shim stays at two
+ * lines.
  *
  * @param {string[]} argv Arguments after the script name.
  * @param {{ log: (line: string) => void }} [io]
  */
 export function main(argv, io = console) {
-  const [root, source] = argv;
+  const [root, source, ...extra] = argv;
   if (root === undefined) {
-    io.log("usage: alias-imports <repo-root> [src-dir=src]");
+    io.log("usage: alias-imports <repo-root> [src-dir=src] [extra-dir...]");
     return 2;
   }
-  const { files, imports } = aliasImports(root, source);
+  const { files, imports } = aliasImports(root, source, extra);
   io.log(`alias-imports: rewrote ${imports} import(s) in ${files} file(s) under ${path.resolve(root, source ?? "src")}`);
   return 0;
 }

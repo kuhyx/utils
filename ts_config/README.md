@@ -72,14 +72,15 @@ needs them rewritten before the rule can go on. That is a script, not a
 session's worth of hand edits:
 
 ```sh
-node ~/src/utils/ts_config/scripts/alias-imports.mjs <repo-root> [src-dir]
+node ~/src/utils/ts_config/scripts/alias-imports.mjs <repo-root> [src-dir] [extra-dir...]
 ```
 
 Every `import` / `export … from` / `import()` specifier under `src/` that
 starts with `../` and resolves inside `src/` becomes `@/<path from src>`;
 `./sibling`, package imports and a `../` that leaves `src/` are left alone
 (the last one is the lint report's to surface). Extensions are carried over
-untouched. Idempotent. The repo still needs the alias itself: `paths` in
+untouched. Idempotent. Extra directories (`tests`, `scripts`) are walked
+too and aliased against `src`. The repo still needs the alias itself: `paths` in
 tsconfig (see above) and `resolve.alias` in vite.config, which vitest reads.
 `test/alias-imports.test.js` runs it over a fixture tree.
 

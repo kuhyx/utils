@@ -1,0 +1,25 @@
+name: repo-contract
+
+# The local pre-commit hook can be skipped (a fresh clone has no hooks), so the
+# contract is enforced on push too. Mirrors md-naming.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  repo-contract:
+    name: repo contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the shared gate
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+
+      - name: Enforce the repo contract
+        run: bash .utils/scripts/check_repo_contract.sh

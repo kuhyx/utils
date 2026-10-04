@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# ============================================================================
+# coverage-gaps -- per-file task list of uncovered lines/branches.
+# Thin wrapper over `python3 -m coverage_gaps` (see coverage_gaps/cli.py).
+# Usage: coverage-gaps <report> [--json] [--max-files N] [--min-missed N]
+#                      [--path-prefix P]      Exit: 0 covered | 1 gaps | 2 bad input
+# ============================================================================
+
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd -P)"
+readonly BIN_DIR
+
+PYTHONPATH="$BIN_DIR/../.." python3 -m coverage_gaps "$@"
+exit $?

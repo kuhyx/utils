@@ -48,3 +48,17 @@ jobs:
             --cov=file_length --cov-branch \
             --cov-report=term-missing \
             --cov-fail-under=100
+
+      - name: repo_contract — 100% branch coverage on the gate itself
+        run: |
+          PYTHONPATH=. python -m pytest repo_contract/tests -q \
+            --cov=repo_contract --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=100
+
+      - name: coverage_gaps — 100% branch coverage on the lister
+        run: |
+          PYTHONPATH=. python -m pytest coverage_gaps/tests -q \
+            --cov=coverage_gaps --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=100

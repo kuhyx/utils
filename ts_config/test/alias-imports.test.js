@@ -28,6 +28,7 @@ const FIXTURE = {
   "src/services/api.ts": 'import { format } from "../utils/format";\nexport const api = format;\n',
   "src/services/notes.md": "not source: [x](../utils/format)\n",
   "src/utils/format.ts": "export const format = 1;\n",
+  "tests/api.test.ts": 'import { api } from "../src/services/api";\nimport { fixture } from "./fixture";\nexport const t = api(fixture);\n',
   "tooling/outside.ts": "export const outside = 1;\n",
 };
 
@@ -111,8 +112,15 @@ describe("aliasImports", () => {
     expect(aliasImports(rootOf(), "lib")).toEqual({ files: 2, imports: 6 });
   });
 
-  it("fails loudly on a missing source dir", () => {
+  it("walks extra directories, aliasing them against src", () => {
+    expect(aliasImports(rootOf(), "src", ["tests"])).toEqual({ files: 3, imports: 7 });
+    expect(read("tests/api.test.ts")).toContain('from "@/services/api"');
+    expect(read("tests/api.test.ts")).toContain('from "./fixture"');
+  });
+
+  it("fails loudly on a missing source or extra dir", () => {
     expect(() => aliasImports(rootOf(), "nope")).toThrow(/no such directory/);
+    expect(() => aliasImports(rootOf(), "src", ["nope"])).toThrow(/no such directory/);
   });
 });
 
@@ -130,8 +138,8 @@ describe("main", () => {
   });
 
   it("runs as a CLI", () => {
-    const stdout = execFileSync(process.execPath, [CLI, rootOf()], { encoding: "utf8" });
-    expect(stdout).toContain("rewrote 6 import(s) in 2 file(s)");
+    const stdout = execFileSync(process.execPath, [CLI, rootOf(), "src", "tests"], { encoding: "utf8" });
+    expect(stdout).toContain("rewrote 7 import(s) in 3 file(s)");
     expect(read("src/services/api.ts")).toContain("@/utils/format");
   });
 });
