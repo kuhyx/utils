@@ -38,6 +38,7 @@ def test_shell_only_and_unknown(tmp_path: Path) -> None:
 
 def test_walk_prunes_and_bounds_depth(tmp_path: Path) -> None:
     write(tmp_path, "node_modules/x/y_test.py")
+    write(tmp_path, ".utils/tests/test_gate.py")  # CI checkout of the shared gate
     deep = "/".join(["d"] * (MAX_DEPTH + 1))
     write(tmp_path, f"{deep}/test_deep.py")
     assert not has_tests(tmp_path, [])

@@ -8,6 +8,7 @@ from pathlib import Path
 PRUNE = frozenset(
     {
         ".git",
+        ".utils",
         "node_modules",
         "build",
         ".dart_tool",
