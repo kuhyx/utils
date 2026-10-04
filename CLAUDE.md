@@ -1,7 +1,7 @@
 # utils
 
 Monorepo of shared gates and libraries (dep_freshness, file_length, md_naming,
-repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, music_theory, ...).
+repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, earned_time, music_theory, ...).
 Python packages with a root-level `<pkg>/tests` run with `PYTHONPATH=.`;
 subprojects with their own `pyproject.toml` run via `scripts/run_subproject_tests.sh <dir>`.
 `scripts/check_repo_contract.sh` is the REAL shared gate (not a shim): never

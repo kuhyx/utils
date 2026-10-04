@@ -1,0 +1,73 @@
+name: earned_time pre-commit
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as earned_time: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['earned_time/**', '.github/workflows/earned-time-precommit.yml']
+  pull_request:
+    branches: [main]
+    paths: ['earned_time/**', '.github/workflows/earned-time-precommit.yml']
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      # Only pre-commit itself. Every linting hook runs in its own isolated
+      # env -- ruff, mypy, pylint, bandit and codespell each come from their
+      # own repo+rev, and the local hooks need nothing beyond bash and
+      # python3 -- so installing the full requirements.txt spent 9s a run on
+      # packages no pre-commit-stage hook imports. Verified by running all
+      # three configs green in a venv holding pre-commit and nothing else.
+      # The pin is read out of requirements.txt rather than repeated here, so
+      # it cannot drift from what the dependency-freshness gate governs.
+      - name: Install pre-commit
+        run: |
+          pip install "$(grep '^pre-commit==' earned_time/requirements.txt)"
+
+      # Keyed on THIS package's config. pre-commit/action@v3.0.1 caches on
+      # hashFiles('.pre-commit-config.yaml') -- the repo ROOT's -- so all three
+      # package jobs shared one key, raced to overwrite it with hook sets built
+      # from four different configs, and editing a per-package config did not
+      # invalidate it. The cache was therefore silently wrong rather than
+      # missing, and the hooks reinstalled from scratch on every run (38-49s).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: >-
+            pre-commit-earned_time-${{ env.pythonLocation }}-${{
+            hashFiles('earned_time/.pre-commit-config.yaml') }}
+          # Prefix fallback, or this fix would evaporate on the very
+          # event that motivated it: bumping a hook rev changes the
+          # exact key, and a total miss means reinstalling every hook
+          # again. pre-commit's store is keyed internally by hook
+          # repo+rev, so a superseded entry is ignored disk rather
+          # than a wrong hook, and cache still re-saves under the new
+          # exact key after a prefix-only hit.
+          restore-keys: pre-commit-earned_time-${{ env.pythonLocation }}-
+      # mypy re-analyses the stdlib and every third-party stub from scratch
+      # without this, which measured 10s of the hook step in CI against 0.25s
+      # warm locally -- a 19MB cache dir does the whole difference. Keyed on
+      # the config, not the sources: mypy's own cache metadata records the
+      # interpreter, the flag set and a hash per source file, so it re-checks
+      # what changed and cannot pass stale code. Deliberately NOT keyed on
+      # github.sha -- that re-saves 19MB x3 every commit and would evict the
+      # 68MB hook caches under the repo's 10GB LRU budget. A fixed key keeps
+      # the expensive part, the dependency analysis, which is what costs 10s.
+      - uses: actions/cache@v4
+        with:
+          path: .mypy_cache
+          key: >-
+            mypy-earned_time-${{ env.pythonLocation }}-${{
+            hashFiles('earned_time/.pre-commit-config.yaml') }}
+          restore-keys: mypy-earned_time-${{ env.pythonLocation }}-
+      - name: Run the hooks
+        run: >-
+          pre-commit run --config earned_time/.pre-commit-config.yaml
+          --all-files --show-diff-on-failure

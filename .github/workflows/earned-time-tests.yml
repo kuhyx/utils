@@ -1,0 +1,36 @@
+name: earned_time tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as earned_time: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['earned_time/**', '.github/workflows/earned-time-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['earned_time/**', '.github/workflows/earned-time-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: earned_time
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+          cache-dependency-path: earned_time/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install --no-deps -e .
+
+      # No display needed: earned_time is stdlib-only policy, imported
+      # headless by the root gaming daemon.
+      - name: Run tests with coverage
+        run: python -m pytest -v
