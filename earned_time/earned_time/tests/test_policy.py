@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from earned_time import EARNERS, LEETCODE, READING, WORKOUT, earner
+from earned_time import ANKI, EARNERS, LEETCODE, READING, WORKOUT, earner
 from earned_time._ledger import today_window
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ TODAY = datetime.fromtimestamp(WINDOW[0]).astimezone().date().isoformat()
 
 
 def test_registry_order_and_names() -> None:
-    assert [e.name for e in EARNERS] == ["workout", "leetcode", "reading"]
+    assert [e.name for e in EARNERS] == ["workout", "leetcode", "reading", "anki"]
 
 
 def test_lookup_by_name() -> None:
@@ -97,3 +97,22 @@ def test_reading_unusable_end_is_logged(caplog: pytest.LogCaptureFixture) -> Non
     with caplog.at_level(logging.WARNING):
         assert not _match(READING, {"detail": {"bonus": "1"}, "entry_id": "r"})
     assert "no usable ended_at" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("detail", "expected"),
+    [
+        ({"anki_day": TODAY}, True),
+        ({"anki_day": "2026-10-03"}, False),
+        ({}, False),
+        ("not a dict", False),
+    ],
+)
+def test_anki_match(detail: object, *, expected: bool) -> None:
+    assert _match(ANKI, {"detail": detail}) is expected
+
+
+def test_anki_penalty_starts_the_day_after_it_shipped() -> None:
+    # Shipped 2026-10-05: that day is a pure bonus, never an unearnable cut.
+    assert not ANKI.penalised_on(date(2026, 10, 5))
+    assert ANKI.penalised_on(date(2026, 10, 6))

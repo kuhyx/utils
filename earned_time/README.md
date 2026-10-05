@@ -25,7 +25,7 @@ fact — HMAC-signed `credit` rows in its ledger — and is registered here once
        label="Anki",
        gaming_minutes=30,
        shutdown_minutes=30,
-       penalty_from=date(2026, 10, 10), # base drops by the same 30/30 from then on
+       penalty_from=date(2026, 10, 6),  # base drops by the same 30/30 from then on
        ledger=".local/share/anki_guard/ledger.json",
        match=_anki_match,               # which verified credit rows count today
        missing_ledger_is_no=True,

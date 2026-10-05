@@ -136,6 +136,17 @@ def _reading_match(row: dict[str, object], window: Window) -> bool:
     return landed
 
 
+def _anki_match(row: dict[str, object], window: Window) -> bool:
+    """An Anki credit counts on its Anki day (``detail.anki_day``).
+
+    anki-guard writes one row per Anki day, keyed on the collection's own day
+    boundary, so the day it names is the day it pays -- no stamp to parse.
+    """
+    detail = row.get("detail")
+    local = datetime.fromtimestamp(window[0], tz=UTC).astimezone().date()
+    return isinstance(detail, dict) and detail.get("anki_day") == local.isoformat()
+
+
 WORKOUT: Final = Earner(
     name="workout",
     label="workout",
@@ -162,9 +173,19 @@ READING: Final = Earner(
     match=_reading_match,
     missing_ledger_is_no=True,
 )
+ANKI: Final = Earner(
+    name="anki",
+    label="Anki",
+    gaming_minutes=30,
+    shutdown_minutes=30,
+    penalty_from=date(2026, 10, 6),
+    ledger=".local/share/anki_guard/ledger.json",
+    match=_anki_match,
+    missing_ledger_is_no=True,
+)
 
 # Order is the order of reason strings and of screen-locker's live pass.
-EARNERS: Final[tuple[Earner, ...]] = (WORKOUT, LEETCODE, READING)
+EARNERS: Final[tuple[Earner, ...]] = (WORKOUT, LEETCODE, READING, ANKI)
 
 
 def earner(name: str, earners: tuple[Earner, ...] = EARNERS) -> Earner:
