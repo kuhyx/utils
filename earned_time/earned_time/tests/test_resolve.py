@@ -74,7 +74,8 @@ def test_term_lookup_unknown_raises() -> None:
 
 def test_new_penalised_earner_keeps_the_best_case() -> None:
     # A hypothetical next earner on top of the real registry (reading and
-    # anki already penalised by 2026-10-11): 5h - 1h - 30m - 30m.
+    # anki and automation already penalised by 2026-10-11):
+    # 5h - 1h - 30m - 30m - 30m.
     piano = Earner(
         name="piano",
         label="piano",
@@ -86,10 +87,10 @@ def test_new_penalised_earner_keeps_the_best_case() -> None:
 
     earners = (*EARNERS, piano)
     later = date(2026, 10, 11)
-    assert base_for(later, earners).gaming_minutes == 180
-    assert base_for(later, earners).shutdown_minutes == 18 * 60
-    others = {"workout": 0, "leetcode": 0, "reading": 0, "anki": 0}
+    assert base_for(later, earners).gaming_minutes == 150
+    assert base_for(later, earners).shutdown_minutes == 17 * 60 + 30
+    others = {e.name: 0 for e in EARNERS}
     skipped = resolve({**others, "piano": 0}, later, earners)
     done = resolve({**others, "piano": 1}, later, earners)
     assert done.gaming_minutes - skipped.gaming_minutes == 30
-    assert done.shutdown_minutes == 18 * 60 + 30
+    assert done.shutdown_minutes == 18 * 60

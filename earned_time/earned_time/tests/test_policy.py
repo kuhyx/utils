@@ -9,11 +9,21 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from earned_time import ANKI, EARNERS, LEETCODE, READING, WORKOUT, earner
+from earned_time import (
+    ANKI,
+    AUTOMATION,
+    EARNERS,
+    LEETCODE,
+    READING,
+    WORKOUT,
+    earner,
+)
 from earned_time._ledger import today_window
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from earned_time import Earner
 
 NOON = datetime(2026, 10, 4, 12, tzinfo=UTC)
 WINDOW = today_window(NOON)
@@ -23,7 +33,13 @@ TODAY = datetime.fromtimestamp(WINDOW[0]).astimezone().date().isoformat()
 
 
 def test_registry_order_and_names() -> None:
-    assert [e.name for e in EARNERS] == ["workout", "leetcode", "reading", "anki"]
+    assert [e.name for e in EARNERS] == [
+        "workout",
+        "leetcode",
+        "reading",
+        "anki",
+        "automation",
+    ]
 
 
 def test_lookup_by_name() -> None:
@@ -108,11 +124,24 @@ def test_reading_unusable_end_is_logged(caplog: pytest.LogCaptureFixture) -> Non
         ("not a dict", False),
     ],
 )
-def test_anki_match(detail: object, *, expected: bool) -> None:
-    assert _match(ANKI, {"detail": detail}) is expected
+@pytest.mark.parametrize("anki_earner", [ANKI, AUTOMATION])
+def test_anki_match(anki_earner: Earner, detail: object, *, expected: bool) -> None:
+    assert _match(anki_earner, {"detail": detail}) is expected
 
 
 def test_anki_penalty_starts_the_day_after_it_shipped() -> None:
     # Shipped 2026-10-05: that day is a pure bonus, never an unearnable cut.
     assert not ANKI.penalised_on(date(2026, 10, 5))
     assert ANKI.penalised_on(date(2026, 10, 6))
+
+
+def test_automation_reads_its_own_ledger() -> None:
+    # One file per anki-guard quota, so the two earners never share a credit.
+    assert AUTOMATION.ledger != ANKI.ledger
+    assert AUTOMATION.ledger == ".local/share/anki_guard/automation_ledger.json"
+
+
+def test_automation_penalty_starts_the_day_after_the_import() -> None:
+    # The deck reached the sync server 2026-10-05: no cut before it is studiable.
+    assert not AUTOMATION.penalised_on(date(2026, 10, 5))
+    assert AUTOMATION.penalised_on(date(2026, 10, 6))

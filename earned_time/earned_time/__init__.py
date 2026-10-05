@@ -31,6 +31,7 @@ from __future__ import annotations
 from earned_time._ledger import done_today, entry_signature, today_window, verified
 from earned_time._policy import (
     ANKI,
+    AUTOMATION,
     EARNERS,
     GAMING_BASE_MINUTES,
     GAMING_CEILING_MINUTES,
@@ -46,6 +47,7 @@ from earned_time._resolve import Base, Resolution, Term, base_for, resolve
 
 __all__ = [
     "ANKI",
+    "AUTOMATION",
     "EARNERS",
     "GAMING_BASE_MINUTES",
     "GAMING_CEILING_MINUTES",

@@ -183,9 +183,27 @@ ANKI: Final = Earner(
     match=_anki_match,
     missing_ledger_is_no=True,
 )
+# Same gate, same row shape: anki-guard's ``automation`` quota (the Automation
+# deck only) writes its own ledger, so the Anki day matcher applies unchanged.
+AUTOMATION: Final = Earner(
+    name="automation",
+    label="Automation",
+    gaming_minutes=30,
+    shutdown_minutes=30,
+    penalty_from=date(2026, 10, 6),
+    ledger=".local/share/anki_guard/automation_ledger.json",
+    match=_anki_match,
+    missing_ledger_is_no=True,
+)
 
 # Order is the order of reason strings and of screen-locker's live pass.
-EARNERS: Final[tuple[Earner, ...]] = (WORKOUT, LEETCODE, READING, ANKI)
+EARNERS: Final[tuple[Earner, ...]] = (
+    WORKOUT,
+    LEETCODE,
+    READING,
+    ANKI,
+    AUTOMATION,
+)
 
 
 def earner(name: str, earners: tuple[Earner, ...] = EARNERS) -> Earner:
