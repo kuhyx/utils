@@ -80,6 +80,9 @@ class Earner:
         match: Which verified ``credit`` rows count for today.
         missing_ledger_is_no: A ledger that does not exist yet is an honest
             "no" (the gate never ran), not a fault.
+        confirmed_on: The day kuhy confirmed a real working session; set by
+            hand, never derived. ``None`` keeps the gate "new"
+            (:func:`earned_time.maturity`).
 
     ``shutdown_minutes`` and ``extra_shutdown_minutes`` are the pre-ladder
     values; from ``LADDER_FROM`` the earner's :class:`Rung` in ``LADDER``
@@ -98,6 +101,7 @@ class Earner:
     missing_ledger_is_no: bool = False
     extra_gaming_minutes: int = 0
     max_units: int | None = None
+    confirmed_on: date | None = None
 
     def capped(self, units: int) -> int:
         """``units`` clamped to ``[0, max_units]``."""
@@ -138,6 +142,9 @@ WORKOUT: Final = Earner(
     ledger=".local/share/workout_locker/ledger.json",
     match=workout_match,
     missing_ledger_is_no=True,
+    # The day of its first verified credit, read off the real ledger on
+    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    confirmed_on=date(2026, 10, 1),
 )
 LEETCODE: Final = Earner(
     name="leetcode",
@@ -146,6 +153,9 @@ LEETCODE: Final = Earner(
     shutdown_minutes=60,
     ledger=".local/share/leetcode_guard/ledger.json",
     match=leetcode_match,
+    # The day of its first verified credit, read off the real ledger on
+    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    confirmed_on=date(2026, 8, 12),
 )
 READING: Final = Earner(
     name="reading",
@@ -156,6 +166,9 @@ READING: Final = Earner(
     ledger=".local/share/book_guard/ledger.json",
     match=reading_match,
     missing_ledger_is_no=True,
+    # The day of its first verified credit, read off the real ledger on
+    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    confirmed_on=date(2026, 10, 2),
 )
 ANKI: Final = Earner(
     name="anki",

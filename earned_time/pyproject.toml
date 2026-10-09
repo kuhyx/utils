@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "earned-time"
-version = "0.5.0"
+version = "0.6.0"
 description = "Penalty-then-reward registry: what every gate app earns in gaming time and shutdown time"
 requires-python = ">=3.14"
 dependencies = []
@@ -107,7 +107,7 @@ disable = []
 min-public-methods = 0
 max-module-lines = 1000
 # Earner is a frozen registry record: its fields are the policy (cf. music_theory).
-max-attributes = 12
+max-attributes = 13
 
 [tool.pylint.typecheck]
 generated-members = [

@@ -22,6 +22,9 @@ A consumer's whole integration::
     day = earned_time.resolve(answers)
     apply(day.gaming_minutes)
 
+How far to trust a gate is computed, not listed: :func:`maturity` (and
+``python -m earned_time maturity``).
+
 Adding a gate is one :class:`Earner` in :mod:`earned_time._policy`; with
 ``penalty_from`` set, the base drops by what it pays back from that day on.
 """
@@ -33,6 +36,7 @@ from earned_time._credits import (
     day_window,
     first_credit_at,
 )
+from earned_time._evidence import real_credit
 from earned_time._ladder import (
     ANKI_WAIVED_FROM,
     LADDER,
@@ -49,6 +53,15 @@ from earned_time._ladder import (
     shutdown_minutes_for,
 )
 from earned_time._ledger import done_today, entry_signature, today_window, verified
+from earned_time._maturity import (
+    MATURE_MIN_AGE_DAYS,
+    MATURE_MIN_CREDIT_DAYS,
+    Level,
+    Maturity,
+    confirmed_start,
+    maturity,
+    penalty_start,
+)
 from earned_time._policy import (
     ANKI,
     AUTOMATION,
@@ -78,6 +91,8 @@ __all__ = [
     "LADDER",
     "LADDER_FROM",
     "LEETCODE",
+    "MATURE_MIN_AGE_DAYS",
+    "MATURE_MIN_CREDIT_DAYS",
     "READING",
     "SHUTDOWN_BASE_MINUTES",
     "SHUTDOWN_CEILING_MINUTES",
@@ -88,11 +103,14 @@ __all__ = [
     "WORKOUT",
     "Base",
     "Earner",
+    "Level",
+    "Maturity",
     "Resolution",
     "Rung",
     "Term",
     "all_earners",
     "base_for",
+    "confirmed_start",
     "credit_units",
     "day_window",
     "done_today",
@@ -102,7 +120,10 @@ __all__ = [
     "extra_shutdown_minutes_for",
     "first_credit_at",
     "ladder_for",
+    "maturity",
     "on_ladder",
+    "penalty_start",
+    "real_credit",
     "registries",
     "resolve",
     "shutdown_ceiling_for",
