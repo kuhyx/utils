@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "freedays"
-version = "0.3.0"
+version = "0.3.1"
 description = "Shared pre-declared free-day pool: one global list of days on which every gate app stands down"
 requires-python = ">=3.14"
 # Deliberately NOT gatelock. Its __init__ imports tkinter for the lock-window
@@ -12,7 +12,7 @@ requires-python = ">=3.14"
 # on a GUI toolkit -- `import freedays` then fails anywhere without Tk. The
 # ~15 lines of HMAC that were wanted live in freedays/_hmac.py instead.
 dependencies = [
-    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.1#subdirectory=crdt-sync",
+    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
 ]
 
 [project.scripts]

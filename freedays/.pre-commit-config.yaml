@@ -112,7 +112,7 @@ repos:
           - pytest
           # Kept in step with pyproject.toml, so pylint resolves the crdt_sync
           # imports instead of scoring every one of them as import-error.
-          - crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.1#subdirectory=crdt-sync
+          - crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
