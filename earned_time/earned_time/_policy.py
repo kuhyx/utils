@@ -116,7 +116,7 @@ class Earner:
     def gaming_for(self, units: int) -> int:
         """Gaming minutes ``units`` earn, capped at ``max_units``."""
         count = self.capped(units)
-        if count == 0:
+        if not count:
             return 0
         return self.gaming_minutes + (count - 1) * self.extra_gaming_minutes
 

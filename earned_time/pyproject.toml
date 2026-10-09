@@ -106,7 +106,8 @@ disable = []
 [tool.pylint.design]
 min-public-methods = 0
 max-module-lines = 1000
-max-attributes = 10
+# Earner is a frozen registry record: its fields are the policy (cf. music_theory).
+max-attributes = 12
 
 [tool.pylint.typecheck]
 generated-members = [

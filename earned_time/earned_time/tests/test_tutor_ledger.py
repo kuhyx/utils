@@ -84,7 +84,9 @@ def test_units_count_blocks_once_and_skip_forgeries(
     tmp_path: Path, key_file: Path
 ) -> None:
     tampered = block("s1", 3, _at(19))
-    tampered["detail"] = {**tampered["detail"], "active_seconds": 9000}  # type: ignore[dict-item]
+    detail = tampered["detail"]
+    assert isinstance(detail, dict)
+    tampered["detail"] = {**detail, "active_seconds": 9000}
     rows: list[object] = [
         block("s1", 1, _at(18, 15)),
         block("s1", 2, _at(18, 30)),
