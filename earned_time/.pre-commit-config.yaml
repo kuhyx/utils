@@ -33,6 +33,8 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+        # Shared test helpers (rows, fixtures) are _private modules, not tests.
+        exclude: ^earned_time/earned_time/tests/_[a-z_]+\.py$
       - id: check-ast
       - id: mixed-line-ending
         args: [--fix=lf]
