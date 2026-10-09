@@ -1,6 +1,6 @@
 [project]
 name = "crdt-sync"
-version = "0.9.1"
+version = "0.9.2"
 description = "Shared CRDT merge scheme + GitHub-Contents-API sync transport for cross-device apps"
 requires-python = ">=3.14"
 dependencies = ["requests==2.34.2"]

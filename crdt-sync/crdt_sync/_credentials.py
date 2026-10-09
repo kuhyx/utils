@@ -15,10 +15,10 @@ from dataclasses import dataclass
 import datetime as dt
 import json
 import logging
-from typing import TYPE_CHECKING, Protocol
-
-if TYPE_CHECKING:
-    from pathlib import Path
+import os
+from pathlib import Path
+import tempfile
+from typing import Protocol
 
 _logger = logging.getLogger(__name__)
 
@@ -132,12 +132,22 @@ class FileCredentialStore:
     def save(self, credentials: FirebaseCredentials) -> None:
         """Write ``credentials`` atomically, readable only by this user."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        temp = self._path.with_suffix(f"{self._path.suffix}.tmp")
-        # Create with 0600 from the outset -- writing then chmod'ing would
-        # leave the refresh token world-readable for the gap in between.
-        temp.touch(mode=0o600)
-        temp.write_text(json.dumps(credentials.to_json()), encoding="utf-8")
-        temp.replace(self._path)
+        # A unique temp name per write, not a fixed ``.tmp``: two processes
+        # (a long-running stream and a periodic sync) share one cache, and a
+        # fixed name let one rename the other's half-written file into place.
+        # mkstemp creates it 0600 from the outset -- writing then chmod'ing
+        # would leave the refresh token world-readable for the gap between.
+        fd, name = tempfile.mkstemp(
+            dir=self._path.parent, prefix=f".{self._path.name}.", suffix=".tmp"
+        )
+        temp = Path(name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(json.dumps(credentials.to_json()))
+            temp.replace(self._path)
+        except BaseException:
+            temp.unlink(missing_ok=True)
+            raise
 
     def clear(self) -> None:
         """Delete the credentials file if it exists."""

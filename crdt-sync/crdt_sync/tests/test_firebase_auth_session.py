@@ -21,6 +21,7 @@ from crdt_sync import (
     FirebaseTokenProvider,
     MemoryCredentialStore,
 )
+from crdt_sync import _credentials as fa_credentials
 from crdt_sync import _firebase_auth as fa
 
 if TYPE_CHECKING:
@@ -172,3 +173,47 @@ class TestFileCredentialStore:
         loaded = store.load()
         assert loaded is not None
         assert loaded.id_token == _ID_2
+
+    def test_leaves_no_temp_file_behind(self, tmp_path: Path) -> None:
+        """A finished save leaves only the credentials file in the directory."""
+        path = tmp_path / "creds.json"
+        FileCredentialStore(path).save(_credentials())
+        assert [p.name for p in tmp_path.iterdir()] == ["creds.json"]
+
+    def test_each_write_uses_its_own_temp_file(self, tmp_path: Path) -> None:
+        """Two writers never share a temp name, so neither renames the other's.
+
+        A fixed ``creds.json.tmp`` let a stream and a periodic sync writing
+        the same cache collide; mkstemp hands each save a fresh name.
+        """
+        path = tmp_path / "creds.json"
+        seen: list[str] = []
+        real_mkstemp = fa_credentials.tempfile.mkstemp
+
+        def spy(**kwargs: str | Path) -> tuple[int, str]:
+            fd, name = real_mkstemp(**kwargs)
+            seen.append(name)
+            return fd, name
+
+        with patch.object(fa_credentials.tempfile, "mkstemp", side_effect=spy):
+            FileCredentialStore(path).save(_credentials())
+            FileCredentialStore(path).save(_credentials(id_value=_ID_2))
+        assert len(set(seen)) == 2
+        assert all(name != f"{path}.tmp" for name in seen)
+
+    def test_a_failed_write_keeps_the_old_file_and_cleans_up(
+        self, tmp_path: Path
+    ) -> None:
+        """An interrupted save neither clobbers the cache nor leaks a temp."""
+        path = tmp_path / "creds.json"
+        store = FileCredentialStore(path)
+        store.save(_credentials())
+        with (
+            patch.object(fa_credentials.json, "dumps", side_effect=OSError("full")),
+            pytest.raises(OSError, match="full"),
+        ):
+            store.save(_credentials(id_value=_ID_2))
+        assert [p.name for p in tmp_path.iterdir()] == ["creds.json"]
+        loaded = store.load()
+        assert loaded is not None
+        assert loaded.id_token == _ID_1
