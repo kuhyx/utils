@@ -35,10 +35,12 @@ LADDER_FROM: Final = date(2026, 10, 10)
 # sleep before it, so moving the alarm moves the whole ladder with it.
 WAKE_MINUTES: Final = 7 * 60
 # From this day the Anki earner is retired and Automation is paid per tutor
-# block (``earned_time._policy.AUTOMATION_TUTOR``). A far-future sentinel
-# until kuhy confirms a real tutor session earns a block; then the day after
-# that confirmation -- never the deploy day itself (a same-day cut, 2026-09-26).
-TUTOR_FROM: Final = date(2099, 1, 1)
+# block (``earned_time._policy.AUTOMATION_TUTOR``). The day after the deploy
+# (0.6.1, 2026-10-09) -- never the deploy day itself (a same-day cut,
+# 2026-09-26). The tutor is still unconfirmed (no ``confirmed_on``), so given
+# ``first_credits`` it costs nothing -- neither gaming base nor ladder floor
+# -- until the day after it first pays out.
+TUTOR_FROM: Final = date(2026, 10, 10)
 # From this day until TUTOR_FROM the Anki and old Automation earners are
 # waived: neither penalised nor paid, since both are being retired and the
 # tutor that replaces them is not yet confirmed. Raise-only on every day (the

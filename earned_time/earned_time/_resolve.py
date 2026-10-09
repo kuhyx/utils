@@ -14,8 +14,9 @@ all -- earns nothing: fail closed. The difference shows up only in
 **Maturity can only delay a penalty.** Given ``first_credits`` (each earner's
 first real credit, from :func:`earned_time.maturity`), a penalty starts no
 earlier than the day after the gate first paid out
-(:func:`~earned_time._maturity.penalty_start`). Without it every day resolves
-exactly as in 0.5.0.
+(:func:`~earned_time._maturity.penalty_start`). Without it a penalty starts at
+``penalty_from``, as in 0.5.0. The same start spares the ladder floor: a gate
+whose penalty has not started does not lower it (0.6.1).
 """
 
 from __future__ import annotations
@@ -129,23 +130,21 @@ def _penalised(
     return start is not None and day >= start
 
 
-def _shutdown_floor(
-    day: date,
-    earners: tuple[Earner, ...],
-    first_credits: Mapping[str, date | None] | None = None,
-) -> int:
-    """Shutdown of a day that earned nothing.
+def _shutdown_floor(day: date, earners: tuple[Earner, ...], cut: list[Earner]) -> int:
+    """Shutdown of a day that earned nothing; ``cut``: the penalties in force.
 
-    On the ladder: the ceiling minus the most every registered earner can
-    pay (all of a capped earner's units), so doing everything lands exactly
-    on the ceiling. Before it: the old base minus the penalties in force.
+    On the ladder: the ceiling minus the most each earner can pay (all of a
+    capped earner's units), so doing everything lands exactly on the ceiling
+    -- but only a pure bonus (no ``penalty_from``) or an earner in ``cut``: a
+    gate whose penalty has not started cannot lower the floor (0.6.1). Before
+    it: the old base minus the penalties in force.
     """
     if on_ladder(day):
+        rungs = (e for e in earners if e.penalty_from is None or e in cut)
         return shutdown_ceiling_for(day) - sum(
-            e.shutdown_for(e.max_units or 1, day) for e in earners
+            e.shutdown_for(e.max_units or 1, day) for e in rungs
         )
-    penalised = [e for e in earners if _penalised(e, day, first_credits)]
-    return SHUTDOWN_BASE_MINUTES - sum(e.shutdown_minutes for e in penalised)
+    return SHUTDOWN_BASE_MINUTES - sum(e.shutdown_minutes for e in cut)
 
 
 def base_for(
@@ -159,8 +158,8 @@ def base_for(
     Gaming: every penalty in force, the most each earner can pay, taken off
     the gaming base. Shutdown: see :func:`_shutdown_floor` -- the two are
     derived separately so the ladder can never move a gaming minute.
-    ``first_credits`` (per earner name) delays each penalty to
-    :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
+    ``first_credits`` (per earner name) delays each penalty, and the ladder
+    rung, to :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
     """
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
@@ -168,7 +167,7 @@ def base_for(
     return Base(
         gaming_minutes=GAMING_BASE_MINUTES
         - sum(e.max_gaming_minutes for e in penalised),
-        shutdown_minutes=_shutdown_floor(target, registry, first_credits),
+        shutdown_minutes=_shutdown_floor(target, registry, penalised),
     )
 
 

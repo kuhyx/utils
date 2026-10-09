@@ -12,6 +12,7 @@ from earned_time import (
     AUTOMATION_TUTOR,
     EARNERS,
     LADDER,
+    LADDER_FROM,
     TUTOR_EARNERS,
     TUTOR_FROM,
     TUTOR_LADDER,
@@ -38,9 +39,11 @@ def _day(blocks: int, **others: int) -> tuple[int, str]:
     return day.gaming_minutes, _hhmm(day.shutdown_minutes)
 
 
-def test_tutor_from_is_after_the_ladder_and_not_today() -> None:
-    assert date(2026, 10, 10) < TUTOR_FROM
+def test_tutor_from_is_the_day_after_the_deploy() -> None:
+    assert date(2026, 10, 10) == TUTOR_FROM
     assert date(2026, 10, 9) < TUTOR_FROM  # never the day it was prepared
+    assert LADDER_FROM <= TUTOR_FROM
+    assert AUTOMATION_TUTOR.confirmed_on is None  # no real session confirmed yet
 
 
 def test_registry_switches_on_tutor_from() -> None:
@@ -48,8 +51,9 @@ def test_registry_switches_on_tutor_from() -> None:
     assert earners_for(None) is earners_for(datetime.now().astimezone().date())
     assert earners_for(TUTOR_FROM) is TUTOR_EARNERS
     assert "anki" not in {e.name for e in TUTOR_EARNERS}
-    assert ladder_for(EVE) is LADDER
-    assert ladder_for(TUTOR_FROM) is TUTOR_LADDER
+    assert ladder_for(EVE) is None  # the eve is pre-ladder
+    # TUTOR_FROM == LADDER_FROM: the first ladder day already has the tutor's.
+    assert ladder_for(LADDER_FROM) is TUTOR_LADDER
     assert ladder_for(date(2026, 10, 1)) is None
 
 
@@ -68,6 +72,9 @@ def test_tutor_ladder_still_sums_to_the_old_one() -> None:
 
 
 def test_nothing_done_is_three_hours_and_19() -> None:
+    # Without first_credits (an unwired consumer): the tutor is cut from
+    # penalty_from; given them, a never-paid tutor costs nothing
+    # (test_maturity_floor.py).
     assert _day(0) == (180, "19:00")
     assert base_for(TUTOR_FROM).gaming_minutes == 180
 
@@ -105,9 +112,10 @@ def test_anki_is_neither_penalised_nor_paid_from_tutor_from() -> None:
 
 
 def test_the_eve_resolves_as_before() -> None:
+    # The eve is pre-ladder: 20:00 minus the cuts in force, plus the terms.
     eve = resolve({**OTHERS, "anki": 0, "automation": 0}, EVE, EARNERS)
     assert eve.base.gaming_minutes == 180
-    assert (eve.gaming_minutes, _hhmm(eve.shutdown_minutes)) == (420, "22:10")
+    assert (eve.gaming_minutes, _hhmm(eve.shutdown_minutes)) == (420, "22:00")
     done = resolve({**OTHERS, "anki": 1, "automation": 1}, EVE, EARNERS)
     assert (done.gaming_minutes, _hhmm(done.shutdown_minutes)) == (480, "23:00")
     assert done.term("automation").earner is AUTOMATION

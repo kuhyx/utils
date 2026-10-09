@@ -203,8 +203,8 @@ AUTOMATION_TUTOR: Final = Earner(
     gaming_minutes=15,
     extra_gaming_minutes=15,
     max_units=4,
-    # Pre-ladder values, unused (TUTOR_FROM is after LADDER_FROM); the ladder
-    # pays 13/13/12/12 (``TUTOR_LADDER``).
+    # Pre-ladder values, unused (TUTOR_FROM is not before LADDER_FROM); the
+    # ladder pays 13/13/12/12 (``TUTOR_LADDER``).
     shutdown_minutes=13,
     extra_shutdown_minutes=13,
     kind="counted",

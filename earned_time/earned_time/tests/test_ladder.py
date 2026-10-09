@@ -34,6 +34,17 @@ FIRST = date(2026, 10, 10)
 NAMES = [e.name for e in EARNERS]
 
 
+@pytest.fixture(autouse=True)
+def _pre_tutor_ladder(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the tutor cutover out of the way of ``LADDER``'s own arithmetic.
+
+    Since 0.6.1 ``TUTOR_FROM == LADDER_FROM``, so no real day resolves on
+    ``LADDER``; these tests pin the ladder mechanism on it regardless (the
+    tutor's rungs: ``test_tutor.py``).
+    """
+    monkeypatch.setattr(ladder, "TUTOR_FROM", date(2099, 1, 1))
+
+
 def _shutdown(day: date, **done: int) -> str:
     answers = {name: done.get(name, 0) for name in NAMES}
     minutes = resolve(answers, day, EARNERS).shutdown_minutes

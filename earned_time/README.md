@@ -25,9 +25,11 @@ never a same-day cut):
   each earner's `shutdown_minutes` (a second workout +60), capped at 23:00.
 - **From `LADDER_FROM` — the sleep ladder.** The ceiling is eight hours of
   sleep before the alarm: `WAKE_MINUTES` (07:00) − 8 h = 23:00. The floor is
-  that ceiling minus the sum of every registered earner's first-unit rung
-  (`LADDER`, a `Rung` per earner name), so doing everything lands exactly on
-  the ceiling:
+  that ceiling minus the sum of every registered earner's rung (a `Rung` per
+  earner name; all of a counted earner's capped units), so doing everything
+  lands exactly on the ceiling. Since 0.6.1 `TUTOR_FROM == LADDER_FROM`, so
+  every real ladder day uses `TUTOR_LADDER` (below); `LADDER`, the pre-tutor
+  split, is never in force on a real day:
 
   | done | shutdown |
   |---|---|
@@ -59,9 +61,10 @@ one signed row per verified 15-minute block, `tutor_match` on
 | each | +15 min | 13 / 13 / 12 / 12 |
 | all 4 | +60 (Anki's 30 folded in) | +50 (Anki's 25 folded in) |
 
-The gaming base drops by the full 60 (`Earner.max_gaming_minutes`) and the
-ladder floor by the full 50, so nothing done is still 3 h / 19:00 and
-everything done is still 8 h / 23:00. Days before `TUTOR_FROM` resolve on
+Once its penalty has started, the gaming base drops by the full 60
+(`Earner.max_gaming_minutes`) and the ladder floor by the full 50, so nothing
+done is 3 h / 19:00 and everything done is still 8 h / 23:00. Until then
+(given `first_credits`, see below) it costs nothing: 4 h / 19:50. Days before `TUTOR_FROM` resolve on
 `EARNERS` exactly as before. Consumers must iterate `earners_for(day)`, never
 `EARNERS`; `resolve`/`base_for` default to it, and ignore answers for an
 earner of another day's registry.
@@ -70,10 +73,10 @@ earner of another day's registry.
 credit, and the tutor is not confirmed yet, so from `ANKI_WAIVED_FROM` until
 `TUTOR_FROM` the registry is `EARNERS` without `anki` and `automation`:
 neither penalised nor paid. The base rises by exactly what the two could have
-paid back (nothing done: 4 h / 19:50 on a ladder day; everything done: still
-8 h / 23:00), so it can only ever raise time. `TUTOR_FROM` stays a far-future
-sentinel (2099-01-01) until kuhy confirms a real tutor session credits a
-block; it is then set to the day after, never the deploy day.
+paid back (nothing done: 4 h / 19:00, pre-ladder; everything done: still
+8 h / 23:00), so it can only ever raise time. `TUTOR_FROM` is 2026-10-10
+(0.6.1), the day after the deploy, never the deploy day; the waiver therefore
+covers 2026-10-09 only. The tutor has no `confirmed_on` yet, so it stays `new`.
 
 ## Gate maturity (0.6.0)
 
@@ -97,8 +100,14 @@ How far to trust a gate is computed from its ledger, never listed by name:
   max(`penalty_from`, day after `confirmed_on`), so deleting or locking a
   ledger cannot lift a penalty. Pass `first_credits={name: Maturity.first_credit}`, computed
   over `earners_for(day)` (two earners share the name `automation`), to `resolve`
-  / `base_for` to apply it; omitted, every day resolves exactly as in 0.5.0.
-  It can only delay a penalty, never add one.
+  / `base_for` to apply it; omitted, a penalty starts at `penalty_from`, as
+  in 0.5.0. It can only delay a penalty, never add one.
+- **Ladder floor (0.6.1):** the same start gates the shutdown floor. A rung
+  comes off the floor only for a pure bonus (no `penalty_from`: workout,
+  LeetCode) or an earner whose penalty has started, so a gate that never paid
+  out cannot lower it either (10-10, tutor never credited: 19:50, not 19:00).
+  An unwired consumer (no `first_credits`) cuts the tutor from `penalty_from`:
+  19:00 / 3 h.
 - **CLI:** `python -m earned_time maturity [--json] [--day YYYY-MM-DD]`
   prints one row per ledger-backed earner of every registry. It is the only
   code that resolves real paths (`~/<Earner.ledger>`,
@@ -164,11 +173,12 @@ on the day itself is logged and does not count.
    )
    ```
 
-   Then give it a rung in `LADDER` (`PIANO.name: Rung(20)`), and, if its
+   Then give it a rung in `TUTOR_LADDER` (`PIANO.name: Rung(20)`), and, if its
    matcher decides on an event stamp, an entry in `_match.CREDIT_STAMPS`.
 
-   On the ladder a new earner's rung comes out of the floor the day its pin
-   lands (the ceiling is fixed): re-split the rungs and ship it the day the
+   On the ladder a new earner's rung comes out of the floor from its
+   penalty start (a pure bonus: the day its pin lands; the ceiling is fixed):
+   re-split the rungs and ship it the day the
    gate can actually be satisfied.
 3. Bump the version, tag `earned-time-vX.Y.Z`, and bump the pin in both
    consumers. Neither needs code for a ledger-backed flat earner.
@@ -191,7 +201,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.1#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

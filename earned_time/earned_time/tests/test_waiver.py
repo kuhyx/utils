@@ -30,12 +30,15 @@ def test_the_waiver_sits_between_the_old_registry_and_the_tutor() -> None:
 
 def test_nothing_done_is_raised_by_exactly_what_the_two_paid() -> None:
     zero = dict.fromkeys(NAMES, 0)
-    # The first ladder day inside the waiver (the waiver began pre-ladder).
-    assert ANKI_WAIVED_FROM <= LADDER_FROM < TUTOR_FROM
-    gap = resolve(zero, LADDER_FROM)
-    assert gap.base.gaming_minutes == 240
-    assert gap.gaming_minutes == 240
-    assert gap.shutdown_minutes == 23 * 60 - 190  # 19:50: workout+leetcode+reading
+    # TUTOR_FROM == LADDER_FROM: the waiver's only day is pre-ladder; the first
+    # ladder day's floor is in test_maturity_floor.py.
+    assert ANKI_WAIVED_FROM < LADDER_FROM == TUTOR_FROM
+    gap = resolve(zero, ANKI_WAIVED_FROM)
+    unwaived = resolve(zero, ANKI_WAIVED_FROM, EARNERS)
+    assert (gap.base.gaming_minutes, gap.gaming_minutes) == (240, 240)
+    assert gap.shutdown_minutes == 19 * 60  # 20:00 minus reading's 60
+    assert gap.gaming_minutes - unwaived.gaming_minutes == 30 + 30
+    assert gap.shutdown_minutes - unwaived.shutdown_minutes == 30 + 30
 
 
 @pytest.mark.parametrize("workout", [0, 1])

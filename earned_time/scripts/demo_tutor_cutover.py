@@ -85,7 +85,7 @@ def _line(label: str, answers: dict[str, int], day: date) -> str:
 def main() -> None:
     """Print the table."""
     eve = TUTOR_FROM - timedelta(days=1)
-    _say(f"TUTOR_FROM = {TUTOR_FROM} (placeholder; set at go-live)")
+    _say(f"TUTOR_FROM = {TUTOR_FROM} (no first_credits: an unwired consumer)")
     _say(f"{'case':<44} {'gaming':>15}  shutdown")
     for done in (0, 1):
         answers = {**_OTHERS, "anki": done, "automation": done}
