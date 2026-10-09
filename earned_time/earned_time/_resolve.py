@@ -19,12 +19,12 @@ from datetime import UTC, date, datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
+from earned_time._ladder import on_ladder, shutdown_ceiling_for, shutdown_minutes_for
 from earned_time._policy import (
     EARNERS,
     GAMING_BASE_MINUTES,
     GAMING_CEILING_MINUTES,
     SHUTDOWN_BASE_MINUTES,
-    SHUTDOWN_CEILING_MINUTES,
     Earner,
 )
 
@@ -101,14 +101,33 @@ def _today() -> date:
     return datetime.now(tz=UTC).astimezone().date()
 
 
+def _shutdown_floor(day: date, earners: tuple[Earner, ...]) -> int:
+    """Shutdown of a day that earned nothing.
+
+    On the ladder: the ceiling minus every registered earner's first unit,
+    so doing everything lands exactly on the ceiling. Before it: the old base
+    minus the penalties in force.
+    """
+    if on_ladder(day):
+        return shutdown_ceiling_for(day) - sum(
+            shutdown_minutes_for(e, day) for e in earners
+        )
+    penalised = [e for e in earners if e.penalised_on(day)]
+    return SHUTDOWN_BASE_MINUTES - sum(e.shutdown_minutes for e in penalised)
+
+
 def base_for(day: date | None = None, earners: tuple[Earner, ...] = EARNERS) -> Base:
-    """The floor for ``day`` (default today): every penalty in force, taken off."""
+    """The floor for ``day`` (default today).
+
+    Gaming: every penalty in force, taken off the gaming base. Shutdown: see
+    :func:`_shutdown_floor` -- the two are derived separately so the ladder
+    can never move a gaming minute.
+    """
     target = day or _today()
     penalised = [e for e in earners if e.penalised_on(target)]
     return Base(
         gaming_minutes=GAMING_BASE_MINUTES - sum(e.gaming_minutes for e in penalised),
-        shutdown_minutes=SHUTDOWN_BASE_MINUTES
-        - sum(e.shutdown_minutes for e in penalised),
+        shutdown_minutes=_shutdown_floor(target, earners),
     )
 
 
@@ -129,7 +148,8 @@ def resolve(
         answers: Per earner name, a unit count or ``None`` ("could not check").
             A registered earner missing from it earns nothing and is logged:
             the consumer forgot to ask, which must not pass as a "no".
-        day: The day to resolve (default today); only the base depends on it.
+        day: The day to resolve (default today): it picks the base, the
+            ceiling, and (on the ladder) each earner's shutdown minutes.
         earners: The registry; tests pass their own.
 
     Returns:
@@ -159,7 +179,7 @@ def resolve(
                 earner=item,
                 answer=units,
                 gaming_minutes=item.gaming_for(count),
-                shutdown_minutes=item.shutdown_for(count),
+                shutdown_minutes=item.shutdown_for(count, target),
             )
         )
     gaming = base.gaming_minutes + sum(t.gaming_minutes for t in terms)
@@ -169,5 +189,5 @@ def resolve(
         base=base,
         terms=tuple(terms),
         gaming_minutes=min(GAMING_CEILING_MINUTES, gaming),
-        shutdown_minutes=min(SHUTDOWN_CEILING_MINUTES, shutdown),
+        shutdown_minutes=min(shutdown_ceiling_for(target), shutdown),
     )

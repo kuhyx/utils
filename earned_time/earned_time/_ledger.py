@@ -30,9 +30,10 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
-    from earned_time._policy import Earner
+    from earned_time._policy import Earner, Window
 
 _logger: Final = logging.getLogger(__name__)
 
@@ -115,6 +116,36 @@ def read_rows(ledger: Path, earner: Earner) -> list[object] | None:
     return rows
 
 
+def counting_rows(
+    earner: Earner, ledger: Path, key_file: Path, window: Window
+) -> Iterator[dict[str, object]] | None:
+    """The verified ``credit`` rows that ``earner.match`` counts in ``window``.
+
+    ``None`` when the key or the ledger cannot be read.
+
+    Raises:
+        ValueError: ``earner`` has no ``match``; its answer is the consumer's.
+    """
+    if earner.match is None:
+        msg = f"earner {earner.name!r} has no shared reader; supply its answer"
+        raise ValueError(msg)
+    key = read_key(key_file)
+    if key is None:
+        return None
+    rows = read_rows(ledger, earner)
+    if rows is None:
+        return None
+    match = earner.match
+    return (
+        row
+        for row in rows
+        if isinstance(row, dict)
+        and row.get("kind") == _CREDIT
+        and verified(row, key)
+        and match(row, window)
+    )
+
+
 def done_today(
     earner: Earner,
     ledger: Path,
@@ -137,21 +168,7 @@ def done_today(
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
     """
-    if earner.match is None:
-        msg = f"earner {earner.name!r} has no shared reader; supply its answer"
-        raise ValueError(msg)
-    key = read_key(key_file)
-    if key is None:
-        return None
-    rows = read_rows(ledger, earner)
+    rows = counting_rows(earner, ledger, key_file, today_window(now))
     if rows is None:
         return None
-    window = today_window(now)
-    match = earner.match
-    return any(
-        isinstance(row, dict)
-        and row.get("kind") == _CREDIT
-        and verified(row, key)
-        and match(row, window)
-        for row in rows
-    )
+    return any(True for _ in rows)

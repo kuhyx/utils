@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 import logging
 
 import pytest
@@ -22,7 +22,8 @@ def test_base_before_and_after_the_reading_cut() -> None:
 
 
 def test_base_defaults_to_today() -> None:
-    assert base_for().gaming_minutes in {240, 300}
+    today = datetime.now(tz=UTC).astimezone().date()
+    assert base_for() == base_for(today)
 
 
 def test_nothing_earned_is_the_base() -> None:
@@ -74,19 +75,19 @@ def test_term_lookup_unknown_raises() -> None:
 
 def test_new_penalised_earner_keeps_the_best_case() -> None:
     # A hypothetical next earner on top of the real registry (reading and
-    # anki and automation already penalised by 2026-10-11):
-    # 5h - 1h - 30m - 30m - 30m.
+    # anki and automation already penalised by 2026-10-09, the last day
+    # before the shutdown ladder): 5h - 1h - 30m - 30m - 30m.
     piano = Earner(
         name="piano",
         label="piano",
         gaming_minutes=30,
         shutdown_minutes=30,
-        penalty_from=date(2026, 10, 10),
+        penalty_from=date(2026, 10, 8),
     )
     from earned_time import EARNERS
 
     earners = (*EARNERS, piano)
-    later = date(2026, 10, 11)
+    later = date(2026, 10, 9)
     assert base_for(later, earners).gaming_minutes == 150
     assert base_for(later, earners).shutdown_minutes == 17 * 60 + 30
     others = {e.name: 0 for e in EARNERS}

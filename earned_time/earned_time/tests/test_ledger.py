@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from earned_time import LEETCODE, READING, WORKOUT, done_today, entry_signature
+from earned_time import LEETCODE, READING, Earner, done_today, entry_signature
 from earned_time._ledger import read_key, read_rows, today_window, verified
 
 if TYPE_CHECKING:
@@ -114,5 +114,6 @@ def test_cannot_check(tmp_path: Path, key_file: Path) -> None:
 
 
 def test_earner_without_reader_is_refused(tmp_path: Path, key_file: Path) -> None:
+    bare = Earner(name="bare", label="bare", gaming_minutes=0, shutdown_minutes=0)
     with pytest.raises(ValueError, match="no shared reader"):
-        done_today(WORKOUT, tmp_path / "x.json", key_file)
+        done_today(bare, tmp_path / "x.json", key_file)

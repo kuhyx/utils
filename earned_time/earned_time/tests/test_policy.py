@@ -57,13 +57,17 @@ def test_penalty_starts_on_its_day() -> None:
     assert not LEETCODE.penalised_on(date(2030, 1, 1))
 
 
+PRE_LADDER = date(2026, 10, 9)
+
+
 def test_flat_earner_pays_once() -> None:
     assert [LEETCODE.gaming_for(n) for n in range(3)] == [0, 60, 60]
-    assert [LEETCODE.shutdown_for(n) for n in range(3)] == [0, 60, 60]
+    assert [LEETCODE.shutdown_for(n, PRE_LADDER) for n in range(3)] == [0, 60, 60]
 
 
 def test_counted_earner_pays_each_extra_unit_in_shutdown_only() -> None:
-    assert [WORKOUT.shutdown_for(n) for n in range(4)] == [0, 120, 180, 240]
+    units = [WORKOUT.shutdown_for(n, PRE_LADDER) for n in range(4)]
+    assert units == [0, 120, 180, 240]
     assert [WORKOUT.gaming_for(n) for n in range(3)] == [0, 120, 120]
 
 
