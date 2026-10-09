@@ -46,4 +46,7 @@ DEFAULT_APPS: Final = (
     # The daily RTDB backup (~/src/dufs-cloud/firebase_backup). A headless
     # user timer with its own session, so it never races an app's token file.
     "firebase_backup",
+    # ~/src/daily-limits: its user timer publishes today's limits for the
+    # phone app and answers its requests, with a session of its own.
+    "daily_limits",
 )
