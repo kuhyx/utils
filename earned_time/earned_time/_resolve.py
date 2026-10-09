@@ -19,14 +19,14 @@ from datetime import UTC, date, datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
-from earned_time._ladder import on_ladder, shutdown_ceiling_for, shutdown_minutes_for
+from earned_time._ladder import on_ladder, shutdown_ceiling_for
 from earned_time._policy import (
-    EARNERS,
     GAMING_BASE_MINUTES,
     GAMING_CEILING_MINUTES,
     SHUTDOWN_BASE_MINUTES,
     Earner,
 )
+from earned_time._registry import all_earners, earners_for
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -104,30 +104,34 @@ def _today() -> date:
 def _shutdown_floor(day: date, earners: tuple[Earner, ...]) -> int:
     """Shutdown of a day that earned nothing.
 
-    On the ladder: the ceiling minus every registered earner's first unit,
-    so doing everything lands exactly on the ceiling. Before it: the old base
-    minus the penalties in force.
+    On the ladder: the ceiling minus the most every registered earner can
+    pay (all of a capped earner's units), so doing everything lands exactly
+    on the ceiling. Before it: the old base minus the penalties in force.
     """
     if on_ladder(day):
         return shutdown_ceiling_for(day) - sum(
-            shutdown_minutes_for(e, day) for e in earners
+            e.shutdown_for(e.max_units or 1, day) for e in earners
         )
     penalised = [e for e in earners if e.penalised_on(day)]
     return SHUTDOWN_BASE_MINUTES - sum(e.shutdown_minutes for e in penalised)
 
 
-def base_for(day: date | None = None, earners: tuple[Earner, ...] = EARNERS) -> Base:
-    """The floor for ``day`` (default today).
+def base_for(
+    day: date | None = None, earners: tuple[Earner, ...] | None = None
+) -> Base:
+    """The floor for ``day`` (default today) under ``earners`` (default its own).
 
-    Gaming: every penalty in force, taken off the gaming base. Shutdown: see
-    :func:`_shutdown_floor` -- the two are derived separately so the ladder
-    can never move a gaming minute.
+    Gaming: every penalty in force, the most each earner can pay, taken off
+    the gaming base. Shutdown: see :func:`_shutdown_floor` -- the two are
+    derived separately so the ladder can never move a gaming minute.
     """
     target = day or _today()
-    penalised = [e for e in earners if e.penalised_on(target)]
+    registry = earners_for(target) if earners is None else earners
+    penalised = [e for e in registry if e.penalised_on(target)]
     return Base(
-        gaming_minutes=GAMING_BASE_MINUTES - sum(e.gaming_minutes for e in penalised),
-        shutdown_minutes=_shutdown_floor(target, earners),
+        gaming_minutes=GAMING_BASE_MINUTES
+        - sum(e.max_gaming_minutes for e in penalised),
+        shutdown_minutes=_shutdown_floor(target, registry),
     )
 
 
@@ -140,7 +144,7 @@ def _units(answer: Answer) -> int | None:
 def resolve(
     answers: Mapping[str, Answer],
     day: date | None = None,
-    earners: tuple[Earner, ...] = EARNERS,
+    earners: tuple[Earner, ...] | None = None,
 ) -> Resolution:
     """Sum the base and every earned term, each capped at its ceiling.
 
@@ -148,9 +152,11 @@ def resolve(
         answers: Per earner name, a unit count or ``None`` ("could not check").
             A registered earner missing from it earns nothing and is logged:
             the consumer forgot to ask, which must not pass as a "no".
-        day: The day to resolve (default today): it picks the base, the
-            ceiling, and (on the ladder) each earner's shutdown minutes.
-        earners: The registry; tests pass their own.
+        day: The day to resolve (default today): it picks the registry, the
+            base, the ceiling, and (on the ladder) each earner's minutes.
+        earners: The registry (default :func:`earners_for` the day); tests
+            pass their own. An answer for an earner registered on other days
+            only (Anki after ``TUTOR_FROM``) is ignored.
 
     Returns:
         The resolution, with a term for every registered earner.
@@ -159,15 +165,16 @@ def resolve(
         KeyError: ``answers`` names an earner that is not registered -- a
             typo that would otherwise silently earn nothing.
     """
-    known = {e.name for e in earners}
+    target = day or _today()
+    registry = earners_for(target) if earners is None else earners
+    known = {e.name for e in (*registry, *all_earners())}
     unknown = sorted(set(answers) - known)
     if unknown:
         msg = f"not registered earners: {', '.join(unknown)}"
         raise KeyError(msg)
-    target = day or _today()
-    base = base_for(target, earners)
+    base = base_for(target, registry)
     terms: list[Term] = []
-    for item in earners:
+    for item in registry:
         if item.name not in answers:
             _logger.warning(
                 "No answer for the %s earner; it earns nothing today", item.label

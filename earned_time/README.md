@@ -46,6 +46,35 @@ never a same-day cut):
 The two floors are derived separately (`_resolve._shutdown_floor`), so the
 ladder cannot move a gaming minute.
 
+**The tutor cutover (`TUTOR_FROM`, one constant in `_ladder.py`).** The
+registry is per day: `earners_for(day)` is `EARNERS` before it and
+`TUTOR_EARNERS` from it. From `TUTOR_FROM` Anki is retired (neither penalised
+nor paid) and `automation` is `AUTOMATION_TUTOR`, a counted earner on the
+Automation tutor's ledger (`~/.local/share/automation_tutor/ledger.json`,
+one signed row per verified 15-minute block, `tutor_match` on
+`detail.ended_at`), at most 4 blocks a day:
+
+| blocks | gaming | shutdown rung |
+|---|---|---|
+| each | +15 min | 13 / 13 / 12 / 12 |
+| all 4 | +60 (Anki's 30 folded in) | +50 (Anki's 25 folded in) |
+
+The gaming base drops by the full 60 (`Earner.max_gaming_minutes`) and the
+ladder floor by the full 50, so nothing done is still 3 h / 19:00 and
+everything done is still 8 h / 23:00. Days before `TUTOR_FROM` resolve on
+`EARNERS` exactly as before. Consumers must iterate `earners_for(day)`, never
+`EARNERS`; `resolve`/`base_for` default to it, and ignore answers for an
+earner of another day's registry.
+
+**The gap waiver (`ANKI_WAIVED_FROM`, 2026-10-09).** anki-guard never wrote a
+credit, and the tutor is not confirmed yet, so from `ANKI_WAIVED_FROM` until
+`TUTOR_FROM` the registry is `EARNERS` without `anki` and `automation`:
+neither penalised nor paid. The base rises by exactly what the two could have
+paid back (nothing done: 4 h / 19:50 on a ladder day; everything done: still
+8 h / 23:00), so it can only ever raise time. `TUTOR_FROM` stays a far-future
+sentinel (2099-01-01) until kuhy confirms a real tutor session credits a
+block; it is then set to the day after, never the deploy day.
+
 ## API
 
 - `resolve(answers, day=None, earners=EARNERS) -> Resolution` — the one sum.
@@ -59,7 +88,12 @@ ladder cannot move a gaming minute.
   not the calendar day (Anki's rollover, a rest day declared the evening
   before).
 - `credit_units(earner, ledger, key_file, day) -> int | None` — how many
-  verified rows count for `day`: a counted earner's units.
+  verified rows count for `day`: a counted earner's units (a repeated
+  `entry_id` counts once; `max_units` is applied by `resolve`).
+- `earners_for(day)`, `all_earners()`, `registries()` — the registry in force
+  on a day, and every earner of every registry (what a ledger watcher must
+  watch). They read `earned_time.EARNERS` through the package, so a consumer
+  test that patches it still registers its stand-in.
 - `shutdown_minutes_for(earner, day) -> int`,
   `extra_shutdown_minutes_for(earner, day) -> int`,
   `shutdown_ceiling_for(day) -> int`, `on_ladder(day) -> bool` — what a status
@@ -128,7 +162,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.4.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.5.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

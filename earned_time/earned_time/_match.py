@@ -114,6 +114,21 @@ def workout_match(row: dict[str, object], window: Window) -> bool:
     return landed
 
 
+def tutor_match(row: dict[str, object], window: Window) -> bool:
+    """A tutor block counts on the day it ended (``detail.ended_at``).
+
+    The Automation tutor writes one row per finished 15-minute block; a
+    session that runs past midnight pays the day each block ended on.
+    """
+    detail = row.get("detail")
+    raw = detail.get("ended_at") if isinstance(detail, dict) else None
+    landed = _within(raw, window)
+    if landed is None:
+        _logger.warning("tutor credit %r has no usable ended_at", row.get("entry_id"))
+        return False
+    return landed
+
+
 # The ``detail`` field each matcher decides on: the unix second the work
 # happened, which :func:`earned_time._credits.credit_time` reports. A matcher
 # without one (Anki's day key) falls back to the row's ``created_at``.
@@ -122,5 +137,6 @@ CREDIT_STAMPS: Final[Mapping[CreditMatch, str]] = MappingProxyType(
         leetcode_match: "submitted_at",
         reading_match: "ended_at",
         workout_match: "completed_at",
+        tutor_match: "ended_at",
     }
 )

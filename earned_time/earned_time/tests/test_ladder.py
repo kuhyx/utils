@@ -36,12 +36,14 @@ NAMES = [e.name for e in EARNERS]
 
 def _shutdown(day: date, **done: int) -> str:
     answers = {name: done.get(name, 0) for name in NAMES}
-    minutes = resolve(answers, day).shutdown_minutes
+    minutes = resolve(answers, day, EARNERS).shutdown_minutes
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
 
 def _gaming(day: date, **done: int) -> int:
-    return resolve({name: done.get(name, 0) for name in NAMES}, day).gaming_minutes
+    return resolve(
+        {name: done.get(name, 0) for name in NAMES}, day, EARNERS
+    ).gaming_minutes
 
 
 def test_switch_date_and_wake_anchor() -> None:
@@ -61,9 +63,9 @@ def test_ceiling_follows_the_alarm_but_old_days_stay(
 ) -> None:
     monkeypatch.setattr(ladder, "WAKE_MINUTES", 6 * 60)
     assert shutdown_ceiling_for(FIRST) == 22 * 60
-    assert base_for(FIRST).shutdown_minutes == 18 * 60
+    assert base_for(FIRST, EARNERS).shutdown_minutes == 18 * 60
     assert shutdown_ceiling_for(EVE) == 23 * 60
-    assert base_for(EVE).shutdown_minutes == 18 * 60
+    assert base_for(EVE, EARNERS).shutdown_minutes == 18 * 60
 
 
 @pytest.mark.parametrize(
@@ -89,7 +91,9 @@ def test_every_earner_has_a_rung() -> None:
 def test_first_units_fill_the_gap_exactly() -> None:
     total = sum(shutdown_minutes_for(e, FIRST) for e in EARNERS)
     assert total == 240
-    assert base_for(FIRST).shutdown_minutes == shutdown_ceiling_for(FIRST) - total
+    assert (
+        base_for(FIRST, EARNERS).shutdown_minutes == shutdown_ceiling_for(FIRST) - total
+    )
 
 
 def test_extra_workouts_earn_nothing_on_the_ladder() -> None:
@@ -136,4 +140,8 @@ def test_the_eve_resolves_the_old_way() -> None:
 @pytest.mark.parametrize("done", [{}, {"workout": 2}, dict.fromkeys(NAMES, 1)])
 def test_gaming_is_the_same_on_both_sides_of_the_switch(done: dict[str, int]) -> None:
     assert _gaming(EVE, **done) == _gaming(FIRST, **done)
-    assert base_for(EVE).gaming_minutes == base_for(FIRST).gaming_minutes == 180
+    assert (
+        base_for(EVE, EARNERS).gaming_minutes
+        == base_for(FIRST, EARNERS).gaming_minutes
+        == 180
+    )

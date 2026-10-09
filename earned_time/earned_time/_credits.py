@@ -96,7 +96,9 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
 
     Returns:
         The count (``0`` included), or ``None`` when the ledger or key could
-        not be read -- never "no units".
+        not be read -- never "no units". A row repeated under the same
+        ``entry_id`` (a replayed write) counts once. The earner's
+        ``max_units`` is applied by :func:`~earned_time.resolve`, not here.
 
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
@@ -104,4 +106,12 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
     rows = counting_rows(earner, ledger, key_file, day_window(day))
     if rows is None:
         return None
-    return sum(1 for _ in rows)
+    ids: set[object] = set()
+    units = 0
+    for row in rows:
+        entry_id = row.get("entry_id")
+        if entry_id is not None and entry_id in ids:
+            continue
+        ids.add(entry_id)
+        units += 1
+    return units

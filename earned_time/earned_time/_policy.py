@@ -16,6 +16,11 @@ unchanged: the base drops by what the new earner adds.
 
 From ``LADDER_FROM`` shutdown follows the sleep ladder instead
 (:mod:`earned_time._ladder`); gaming keeps the penalty derivation unchanged.
+
+**The registry is per day** (:func:`earners_for`). From ``TUTOR_FROM`` Anki
+is retired -- neither penalised nor paid -- and Automation is the tutor's
+counted earner; every earlier day resolves on :data:`EARNERS` exactly as
+before, so the cutover never rewrites an old day.
 """
 
 from __future__ import annotations
@@ -24,11 +29,12 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Final, Literal
 
-from earned_time._ladder import extra_shutdown_minutes_for, shutdown_minutes_for
+from earned_time._ladder import TUTOR_FROM, shutdown_units_minutes
 from earned_time._match import (
     anki_match,
     leetcode_match,
     reading_match,
+    tutor_match,
     workout_match,
 )
 
@@ -63,8 +69,12 @@ class Earner:
             ``"counted"`` earns per unit (the workout), and its live credit is
             applied by the consumer that counts the units.
         extra_shutdown_minutes: Each further unit, for ``"counted"`` earners.
-        penalty_from: From this day the base drops by ``gaming_minutes`` and
-            ``shutdown_minutes``. ``None`` means a pure bonus.
+        extra_gaming_minutes: Gaming time each further unit earns
+            (``"counted"``); the workout's are 0, the tutor's 15.
+        max_units: The most units one day can pay; ``None`` is unbounded.
+        penalty_from: From this day the gaming base drops by the most the
+            earner can pay (:attr:`max_gaming_minutes`). ``None`` means a pure
+            bonus.
         ledger: The gate's HMAC-signed ledger, relative to the home directory.
             ``None`` means no shared reader: the consumer supplies the answer.
         match: Which verified ``credit`` rows count for today.
@@ -86,23 +96,34 @@ class Earner:
     ledger: str | None = None
     match: CreditMatch | None = None
     missing_ledger_is_no: bool = False
+    extra_gaming_minutes: int = 0
+    max_units: int | None = None
+
+    def capped(self, units: int) -> int:
+        """``units`` clamped to ``[0, max_units]``."""
+        units = max(0, units)
+        return units if self.max_units is None else min(units, self.max_units)
+
+    @property
+    def max_gaming_minutes(self) -> int:
+        """Gaming time a fully done day earns: what the penalty takes off."""
+        return self.gaming_for(self.max_units or 1)
 
     def penalised_on(self, day: date) -> bool:
         """Whether this earner's base cut is in force on ``day``."""
         return self.penalty_from is not None and day >= self.penalty_from
 
     def gaming_for(self, units: int) -> int:
-        """Gaming minutes ``units`` earn: the first unit only, never more."""
-        return self.gaming_minutes if units > 0 else 0
+        """Gaming minutes ``units`` earn, capped at ``max_units``."""
+        count = self.capped(units)
+        if count == 0:
+            return 0
+        return self.gaming_minutes + (count - 1) * self.extra_gaming_minutes
 
     def shutdown_for(self, units: int, day: date | None = None) -> int:
         """Shutdown minutes ``units`` earn on ``day`` (default today)."""
-        if units <= 0:
-            return 0
         target = day or datetime.now(tz=UTC).astimezone().date()
-        return shutdown_minutes_for(self, target) + (units - 1) * (
-            extra_shutdown_minutes_for(self, target)
-        )
+        return shutdown_units_minutes(self, self.capped(units), target)
 
 
 WORKOUT: Final = Earner(
@@ -148,6 +169,7 @@ ANKI: Final = Earner(
 )
 # Same gate, same row shape: anki-guard's ``automation`` quota (the Automation
 # deck only) writes its own ledger, so the Anki day matcher applies unchanged.
+# Days before ``TUTOR_FROM`` only; from then on see AUTOMATION_TUTOR.
 AUTOMATION: Final = Earner(
     name="automation",
     label="Automation",
@@ -159,13 +181,41 @@ AUTOMATION: Final = Earner(
     missing_ledger_is_no=True,
 )
 
-# Order is the order of reason strings and of screen-locker's live pass.
+# From ``TUTOR_FROM``: the Automation tutor pays per verified 15-minute block,
+# up to four a day. Anki's 30 gaming minutes are folded in (4 x 15 = 60), so
+# retiring Anki is not a free +30: the base drops by the full 60.
+AUTOMATION_TUTOR: Final = Earner(
+    name="automation",
+    label="Automation",
+    gaming_minutes=15,
+    extra_gaming_minutes=15,
+    max_units=4,
+    # Pre-ladder values, unused (TUTOR_FROM is after LADDER_FROM); the ladder
+    # pays 13/13/12/12 (``TUTOR_LADDER``).
+    shutdown_minutes=13,
+    extra_shutdown_minutes=13,
+    kind="counted",
+    penalty_from=TUTOR_FROM,
+    ledger=".local/share/automation_tutor/ledger.json",
+    match=tutor_match,
+    missing_ledger_is_no=True,
+)
+
+# The registry of every day before ``TUTOR_FROM``. Order is the order of
+# reason strings and of screen-locker's live pass.
 EARNERS: Final[tuple[Earner, ...]] = (
     WORKOUT,
     LEETCODE,
     READING,
     ANKI,
     AUTOMATION,
+)
+# From ``TUTOR_FROM``: Anki retired, Automation paid per tutor block.
+TUTOR_EARNERS: Final[tuple[Earner, ...]] = (
+    WORKOUT,
+    LEETCODE,
+    READING,
+    AUTOMATION_TUTOR,
 )
 
 

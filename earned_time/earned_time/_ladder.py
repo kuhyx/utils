@@ -7,6 +7,9 @@ doing everything lands exactly on the ceiling. Move the alarm and the whole
 ladder moves with it. Days before ``LADDER_FROM`` keep their own values and a
 frozen ceiling, so the switch never rewrites how an old day resolved. Gaming
 is not on the ladder.
+
+From ``TUTOR_FROM`` the rungs are :data:`TUTOR_LADDER`: Anki is retired and
+its 25 minutes fold into the Automation tutor's, paid per 15-minute block.
 """
 
 from __future__ import annotations
@@ -31,6 +34,17 @@ LADDER_FROM: Final = date(2026, 10, 10)
 # Alarm time, minutes after midnight. The ladder's ceiling is eight hours of
 # sleep before it, so moving the alarm moves the whole ladder with it.
 WAKE_MINUTES: Final = 7 * 60
+# From this day the Anki earner is retired and Automation is paid per tutor
+# block (``earned_time._policy.AUTOMATION_TUTOR``). A far-future sentinel
+# until kuhy confirms a real tutor session earns a block; then the day after
+# that confirmation -- never the deploy day itself (a same-day cut, 2026-09-26).
+TUTOR_FROM: Final = date(2099, 1, 1)
+# From this day until TUTOR_FROM the Anki and old Automation earners are
+# waived: neither penalised nor paid, since both are being retired and the
+# tutor that replaces them is not yet confirmed. Raise-only on every day (the
+# floor rises by exactly what the two could have paid back), so it may land
+# on its deploy day: 0.5.0 landed 2026-10-09.
+ANKI_WAIVED_FROM: Final = date(2026, 10, 9)
 _SLEEP_MINUTES: Final = 8 * 60
 _DAY_MINUTES: Final = 24 * 60
 
@@ -41,11 +55,27 @@ class Rung:
 
     Attributes:
         first: Shutdown minutes the first unit earns.
-        extra: Each further unit (counted earners); the ladder pays none.
+        extra: Each further unit (counted earners) once ``steps`` run out.
+        steps: What the second, third, ... unit earn, in order, when they are
+            not all the same (the tutor's 13/13/12/12 split).
     """
 
     first: int
     extra: int = 0
+    steps: tuple[int, ...] = ()
+
+    @property
+    def second(self) -> int:
+        """What the second unit earns."""
+        return self.steps[0] if self.steps else self.extra
+
+    def minutes(self, units: int) -> int:
+        """Shutdown minutes ``units`` earn on this rung (``0`` for none)."""
+        if units <= 0:
+            return 0
+        further = units - 1
+        listed = sum(self.steps[:further])
+        return self.first + listed + max(0, further - len(self.steps)) * self.extra
 
 
 # The rungs, keyed by earner name: they sum to the gap between the floor and
@@ -62,13 +92,33 @@ LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
 )
 
 
+# From ``TUTOR_FROM``: Anki's 25 folded into Automation's, which is paid per
+# 15-minute tutor block. Still sums to 240, so doing everything is 23:00.
+TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
+    {
+        "workout": Rung(110),
+        "leetcode": Rung(50),
+        "reading": Rung(30),
+        "automation": Rung(13, steps=(13, 12, 12)),
+    }
+)
+
+
 def on_ladder(day: date) -> bool:
     """Whether ``day`` resolves shutdown on the sleep ladder."""
     return day >= LADDER_FROM
 
 
+def ladder_for(day: date) -> Mapping[str, Rung] | None:
+    """The rungs in force on ``day``; ``None`` before the ladder."""
+    if not on_ladder(day):
+        return None
+    return TUTOR_LADDER if day >= TUTOR_FROM else LADDER
+
+
 def _rung(item: Earner, day: date) -> Rung | None:
-    return LADDER.get(item.name) if on_ladder(day) else None
+    rungs = ladder_for(day)
+    return None if rungs is None else rungs.get(item.name)
 
 
 def shutdown_minutes_for(item: Earner, day: date) -> int:
@@ -82,9 +132,19 @@ def shutdown_minutes_for(item: Earner, day: date) -> int:
 
 
 def extra_shutdown_minutes_for(item: Earner, day: date) -> int:
-    """What each of ``item``'s further units earns on ``day`` (counted only)."""
+    """What ``item``'s second unit earns on ``day`` (counted only)."""
     rung = _rung(item, day)
-    return item.extra_shutdown_minutes if rung is None else rung.extra
+    return item.extra_shutdown_minutes if rung is None else rung.second
+
+
+def shutdown_units_minutes(item: Earner, units: int, day: date) -> int:
+    """What ``units`` (already capped by the caller) earn on ``day``."""
+    if units <= 0:
+        return 0
+    rung = _rung(item, day)
+    if rung is not None:
+        return rung.minutes(units)
+    return item.shutdown_minutes + (units - 1) * item.extra_shutdown_minutes
 
 
 def shutdown_ceiling_for(day: date) -> int:
