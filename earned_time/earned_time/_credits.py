@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from earned_time._ledger import counting_rows
-from earned_time._match import CREDIT_STAMPS
+from earned_time._match import CREDIT_STAMPS, ROW_UNITS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -85,8 +85,22 @@ def first_credit_at(
     return min(times, default=None)
 
 
+def row_units(earner: Earner, row: dict[str, object]) -> int:
+    """Units one counting row pays: its own count (``ROW_UNITS``), else 1.
+
+    Only the tutor's rows carry a count (``detail.minutes``, 0.8.0); a row
+    whose count is unusable pays 0 (``tutor_match`` already refuses it).
+    """
+    reader = ROW_UNITS.get(earner.match) if earner.match is not None else None
+    return 1 if reader is None else reader(row) or 0
+
+
 def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int | None:
-    """How many verified credit rows count for ``day`` -- a counted earner's units.
+    """How many units the verified credit rows pay for ``day``.
+
+    Each row pays :func:`row_units`: 1 for most earners (the workout), its
+    ``detail.minutes`` for the tutor (a 0.7.0 block row without it, 15), so a
+    day mixing block rows and minute rows sums both.
 
     Args:
         earner: A ledger-backed earner (it must have ``match``).
@@ -95,9 +109,10 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
         day: The local day the rows must count for (by ``match``).
 
     Returns:
-        The count (``0`` included), or ``None`` when the ledger or key could
-        not be read -- never "no units". A row repeated under the same
-        ``entry_id`` (a replayed write) counts once. The earner's
+        The sum (``0`` included), or ``None`` when the ledger or key could
+        not be read -- never "no units". An ``entry_id`` pays once: rows
+        repeated under one id (a replayed write) pay the smallest of their
+        counts, so a rewrite can never raise a credit. The earner's
         ``max_units`` is applied by :func:`~earned_time.resolve`, not here.
 
     Raises:
@@ -106,12 +121,13 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
     rows = counting_rows(earner, ledger, key_file, day_window(day))
     if rows is None:
         return None
-    ids: set[object] = set()
-    units = 0
+    by_id: dict[object, int] = {}
+    anonymous = 0
     for row in rows:
+        units = row_units(earner, row)
         entry_id = row.get("entry_id")
-        if entry_id is not None and entry_id in ids:
-            continue
-        ids.add(entry_id)
-        units += 1
-    return units
+        if entry_id is None:
+            anonymous += units
+        else:
+            by_id[entry_id] = min(units, by_id.get(entry_id, units))
+    return anonymous + sum(by_id.values())

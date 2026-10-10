@@ -1,7 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
 """Demo: what the tutor cutover pays, read from a signed temp ledger.
 
-Writes tutor block rows in the exact contract the Automation tutor writes,
+Writes 0.7.0 tutor block rows (no ``detail.minutes``: 15 minutes each since
+0.8.0, which pays per active minute) in the Automation tutor's contract,
 signs them with a throwaway key, counts them with the shared reader
 (``credit_units``) and resolves the day. Prints gaming minutes and shutdown
 for the day before ``TUTOR_FROM`` and for ``TUTOR_FROM`` itself with 0-5
@@ -110,7 +111,7 @@ def main() -> None:
         units = _units(folder, rows, TUTOR_FROM)
         label = f"{TUTOR_FROM}: 4 rows, 1 tampered -> {units} units"
         _say(_line(label, {**_OTHERS, "automation": units}, TUTOR_FROM))
-        anki = {**_OTHERS, "anki": 1, "automation": 4}
+        anki = {**_OTHERS, "anki": 1, "automation": 60}
         _say(
             _line(
                 f"{TUTOR_FROM}: all + a stale anki answer (ignored)", anki, TUTOR_FROM

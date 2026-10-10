@@ -114,12 +114,37 @@ def workout_match(row: dict[str, object], window: Window) -> bool:
     return landed
 
 
-def tutor_match(row: dict[str, object], window: Window) -> bool:
-    """A tutor block counts on the day it ended (``detail.ended_at``).
+# A tutor row without ``detail.minutes`` is a 0.7.0 15-minute block.
+LEGACY_TUTOR_MINUTES: Final = 15
 
-    The Automation tutor writes one row per finished 15-minute block; a
-    session that runs past midnight pays the day each block ended on.
+
+def tutor_minutes(row: dict[str, object]) -> int | None:
+    """Active minutes a tutor row pays (0.8.0); ``None`` if ``minutes`` is bad.
+
+    ``detail.minutes`` is a positive int (never a bool, float or string). A
+    row without it is a legacy 15-minute block (:data:`LEGACY_TUTOR_MINUTES`).
     """
+    detail = row.get("detail")
+    if not isinstance(detail, dict) or "minutes" not in detail:
+        return LEGACY_TUTOR_MINUTES
+    raw = detail["minutes"]
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+        return None
+    return raw
+
+
+def tutor_match(row: dict[str, object], window: Window) -> bool:
+    """A tutor credit counts on the day it ended (``detail.ended_at``).
+
+    The Automation tutor pays per active minute (0.8.0): each row carries the
+    minutes it pays in ``detail.minutes`` (:func:`tutor_minutes`); a 0.7.0
+    15-minute block row has none and pays 15. A row whose ``minutes`` is
+    present but not a positive int counts for nothing, logged. A session
+    that runs past midnight pays the day each row ended on.
+    """
+    if tutor_minutes(row) is None:
+        _logger.warning("tutor credit %r has bad minutes", row.get("entry_id"))
+        return False
     detail = row.get("detail")
     raw = detail.get("ended_at") if isinstance(detail, dict) else None
     landed = _within(raw, window)
@@ -139,4 +164,11 @@ CREDIT_STAMPS: Final[Mapping[CreditMatch, str]] = MappingProxyType(
         workout_match: "completed_at",
         tutor_match: "ended_at",
     }
+)
+# How many units one counting row pays, per matcher; a matcher without an
+# entry pays 1 per row (the workout). Only the tutor's rows carry their own
+# count (``detail.minutes``): book-guard's ``detail.minutes`` is a string
+# and means something else, so this is never read generically.
+ROW_UNITS: Final[Mapping[CreditMatch, Callable[[dict[str, object]], int | None]]] = (
+    MappingProxyType({tutor_match: tutor_minutes})
 )

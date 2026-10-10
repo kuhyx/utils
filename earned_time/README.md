@@ -53,18 +53,43 @@ registry is per day: `earners_for(day)` is `EARNERS` before it and
 `TUTOR_EARNERS` from it. From `TUTOR_FROM` Anki is retired (neither penalised
 nor paid) and `automation` is `AUTOMATION_TUTOR`, a counted earner on the
 Automation tutor's ledger (`~/.local/share/automation_tutor/ledger.json`,
-one signed row per verified 15-minute block, `tutor_match` on
-`detail.ended_at`), at most 4 blocks a day:
+`tutor_match` on `detail.ended_at`). Since 0.8.0 it pays per **active
+minute** (a unit is one minute), at most 60 a day summed across sessions:
 
-| blocks | gaming | shutdown rung |
+| units | gaming | shutdown rung |
 |---|---|---|
-| each | +15 min | 13 / 13 / 12 / 12 |
-| all 4 | +60 (Anki's 30 folded in) | +50 (Anki's 25 folded in) |
+| each minute | +1 min | +1 min (`Rung(1, extra=1)`) |
+| all 60 | +60 (Anki's 30 folded in) | +60 (Anki's 25 folded in) |
 
-Once its penalty has started, the gaming base drops by the full 60
-(`Earner.max_gaming_minutes`) and the ladder floor by the full 50, so nothing
-done is 3 h / 19:00 and everything done is still 8 h / 23:00. Until then
-(given `first_credits`, see below) it costs nothing: 4 h / 19:50. Days before `TUTOR_FROM` resolve on
+Each minute earns exactly the shutdown it costs (the fairness rule). Once its
+penalty has started, the gaming base drops by the full 60
+(`Earner.max_gaming_minutes`) and the ladder floor by the full 60, so nothing
+done is 3 h / 18:50 and everything done is still 8 h / 23:00. Until then
+(given `first_credits`, see below) it costs nothing: 4 h / 19:50.
+
+**The tutor row contract (0.8.0, mixed-day safe).** `credit_units` sums what
+each counting row pays instead of counting rows (`_credits.row_units`, the
+per-matcher reader `_match.ROW_UNITS`):
+
+- `detail.minutes` (a positive JSON int, never a bool/float/string) is the
+  active minutes the row pays. A row **without** it is a 0.7.0 15-minute
+  block and pays 15 (`LEGACY_TUTOR_MINUTES`), so a day that mixes block rows
+  and minute rows sums both, and an all-block day resolves exactly as 0.7.0
+  did (min(15 n, 60) = 15 min(n, 4)). A row whose `minutes` is present but
+  invalid is refused by `tutor_match` (logged) and pays nothing anywhere.
+- An `entry_id` pays once; rows repeated under one id pay the **smallest**
+  of their counts, so a replay or a rewrite can never raise a credit.
+- What the writer (plc-lab `plc_lab/tutor/credit.py`) must guarantee: every
+  new row carries `detail.minutes`; one row per credited minute,
+  `entry_id = f"{session_id}-m{n}"` with `n` the session's n-th credited
+  active minute (deterministic, so a retry rewrites the same id; never the
+  `-b{n}` form); ids never cover overlapping minutes (no cumulative "total so
+  far" rows); `detail.ended_at` is when the last paid minute ended (it picks
+  the day); its own daily cap sums minutes (block rows as 15) up to 60.
+- Rollout order: no minute row may be written until every consumer process
+  runs 0.8.0. A 0.7.0 reader pays each row as a 15-minute block.
+
+Days before `TUTOR_FROM` resolve on
 `EARNERS` exactly as before. Consumers must iterate `earners_for(day)`, never
 `EARNERS`; `resolve`/`base_for` default to it, and ignore answers for an
 earner of another day's registry.
@@ -125,9 +150,11 @@ How far to trust a gate is computed from its ledger, never listed by name:
   fall back to `created_at`). It can lie outside `day` when a gate's day is
   not the calendar day (Anki's rollover, a rest day declared the evening
   before).
-- `credit_units(earner, ledger, key_file, day) -> int | None` — how many
-  verified rows count for `day`: a counted earner's units (a repeated
-  `entry_id` counts once; `max_units` is applied by `resolve`).
+- `credit_units(earner, ledger, key_file, day) -> int | None` — the units
+  the verified rows pay for `day`: 1 per row (the workout), or the row's own
+  count (the tutor's `detail.minutes`, legacy block rows 15). A repeated
+  `entry_id` pays once, its smallest count; `max_units` is applied by
+  `resolve`.
 - `earners_for(day)`, `all_earners()`, `registries()` — the registry in force
   on a day, and every earner of every registry (what a ledger watcher must
   watch). They read `earned_time.EARNERS` through the package, so a consumer
@@ -201,7 +228,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.6.1#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.8.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

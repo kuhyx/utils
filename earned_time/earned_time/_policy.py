@@ -70,7 +70,7 @@ class Earner:
             applied by the consumer that counts the units.
         extra_shutdown_minutes: Each further unit, for ``"counted"`` earners.
         extra_gaming_minutes: Gaming time each further unit earns
-            (``"counted"``); the workout's are 0, the tutor's 15.
+            (``"counted"``); the workout's are 0, the tutor's 1 (per minute).
         max_units: The most units one day can pay; ``None`` is unbounded.
         penalty_from: From this day the gaming base drops by the most the
             earner can pay (:attr:`max_gaming_minutes`). ``None`` means a pure
@@ -194,19 +194,19 @@ AUTOMATION: Final = Earner(
     missing_ledger_is_no=True,
 )
 
-# From ``TUTOR_FROM``: the Automation tutor pays per verified 15-minute block,
-# up to four a day. Anki's 30 gaming minutes are folded in (4 x 15 = 60), so
-# retiring Anki is not a free +30: the base drops by the full 60.
+# From ``TUTOR_FROM``: the Automation tutor pays per active minute (0.8.0; a
+# 0.7.0 15-minute block row counts 15), 1 gaming minute each, up to 60 a day
+# summed across sessions. Anki's 30 is folded in, so the base drops by 60.
 AUTOMATION_TUTOR: Final = Earner(
     name="automation",
     label="Automation",
-    gaming_minutes=15,
-    extra_gaming_minutes=15,
-    max_units=4,
+    gaming_minutes=1,
+    extra_gaming_minutes=1,
+    max_units=60,
     # Pre-ladder values, unused (TUTOR_FROM is not before LADDER_FROM); the
-    # ladder pays 15 per block (``TUTOR_LADDER``).
-    shutdown_minutes=15,
-    extra_shutdown_minutes=15,
+    # ladder pays 1 per minute (``TUTOR_LADDER``).
+    shutdown_minutes=1,
+    extra_shutdown_minutes=1,
     kind="counted",
     penalty_from=TUTOR_FROM,
     ledger=".local/share/automation_tutor/ledger.json",
@@ -227,7 +227,7 @@ EARNERS: Final[tuple[Earner, ...]] = (
     ANKI,
     AUTOMATION,
 )
-# From ``TUTOR_FROM``: Anki retired, Automation paid per tutor block.
+# From ``TUTOR_FROM``: Anki retired, Automation paid per tutor minute.
 TUTOR_EARNERS: Final[tuple[Earner, ...]] = (
     WORKOUT,
     LEETCODE,

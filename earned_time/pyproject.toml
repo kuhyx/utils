@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "earned-time"
-version = "0.7.0"
+version = "0.8.0"
 description = "Penalty-then-reward registry: what every gate app earns in gaming time and shutdown time"
 requires-python = ">=3.14"
 dependencies = []

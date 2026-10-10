@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""The tutor cutover: Anki retired, Automation paid per 15-minute block."""
+"""The tutor cutover: Anki retired, Automation paid per active minute (0.8.0)."""
 
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ def _hhmm(minutes: int) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
 
-def _day(blocks: int, **others: int) -> tuple[int, str]:
-    day = resolve({**others, "automation": blocks}, TUTOR_FROM)
+def _day(minutes: int, **others: int) -> tuple[int, str]:
+    day = resolve({**others, "automation": minutes}, TUTOR_FROM)
     return day.gaming_minutes, _hhmm(day.shutdown_minutes)
 
 
@@ -65,18 +65,18 @@ def test_all_earners_lists_each_once() -> None:
     assert AUTOMATION_TUTOR in all_earners()
 
 
-def test_each_tutor_block_earns_the_15_minutes_it_costs() -> None:
-    # The fairness rule: 13/13/12/12 paid 50 for 60 sat. The extra 10 come
-    # off the floor, so the ladder spans 250 instead of 240.
+def test_each_tutor_minute_earns_the_minute_it_costs() -> None:
+    # The fairness rule: no unit costs more than the shutdown it earns. The
+    # rungs, each at its earner's cap, still span 250 (23:00 down to 18:50).
     assert sum(r.minutes(4) for r in LADDER.values()) == 240
-    assert sum(r.minutes(4) for r in TUTOR_LADDER.values()) == 250
-    assert [TUTOR_LADDER["automation"].minutes(n) for n in range(5)] == [
-        0,
-        15,
-        30,
-        45,
-        60,
-    ]
+    full = {
+        e.name: TUTOR_LADDER[e.name].minutes(e.max_units or 1) for e in TUTOR_EARNERS
+    }
+    assert full == {"workout": 110, "leetcode": 50, "reading": 30, "automation": 60}
+    assert sum(full.values()) == 250
+    for n in range(61):
+        assert AUTOMATION_TUTOR.shutdown_for(n, TUTOR_FROM) == n
+        assert AUTOMATION_TUTOR.gaming_for(n) == n
 
 
 def test_nothing_done_is_three_hours_and_18_50() -> None:
@@ -91,29 +91,35 @@ def test_everything_but_the_tutor() -> None:
 
 
 @pytest.mark.parametrize(
-    ("blocks", "gaming", "shutdown"),
-    [(1, 435, "22:15"), (2, 450, "22:30"), (3, 465, "22:45"), (4, 480, "23:00")],
+    ("minutes", "gaming", "shutdown"),
+    [
+        (1, 421, "22:01"),
+        (15, 435, "22:15"),
+        (30, 450, "22:30"),
+        (59, 479, "22:59"),
+        (60, 480, "23:00"),
+    ],
 )
-def test_each_block_pays_15_gaming_and_its_rung(
-    blocks: int, gaming: int, shutdown: str
+def test_each_minute_pays_1_gaming_and_1_shutdown(
+    minutes: int, gaming: int, shutdown: str
 ) -> None:
-    assert _day(blocks, **OTHERS) == (gaming, shutdown)
+    assert _day(minutes, **OTHERS) == (gaming, shutdown)
 
 
 def test_partial_credit_without_the_others() -> None:
-    assert _day(1) == (195, "19:05")
-    assert _day(2) == (210, "19:20")
-    assert _day(4) == (240, "19:50")
+    assert _day(1) == (181, "18:51")
+    assert _day(15) == (195, "19:05")  # one legacy block, as 0.7.0 paid it
+    assert _day(60) == (240, "19:50")
 
 
-def test_a_fifth_block_is_clamped_to_four() -> None:
-    assert _day(5, **OTHERS) == _day(4, **OTHERS) == (480, "23:00")
-    term = resolve({"automation": 5}, TUTOR_FROM).term("automation")
-    assert (term.answer, term.gaming_minutes, term.shutdown_minutes) == (5, 60, 60)
+def test_minutes_past_60_are_clamped() -> None:
+    assert _day(61, **OTHERS) == _day(60, **OTHERS) == (480, "23:00")
+    term = resolve({"automation": 75}, TUTOR_FROM).term("automation")
+    assert (term.answer, term.gaming_minutes, term.shutdown_minutes) == (75, 60, 60)
 
 
 def test_anki_is_neither_penalised_nor_paid_from_tutor_from() -> None:
-    with_anki = resolve({**OTHERS, "anki": 1, "automation": 4}, TUTOR_FROM)
+    with_anki = resolve({**OTHERS, "anki": 1, "automation": 60}, TUTOR_FROM)
     assert (with_anki.gaming_minutes, with_anki.shutdown_minutes) == (480, 23 * 60)
     assert "anki" not in {t.earner.name for t in with_anki.terms}
 
@@ -139,17 +145,12 @@ def test_rung_steps_and_extras() -> None:
     assert rung.second == 13
     assert Rung(10, extra=5).minutes(3) == 20
     assert Rung(10, extra=5).second == 5
-    assert extra_shutdown_minutes_for(AUTOMATION_TUTOR, TUTOR_FROM) == 15
+    assert extra_shutdown_minutes_for(AUTOMATION_TUTOR, TUTOR_FROM) == 1
 
 
 def test_gaming_for_and_max() -> None:
-    assert [AUTOMATION_TUTOR.gaming_for(n) for n in (-1, 0, 1, 4, 9)] == [
-        0,
-        0,
-        15,
-        60,
-        60,
-    ]
+    gaming = [AUTOMATION_TUTOR.gaming_for(n) for n in (-1, 0, 1, 15, 60, 90)]
+    assert gaming == [0, 0, 1, 15, 60, 60]
     assert AUTOMATION_TUTOR.max_gaming_minutes == 60
     assert WORKOUT.max_gaming_minutes == WORKOUT.gaming_minutes
     assert WORKOUT.gaming_for(3) == WORKOUT.gaming_minutes
@@ -157,5 +158,5 @@ def test_gaming_for_and_max() -> None:
 
 def test_tutor_shutdown_before_the_ladder_uses_its_own_fields() -> None:
     old = date(2026, 10, 1)
-    assert AUTOMATION_TUTOR.shutdown_for(2, old) == 30
+    assert AUTOMATION_TUTOR.shutdown_for(2, old) == 2
     assert AUTOMATION_TUTOR.shutdown_for(0, old) == 0

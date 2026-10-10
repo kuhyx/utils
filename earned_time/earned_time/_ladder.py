@@ -9,7 +9,7 @@ frozen ceiling, so the switch never rewrites how an old day resolved. Gaming
 is not on the ladder.
 
 From ``TUTOR_FROM`` the rungs are :data:`TUTOR_LADDER`: Anki is retired and
-its 25 minutes fold into the Automation tutor's, paid per 15-minute block.
+its 25 minutes fold into the Automation tutor's, paid per active minute.
 """
 
 from __future__ import annotations
@@ -34,11 +34,12 @@ LADDER_FROM: Final = date(2026, 10, 10)
 # Alarm time, minutes after midnight. The ladder's ceiling is eight hours of
 # sleep before it, so moving the alarm moves the whole ladder with it.
 WAKE_MINUTES: Final = 7 * 60
-# From this day the Anki earner is retired and Automation is paid per tutor
-# block (``earned_time._policy.AUTOMATION_TUTOR``). The day after the deploy
-# (0.6.1, 2026-10-09) -- never the deploy day itself (a same-day cut,
-# 2026-09-26). Confirmed in 0.7.0 (``confirmed_on`` 2026-10-09, kuhy's call
-# on 2026-10-10), so its penalty bites from this day on.
+# From this day the Anki earner is retired and Automation is paid by the
+# tutor (``earned_time._policy.AUTOMATION_TUTOR``: per 15-minute block until
+# 0.8.0, per active minute since). The day after the deploy (0.6.1,
+# 2026-10-09) -- never the deploy day itself (a same-day cut, 2026-09-26).
+# Confirmed in 0.7.0 (``confirmed_on`` 2026-10-09, kuhy's call on
+# 2026-10-10), so its penalty bites from this day on.
 TUTOR_FROM: Final = date(2026, 10, 10)
 # From this day until TUTOR_FROM the Anki and old Automation earners are
 # waived: neither penalised nor paid, since both are being retired and the
@@ -94,15 +95,15 @@ LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
 
 
 # From ``TUTOR_FROM``: Anki's 25 folded into Automation's, which is paid per
-# 15-minute tutor block. Each block earns the 15 minutes it costs (the fairness
-# rule; 13/13/12/12 paid 50 for 60 sat), so the rungs sum to 250: doing
-# everything is still 23:00, doing nothing 18:50.
+# active tutor minute (0.8.0; 0.7.0 paid 15 per 15-minute block). Each minute
+# earns the minute it costs (the fairness rule), so the rungs sum to 250:
+# doing everything is still 23:00, doing nothing 18:50.
 TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
     {
         "workout": Rung(110),
         "leetcode": Rung(50),
         "reading": Rung(30),
-        "automation": Rung(15, extra=15),
+        "automation": Rung(1, extra=1),
     }
 )
 

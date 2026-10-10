@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""The tutor ledger: which signed block rows count, and how many."""
+"""The tutor ledger: which signed 0.7.0 block rows count, and how many minutes."""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def test_row_without_detail_never_counts() -> None:
     assert not tutor_match({"kind": "credit", "entry_id": "x"}, WINDOW)
 
 
-def test_units_count_blocks_once_and_skip_forgeries(
+def test_legacy_blocks_count_15_once_and_skip_forgeries(
     tmp_path: Path, key_file: Path
 ) -> None:
     tampered = block("s1", 3, _at(19))
@@ -95,7 +95,8 @@ def test_units_count_blocks_once_and_skip_forgeries(
         block("s0", 1, _at(23, 0, DAY - timedelta(days=1))),
     ]
     path = _ledger(tmp_path, rows)
-    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 2
+    # 0.7.0 block rows carry no detail.minutes: each pays 15 minutes.
+    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 30
     assert first_credit_at(AUTOMATION_TUTOR, path, key_file, DAY) == _at(18, 15)
 
 
@@ -106,7 +107,7 @@ def test_rows_without_entry_id_each_count(tmp_path: Path, key_file: Path) -> Non
         del row["entry_id"]
         rows.append({**row, "hmac": entry_signature(row, KEY)})
     path = _ledger(tmp_path, rows)
-    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 2
+    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 30
 
 
 def test_missing_tutor_ledger_is_zero(tmp_path: Path, key_file: Path) -> None:
