@@ -58,9 +58,13 @@ runs:
         echo "$HOME/sdk/flutter-slim/bin" >> "$GITHUB_PATH"
         echo "PUB_CACHE=$HOME/.pub-cache" >> "$GITHUB_ENV"
 
+    # Exact key only, no prefix restore-keys: an older lockfile's pub cache,
+    # restored after a git-dependency bump, made `flutter pub get` fail with
+    # "package_graph.json: dependencies for <pkg> missing" (daily-limits,
+    # 2026-10-10), and a failed job never saves the new key, so every rerun
+    # failed the same way. A lockfile change now pays one cold `pub get`.
     - name: Restore the pub cache
       uses: actions/cache@v4
       with:
         path: ~/.pub-cache
         key: pub-${{ inputs.flutter-version }}-${{ runner.os }}-${{ hashFiles(format('{0}/pubspec.lock', inputs.working-directory)) }}
-        restore-keys: pub-${{ inputs.flutter-version }}-${{ runner.os }}-
