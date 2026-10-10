@@ -15,7 +15,7 @@ screen-locker computes a real workout streak and celebratory reward text, then
 throws almost all of it away. Verified 2026-08-16:
 
 - `StatusSnapshot` (`screen_locker/_status_types.py` ~:88-101) carries populated
-  `streak`, `bonus_hours_this_week` and `early_bird_extended` fields, filled by
+  `streak` and `early_bird_extended` fields, filled by
   `_status_data.py` ~:210-214. **Grep confirms no renderer reads them.**
 - `_extra_benefits.py` `process_week_transition()` (~:82, reward strings built at
   ~:130-139) produces fully-formed celebratory sentences — and
@@ -43,8 +43,7 @@ Primary:
 - `screen_locker/_status_types.py` — `StatusSnapshot` (~:88-101), the fields you
   are rendering. Read-only for this task.
 - `screen_locker/_extra_benefits.py` (179 lines) — `process_week_transition()`
-  and its reward strings; `current_streak()` ~:154,
-  `weekly_shutdown_bonus_hours()` ~:159, `has_extended_early_bird()` ~:171.
+  and its reward strings; `current_streak()`, `has_extended_early_bird()`.
 - `screen_locker/_startup_checks.py` ~:57-58 — where the reward strings are
   currently discarded into a log call.
 - `screen_locker/_unlock_view.py` (72 lines, lots of headroom) — the existing
@@ -53,8 +52,8 @@ Primary:
 ## must
 
 - **Render the already-populated fields.** Add `_section_streak` to
-  `_status_sections.py` showing the weekly streak, this week's bonus hours, and
-  the extended-early-bird state, and call it from `status_view.py`'s `render()`.
+  `_status_sections.py` showing the weekly streak and the extended-early-bird
+  state, and call it from `status_view.py`'s `render()`.
   Zero new state, zero conftest change, zero new dependency.
 - **Stop discarding the reward strings.** `process_week_transition()` returns
   human-readable celebratory sentences that currently only reach the log. Surface
@@ -68,17 +67,20 @@ Primary:
   {phone_verified, runnerup_verified, manual_workout}`). Do not round, pad, or
   "encourage" the number.
 
-- must not: **make any reward reduce enforcement.** This is recorded twice in the
+- must not: **make any reward reduce enforcement.** This is recorded in the
   repo as a deliberate decision:
-  > `_startup_checks.py` ~:88-93 — "there is no banked 'skip a workout' credit —
+  > `_startup_checks.py` — "there is no banked 'skip a workout' credit —
   > that mechanic works against the goal of maximizing weekly workouts, so it was
-  > removed in favor of a shutdown-time-only reward"
-  > `_extra_benefits.py` ~:5-8 — "This never reduces enforcement … it only grants
-  > extra comfort time on top of a floor you still have to earn each day."
+  > removed."
 
-  Every reward here is **display or comfort-time only**. Do not reintroduce a
+  Every reward here is **display only**. Do not reintroduce a
   banked skip, a streak freeze, a grace day, or any mechanic that lowers the
   floor. A dopamine loop that lets you skip the workout defeats the app.
+- must not: **grant shutdown time for a streak, a week or a milestone.** The
+  weekly banked shutdown bonus (and the 4-week `_MILESTONE_INTERVAL` +1h) was
+  removed on purpose (2026-10-10): every shutdown minute comes from the
+  `earned_time` ladder and stops at its daily ceiling. Rewards here are display
+  only — no "+Nh" weekly reward, no bonus-hours field, no new shutdown source.
 - must not: add **sound** to any enforcement or lock path. screen-locker is a
   self-restriction tool; a chime on lock is punishment audio, and a chime on
   unlock trains the wrong association. This repo stays silent. (Sound is
@@ -103,7 +105,7 @@ Primary:
 ## done
 
 1. Opening the status window (tray icon → click, or `screen-locker-status`) shows
-   the current streak, bonus hours and early-bird state — with the real values
+   the current streak and early-bird state — with the real values
    from `extra_benefits_state.json`, not placeholders.
 2. A week-transition milestone reaches the UI instead of only `_logger.info`.
 3. `cd ~/src/screen-locker && python -m pytest` passes.
@@ -122,8 +124,8 @@ python -m screen_locker --status          # CLI: confirm the values it prints
 screen-locker-status                      # the Tk window: confirm they render
 ```
 
-Paste both outputs. The CLI already prints `streak`/`bonus_hours` (`_status.py`
-~:138-141), so it is your ground truth: the window must show the **same numbers**.
+Paste both outputs. The CLI already prints the streak and early-bird state
+(`_status.py`), so it is your ground truth: the window must show the **same numbers**.
 If they disagree, the renderer is wrong, not the data.
 
 Current real state for comparison: `screen_locker/extra_benefits_state.json` and
@@ -150,10 +152,11 @@ Current real state for comparison: `screen_locker/extra_benefits_state.json` and
 - All persistence is **JSON files, no sqlite**; paths declared in
   `screen_locker/_constants.py`. The streak store is
   `screen_locker/extra_benefits_state.json` (`consecutive_5plus_weeks`,
-  `last_processed_iso_week`, `weekly_shutdown_bonus_hours`,
-  `extended_early_bird_iso_weeks`).
-- Thresholds live in `_extra_benefits.py`: `_MILESTONE_INTERVAL = 4` (4-week
-  milestone), `_BONUS_THRESHOLD = 5` (workouts per week).
+  `last_processed_iso_week`, `extended_early_bird_iso_weeks`; a legacy
+  `weekly_shutdown_bonus_hours` map is ignored and dropped on the next write).
+- The threshold lives in `_extra_benefits.py`: `_BONUS_THRESHOLD = 5` (workouts
+  per week, for the streak and the early-bird extension). There is no milestone
+  constant any more.
 - **There is no config system** — no argparse, no env vars, no config file. Every
   tunable is a module-level constant. An opt-out toggle has no existing home;
   for a self-restriction tool, requiring a code edit to disable is arguably
