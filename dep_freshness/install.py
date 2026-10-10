@@ -25,6 +25,8 @@ from dep_freshness.install_precommit_ci import (
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 DELEGATE = Path("scripts/check_dependency_freshness.sh")
 WORKFLOW = Path(".github/workflows/dependency-freshness.yml")
+# Repo-root file that opts a repo out of WORKFLOW (see _needs_workflow).
+NO_WORKFLOW_MARKER = Path(".dep-freshness-no-workflow")
 PRECOMMIT = Path(".pre-commit-config.yaml")
 HOOK_ID = "dependency-freshness"
 
@@ -56,6 +58,16 @@ def _needs_delegate(repo: Path) -> bool:
 
 
 def _needs_workflow(repo: Path) -> bool:
+    """True when the CI workflow is missing or drifted -- unless opted out.
+
+    A repo with NO_WORKFLOW_MARKER at its root runs the gate locally only
+    (teatr-pw: no GitHub Actions minutes on a private repo, its pre-push hook
+    runs `--all --strict`). Without the opt-out every fleet sweep would put
+    back the workflow that repo deleted on purpose. The local pieces are
+    still installed.
+    """
+    if (repo / NO_WORKFLOW_MARKER).exists():
+        return False
     target = repo / WORKFLOW
     return not target.is_file() or target.read_text(encoding="utf-8") != _template(
         "workflow.yml"
