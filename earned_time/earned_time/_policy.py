@@ -204,14 +204,18 @@ AUTOMATION_TUTOR: Final = Earner(
     extra_gaming_minutes=15,
     max_units=4,
     # Pre-ladder values, unused (TUTOR_FROM is not before LADDER_FROM); the
-    # ladder pays 13/13/12/12 (``TUTOR_LADDER``).
-    shutdown_minutes=13,
-    extra_shutdown_minutes=13,
+    # ladder pays 15 per block (``TUTOR_LADDER``).
+    shutdown_minutes=15,
+    extra_shutdown_minutes=15,
     kind="counted",
     penalty_from=TUTOR_FROM,
     ledger=".local/share/automation_tutor/ledger.json",
     match=tutor_match,
     missing_ledger_is_no=True,
+    # Confirmed by kuhy on 2026-10-10 before any block had paid out, dated the
+    # day before so the -60 gaming penalty applies on TUTOR_FROM itself
+    # (penalty starts at confirmed_on + 1).
+    confirmed_on=date(2026, 10, 9),
 )
 
 # The registry of every day before ``TUTOR_FROM``. Order is the order of

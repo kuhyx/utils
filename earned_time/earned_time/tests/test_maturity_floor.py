@@ -106,21 +106,29 @@ def test_omitting_first_credits_keeps_0_6_0_on_the_real_registries(
     assert base_for(day, registry).shutdown_minutes == _head_floor(day, earners)
 
 
-def test_a_never_paid_tutor_spares_the_first_tutor_day() -> None:
+def _unconfirmed() -> tuple[Earner, ...]:
+    """The tutor day's registry as it was before 0.7.0 confirmed the tutor."""
+    tutor = replace(AUTOMATION_TUTOR, confirmed_on=None)
+    return (*earners_for(TUTOR_FROM)[:-1], tutor)
+
+
+def test_a_never_paid_unconfirmed_tutor_spares_the_first_tutor_day() -> None:
     assert TUTOR_FROM == LADDER_FROM == date(2026, 10, 10)
-    base = base_for(TUTOR_FROM, first_credits=REAL)
+    registry = _unconfirmed()
+    base = base_for(TUTOR_FROM, registry, first_credits=REAL)
     assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (240, "19:50")
     full = resolve(
         {"workout": 1, "leetcode": 1, "reading": 1, "automation": 4},
         TUTOR_FROM,
+        registry,
         first_credits=REAL,
     )
     assert (full.gaming_minutes, _hhmm(full.shutdown_minutes)) == (480, "23:00")
     # Unwired consumer (no first_credits): the tutor is cut from penalty_from.
-    fallback = base_for(TUTOR_FROM)
+    fallback = base_for(TUTOR_FROM, registry)
     assert (fallback.gaming_minutes, _hhmm(fallback.shutdown_minutes)) == (
         180,
-        "19:00",
+        "18:50",
     )
 
 
@@ -128,17 +136,24 @@ def test_the_floor_waits_for_the_day_after_the_first_block() -> None:
     paid = REAL | {"automation": TUTOR_FROM}
     for day, gaming, floor in (
         (TUTOR_FROM, 240, "19:50"),
-        (TUTOR_FROM + DAY, 180, "19:00"),
+        (TUTOR_FROM + DAY, 180, "18:50"),
     ):
-        base = base_for(day, first_credits=paid)
+        base = base_for(day, _unconfirmed(), first_credits=paid)
         assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (gaming, floor)
 
 
-def test_a_confirmed_tutor_with_no_credit_fails_closed_on_the_floor() -> None:
-    confirmed = replace(AUTOMATION_TUTOR, confirmed_on=TUTOR_FROM - DAY)
-    registry = (*earners_for(TUTOR_FROM)[:-1], confirmed)
-    base = base_for(TUTOR_FROM, registry, first_credits=REAL)
-    assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (180, "19:00")
+def test_the_confirmed_tutor_with_no_credit_fails_closed_on_the_floor() -> None:
+    # 0.7.0: confirmed the eve, before any block paid out. The real ledgers
+    # of 2026-10-10 give the 5 h base (180 + LeetCode's 60 + reading's 60).
+    assert AUTOMATION_TUTOR.confirmed_on == TUTOR_FROM - DAY
+    base = base_for(TUTOR_FROM, first_credits=REAL)
+    assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (180, "18:50")
+    day = resolve(
+        {"workout": 0, "leetcode": 1, "reading": 1, "automation": 0},
+        TUTOR_FROM,
+        first_credits=REAL,
+    )
+    assert day.gaming_minutes == 300
 
 
 def test_a_pure_bonus_is_always_on_the_ladder() -> None:

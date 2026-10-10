@@ -43,7 +43,8 @@ def test_tutor_from_is_the_day_after_the_deploy() -> None:
     assert date(2026, 10, 10) == TUTOR_FROM
     assert date(2026, 10, 9) < TUTOR_FROM  # never the day it was prepared
     assert LADDER_FROM <= TUTOR_FROM
-    assert AUTOMATION_TUTOR.confirmed_on is None  # no real session confirmed yet
+    # Confirmed the eve, so the penalty bites on TUTOR_FROM itself.
+    assert AUTOMATION_TUTOR.confirmed_on == EVE
 
 
 def test_registry_switches_on_tutor_from() -> None:
@@ -64,28 +65,34 @@ def test_all_earners_lists_each_once() -> None:
     assert AUTOMATION_TUTOR in all_earners()
 
 
-def test_tutor_ladder_still_sums_to_the_old_one() -> None:
-    old = sum(r.minutes(4) for r in LADDER.values())
-    new = sum(r.minutes(4) for r in TUTOR_LADDER.values())
-    assert old == new == 240
-    assert TUTOR_LADDER["automation"].minutes(4) == 50
+def test_each_tutor_block_earns_the_15_minutes_it_costs() -> None:
+    # The fairness rule: 13/13/12/12 paid 50 for 60 sat. The extra 10 come
+    # off the floor, so the ladder spans 250 instead of 240.
+    assert sum(r.minutes(4) for r in LADDER.values()) == 240
+    assert sum(r.minutes(4) for r in TUTOR_LADDER.values()) == 250
+    assert [TUTOR_LADDER["automation"].minutes(n) for n in range(5)] == [
+        0,
+        15,
+        30,
+        45,
+        60,
+    ]
 
 
-def test_nothing_done_is_three_hours_and_19() -> None:
-    # Without first_credits (an unwired consumer): the tutor is cut from
-    # penalty_from; given them, a never-paid tutor costs nothing
-    # (test_maturity_floor.py).
-    assert _day(0) == (180, "19:00")
+def test_nothing_done_is_three_hours_and_18_50() -> None:
+    # Confirmed, so the tutor is cut from penalty_from with or without
+    # first_credits (test_maturity_floor.py).
+    assert _day(0) == (180, "18:50")
     assert base_for(TUTOR_FROM).gaming_minutes == 180
 
 
 def test_everything_but_the_tutor() -> None:
-    assert _day(0, **OTHERS) == (420, "22:10")
+    assert _day(0, **OTHERS) == (420, "22:00")
 
 
 @pytest.mark.parametrize(
     ("blocks", "gaming", "shutdown"),
-    [(1, 435, "22:23"), (2, 450, "22:36"), (3, 465, "22:48"), (4, 480, "23:00")],
+    [(1, 435, "22:15"), (2, 450, "22:30"), (3, 465, "22:45"), (4, 480, "23:00")],
 )
 def test_each_block_pays_15_gaming_and_its_rung(
     blocks: int, gaming: int, shutdown: str
@@ -94,15 +101,15 @@ def test_each_block_pays_15_gaming_and_its_rung(
 
 
 def test_partial_credit_without_the_others() -> None:
-    assert _day(1) == (195, "19:13")
-    assert _day(2) == (210, "19:26")
+    assert _day(1) == (195, "19:05")
+    assert _day(2) == (210, "19:20")
     assert _day(4) == (240, "19:50")
 
 
 def test_a_fifth_block_is_clamped_to_four() -> None:
     assert _day(5, **OTHERS) == _day(4, **OTHERS) == (480, "23:00")
     term = resolve({"automation": 5}, TUTOR_FROM).term("automation")
-    assert (term.answer, term.gaming_minutes, term.shutdown_minutes) == (5, 60, 50)
+    assert (term.answer, term.gaming_minutes, term.shutdown_minutes) == (5, 60, 60)
 
 
 def test_anki_is_neither_penalised_nor_paid_from_tutor_from() -> None:
@@ -132,7 +139,7 @@ def test_rung_steps_and_extras() -> None:
     assert rung.second == 13
     assert Rung(10, extra=5).minutes(3) == 20
     assert Rung(10, extra=5).second == 5
-    assert extra_shutdown_minutes_for(AUTOMATION_TUTOR, TUTOR_FROM) == 13
+    assert extra_shutdown_minutes_for(AUTOMATION_TUTOR, TUTOR_FROM) == 15
 
 
 def test_gaming_for_and_max() -> None:
@@ -150,5 +157,5 @@ def test_gaming_for_and_max() -> None:
 
 def test_tutor_shutdown_before_the_ladder_uses_its_own_fields() -> None:
     old = date(2026, 10, 1)
-    assert AUTOMATION_TUTOR.shutdown_for(2, old) == 26
+    assert AUTOMATION_TUTOR.shutdown_for(2, old) == 30
     assert AUTOMATION_TUTOR.shutdown_for(0, old) == 0

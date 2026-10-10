@@ -37,9 +37,8 @@ WAKE_MINUTES: Final = 7 * 60
 # From this day the Anki earner is retired and Automation is paid per tutor
 # block (``earned_time._policy.AUTOMATION_TUTOR``). The day after the deploy
 # (0.6.1, 2026-10-09) -- never the deploy day itself (a same-day cut,
-# 2026-09-26). The tutor is still unconfirmed (no ``confirmed_on``), so given
-# ``first_credits`` it costs nothing -- neither gaming base nor ladder floor
-# -- until the day after it first pays out.
+# 2026-09-26). Confirmed in 0.7.0 (``confirmed_on`` 2026-10-09, kuhy's call
+# on 2026-10-10), so its penalty bites from this day on.
 TUTOR_FROM: Final = date(2026, 10, 10)
 # From this day until TUTOR_FROM the Anki and old Automation earners are
 # waived: neither penalised nor paid, since both are being retired and the
@@ -59,7 +58,7 @@ class Rung:
         first: Shutdown minutes the first unit earns.
         extra: Each further unit (counted earners) once ``steps`` run out.
         steps: What the second, third, ... unit earn, in order, when they are
-            not all the same (the tutor's 13/13/12/12 split).
+            not all the same.
     """
 
     first: int
@@ -95,13 +94,15 @@ LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
 
 
 # From ``TUTOR_FROM``: Anki's 25 folded into Automation's, which is paid per
-# 15-minute tutor block. Still sums to 240, so doing everything is 23:00.
+# 15-minute tutor block. Each block earns the 15 minutes it costs (the fairness
+# rule; 13/13/12/12 paid 50 for 60 sat), so the rungs sum to 250: doing
+# everything is still 23:00, doing nothing 18:50.
 TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
     {
         "workout": Rung(110),
         "leetcode": Rung(50),
         "reading": Rung(30),
-        "automation": Rung(13, steps=(13, 12, 12)),
+        "automation": Rung(15, extra=15),
     }
 )
 
