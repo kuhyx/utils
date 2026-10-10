@@ -85,7 +85,11 @@ per-matcher reader `_match.ROW_UNITS`):
   active minute (deterministic, so a retry rewrites the same id; never the
   `-b{n}` form); ids never cover overlapping minutes (no cumulative "total so
   far" rows); `detail.ended_at` is when the last paid minute ended (it picks
-  the day); its own daily cap sums minutes (block rows as 15) up to 60.
+  the day, so a multi-minute row must never span local midnight); its own
+  daily cap sums minutes (block rows as 15) up to 60. N-minute rows (e.g.
+  every 5 minutes) are allowed under the same rules; each write fires
+  screen-locker's `earner-bonus.path`, so per-minute rows rewrite the
+  shutdown schedule once a minute.
 - Rollout order: no minute row may be written until every consumer process
   runs 0.8.0. A 0.7.0 reader pays each row as a 15-minute block.
 
