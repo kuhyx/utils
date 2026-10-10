@@ -54,10 +54,19 @@ is written as `<FILL IN>`, which the gate rejects until a human fills it.
 
 ## Adding the gate to a repo
 
-1. Copy `templates/check_repo_contract.shim.sh` to `scripts/check_repo_contract.sh`
-   (never copy `scripts/check_repo_contract.sh` from this repo).
-2. Add `templates/pre-commit-snippet.yaml` to `.pre-commit-config.yaml`.
-3. Copy `templates/repo-contract.yml` to `.github/workflows/`.
+Run this on every new repo right after `git init` (idempotent):
+
+```bash
+~/src/utils/scripts/install_repo_contract_gate.sh <repo>   # --check to preview
+```
+
+It writes the `scripts/check_repo_contract.sh` shim, the pre-commit hook, the
+CI workflow (skipped when the repo has `.dep-freshness-no-workflow`, i.e. no
+GitHub Actions), then bootstraps the `## Commands` section and
+`scripts/test_changed.sh`. It exits 1 while a `<FILL IN>` remains. Never copy
+`scripts/check_repo_contract.sh` from this repo (it is the real gate, not a shim).
+The hook only fires on commits touching CLAUDE.md/AGENTS.md/test_changed.sh,
+so a repo that never got the installer is caught only by `sweep.py`.
 
 ## Tests
 
