@@ -179,7 +179,7 @@ stay on the host or stay untested.
 
 ## Tests
 
-`bats tests/test_vmbox.bats tests/test_rtcwake.bats` — host-side unit tests
+`bats tests/` — host-side unit tests
 for name validation, meta handling, serial rotation, the full verdict table,
 firmware selection and the CMOS alarm decoder. They do not boot a VM; booting
 is covered by the end-to-end demos (`tests/*_demo.sh`, `tests/rtcwake_e2e.sh`).
