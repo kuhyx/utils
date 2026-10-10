@@ -136,6 +136,8 @@ EXCLUDED_DIRS = frozenset(
 VENDORED_SUBPATHS = {
     "mcp-servers": ("servers",),
     "dufs-cloud": ("app/assets/pdfjs", "web/assets/pdfjs"),
+    # godot-cpp bindings, a git submodule of github.com/godotengine/godot-cpp.
+    "legatus": ("gdextension/godot-cpp",),
     ".claude": (
         "projects",
         "shell-snapshots",
