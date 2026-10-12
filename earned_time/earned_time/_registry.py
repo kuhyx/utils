@@ -3,7 +3,7 @@
 
 Before ``TUTOR_FROM`` every day resolves on :data:`~earned_time.EARNERS`,
 exactly as it always has; from it on :data:`~earned_time.TUTOR_EARNERS`
-(Anki retired, Automation paid per tutor block). The switch is a date, so it
+(Anki and Automation retired, the tutor paid per minute). The switch is a date, so it
 never rewrites how an old day resolved.
 """
 

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from earned_time import (
-    AUTOMATION_TUTOR,
+    TUTOR,
     WORKOUT,
     credit_units,
     entry_signature,
@@ -47,7 +47,7 @@ def key_file(tmp_path: Path) -> Path:
 
 
 def _units(tmp_path: Path, key_file: Path, rows: list[object]) -> int | None:
-    return credit_units(AUTOMATION_TUTOR, _ledger(tmp_path, rows), key_file, DAY)
+    return credit_units(TUTOR, _ledger(tmp_path, rows), key_file, DAY)
 
 
 def test_minute_rows_sum(tmp_path: Path, key_file: Path) -> None:
@@ -55,7 +55,7 @@ def test_minute_rows_sum(tmp_path: Path, key_file: Path) -> None:
     rows.append(minute("s", 4, _at(18, 13), minutes=10))
     assert _units(tmp_path, key_file, rows) == 13
     assert first_credit_at(
-        AUTOMATION_TUTOR, _ledger(tmp_path, rows), key_file, DAY
+        TUTOR, _ledger(tmp_path, rows), key_file, DAY
     ) == _at(18, 1)
 
 
@@ -69,7 +69,7 @@ def test_mixed_day_sums_blocks_and_minutes(tmp_path: Path, key_file: Path) -> No
     rows += [minute("new", n, _at(18, n)) for n in range(1, 21)]
     units = _units(tmp_path, key_file, rows)
     assert units == 35
-    day = resolve({**OTHERS, "automation": units or 0}, DAY)
+    day = resolve({**OTHERS, "tutor": units or 0}, DAY)
     assert (day.gaming_minutes, day.shutdown_minutes) == (420 + 35, 22 * 60 + 35)
 
 
@@ -78,7 +78,7 @@ def test_the_day_caps_at_60_across_sessions(tmp_path: Path, key_file: Path) -> N
     rows += [minute("b", n, _at(14, n)) for n in range(1, 21)]
     units = _units(tmp_path, key_file, rows)
     assert units == 65  # the raw sum; resolve applies max_units
-    term = resolve({"automation": units}, DAY).term("automation")
+    term = resolve({"tutor": units}, DAY).term("tutor")
     assert (term.gaming_minutes, term.shutdown_minutes) == (60, 60)
 
 
@@ -104,7 +104,7 @@ def test_bad_minutes_never_count(
     assert tutor_minutes(row) is None
     assert not tutor_match(row, WINDOW)
     assert "bad minutes" in caplog.text
-    assert row_units(AUTOMATION_TUTOR, row) == 0
+    assert row_units(TUTOR, row) == 0
     assert _units(tmp_path, key_file, [row, minute("s", 2, _at(18, 1))]) == 1
 
 
@@ -121,7 +121,7 @@ def test_an_all_legacy_day_resolves_as_0_7_0_did(
     units = _units(tmp_path, key_file, rows) or 0
     paid = 15 * min(blocks, 4)
     for others in ({}, OTHERS):
-        day = resolve({**others, "automation": units}, DAY)
+        day = resolve({**others, "tutor": units}, DAY)
         base = 420 if others else 180
         floor = 22 * 60 if others else 18 * 60 + 50
         assert (day.gaming_minutes, day.shutdown_minutes) == (

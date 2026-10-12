@@ -18,7 +18,7 @@ From ``LADDER_FROM`` shutdown follows the sleep ladder instead
 (:mod:`earned_time._ladder`); gaming keeps the penalty derivation unchanged.
 
 **The registry is per day** (:func:`earners_for`). From ``TUTOR_FROM`` Anki
-is retired -- neither penalised nor paid -- and Automation is the tutor's
+is retired -- neither penalised nor paid -- and the tutor (``TUTOR``) is the
 counted earner; every earlier day resolves on :data:`EARNERS` exactly as
 before, so the cutover never rewrites an old day.
 """
@@ -182,7 +182,7 @@ ANKI: Final = Earner(
 )
 # Same gate, same row shape: anki-guard's ``automation`` quota (the Automation
 # deck only) writes its own ledger, so the Anki day matcher applies unchanged.
-# Days before ``TUTOR_FROM`` only; from then on see AUTOMATION_TUTOR.
+# Days before ``TUTOR_FROM`` only; from then on see TUTOR.
 AUTOMATION: Final = Earner(
     name="automation",
     label="Automation",
@@ -194,12 +194,14 @@ AUTOMATION: Final = Earner(
     missing_ledger_is_no=True,
 )
 
-# From ``TUTOR_FROM``: the Automation tutor pays per active minute (0.8.0; a
-# 0.7.0 15-minute block row counts 15), 1 gaming minute each, up to 60 a day
-# summed across sessions. Anki's 30 is folded in, so the base drops by 60.
-AUTOMATION_TUTOR: Final = Earner(
-    name="automation",
-    label="Automation",
+# From ``TUTOR_FROM``: the tutor pays per active minute (0.8.0; a 0.7.0
+# 15-minute block row counts 15), 1 gaming minute each, up to 60 a day summed
+# across sessions. Anki's 30 is folded in, so the base drops by 60. Named
+# ``automation`` (``AUTOMATION_TUTOR``) until 0.9.0; rows carry no earner name,
+# so the rename only moved the ledger (copied over, old rows included).
+TUTOR: Final = Earner(
+    name="tutor",
+    label="Tutor",
     gaming_minutes=1,
     extra_gaming_minutes=1,
     max_units=60,
@@ -209,7 +211,7 @@ AUTOMATION_TUTOR: Final = Earner(
     extra_shutdown_minutes=1,
     kind="counted",
     penalty_from=TUTOR_FROM,
-    ledger=".local/share/automation_tutor/ledger.json",
+    ledger=".local/share/tutor/ledger.json",
     match=tutor_match,
     missing_ledger_is_no=True,
     # Confirmed by kuhy on 2026-10-10 before any block had paid out, dated the
@@ -227,12 +229,12 @@ EARNERS: Final[tuple[Earner, ...]] = (
     ANKI,
     AUTOMATION,
 )
-# From ``TUTOR_FROM``: Anki retired, Automation paid per tutor minute.
+# From ``TUTOR_FROM``: Anki and Automation retired, the tutor paid per minute.
 TUTOR_EARNERS: Final[tuple[Earner, ...]] = (
     WORKOUT,
     LEETCODE,
     READING,
-    AUTOMATION_TUTOR,
+    TUTOR,
 )
 
 

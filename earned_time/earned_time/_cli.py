@@ -53,8 +53,9 @@ def home() -> Path:
 def _gates(day: date) -> list[tuple[str, Earner, Maturity]]:
     """Each ledger-backed earner of every registry, with its verdict on ``day``.
 
-    Two earners can share a name across registries (``automation`` before and
-    after ``TUTOR_FROM``); those get their ledger's directory appended.
+    Two earners may share a name across registries (``automation`` did before
+    and after ``TUTOR_FROM`` until 0.9.0); those get their ledger's directory
+    appended.
     """
     earners = [e for e in all_earners() if e.ledger is not None]
     names = Counter(e.name for e in earners)

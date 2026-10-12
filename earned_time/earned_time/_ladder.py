@@ -9,7 +9,7 @@ frozen ceiling, so the switch never rewrites how an old day resolved. Gaming
 is not on the ladder.
 
 From ``TUTOR_FROM`` the rungs are :data:`TUTOR_LADDER`: Anki is retired and
-its 25 minutes fold into the Automation tutor's, paid per active minute.
+its 25 minutes fold into the tutor's, paid per active minute.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ LADDER_FROM: Final = date(2026, 10, 10)
 # sleep before it, so moving the alarm moves the whole ladder with it.
 WAKE_MINUTES: Final = 7 * 60
 # From this day the Anki earner is retired and Automation is paid by the
-# tutor (``earned_time._policy.AUTOMATION_TUTOR``: per 15-minute block until
+# tutor (``earned_time._policy.TUTOR``: per 15-minute block until
 # 0.8.0, per active minute since). The day after the deploy (0.6.1,
 # 2026-10-09) -- never the deploy day itself (a same-day cut, 2026-09-26).
 # Confirmed in 0.7.0 (``confirmed_on`` 2026-10-09, kuhy's call on
@@ -94,8 +94,9 @@ LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
 )
 
 
-# From ``TUTOR_FROM``: Anki's 25 folded into Automation's, which is paid per
-# active tutor minute (0.8.0; 0.7.0 paid 15 per 15-minute block). Each minute
+# From ``TUTOR_FROM``: Anki's and Automation's 25 each folded into the tutor's
+# rung (``tutor``, named ``automation`` until 0.9.0), paid per active minute
+# (0.8.0; 0.7.0 paid 15 per 15-minute block). Each minute
 # earns the minute it costs (the fairness rule), so the rungs sum to 250:
 # doing everything is still 23:00, doing nothing 18:50.
 TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
@@ -103,7 +104,7 @@ TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
         "workout": Rung(110),
         "leetcode": Rung(50),
         "reading": Rung(30),
-        "automation": Rung(1, extra=1),
+        "tutor": Rung(1, extra=1),
     }
 )
 

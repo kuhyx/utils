@@ -51,9 +51,12 @@ ladder cannot move a gaming minute.
 **The tutor cutover (`TUTOR_FROM`, one constant in `_ladder.py`).** The
 registry is per day: `earners_for(day)` is `EARNERS` before it and
 `TUTOR_EARNERS` from it. From `TUTOR_FROM` Anki is retired (neither penalised
-nor paid) and `automation` is `AUTOMATION_TUTOR`, a counted earner on the
-Automation tutor's ledger (`~/.local/share/automation_tutor/ledger.json`,
-`tutor_match` on `detail.ended_at`). Since 0.8.0 it pays per **active
+nor paid) and the tutor is `TUTOR` (name `tutor`), a counted earner on the
+tutor's ledger (`~/.local/share/tutor/ledger.json`, `tutor_match` on
+`detail.ended_at`). Until 0.9.0 it was `AUTOMATION_TUTOR`, name `automation`,
+on `~/.local/share/automation_tutor/ledger.json`; rows carry no earner name,
+so the rename only moved the ledger (copied whole, old rows still pay).
+Since 0.8.0 it pays per **active
 minute** (a unit is one minute), at most 60 a day summed across sessions:
 
 | units | gaming | shutdown rung |
@@ -79,7 +82,7 @@ per-matcher reader `_match.ROW_UNITS`):
   invalid is refused by `tutor_match` (logged) and pays nothing anywhere.
 - An `entry_id` pays once; rows repeated under one id pay the **smallest**
   of their counts, so a replay or a rewrite can never raise a credit.
-- What the writer (plc-lab `plc_lab/tutor/credit.py`) must guarantee: every
+- What the writer ([kuhyx/tutor](https://github.com/kuhyx/tutor) `tutor/credit.py`) must guarantee: every
   new row carries `detail.minutes`; one row per credited minute,
   `entry_id = f"{session_id}-m{n}"` with `n` the session's n-th credited
   active minute (deterministic, so a retry rewrites the same id; never the
@@ -105,7 +108,8 @@ neither penalised nor paid. The base rises by exactly what the two could have
 paid back (nothing done: 4 h / 19:00, pre-ladder; everything done: still
 8 h / 23:00), so it can only ever raise time. `TUTOR_FROM` is 2026-10-10
 (0.6.1), the day after the deploy, never the deploy day; the waiver therefore
-covers 2026-10-09 only. The tutor has no `confirmed_on` yet, so it stays `new`.
+covers 2026-10-09 only. The tutor was confirmed in 0.7.0 (`confirmed_on`
+2026-10-09), so its penalty bites from `TUTOR_FROM`.
 
 ## Gate maturity (0.6.0)
 
@@ -128,7 +132,7 @@ How far to trust a gate is computed from its ledger, never listed by name:
   not penalised -- unless `confirmed_on` is set: then fail closed,
   max(`penalty_from`, day after `confirmed_on`), so deleting or locking a
   ledger cannot lift a penalty. Pass `first_credits={name: Maturity.first_credit}`, computed
-  over `earners_for(day)` (two earners share the name `automation`), to `resolve`
+  over `earners_for(day)` (until 0.9.0 two earners shared the name `automation`), to `resolve`
   / `base_for` to apply it; omitted, a penalty starts at `penalty_from`, as
   in 0.5.0. It can only delay a penalty, never add one.
 - **Ladder floor (0.6.1):** the same start gates the shutdown floor. A rung
@@ -232,7 +236,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.8.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.9.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

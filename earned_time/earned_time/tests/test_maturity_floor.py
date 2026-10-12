@@ -14,7 +14,7 @@ from datetime import date, timedelta
 import pytest
 
 from earned_time import (
-    AUTOMATION_TUTOR,
+    TUTOR,
     EARNERS,
     LADDER_FROM,
     TUTOR_FROM,
@@ -35,7 +35,7 @@ REAL = {
     "workout": date(2026, 10, 1),
     "leetcode": date(2026, 8, 12),
     "reading": date(2026, 10, 2),
-    "automation": None,
+    "tutor": None,
 }
 
 
@@ -84,7 +84,7 @@ def test_the_floor_only_ever_rises(
     day: date, first: str | int | None, confirmed: int | None, blocks: int, done: int
 ) -> None:
     registry = _registry(day, confirmed)
-    answers = {e.name: done for e in registry} | {"automation": blocks}
+    answers = {e.name: done for e in registry} | {"tutor": blocks}
     firsts = _firsts(registry, first)
     ceiling = shutdown_ceiling_for(day)
     head = _head_floor(day, registry)
@@ -108,7 +108,7 @@ def test_omitting_first_credits_keeps_0_6_0_on_the_real_registries(
 
 def _unconfirmed() -> tuple[Earner, ...]:
     """The tutor day's registry as it was before 0.7.0 confirmed the tutor."""
-    tutor = replace(AUTOMATION_TUTOR, confirmed_on=None)
+    tutor = replace(TUTOR, confirmed_on=None)
     return (*earners_for(TUTOR_FROM)[:-1], tutor)
 
 
@@ -118,7 +118,7 @@ def test_a_never_paid_unconfirmed_tutor_spares_the_first_tutor_day() -> None:
     base = base_for(TUTOR_FROM, registry, first_credits=REAL)
     assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (240, "19:50")
     full = resolve(
-        {"workout": 1, "leetcode": 1, "reading": 1, "automation": 4},
+        {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 4},
         TUTOR_FROM,
         registry,
         first_credits=REAL,
@@ -133,7 +133,7 @@ def test_a_never_paid_unconfirmed_tutor_spares_the_first_tutor_day() -> None:
 
 
 def test_the_floor_waits_for_the_day_after_the_first_block() -> None:
-    paid = REAL | {"automation": TUTOR_FROM}
+    paid = REAL | {"tutor": TUTOR_FROM}
     for day, gaming, floor in (
         (TUTOR_FROM, 240, "19:50"),
         (TUTOR_FROM + DAY, 180, "18:50"),
@@ -145,11 +145,11 @@ def test_the_floor_waits_for_the_day_after_the_first_block() -> None:
 def test_the_confirmed_tutor_with_no_credit_fails_closed_on_the_floor() -> None:
     # 0.7.0: confirmed the eve, before any block paid out. The real ledgers
     # of 2026-10-10 give the 5 h base (180 + LeetCode's 60 + reading's 60).
-    assert AUTOMATION_TUTOR.confirmed_on == TUTOR_FROM - DAY
+    assert TUTOR.confirmed_on == TUTOR_FROM - DAY
     base = base_for(TUTOR_FROM, first_credits=REAL)
     assert (base.gaming_minutes, _hhmm(base.shutdown_minutes)) == (180, "18:50")
     day = resolve(
-        {"workout": 0, "leetcode": 1, "reading": 1, "automation": 0},
+        {"workout": 0, "leetcode": 1, "reading": 1, "tutor": 0},
         TUTOR_FROM,
         first_credits=REAL,
     )

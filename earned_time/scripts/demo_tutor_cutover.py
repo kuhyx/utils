@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 import earned_time
-from earned_time import AUTOMATION_TUTOR, TUTOR_FROM, credit_units, entry_signature
+from earned_time import TUTOR, TUTOR_FROM, credit_units, entry_signature
 
 _KEY = b"demo-key-not-the-real-one"
 _OTHERS = {"workout": 1, "leetcode": 1, "reading": 1}
@@ -60,7 +60,7 @@ def _units(folder: Path, rows: list[dict[str, object]], day: date) -> int:
     ledger.write_text(json.dumps({"entries": rows}), encoding="utf-8")
     key = folder / "hmac.key"
     key.write_bytes(_KEY)
-    units = credit_units(AUTOMATION_TUTOR, ledger, key, day)
+    units = credit_units(TUTOR, ledger, key, day)
     if units is None:
         msg = "demo ledger unreadable"
         raise RuntimeError(msg)
@@ -70,9 +70,9 @@ def _units(folder: Path, rows: list[dict[str, object]], day: date) -> int:
 def _line(label: str, answers: dict[str, int], day: date) -> str:
     res = earned_time.resolve(answers, day)
     names = {t.earner.name for t in res.terms}
-    if "automation" in names:
-        term = res.term("automation")
-        paid = f"automation +{term.gaming_minutes}g/+{term.shutdown_minutes}s"
+    if "tutor" in names:
+        term = res.term("tutor")
+        paid = f"tutor +{term.gaming_minutes}g/+{term.shutdown_minutes}s"
     else:
         paid = "automation waived"  # ANKI_WAIVED_FROM..TUTOR_FROM
     return (
@@ -99,7 +99,7 @@ def main() -> None:
             rows = [_block("s1", n, TUTOR_FROM) for n in range(1, blocks + 1)]
             units = _units(folder, rows, TUTOR_FROM)
             for others, tag in ((_OTHERS, "+ all others"), (_NONE, "tutor only")):
-                answers = {**others, "automation": units}
+                answers = {**others, "tutor": units}
                 label = f"{TUTOR_FROM}: {blocks} rows -> {units} units, {tag}"
                 _say(_line(label, answers, TUTOR_FROM))
         rows = [_block("s2", n, TUTOR_FROM) for n in range(1, 5)]
@@ -110,8 +110,8 @@ def main() -> None:
         rows[2]["detail"] = {**detail, "active_seconds": 9000}  # edited after signing
         units = _units(folder, rows, TUTOR_FROM)
         label = f"{TUTOR_FROM}: 4 rows, 1 tampered -> {units} units"
-        _say(_line(label, {**_OTHERS, "automation": units}, TUTOR_FROM))
-        anki = {**_OTHERS, "anki": 1, "automation": 60}
+        _say(_line(label, {**_OTHERS, "tutor": units}, TUTOR_FROM))
+        anki = {**_OTHERS, "anki": 1, "tutor": 60}
         _say(
             _line(
                 f"{TUTOR_FROM}: all + a stale anki answer (ignored)", anki, TUTOR_FROM

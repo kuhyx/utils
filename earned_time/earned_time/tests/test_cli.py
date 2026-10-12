@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, time
 import json
 import runpy
@@ -55,8 +56,8 @@ def test_table(home: Path, capsys: pytest.CaptureFixture[str]) -> None:
         "leetcode",
         "reading",
         "anki",
-        "automation:anki_guard",
-        "automation:automation_tutor",
+        "automation",
+        "tutor",
     }
     assert rows["leetcode"].split()[1:5] == ["maturing", "1", str(DAY), str(DAY)]
     assert "not in the registry on 2026-10-09" in rows["anki"]
@@ -94,7 +95,7 @@ def test_default_day_and_unregistered_earners(
         "leetcode",
         "workout",
         "reading",
-        "automation",
+        "tutor",
     ]
 
 
@@ -129,3 +130,16 @@ def test_python_dash_m(
         runpy.run_module("earned_time", run_name="__main__")
     assert exit_info.value.code == 0
     assert json.loads(capsys.readouterr().out)["gates"]
+
+
+def test_a_name_shared_across_registries_gets_its_ledger_dir(
+    home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # ``automation`` was both the anki quota and the tutor until 0.9.0.
+    old = replace(LEETCODE, name="twin", ledger="a/l.json")
+    new = replace(LEETCODE, name="twin", ledger="b/l.json")
+    monkeypatch.setattr(earned_time, "EARNERS", (old,))
+    monkeypatch.setattr(earned_time, "TUTOR_EARNERS", (new,))
+    assert cli.main(["maturity", "--day", DAY.isoformat()]) == 0
+    rows = [line.split()[0] for line in capsys.readouterr().out.splitlines()[2:-1]]
+    assert rows == ["twin:a", "twin:b"]

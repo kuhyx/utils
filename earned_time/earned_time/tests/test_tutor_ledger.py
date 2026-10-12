@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from earned_time import (
-    AUTOMATION_TUTOR,
+    TUTOR,
     credit_units,
     day_window,
     entry_signature,
@@ -96,8 +96,8 @@ def test_legacy_blocks_count_15_once_and_skip_forgeries(
     ]
     path = _ledger(tmp_path, rows)
     # 0.7.0 block rows carry no detail.minutes: each pays 15 minutes.
-    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 30
-    assert first_credit_at(AUTOMATION_TUTOR, path, key_file, DAY) == _at(18, 15)
+    assert credit_units(TUTOR, path, key_file, DAY) == 30
+    assert first_credit_at(TUTOR, path, key_file, DAY) == _at(18, 15)
 
 
 def test_rows_without_entry_id_each_count(tmp_path: Path, key_file: Path) -> None:
@@ -107,8 +107,8 @@ def test_rows_without_entry_id_each_count(tmp_path: Path, key_file: Path) -> Non
         del row["entry_id"]
         rows.append({**row, "hmac": entry_signature(row, KEY)})
     path = _ledger(tmp_path, rows)
-    assert credit_units(AUTOMATION_TUTOR, path, key_file, DAY) == 30
+    assert credit_units(TUTOR, path, key_file, DAY) == 30
 
 
 def test_missing_tutor_ledger_is_zero(tmp_path: Path, key_file: Path) -> None:
-    assert credit_units(AUTOMATION_TUTOR, tmp_path / "no.json", key_file, DAY) == 0
+    assert credit_units(TUTOR, tmp_path / "no.json", key_file, DAY) == 0
