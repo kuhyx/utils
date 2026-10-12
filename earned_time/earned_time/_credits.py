@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Final
 
 from earned_time._ledger import counting_rows
 from earned_time._match import CREDIT_STAMPS, ROW_UNITS
+from earned_time._quota import DAY_UNITS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -100,7 +101,10 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
 
     Each row pays :func:`row_units`: 1 for most earners (the workout), its
     ``detail.minutes`` for the tutor (a 0.7.0 block row without it, 15), so a
-    day mixing block rows and minute rows sums both.
+    day mixing block rows and minute rows sums both. From
+    ``TUTOR_QUOTA_FROM`` the tutor's day sum is then scaled to its weekday
+    quota (:func:`~earned_time._quota.tutor_day_units`, 0.10.0): units, no
+    longer minutes.
 
     Args:
         earner: A ledger-backed earner (it must have ``match``).
@@ -130,4 +134,6 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
             anonymous += units
         else:
             by_id[entry_id] = min(units, by_id.get(entry_id, units))
-    return anonymous + sum(by_id.values())
+    total = anonymous + sum(by_id.values())
+    scale = DAY_UNITS.get(earner.match) if earner.match is not None else None
+    return total if scale is None else scale(earner, total, day)

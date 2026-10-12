@@ -22,7 +22,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 KEY = b"test-key"
-DAY = date(2026, 10, 12)
+# The day before TUTOR_QUOTA_FROM: one unit per minute (test_tutor_quota.py
+# covers the weekday quota).
+DAY = date(2026, 10, 11)
 WINDOW = day_window(DAY)
 
 

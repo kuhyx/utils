@@ -77,6 +77,7 @@ from earned_time._policy import (
     Earner,
     earner,
 )
+from earned_time._quota import TUTOR_QUOTA_FROM, TUTOR_QUOTA_MINUTES, tutor_quota_for
 from earned_time._registry import all_earners, earners_for, registries
 from earned_time._resolve import Base, Resolution, Term, base_for, resolve
 
@@ -99,6 +100,8 @@ __all__ = [
     "TUTOR_EARNERS",
     "TUTOR_FROM",
     "TUTOR_LADDER",
+    "TUTOR_QUOTA_FROM",
+    "TUTOR_QUOTA_MINUTES",
     "WAKE_MINUTES",
     "WORKOUT",
     "Base",
@@ -129,5 +132,6 @@ __all__ = [
     "shutdown_ceiling_for",
     "shutdown_minutes_for",
     "today_window",
+    "tutor_quota_for",
     "verified",
 ]

@@ -57,7 +57,11 @@ tutor's ledger (`~/.local/share/tutor/ledger.json`, `tutor_match` on
 on `~/.local/share/automation_tutor/ledger.json`; rows carry no earner name,
 so the rename only moved the ledger (copied whole, old rows still pay).
 Since 0.8.0 it pays per **active
-minute** (a unit is one minute), at most 60 a day summed across sessions:
+minute** (a unit is one minute), at most 60 a day summed across sessions.
+**Weekday quota (0.10.0, `TUTOR_QUOTA_FROM` 2026-10-12, `_quota.py`):** all 60
+units take 15 min Tue-Thu (`WORKDAYS`, a copy of freedays'), 30 Mon/Fri, 50
+Sat/Sun; `credit_units` scales the day's deduped minute sum,
+min(60, minutes * 60 // quota), so it returns units, no longer minutes:
 
 | units | gaming | shutdown rung |
 |---|---|---|
@@ -152,17 +156,14 @@ How far to trust a gate is computed from its ledger, never listed by name:
 - `base_for(day=None, earners=EARNERS) -> Base` — the day's floors.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
-  of the earliest verified credit that counts for `day`. The time is the
-  stamp the earner's `match` decides on (`_match.CREDIT_STAMPS`: LeetCode
-  `submitted_at`, reading `ended_at`, workout `completed_at`; Anki/Automation
-  fall back to `created_at`). It can lie outside `day` when a gate's day is
-  not the calendar day (Anki's rollover, a rest day declared the evening
-  before).
+  of the earliest verified credit for `day`, on its matcher's stamp
+  (`_match.CREDIT_STAMPS`; Anki/Automation: `created_at`). It can lie outside
+  `day` (Anki's rollover, a rest day declared the evening before).
 - `credit_units(earner, ledger, key_file, day) -> int | None` — the units
   the verified rows pay for `day`: 1 per row (the workout), or the row's own
-  count (the tutor's `detail.minutes`, legacy block rows 15). A repeated
-  `entry_id` pays once, its smallest count; `max_units` is applied by
-  `resolve`.
+  count (the tutor's `detail.minutes`, legacy block rows 15; from 0.10.0 the
+  day's sum scaled to its weekday quota). A repeated `entry_id` pays once,
+  its smallest count; `max_units` is applied by `resolve`.
 - `earners_for(day)`, `all_earners()`, `registries()` — the registry in force
   on a day, and every earner of every registry (what a ledger watcher must
   watch). They read `earned_time.EARNERS` through the package, so a consumer
@@ -236,7 +237,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.9.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.10.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
