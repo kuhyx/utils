@@ -49,4 +49,7 @@ DEFAULT_APPS: Final = (
     # ~/src/daily-limits: its user timer publishes today's limits for the
     # phone app and answers its requests, with a session of its own.
     "daily_limits",
+    # ~/src/tutor: its PC worker answers the Flutter client's requests over
+    # RTDB (/tutor/v1), headless, with a session of its own.
+    "tutor",
 )
