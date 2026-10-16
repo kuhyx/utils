@@ -63,13 +63,19 @@ guarded by a drift test against this package.
 
 ## Free days are not sick days
 
-screen-locker's sick days stay exactly where they are, with their rolling
-windows, their 120-character justifications and their escalating countdown.
-They are *designed to be hard to take*.
+Sick days are a separate pool: `sickdays` (`../sickdays`), uncapped, picked
+per date, with its own file (`~/.local/share/sickdays/`) and its own remote
+node (`sickdays-sync/`). Nothing is shared with this pool — not the budget,
+not the file, not the sync path. It replaced screen-locker's capped sick day.
 
-These are the opposite, and merging the two would have to ruin one of them:
-rolling windows forbid consecutive days, which is the entire point of a
-holiday. So the policies stay separate. Only the storage is shared.
+A date is never in both pools. Since 0.4.0 `mark` refuses a sick day
+(`SickDayConflictError`), importing `sickdays` at call time, by name —
+sickdays depends on freedays, never the reverse, so there is no import
+cycle. Where sickdays is not installed (the gaming daemon's root env, CI)
+the mark is **allowed** and a warning is logged: there is no local sick-day
+pool there to conflict with, and refusing every free day would break a
+load-bearing package for nothing. The reverse direction is sickdays' own
+check, which fails closed.
 
 ## How it syncs
 

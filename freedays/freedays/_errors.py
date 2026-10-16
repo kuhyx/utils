@@ -33,3 +33,7 @@ class AlreadyFreeError(FreeDayError):
 
 class NotFreeError(FreeDayError):
     """The day is not marked free, so there is nothing to release."""
+
+
+class SickDayConflictError(FreeDayError):
+    """The day is a sick day (``sickdays``); a date is never in both pools."""

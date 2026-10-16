@@ -24,7 +24,10 @@ def test_a_generated_key_round_trips(tmp_path: Path) -> None:
     key_file = tmp_path / "hmac.key"
     created = generate_key(key_file)
     assert created is not None
-    assert load_key(key_file) == created
+    # load_key strips whitespace, and a random key can begin or end with a
+    # whitespace byte (~5% of keys): signing and verifying both strip, so
+    # the stripped key is the one that must round-trip.
+    assert load_key(key_file) == created.strip()
 
 
 def test_two_generated_keys_differ(tmp_path: Path) -> None:

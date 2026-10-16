@@ -41,6 +41,7 @@ from freedays._model import (
     to_free_day,
 )
 from freedays._paths import Paths, resolve_paths
+from freedays._sick_guard import refuse_if_sick
 
 if TYPE_CHECKING:
     from datetime import date
@@ -140,6 +141,7 @@ def mark(
         PastDateError: If ``day`` has already passed.
         AlreadyFreeError: If ``day`` is already free.
         BudgetExhaustedError: If that year has no days left.
+        SickDayConflictError: If ``day`` is a sick day (``sickdays``).
     """
     resolved = resolve_paths(paths)
     reference = today(now)
@@ -153,6 +155,7 @@ def mark(
     if existing is not None and is_free_record(existing):
         msg = f"{to_iso(day)} is already a free day"
         raise AlreadyFreeError(msg)
+    refuse_if_sick(day)
     if is_exhausted(log, day.year, budget=budget):
         msg = f"no free days left in {day.year} -- all {budget} are spent"
         raise BudgetExhaustedError(msg)

@@ -37,6 +37,8 @@ def _redirect_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
     for module in ("freedays._api", "freedays._audit", "freedays._sync"):
         monkeypatch.setattr(f"{module}.resolve_paths", _resolve)
+    # Never consult the real sick-day pool; test_sick_guard covers the check.
+    monkeypatch.setattr("freedays._sick_guard.is_sick_predicate", lambda: None)
 
 
 @pytest.fixture

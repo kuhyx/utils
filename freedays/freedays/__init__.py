@@ -20,9 +20,9 @@ Two properties are deliberate and load-bearing:
 * **One global pool.** A free day is free for every app at once. There is no
   per-app dimension to mark, and none to forget to mark.
 
-Free days are *not* sick days. Sick days stay where they are, with their
-rolling windows and their justification friction, because they exist to be
-hard to take. These exist to be easy: declared in advance, no reason
+Free days are *not* sick days. Sick days are a separate, uncapped pool
+(``sickdays``), and a date is never in both: :func:`mark` refuses a sick day
+(:mod:`freedays._sick_guard`). Free days are declared in advance, no reason
 required, consecutive runs allowed, capped only by an annual budget.
 """
 
@@ -48,6 +48,7 @@ from freedays._errors import (
     FreeDayError,
     NotFreeError,
     PastDateError,
+    SickDayConflictError,
 )
 from freedays._model import FreeDay
 from freedays._paths import Paths
@@ -65,6 +66,7 @@ __all__ = [
     "NotFreeError",
     "PastDateError",
     "Paths",
+    "SickDayConflictError",
     "Status",
     "SyncUnavailableError",
     "actor_id",
