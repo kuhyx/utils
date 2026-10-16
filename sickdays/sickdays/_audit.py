@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""Append-only, HMAC-signed trail of every add, remove and legacy import.
+"""Append-only, HMAC-signed trail of every add, remove, keep edit and import.
 
 Nothing reads this to make a decision -- the CRDT log is the truth. It
 exists so "when did I mark that day, and from which device" is answerable
@@ -32,14 +32,17 @@ def record_event(
     day: date,
     *,
     actor: str,
+    keep: frozenset[str] | None = None,
     paths: Paths | None = None,
 ) -> None:
     """Append one signed line describing a change to the pool.
 
     Args:
-        action: ``"add"``, ``"remove"`` or ``"import"``.
+        action: ``"add"``, ``"remove"``, ``"keep"`` or ``"import"``.
         day: The day that changed.
         actor: The device id that made the change.
+        keep: The day's kept lockers after the change, recorded (sorted)
+            for an add or a keep edit; omitted from the line when ``None``.
         paths: Where the trail and its signing key live.
     """
     resolved = resolve_paths(paths)
@@ -49,6 +52,8 @@ def record_event(
         "actor": actor,
         "at": datetime.now(tz=UTC).isoformat(),
     }
+    if keep is not None:
+        entry["keep"] = sorted(keep)
     key_target = resolved.hmac_key
     if not key_target.exists():
         # First run on this machine: generating the key here means the trail

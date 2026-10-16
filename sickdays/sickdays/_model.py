@@ -21,8 +21,15 @@ from typing import TYPE_CHECKING
 
 from crdt_sync import Hlc, Record
 
-from sickdays._constants import FIELD_ACTOR, FIELD_STATE, STATE_CLEARED, STATE_SICK
+from sickdays._constants import (
+    FIELD_ACTOR,
+    FIELD_KEEP,
+    FIELD_STATE,
+    STATE_CLEARED,
+    STATE_SICK,
+)
 from sickdays._day import parse_iso, to_iso
+from sickdays._keep import keep_wire, read_keep
 
 if TYPE_CHECKING:
     from datetime import date
@@ -38,11 +45,13 @@ class SickDay:
         day: The calendar date.
         is_sick: Whether the day is currently a sick day.
         actor: Which device last changed it.
+        keep: The lockers that stay active on the day (empty unless sick).
     """
 
     day: date
     is_sick: bool
     actor: str = ""
+    keep: frozenset[str] = frozenset()
 
 
 def _field_str(record: Record, name: str) -> str:
@@ -70,21 +79,34 @@ def to_sick_day(record: Record) -> SickDay | None:
         day = parse_iso(record.id)
     except ValueError:
         return None
+    sick = is_sick_record(record)
     return SickDay(
         day=day,
-        is_sick=is_sick_record(record),
+        is_sick=sick,
         actor=_field_str(record, FIELD_ACTOR),
+        keep=read_keep(record) if sick else frozenset(),
+    )
+
+
+def sick_entries(log: Log) -> list[SickDay]:
+    """Every day ``log`` currently marks sick, oldest first (junk ids skipped)."""
+    entries = (to_sick_day(record) for record in log.values())
+    return sorted(
+        (entry for entry in entries if entry is not None and entry.is_sick),
+        key=lambda entry: entry.day,
     )
 
 
 def sick_dates(log: Log) -> frozenset[date]:
     """Every date ``log`` currently marks sick (junk ids skipped)."""
-    days: set[date] = set()
-    for record in log.values():
-        entry = to_sick_day(record)
-        if entry is not None and entry.is_sick:
-            days.add(entry.day)
-    return frozenset(days)
+    return frozenset(entry.day for entry in sick_entries(log))
+
+
+def record_hlc(record: Record | None) -> Hlc | None:
+    """Return the greatest clock on any field of ``record`` (any node)."""
+    if record is None or not record.fields:
+        return None
+    return max(hlc for _, hlc in record.fields.values())
 
 
 def latest_hlc(log: Log, node_id: str) -> Hlc | None:
@@ -108,13 +130,16 @@ def build_record(entry: SickDay, hlc: Hlc) -> Record:
 
     One tick for every field, so a concurrent add and remove of one day
     resolve together rather than interleaving state from one device and the
-    actor from the other.
+    actor from the other. ``keep`` is always written -- ``[]`` on a clear --
+    so a keep set from before a clear can never survive a later re-add.
     """
     state = STATE_SICK if entry.is_sick else STATE_CLEARED
+    keep = keep_wire(entry.keep) if entry.is_sick else []
     return Record(
         id=to_iso(entry.day),
         fields={
             FIELD_STATE: (state, hlc),
             FIELD_ACTOR: (entry.actor, hlc),
+            FIELD_KEEP: (keep, hlc),
         },
     )

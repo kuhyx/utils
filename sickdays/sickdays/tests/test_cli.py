@@ -115,3 +115,56 @@ def test_python_dash_m_runs_the_cli(
         runpy.run_module("sickdays", run_name="__main__")
     assert exited.value.code == 0
     assert "no sick days" in capsys.readouterr().out
+
+
+def test_add_keeps_lockers_and_list_shows_them(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["add", "today"]) == 0
+    assert main(["add", _future(), "--keep", "workout", "--keep", "leetcode"]) == 0
+    assert "sick day  keep: leetcode, workout" in capsys.readouterr().out
+    assert main(["list"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        f"{to_iso(today())}  (today)",
+        f"{_future()}  keep: leetcode, workout",
+    ]
+
+
+def test_an_unknown_locker_exits_two(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exited:
+        main(["add", "--keep", "leetcod"])
+    assert exited.value.code == 2
+    assert "invalid choice" in capsys.readouterr().err
+    with pytest.raises(SystemExit) as exited:
+        main(["keep", _future(), "nope"])
+    assert exited.value.code == 2
+
+
+def test_keep_replaces_the_set(capsys: pytest.CaptureFixture[str]) -> None:
+    main(["add", _future(), "--keep", "book"])
+    assert main(["keep", _future(), "diet", "alarm"]) == 0
+    assert f"{_future()}  keep: alarm, diet" in capsys.readouterr().out
+    assert main(["check", _future(), "--locker", "book"]) == 0
+    assert "book stands down" in capsys.readouterr().out
+    assert main(["check", _future(), "--locker", "diet"]) == 1
+    assert "diet applies" in capsys.readouterr().out
+    assert main(["keep", _future()]) == 0
+    assert "every locker stands down" in capsys.readouterr().out
+    assert main(["check", _future(), "--locker", "diet"]) == 0
+
+
+def test_keep_on_a_normal_or_past_day_is_refused(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["keep", _future(), "book"]) == 1
+    assert "not a sick day" in capsys.readouterr().err
+    yesterday = to_iso(today() - timedelta(days=1))
+    assert main(["keep", yesterday]) == 1
+    assert "already passed" in capsys.readouterr().err
+
+
+def test_check_with_a_locker_on_a_normal_day_exits_one(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["check", "--locker", "alarm"]) == 1
+    assert "alarm applies" in capsys.readouterr().out

@@ -22,7 +22,13 @@ if TYPE_CHECKING:
     from datetime import date
     from pathlib import Path
 
-_MODULES = ("sickdays._api", "sickdays._audit", "sickdays._conflict", "sickdays._sync")
+_MODULES = (
+    "sickdays._api",
+    "sickdays._audit",
+    "sickdays._conflict",
+    "sickdays._keep_api",
+    "sickdays._sync",
+)
 
 
 def _never_free(_day: date) -> bool:

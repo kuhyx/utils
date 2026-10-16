@@ -15,21 +15,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from crdt_sync import Hlc, load_device_identity
+from crdt_sync import load_device_identity
 
 from sickdays._audit import record_event
 from sickdays._conflict import ensure_not_free, free_day_predicate
 from sickdays._day import to_iso, today
-from sickdays._errors import AlreadySickError, NotSickError, PastDateError
-from sickdays._model import (
-    SickDay,
-    build_record,
-    is_sick_record,
-    latest_hlc,
-    sick_dates,
-)
+from sickdays._errors import AlreadySickError, NotSickError
+from sickdays._keep import normalise_keep
+from sickdays._model import SickDay, is_sick_record, sick_dates
 from sickdays._paths import Paths, resolve_paths
-from sickdays._store import read_pool, read_pool_strict, write_pool
+from sickdays._store import read_pool, read_pool_strict
+from sickdays._writes import refuse_past, write_entry
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -68,25 +64,10 @@ def sick_days(*, log_path: Path | None = None) -> frozenset[date]:
     return sick_dates(load(log_path))
 
 
-def _refuse_past(day: date, reference: date, verb: str) -> None:
-    if day < reference:
-        msg = (
-            f"{to_iso(day)} has already passed -- sick days can only be "
-            f"{verb} for today or later"
-        )
-        raise PastDateError(msg)
-
-
-def _write(log: Log, entry: SickDay, resolved: Paths) -> None:
-    """Stamp ``entry`` with this node's next tick and persist the pool."""
-    tick = Hlc.new_tick(entry.actor, latest_hlc(log, entry.actor))
-    log[to_iso(entry.day)] = build_record(entry, tick)
-    write_pool(resolved.log, log)
-
-
 def add_sick_day(
     day: date,
     *,
+    keep: Iterable[str] = (),
     is_free: FreePredicate | None = None,
     paths: Paths | None = None,
     now: date | None = None,
@@ -95,6 +76,8 @@ def add_sick_day(
 
     Args:
         day: The day. Today or later.
+        keep: Lockers that stay active on the day (:data:`sickdays.LOCKERS`);
+            every other locker stands down. Default: none -- all stand down.
         is_free: "Is this a free day?"; ``None`` asks freedays, imported
             lazily (:func:`sickdays._conflict.free_day_predicate`).
         paths: Where the pool, uuid and audit trail live.
@@ -104,23 +87,25 @@ def add_sick_day(
         The stored entry.
 
     Raises:
+        ValueError: ``keep`` names an unknown locker.
         PastDateError: ``day`` has already passed.
         AlreadySickError: ``day`` is already a sick day.
         FreeDayConflictError: ``day`` is a free day.
         ConflictCheckUnavailableError: The free-day pool cannot be checked.
         UnreadablePoolError: The local pool exists but cannot be parsed.
     """
+    kept = normalise_keep(keep)
     resolved = resolve_paths(paths)
-    _refuse_past(day, today(now), "added")
+    refuse_past(day, today(now), "added")
     log = read_pool_strict(resolved.log)
     existing = log.get(to_iso(day))
     if existing is not None and is_sick_record(existing):
         msg = f"{to_iso(day)} is already a sick day"
         raise AlreadySickError(msg)
     ensure_not_free(day, is_free if is_free is not None else free_day_predicate())
-    entry = SickDay(day=day, is_sick=True, actor=actor_id(resolved))
-    _write(log, entry, resolved)
-    record_event("add", day, actor=entry.actor, paths=resolved)
+    entry = SickDay(day=day, is_sick=True, actor=actor_id(resolved), keep=kept)
+    write_entry(log, entry, resolved)
+    record_event("add", day, actor=entry.actor, keep=kept, paths=resolved)
     return entry
 
 
@@ -138,14 +123,14 @@ def remove_sick_day(
         UnreadablePoolError: The local pool exists but cannot be parsed.
     """
     resolved = resolve_paths(paths)
-    _refuse_past(day, today(now), "removed")
+    refuse_past(day, today(now), "removed")
     log = read_pool_strict(resolved.log)
     existing = log.get(to_iso(day))
     if existing is None or not is_sick_record(existing):
         msg = f"{to_iso(day)} is not a sick day"
         raise NotSickError(msg)
     entry = SickDay(day=day, is_sick=False, actor=actor_id(resolved))
-    _write(log, entry, resolved)
+    write_entry(log, entry, resolved)
     record_event("remove", day, actor=entry.actor, paths=resolved)
     return entry
 
@@ -172,7 +157,7 @@ def import_legacy(days: Iterable[date], *, paths: Paths | None = None) -> list[d
         existing = log.get(to_iso(day))
         if existing is not None and is_sick_record(existing):
             continue
-        _write(log, SickDay(day=day, is_sick=True, actor=node), resolved)
+        write_entry(log, SickDay(day=day, is_sick=True, actor=node), resolved)
         record_event("import", day, actor=node, paths=resolved)
         written.append(day)
     return written

@@ -48,9 +48,30 @@ SYNC_FILENAME: Final = "sick_days.json"
 #: Field names inside a Record.
 FIELD_STATE: Final = "state"
 FIELD_ACTOR: Final = "actor"
+#: The sorted, de-duplicated list of locker ids that stay active on the day
+#: (0.2.0). Absent on every 0.1.0 record, which reads as "keep nothing".
+FIELD_KEEP: Final = "keep"
 
 #: Values of FIELD_STATE. Removing flips the field rather than tombstoning
 #: the record: crdt-sync deletes are monotonic (OR-merged), so a tombstoned
 #: date could never be marked sick again.
 STATE_SICK: Final = "sick"
 STATE_CLEARED: Final = "cleared"
+
+#: Locker ids a sick day may keep active (``FIELD_KEEP``). A locker *stands
+#: down* on a day iff the day is sick and the locker is not in its keep set.
+#: These strings are wire format: the phone writes the same ones.
+LOCKER_WORKOUT: Final = "workout"
+LOCKER_LEETCODE: Final = "leetcode"
+LOCKER_BOOK: Final = "book"
+LOCKER_DIET: Final = "diet"
+#: The phone ring, the PC fallback ring, the RTC self-wake and the
+#: missed-alarm penalty -- one switch, because they are one alarm.
+LOCKER_ALARM: Final = "alarm"
+LOCKERS: Final = (
+    LOCKER_WORKOUT,
+    LOCKER_LEETCODE,
+    LOCKER_BOOK,
+    LOCKER_DIET,
+    LOCKER_ALARM,
+)
