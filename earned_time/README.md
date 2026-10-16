@@ -48,6 +48,13 @@ never a same-day cut):
 The two floors are derived separately (`_resolve._shutdown_floor`), so the
 ladder cannot move a gaming minute.
 
+**Sick days (0.11.0, `_sick.py`).** `resolve(..., sick=True)` floors the
+*final* shutdown at 20:00 (`SICK_SHUTDOWN_FLOOR_MINUTES`), capped at the
+ceiling: 18:50 becomes 20:00, 21:30 stays 21:30 (nothing stacks on the floor).
+Base, terms, gaming, waivers and penalties are unchanged; earners still earn.
+`sick` is the consumer's answer (`sickdays.is_sick_day`, never imported here).
+Live credits are paid out of `Resolution.sick_lift_minutes` first (a grace lift).
+
 **The tutor cutover (`TUTOR_FROM`, one constant in `_ladder.py`).** The
 registry is per day: `earners_for(day)` is `EARNERS` before it and
 `TUTOR_EARNERS` from it. From `TUTOR_FROM` Anki is retired (neither penalised
@@ -100,10 +107,9 @@ per-matcher reader `_match.ROW_UNITS`):
 - Rollout order: no minute row may be written until every consumer process
   runs 0.8.0. A 0.7.0 reader pays each row as a 15-minute block.
 
-Days before `TUTOR_FROM` resolve on
-`EARNERS` exactly as before. Consumers must iterate `earners_for(day)`, never
-`EARNERS`; `resolve`/`base_for` default to it, and ignore answers for an
-earner of another day's registry.
+Days before `TUTOR_FROM` resolve on `EARNERS` exactly as before. Consumers must
+iterate `earners_for(day)`, never `EARNERS`; `resolve`/`base_for` default to
+it, and ignore answers for an earner of another day's registry.
 
 **The gap waiver (`ANKI_WAIVED_FROM`, 2026-10-09).** anki-guard never wrote a
 credit, and the tutor is not confirmed yet, so from `ANKI_WAIVED_FROM` until
@@ -152,7 +158,8 @@ How far to trust a gate is computed from its ledger, never listed by name:
 
 ## API
 
-- `resolve(answers, day=None, earners=EARNERS) -> Resolution` — the one sum.
+- `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False)`
+  `-> Resolution` — the one sum. `sick_shutdown_minutes(minutes, day) -> int`.
 - `base_for(day=None, earners=EARNERS) -> Base` — the day's floors.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
@@ -168,9 +175,8 @@ How far to trust a gate is computed from its ledger, never listed by name:
   on a day, and every earner of every registry (what a ledger watcher must
   watch). They read `earned_time.EARNERS` through the package, so a consumer
   test that patches it still registers its stand-in.
-- `shutdown_minutes_for(earner, day) -> int`,
-  `extra_shutdown_minutes_for(earner, day) -> int`,
-  `shutdown_ceiling_for(day) -> int`, `on_ladder(day) -> bool` — what a status
+- `shutdown_minutes_for(earner, day) -> int`, `extra_shutdown_minutes_for(earner,
+  day) -> int`, `shutdown_ceiling_for(day) -> int`, `on_ladder(day) -> bool` — what a status
   view needs to list what is still left to earn. `Earner.shutdown_for(units,
   day=None)` is the day-aware sum (default today). Never read
   `earner.shutdown_minutes` directly: it is the pre-ladder value.
@@ -237,14 +243,8 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.10.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.11.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
-from the same user site-packages.
-
-## Test
-
-```console
-scripts/run_subproject_tests.sh earned_time
-```
+from the same user site-packages. Test: `scripts/run_subproject_tests.sh earned_time`.

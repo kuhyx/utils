@@ -21,7 +21,6 @@ whose penalty has not started does not lower it (0.6.1).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, date, datetime
 import logging
 from typing import TYPE_CHECKING, Final
@@ -35,6 +34,8 @@ from earned_time._policy import (
     Earner,
 )
 from earned_time._registry import all_earners, earners_for
+from earned_time._resolution import Base, Resolution, Term
+from earned_time._sick import sick_shutdown_minutes
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -42,67 +43,6 @@ if TYPE_CHECKING:
 _logger: Final = logging.getLogger(__name__)
 
 Answer = int | bool | None
-
-
-@dataclass(frozen=True)
-class Base:
-    """The floor for one day, after every penalty in force on it.
-
-    Attributes:
-        gaming_minutes: Gaming time a day that earned nothing gets.
-        shutdown_minutes: Shutdown time of such a day, minutes after midnight.
-    """
-
-    gaming_minutes: int
-    shutdown_minutes: int
-
-
-@dataclass(frozen=True)
-class Term:
-    """What one earner contributed.
-
-    Attributes:
-        earner: The earner.
-        answer: The consumer's answer: a unit count, or ``None`` for
-            "could not check" (and for no answer at all).
-        gaming_minutes: Gaming minutes earned.
-        shutdown_minutes: Shutdown minutes earned.
-    """
-
-    earner: Earner
-    answer: int | None
-    gaming_minutes: int
-    shutdown_minutes: int
-
-
-@dataclass(frozen=True)
-class Resolution:
-    """One day's budget and shutdown, and what earned them.
-
-    Attributes:
-        day: The day resolved.
-        base: Its floor.
-        terms: One entry per registered earner, in registry order.
-        gaming_minutes: Base plus terms, capped at the gaming ceiling.
-        shutdown_minutes: Base plus terms, capped at the shutdown ceiling.
-    """
-
-    day: date
-    base: Base
-    terms: tuple[Term, ...]
-    gaming_minutes: int
-    shutdown_minutes: int
-
-    def term(self, name: str) -> Term:
-        """The term of the earner called ``name``.
-
-        Raises:
-            KeyError: No such earner was resolved.
-        """
-        for candidate in self.terms:
-            if candidate.earner.name == name:
-                return candidate
-        raise KeyError(name)
 
 
 def _today() -> date:
@@ -194,6 +134,7 @@ def resolve(
     earners: tuple[Earner, ...] | None = None,
     *,
     first_credits: Mapping[str, date | None] | None = None,
+    sick: bool = False,
 ) -> Resolution:
     """Sum the base and every earned term, each capped at its ceiling.
 
@@ -209,6 +150,9 @@ def resolve(
         first_credits: Per earner name, its first real credit day (``None``
             for never, or could not check), e.g. ``Maturity.first_credit``.
             Only ever delays a penalty; omitted, 0.5.0's ``penalty_from``.
+        sick: The day is a sick day (the consumer asks ``sickdays``): shutdown
+            is at least 20:00 (:func:`~earned_time._sick.sick_shutdown_minutes`).
+            Gaming and every term are unchanged.
 
     Returns:
         The resolution, with a term for every registered earner.
@@ -238,11 +182,17 @@ def resolve(
             )
         )
     gaming = base.gaming_minutes + sum(t.gaming_minutes for t in terms)
-    shutdown = base.shutdown_minutes + sum(t.shutdown_minutes for t in terms)
+    earned = min(
+        shutdown_ceiling_for(target),
+        base.shutdown_minutes + sum(t.shutdown_minutes for t in terms),
+    )
+    shutdown = sick_shutdown_minutes(earned, target) if sick else earned
     return Resolution(
         day=target,
         base=base,
         terms=tuple(terms),
         gaming_minutes=min(GAMING_CEILING_MINUTES, gaming),
-        shutdown_minutes=min(shutdown_ceiling_for(target), shutdown),
+        shutdown_minutes=shutdown,
+        sick=sick,
+        sick_lift_minutes=shutdown - earned,
     )

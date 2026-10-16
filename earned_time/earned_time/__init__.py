@@ -19,8 +19,10 @@ A consumer's whole integration::
         if e.ledger is not None
     }
     answers["workout"] = my_workout_count()
-    day = earned_time.resolve(answers)
+    day = earned_time.resolve(answers, sick=sickdays.is_sick_day())
     apply(day.gaming_minutes)
+
+``sick`` (0.11.0) only raises shutdown to at least 20:00; gaming is unchanged.
 
 How far to trust a gate is computed, not listed: :func:`maturity` (and
 ``python -m earned_time maturity``).
@@ -80,6 +82,7 @@ from earned_time._policy import (
 from earned_time._quota import TUTOR_QUOTA_FROM, TUTOR_QUOTA_MINUTES, tutor_quota_for
 from earned_time._registry import all_earners, earners_for, registries
 from earned_time._resolve import Base, Resolution, Term, base_for, resolve
+from earned_time._sick import SICK_SHUTDOWN_FLOOR_MINUTES, sick_shutdown_minutes
 
 __all__ = [
     "ANKI",
@@ -96,6 +99,7 @@ __all__ = [
     "READING",
     "SHUTDOWN_BASE_MINUTES",
     "SHUTDOWN_CEILING_MINUTES",
+    "SICK_SHUTDOWN_FLOOR_MINUTES",
     "TUTOR",
     "TUTOR_EARNERS",
     "TUTOR_FROM",
@@ -131,6 +135,7 @@ __all__ = [
     "resolve",
     "shutdown_ceiling_for",
     "shutdown_minutes_for",
+    "sick_shutdown_minutes",
     "today_window",
     "tutor_quota_for",
     "verified",
