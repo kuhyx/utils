@@ -22,6 +22,9 @@ sickdays = "sickdays._cli:main"
 [tool.setuptools.packages.find]
 include = ["sickdays*"]
 
+[tool.setuptools.package-data]
+sickdays = ["py.typed"]
+
 [tool.ruff]
 target-version = "py314"
 include = ["*.py", "**/*.py"]
