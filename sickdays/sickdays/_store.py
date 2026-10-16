@@ -36,7 +36,7 @@ def _read(path: Path) -> Log:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
         return {}
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         msg = f"the sick-day pool {path} cannot be read: {exc}"
         raise UnreadablePoolError(msg) from exc
     try:

@@ -74,3 +74,14 @@ def test_writers_refuse_rather_than_overwrite_a_corrupt_pool(state_dir: Path) ->
     with pytest.raises(UnreadablePoolError):
         import_legacy([TODAY])
     assert pool.read_text(encoding="utf-8") == "{not json"
+
+
+def test_a_non_utf8_pool_fails_closed_and_refuses_writers(
+    state_dir: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    (state_dir / "sick_days.json").write_bytes(b"\xff\xfe\x00junk")
+    with caplog.at_level("WARNING"):
+        assert not is_sick_day(TODAY)
+    assert "cannot be read" in caplog.text
+    with pytest.raises(UnreadablePoolError):
+        add_sick_day(TODAY, now=TODAY)
