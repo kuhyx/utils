@@ -43,6 +43,9 @@ DEFAULT_APPS: Final = (
     # timer is headless and it has no session of its own to inherit, so
     # without this a day marked on the phone never reaches the PC.
     "freedays",
+    # The shared sick-day pool (~/src/utils/sickdays): headless like freedays,
+    # and the screen-locker "I'm sick" button pushes through it too.
+    "sickdays",
     # The daily RTDB backup (~/src/dufs-cloud/firebase_backup). A headless
     # user timer with its own session, so it never races an app's token file.
     "firebase_backup",
