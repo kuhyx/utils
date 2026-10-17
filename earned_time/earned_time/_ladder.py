@@ -9,7 +9,9 @@ frozen ceiling, so the switch never rewrites how an old day resolved. Gaming
 is not on the ladder.
 
 From ``TUTOR_FROM`` the rungs are :data:`TUTOR_LADDER`: Anki is retired and
-its 25 minutes fold into the tutor's, paid per active minute.
+its 25 minutes fold into the tutor's, paid per active minute. From
+``UNIFIED_FROM`` they are :data:`UNIFIED_LADDER`: each rung equals its
+earner's gaming pay.
 """
 
 from __future__ import annotations
@@ -47,6 +49,10 @@ TUTOR_FROM: Final = date(2026, 10, 10)
 # floor rises by exactly what the two could have paid back), so it may land
 # on its deploy day: 0.5.0 landed 2026-10-09.
 ANKI_WAIVED_FROM: Final = date(2026, 10, 9)
+# From this day every rung pays exactly the gaming time its earner pays
+# (:data:`UNIFIED_LADDER`, 0.12.0). It lowers the floor 18:50 -> 18:00, so it
+# lands the day after the deploy (2026-10-17), never on it.
+UNIFIED_FROM: Final = date(2026, 10, 18)
 _SLEEP_MINUTES: Final = 8 * 60
 _DAY_MINUTES: Final = 24 * 60
 
@@ -109,6 +115,19 @@ TUTOR_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
 )
 
 
+# From ``UNIFIED_FROM``: shutdown and gaming pay the same -- workout 120,
+# LeetCode 60, reading 60, tutor 1 per unit up to 60. The rungs sum to 300:
+# the ceiling stays 23:00 and the floor drops to 18:00.
+UNIFIED_LADDER: Final[Mapping[str, Rung]] = MappingProxyType(
+    {
+        "workout": Rung(120),
+        "leetcode": Rung(60),
+        "reading": Rung(60),
+        "tutor": Rung(1, extra=1),
+    }
+)
+
+
 def on_ladder(day: date) -> bool:
     """Whether ``day`` resolves shutdown on the sleep ladder."""
     return day >= LADDER_FROM
@@ -118,6 +137,8 @@ def ladder_for(day: date) -> Mapping[str, Rung] | None:
     """The rungs in force on ``day``; ``None`` before the ladder."""
     if not on_ladder(day):
         return None
+    if day >= UNIFIED_FROM:
+        return UNIFIED_LADDER
     return TUTOR_LADDER if day >= TUTOR_FROM else LADDER
 
 

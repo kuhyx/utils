@@ -29,16 +29,8 @@ never a same-day cut):
   earner name; all of a counted earner's capped units), so doing everything
   lands exactly on the ceiling. Since 0.6.1 `TUTOR_FROM == LADDER_FROM`, so
   every real ladder day uses `TUTOR_LADDER` (below); `LADDER`, the pre-tutor
-  split, is never in force on a real day:
-
-  | done | shutdown |
-  |---|---|
-  | nothing | 19:00 |
-  | workout (110) | 20:50 |
-  | + LeetCode (50) | 21:40 |
-  | + reading (30) | 22:10 |
-  | + Anki (25) | 22:35 |
-  | + Automation (25) | 23:00 |
+  split (workout 110, LeetCode 50, reading 30, Anki 25, Automation 25; floor
+  19:00), is never in force on a real day.
 
   A second workout earns nothing more (`Rung.extra` defaults to 0).
   Move the alarm (`WAKE_MINUTES = 6 * 60`) and the whole ladder shifts an hour
@@ -47,6 +39,11 @@ never a same-day cut):
 
 The two floors are derived separately (`_resolve._shutdown_floor`), so the
 ladder cannot move a gaming minute.
+
+**Unified ladder (0.12.0, `UNIFIED_FROM` 2026-10-18):** each rung pays what
+its earner pays in gaming (workout 120, LeetCode 60, reading 60, tutor 1/unit
+to 60), so the floor drops 18:50 -> 18:00 under the same 23:00 ceiling:
+nothing 3 h / 18:00, workout 5 h / 20:00, +LeetCode 21:00, +reading 22:00.
 
 **Sick days (0.11.0, `_sick.py`).** `resolve(..., sick=True)` floors the
 *final* shutdown at 20:00 (`SICK_SHUTDOWN_FLOOR_MINUTES`), capped at the
@@ -243,7 +240,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.11.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.12.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
