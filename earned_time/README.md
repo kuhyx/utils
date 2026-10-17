@@ -241,7 +241,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.13.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.13.1#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

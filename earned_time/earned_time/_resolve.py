@@ -128,6 +128,11 @@ def _check_registered(
         raise KeyError(msg)
 
 
+def _sick_or(earned: int, terms: list[Term], day: date) -> int:
+    """A sick day's shutdown: 20:00 plus gaming pay, never below ``earned``."""
+    return max(earned, sick_shutdown_from(sum(t.gaming_minutes for t in terms), day))
+
+
 def resolve(
     answers: Mapping[str, Answer],
     day: date | None = None,
@@ -187,8 +192,7 @@ def resolve(
         shutdown_ceiling_for(target),
         base.shutdown_minutes + sum(t.shutdown_minutes for t in terms),
     )
-    paid = sum(t.gaming_minutes for t in terms)
-    shutdown = max(earned, sick_shutdown_from(paid, target)) if sick else earned
+    shutdown = _sick_or(earned, terms, target) if sick else earned
     return Resolution(
         day=target,
         base=base,
