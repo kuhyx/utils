@@ -72,6 +72,14 @@ leetcode-guard and book-guard all call it; the policy itself stays in
 wake-alarm. Path and retry budget are arguments so each consumer's tests keep
 redirecting their own constant.
 
+`gatelock.night_lockdown.evening_lockdown_today` answers "has tonight's
+evening night-lockdown already happened?" from night-lockdown's
+`/var/lib/night-lockdown/locked_at_epoch` (local date today, local time
+>= 12:00; the 04:01 morning re-lock does not count). Earner gates
+(screen-locker's workout lock, leetcode-guard, book-guard) opt in and do not
+re-arm for the rest of such a day; diet-guard does not. Missing or garbage
+means "no lockdown" (garbage warns), so the gate locks as before.
+
 ## Development
 
 ```bash
