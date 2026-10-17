@@ -38,7 +38,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt && pip install --no-deps -e .
 
-      # No display needed: sickdays draws nothing. It is policy, a JSON file
-      # and a CLI.
+      # The library draws nothing, but sickdays.gui (0.3.0) does, and its
+      # tests drive real Tk: option names and Checkbutton/variable wiring are
+      # Tk's own behaviour. Headless they skip, taking coverage with them --
+      # so the runner gets a virtual display, as gatelock's does.
+      - name: Install a virtual X display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Run tests with coverage
-        run: python -m pytest -v
+        run: xvfb-run -a -s "-screen 0 1600x1200x24" python -m pytest -v

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 import runpy
+import subprocess
+import sys
+import types
 
 import pytest
 
@@ -168,3 +171,28 @@ def test_check_with_a_locker_on_a_normal_day_exits_one(
 ) -> None:
     assert main(["check", "--locker", "alarm"]) == 1
     assert "alarm applies" in capsys.readouterr().out
+
+
+def test_gui_opens_the_window_through_a_lazy_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[bool] = []
+    fake = types.ModuleType("sickdays.gui")
+
+    def run() -> int:
+        opened.append(True)
+        return 0
+
+    fake.__dict__["run"] = run
+    monkeypatch.setitem(sys.modules, "sickdays.gui", fake)
+    assert main(["gui"]) == 0
+    assert opened == [True]
+
+
+def test_importing_the_library_and_cli_never_imports_tkinter() -> None:
+    probe = (
+        "import sys, sickdays, sickdays._cli; "
+        "sys.exit(1 if 'tkinter' in sys.modules else 0)"
+    )
+    done = subprocess.run([sys.executable, "-c", probe], check=False)
+    assert done.returncode == 0

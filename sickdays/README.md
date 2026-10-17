@@ -67,6 +67,26 @@ refused (past day, already sick, not sick, a free day, sync unavailable),
 `2` input not understood (a bad date, or a locker id not in `LOCKERS` --
 `--keep`, `keep` and `--locker` only accept the five ids).
 
+## The picker window (0.3.0)
+
+`sickdays gui` (or the "Sick days" launcher): the phone's Sick days screen on
+Tk -- calendar, a five-switch panel per day, the days ahead. Past days are
+inert; a free day is refused; each write starts `sync_quietly()` on a
+non-daemon thread. `WM_CLASS "sickdays", "Sickdays"`; `Escape` closes. Embed
+just the panel (`import sickdays` never imports tkinter):
+
+```python
+from sickdays.gui import KeepPanel   # a plain tk.Frame: no root, grab or wm_* call
+KeepPanel(parent, day, *, on_saved, on_cancel=None, paths=None).pack()
+```
+
+Normal day: five switches, all off (off = stands down), "Mark sick"; sick
+day: its switches, "Save", "Clear sick day". Past/free/uncheckable days show
+why and offer no write; a refused write shows in the panel, never raised.
+`on_saved(SickDay | None)` fires after the write and sync start: the entry on
+Mark sick / a changed Save (`is_sick=True`) or Clear (`is_sick=False`), `None`
+on an unchanged Save (nothing written). The panel never destroys itself.
+
 ## API
 
 | call | does |
@@ -216,7 +236,7 @@ Don't hand-roll this on Dart: use `crdt_sync_dart` (`syncLog`, `logToJson`
 ## Install
 
 ```console
-$ ./install.sh             # own venv (crdt-sync + freedays + sickdays), CLI on PATH, 15-min sync timer
+$ ./install.sh             # own venv (crdt-sync + freedays + sickdays), CLI on PATH, launcher, 15-min sync timer
 $ ./install.sh --no-timer
 ```
 
@@ -225,6 +245,6 @@ $ ./install.sh --no-timer
 ```console
 $ pip install ../crdt-sync && pip install --no-deps ../freedays
 $ pip install -r requirements.txt && pip install --no-deps -e .
-$ python -m pytest              # 100% branch coverage is enforced
+$ xvfb-run -a python -m pytest  # 100% branch coverage; the GUI tests need a display
 $ pre-commit run --config sickdays/.pre-commit-config.yaml --all-files   # from the repo root
 ```

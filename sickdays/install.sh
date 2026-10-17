@@ -20,6 +20,7 @@ readonly STATE_DIR="${HOME}/.local/share/sickdays"
 readonly VENV_DIR="${STATE_DIR}/venv"
 readonly BIN_DIR="${HOME}/.local/bin"
 readonly UNIT_DIR="${HOME}/.config/systemd/user"
+readonly APPS_DIR="${HOME}/.local/share/applications"
 readonly SYSTEM_PYTHON="/usr/bin/python3"
 
 log() { printf 'install: %s\n' "$1" >&2; }
@@ -57,6 +58,16 @@ link_cli() {
     ln -sf "$VENV_DIR/bin/sickdays" "$BIN_DIR/sickdays"
 }
 
+install_launcher() {
+    # Exec is the bare command, so the launcher follows the $BIN_DIR symlink.
+    log "installing the 'Sick days' launcher into $APPS_DIR"
+    mkdir -p "$APPS_DIR"
+    install -m 644 "$REPO_DIR/sickdays.desktop" "$APPS_DIR/"
+    if command -v update-desktop-database >/dev/null; then
+        update-desktop-database "$APPS_DIR" || log "NOTE: update-desktop-database failed"
+    fi
+}
+
 install_timer() {
     log "installing the sync timer"
     mkdir -p "$UNIT_DIR"
@@ -73,6 +84,8 @@ verify() {
     "$BIN_DIR/sickdays" list >/dev/null || fail "the sickdays CLI does not run"
     "$VENV_DIR/bin/python" -c "import freedays" \
         || fail "freedays is missing from the venv; adding a sick day would refuse"
+    "$VENV_DIR/bin/python" -c "import tkinter" \
+        || fail "the venv's python has no tkinter; 'sickdays gui' would not open"
     "$SYSTEM_PYTHON" -c "import sickdays" 2>/dev/null || {
         log "NOTE: the system python cannot import sickdays yet."
         log "      The gate apps need it there; their own install.sh does that."
@@ -86,6 +99,7 @@ verify() {
 main() {
     build_venv
     link_cli
+    install_launcher
     if [[ "$INSTALL_TIMER" -eq 1 ]]; then
         install_timer
     fi

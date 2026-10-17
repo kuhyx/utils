@@ -58,3 +58,25 @@ def test_resolve_returns_the_bundle_it_was_given(tmp_path: Path) -> None:
 
 def test_resolve_falls_back_to_the_defaults() -> None:
     assert resolve_paths(None) == Paths.default()
+
+
+def test_every_module_resolving_paths_is_redirected_by_conftest() -> None:
+    """A module that resolves the real paths but is not redirected would let
+    a test write the real pool."""
+    import importlib
+    import pkgutil
+
+    import sickdays
+    from sickdays.tests import conftest
+
+    names = [
+        info.name
+        for info in pkgutil.walk_packages(sickdays.__path__, "sickdays.")
+        if ".tests" not in info.name and info.name != "sickdays.__main__"
+    ]
+    resolving = {
+        name
+        for name in names
+        if hasattr(importlib.import_module(name), "resolve_paths")
+    } - {"sickdays._paths"}
+    assert resolving == set(conftest._MODULES)

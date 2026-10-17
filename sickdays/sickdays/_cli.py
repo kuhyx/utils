@@ -9,6 +9,10 @@ A sick day stands every locker down unless it *keeps* some (``--keep`` on
 ``add``, or ``keep`` afterwards). Locker ids are argparse ``choices``, so a
 typo exits 2 instead of silently keeping nothing.
 
+``gui`` opens the Tk picker. It is imported only when asked for, so every
+other subcommand -- and every gate importing the library -- stays free of
+tkinter.
+
 ``sync-quiet`` is what the timer runs: it reports success even with no
 network, because a unit that goes red whenever the laptop is offline is a
 unit you learn to ignore.
@@ -17,6 +21,7 @@ unit you learn to ignore.
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 from typing import TYPE_CHECKING
 
@@ -91,6 +96,7 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar=_LOCKER_METAVAR,
         help="instead: exit 0 iff this locker stands down on the day, 1 if not",
     )
+    sub.add_parser("gui", help="open the sick-day picker window")
     sub.add_parser("sync", help="pull and push the pool now")
     sub.add_parser(
         "sync-quiet",
@@ -143,6 +149,12 @@ def _do_check(raw_day: str, locker: str | None) -> int:
     return _EXIT_OK if sick else _EXIT_REFUSED
 
 
+def _do_gui() -> int:
+    # By name, at call time: the library and the rest of the CLI never load Tk.
+    gui = importlib.import_module("sickdays.gui")
+    return int(gui.run())
+
+
 def _do_sync() -> int:
     sync()
     emit("pool synced")
@@ -160,6 +172,7 @@ _HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
     "remove": lambda args: _do_remove(args.day),
     "list": lambda _args: _do_list(),
     "check": lambda args: _do_check(args.day, args.locker),
+    "gui": lambda _args: _do_gui(),
     "sync": lambda _args: _do_sync(),
     "sync-quiet": lambda _args: _do_sync_quiet(),
 }

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sickdays"
-version = "0.2.0"
+version = "0.3.0"
 description = "Shared sick-day pool: per-date, uncapped, synced; every gate respects it"
 requires-python = ">=3.14"
 # Deliberately NOT gatelock (its __init__ imports tkinter); the HMAC lives in
