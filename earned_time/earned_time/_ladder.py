@@ -52,9 +52,9 @@ ANKI_WAIVED_FROM: Final = date(2026, 10, 9)
 # From this day every rung pays exactly the gaming time its earner pays
 # (:data:`UNIFIED_LADDER`, 0.12.0). It lowers the floor 18:50 -> 18:00, so it
 # lands the day after the deploy, never on it. Parked (0.12.1) until
-# screen-locker's late-credit rule ships: an 18:00 floor without it locks out
-# a credit landing after the shutdown.
-UNIFIED_FROM: Final = date(2027, 1, 1)
+# screen-locker's late-credit rule shipped (46393fa, 2026-10-17): an 18:00
+# floor without it locked out a credit landing after the shutdown.
+UNIFIED_FROM: Final = date(2026, 10, 18)
 _SLEEP_MINUTES: Final = 8 * 60
 _DAY_MINUTES: Final = 24 * 60
 
