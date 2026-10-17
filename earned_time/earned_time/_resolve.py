@@ -35,7 +35,7 @@ from earned_time._policy import (
 )
 from earned_time._registry import all_earners, earners_for
 from earned_time._resolution import Base, Resolution, Term
-from earned_time._sick import sick_shutdown_minutes
+from earned_time._sick import sick_shutdown_from
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -151,7 +151,8 @@ def resolve(
             for never, or could not check), e.g. ``Maturity.first_credit``.
             Only ever delays a penalty; omitted, 0.5.0's ``penalty_from``.
         sick: The day is a sick day (the consumer asks ``sickdays``): shutdown
-            is at least 20:00 (:func:`~earned_time._sick.sick_shutdown_minutes`).
+            is 20:00 plus the terms' gaming pay
+            (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0).
             Gaming and every term are unchanged.
 
     Returns:
@@ -186,7 +187,8 @@ def resolve(
         shutdown_ceiling_for(target),
         base.shutdown_minutes + sum(t.shutdown_minutes for t in terms),
     )
-    shutdown = sick_shutdown_minutes(earned, target) if sick else earned
+    paid = sum(t.gaming_minutes for t in terms)
+    shutdown = max(earned, sick_shutdown_from(paid, target)) if sick else earned
     return Resolution(
         day=target,
         base=base,

@@ -45,12 +45,13 @@ its earner pays in gaming (workout 120, LeetCode 60, reading 60, tutor 1/unit
 to 60), so the floor drops 18:50 -> 18:00 under the same 23:00 ceiling:
 nothing 3 h / 18:00, workout 5 h / 20:00, +LeetCode 21:00, +reading 22:00.
 
-**Sick days (0.11.0, `_sick.py`).** `resolve(..., sick=True)` floors the
-*final* shutdown at 20:00 (`SICK_SHUTDOWN_FLOOR_MINUTES`), capped at the
-ceiling: 18:50 becomes 20:00, 21:30 stays 21:30 (nothing stacks on the floor).
+**Sick days (0.13.0, `_sick.py`).** `resolve(..., sick=True)` shuts down at
+20:00 (`SICK_SHUTDOWN_FLOOR_MINUTES`) plus every term's *gaming* pay, capped
+at the ceiling: LeetCode + reading is 22:00 (0.11.0's non-stacking max gave
+20:10). Never below 0.11.0's `max(20:00, earned)`, so it landed same-day.
 Base, terms, gaming, waivers and penalties are unchanged; earners still earn.
 `sick` is the consumer's answer (`sickdays.is_sick_day`, never imported here).
-Live credits are paid out of `Resolution.sick_lift_minutes` first (a grace lift).
+A live consumer raises the config to the sick resolution after each credit.
 
 **The tutor cutover (`TUTOR_FROM`, one constant in `_ladder.py`).** The
 registry is per day: `earners_for(day)` is `EARNERS` before it and
@@ -156,7 +157,7 @@ How far to trust a gate is computed from its ledger, never listed by name:
 ## API
 
 - `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False)`
-  `-> Resolution` — the one sum. `sick_shutdown_minutes(minutes, day) -> int`.
+  `-> Resolution` — the one sum. `sick_shutdown_from(paid_minutes, day) -> int`.
 - `base_for(day=None, earners=EARNERS) -> Base` — the day's floors.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
@@ -240,7 +241,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.12.1#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.13.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

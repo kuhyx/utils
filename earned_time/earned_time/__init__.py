@@ -84,7 +84,7 @@ from earned_time._policy import (
 from earned_time._quota import TUTOR_QUOTA_FROM, TUTOR_QUOTA_MINUTES, tutor_quota_for
 from earned_time._registry import all_earners, earners_for, registries
 from earned_time._resolve import Base, Resolution, Term, base_for, resolve
-from earned_time._sick import SICK_SHUTDOWN_FLOOR_MINUTES, sick_shutdown_minutes
+from earned_time._sick import SICK_SHUTDOWN_FLOOR_MINUTES, sick_shutdown_from
 
 __all__ = [
     "ANKI",
@@ -139,7 +139,7 @@ __all__ = [
     "resolve",
     "shutdown_ceiling_for",
     "shutdown_minutes_for",
-    "sick_shutdown_minutes",
+    "sick_shutdown_from",
     "today_window",
     "tutor_quota_for",
     "verified",
