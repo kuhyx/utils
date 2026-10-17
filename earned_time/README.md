@@ -40,7 +40,7 @@ never a same-day cut):
 The two floors are derived separately (`_resolve._shutdown_floor`), so the
 ladder cannot move a gaming minute.
 
-**Unified ladder (0.12.0, `UNIFIED_FROM` 2026-10-18):** each rung pays what
+**Unified ladder (0.12.0; `UNIFIED_FROM` parked at 2027-01-01 in 0.12.1):** each rung pays what
 its earner pays in gaming (workout 120, LeetCode 60, reading 60, tutor 1/unit
 to 60), so the floor drops 18:50 -> 18:00 under the same 23:00 ceiling:
 nothing 3 h / 18:00, workout 5 h / 20:00, +LeetCode 21:00, +reading 22:00.
@@ -240,7 +240,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.12.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.12.1#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

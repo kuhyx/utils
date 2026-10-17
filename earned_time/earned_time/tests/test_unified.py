@@ -29,7 +29,8 @@ def _day(day: date, **done: int) -> tuple[int, str]:
 
 
 def test_switch_is_the_day_after_the_deploy() -> None:
-    assert date(2026, 10, 18) == UNIFIED_FROM
+    assert date(2027, 1, 1) == UNIFIED_FROM  # parked until the late-credit rule
+    assert ladder_for(date(2026, 10, 18)) is TUTOR_LADDER
     assert ladder_for(EVE) is TUTOR_LADDER  # deploy day keeps the old rungs
     assert ladder_for(UNIFIED_FROM) is UNIFIED_LADDER
 
