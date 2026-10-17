@@ -15,7 +15,19 @@
 #                      gate + commit; refuses a dirty tree unless told the gate
 #                      saw the working copy (narrow staging leaves other files)
 #   full               run the repo's manual-stage hooks (the old pre-push set)
-#                      on --all-files, then write; the on-demand heavy gate
+#                      on --all-files in ONE call, then write; >60 s in the
+#                      bigger repos, so prefer the split form below
+#   full --list        print the manual-stage hook ids, one per line
+#   step <hook-id>     run one manual-stage hook on --all-files and record
+#                      "<HEAD^{tree}> <id>" in $GIT_DIR/gate-steps; once every
+#                      id from `full --list` is recorded for the current tree,
+#                      write the stamp exactly as `write` does. Each call stays
+#                      under the 60 s per-command cap:
+#                        for id in $(gate_stamp.sh full --list); do
+#                            gate_stamp.sh step "$id"; done   # one per call
+#
+# Manual-stage ids come from scripts/gate_stamp_hooks.py (PyYAML under
+# /usr/bin/python3), which parses .pre-commit-config.yaml.
 #
 # The heavy suites still run in CI on every push; this only decides whether a
 # tree may leave the machine, not whether it is fully green.
@@ -25,14 +37,22 @@ set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
+# Resolved before main() cd's to the toplevel, so a relative $0 still works.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+readonly HOOKS_HELPER="$SCRIPT_DIR/gate_stamp_hooks.py"
 
 usage() {
-    echo "Usage: $SCRIPT_NAME check | write [--dirty-ok] | full"
+    echo "Usage: $SCRIPT_NAME check | write [--dirty-ok] | full [--list] | step <hook-id>"
     exit 2
 }
 
 stamp_path() {
     printf '%s/gate-stamp\n' "$(git rev-parse --git-dir)"
+}
+
+steps_path() {
+    printf '%s/gate-steps\n' "$(git rev-parse --git-dir)"
 }
 
 tree_of() {
@@ -70,7 +90,9 @@ cmd_check() {
             echo "  no stamp in $(stamp_path)"
         fi
         echo "  Either: ~/.claude/scripts/finish_auto.sh   (gate + commit + push)"
-        echo "  or:     scripts/check_gate_stamp.sh full    (old pre-push suites, then push again)"
+        echo "  or:     scripts/check_gate_stamp.sh full --list   (manual-stage hook ids), then"
+        echo "          scripts/check_gate_stamp.sh step <id>     once per id, one call each;"
+        echo "          the last passing step stamps the tree, then push again"
     } >&2
     exit 1
 }
@@ -94,10 +116,73 @@ cmd_write() {
     fi
 }
 
+manual_ids() {
+    /usr/bin/python3 "$HOOKS_HELPER" .pre-commit-config.yaml
+}
+
 cmd_full() {
+    if [[ "${1:-}" == "--list" ]]; then
+        manual_ids
+        return 0
+    fi
+    [[ $# -eq 0 ]] || usage
+    echo "gate-stamp: hint: split this into <60 s calls with 'full --list' + 'step <hook-id>'"
     echo "gate-stamp: running the manual-stage hooks on all files (the old pre-push set)"
     pre-commit run --hook-stage manual --all-files
     cmd_write
+}
+
+# Refusals exit 2 (usage-class), unlike write's exit 1: nothing was run.
+step_refuse() {
+    echo "$SCRIPT_NAME step: $*" >&2
+    exit 2
+}
+
+cmd_step() {
+    [[ $# -eq 1 && -n "$1" ]] || usage
+    local hook="$1" ids
+    ids="$(manual_ids)"
+    grep -Fxq -- "$hook" <<<"$ids" \
+        || step_refuse "'$hook' is not a manual-stage hook (see: $SCRIPT_NAME full --list)"
+    [[ -z "$(git status --porcelain --untracked-files=no)" ]] \
+        || step_refuse "working tree differs from HEAD — commit first, then run steps."
+    local tree
+    tree="$(tree_of HEAD)"
+    pre-commit run --hook-stage manual "$hook" --all-files
+    [[ -z "$(git status --porcelain --untracked-files=no)" && "$(tree_of HEAD)" == "$tree" ]] \
+        || step_refuse "'$hook' passed but the tree changed while it ran; not recorded."
+    record_step "$tree" "$hook"
+    local missing id
+    missing="$(missing_steps "$tree" "$ids")"
+    if [[ -z "$missing" ]]; then
+        echo "gate-stamp: every manual-stage hook passed on tree ${tree:0:12}; stamping"
+        cmd_write
+    else
+        echo "gate-stamp: '$hook' recorded for tree ${tree:0:12}; still missing:"
+        while IFS= read -r id; do echo "  $id"; done <<<"$missing"
+    fi
+}
+
+# Keep only the current tree's records: older trees can never be stamped
+# again from here, and this bounds the file to one line per manual hook.
+record_step() {
+    local tree="$1" hook="$2" path kept
+    path="$(steps_path)"
+    kept="$(grep -s -- "^$tree " "$path" || true)"
+    {
+        [[ -n "$kept" ]] && printf '%s\n' "$kept"
+        grep -Fxq -- "$tree $hook" <<<"$kept" || printf '%s %s\n' "$tree" "$hook"
+    } > "$path.tmp"
+    mv -f "$path.tmp" "$path"
+}
+
+missing_steps() {
+    local tree="$1" ids="$2" path id
+    path="$(steps_path)"
+    while IFS= read -r id; do
+        [[ -n "$id" ]] || continue
+        grep -Fxqs -- "$tree $id" "$path" || printf '%s\n' "$id"
+    done <<<"$ids"
 }
 
 main() {
@@ -109,6 +194,7 @@ main() {
         check) cmd_check "$@" ;;
         write) cmd_write "$@" ;;
         full)  cmd_full "$@" ;;
+        step)  cmd_step "$@" ;;
         *) usage ;;
     esac
 }
