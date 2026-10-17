@@ -82,7 +82,7 @@ KeepPanel(parent, day, *, on_saved, on_cancel=None, paths=None).pack()
 
 Normal day: five switches, all off (off = stands down), "Mark sick"; sick
 day: its switches, "Save", "Clear sick day". Past/free/uncheckable days show
-why and offer no write; a refused write shows in the panel, never raised.
+why and offer no write; a refusal (or a click mid-sync) shows in the panel.
 `on_saved(SickDay | None)` fires after the write and sync start: the entry on
 Mark sick / a changed Save (`is_sick=True`) or Clear (`is_sick=False`), `None`
 on an unchanged Save (nothing written). The panel never destroys itself.

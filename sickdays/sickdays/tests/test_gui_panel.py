@@ -4,16 +4,18 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import threading
 import tkinter as tk
 from typing import TYPE_CHECKING
 
 import pytest
 
-from sickdays._api import add_sick_day, is_sick_day
+from sickdays._api import add_sick_day, is_sick_day, load
 from sickdays._day import today
 from sickdays._errors import ConflictCheckUnavailableError
 from sickdays._keep_api import kept_lockers
 from sickdays._paths import Paths
+from sickdays._store import write_pool
 from sickdays.gui import KeepPanel, _text
 from sickdays.gui import _tokens as tok
 
@@ -203,3 +205,41 @@ def test_explicit_paths_are_used_for_every_read_write_and_sync(
     assert not is_sick_day(FUTURE, log_path=other.log)
     assert synced == [other]
     assert not (tmp_path / "state" / "sick_days.json").exists()
+
+
+def test_a_write_during_a_sync_is_refused_not_lost(
+    tk_root: tk.Tk, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """sync() reads the pool, waits on the network, then writes its merged
+    copy back: a write landing in that window would be silently overwritten.
+    """
+    loaded = threading.Event()
+    release = threading.Event()
+    calls: list[int] = []
+
+    def slow_sync(*, paths: Paths | None = None) -> bool:
+        calls.append(1)
+        if len(calls) > 1 or paths is None:
+            return False
+        snapshot = load(paths.log)
+        loaded.set()
+        release.wait(timeout=5)
+        write_pool(paths.log, snapshot)
+        return True
+
+    monkeypatch.setattr("sickdays.gui._panel.sync_quietly", slow_sync)
+    saved: list[SickDay | None] = []
+    first = KeepPanel(tk_root, FUTURE, on_saved=saved.append)
+    _button(first, "mark").invoke()
+    assert loaded.wait(timeout=5)
+    later = FUTURE + timedelta(days=1)
+    second = KeepPanel(tk_root, later, on_saved=saved.append)
+    _button(second, "mark").invoke()
+    release.set()
+    _join(first)
+    if second.sync_thread is not None:
+        second.sync_thread.join(timeout=5)
+    for entry in saved:
+        assert entry is not None
+        assert is_sick_day(entry.day), f"{entry.day} was written, then lost"
+    assert _status(second) == _text.BUSY_NOTE

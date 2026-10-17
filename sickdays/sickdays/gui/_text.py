@@ -53,6 +53,7 @@ INTRO_DETAIL: Final = (
 )
 PAST_NOTE: Final = "This day has passed; it can no longer be changed."
 NONE_AHEAD: Final = "None ahead."
+BUSY_NOTE: Final = "Syncing \u2014 try again in a moment."
 WEEKDAY_INITIALS: Final = ("M", "T", "W", "T", "F", "S", "S")
 
 _WEEKDAYS: Final = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")

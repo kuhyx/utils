@@ -39,6 +39,18 @@ if TYPE_CHECKING:
     from sickdays._paths import Paths
 
 
+#: Held by every background sync, and tried by every write. ``sync()`` reads
+#: the pool, waits on the network, then writes its merged copy back, so a
+#: write landing in between would be silently overwritten. A write that finds
+#: a sync running is refused ("try again") rather than lost.
+_SYNC_LOCK = threading.Lock()
+
+
+def _serialised_sync(paths: Paths) -> None:
+    with _SYNC_LOCK:
+        sync_quietly(paths=paths)
+
+
 def start_sync(paths: Paths) -> threading.Thread:
     """Push the write in the background so the phone sees it; never raises.
 
@@ -46,8 +58,8 @@ def start_sync(paths: Paths) -> threading.Thread:
     push half-way. The thread touches no widget.
     """
     thread = threading.Thread(
-        target=sync_quietly,
-        kwargs={"paths": paths},
+        target=_serialised_sync,
+        args=(paths,),
         name="sickdays-sync",
         daemon=False,
     )
@@ -66,8 +78,9 @@ class KeepPanel(tk.Frame):
     * "Save" with nothing changed -> ``None``: nothing written, no sync;
     * "Clear sick day" -> the cleared entry (``is_sick=False``).
 
-    A refused write (:class:`~sickdays.SickDayError`) is shown in the panel
-    and ``on_saved`` is not called. ``on_cancel``, when given, adds a
+    A refused write (:class:`~sickdays.SickDayError`, or a click while the
+    previous write's sync is still running) is shown in the panel and
+    ``on_saved`` is not called. ``on_cancel``, when given, adds a
     "Cancel" button that calls it. The panel never destroys itself; the
     callbacks decide what happens to it.
     """
@@ -171,11 +184,18 @@ class KeepPanel(tk.Frame):
         self._write(lambda: remove_sick_day(self._day, paths=self._paths))
 
     def _write(self, action: Callable[[], SickDay]) -> None:
+        # Non-blocking on purpose (no ``with``): waiting would freeze Tk for
+        # the whole network round trip.
+        if not _SYNC_LOCK.acquire(blocking=False):  # pylint: disable=consider-using-with
+            self._status.configure(text=_text.BUSY_NOTE, fg=tok.DANGER)
+            return
         try:
             entry = action()
         except SickDayError as exc:
             self._status.configure(text=str(exc), fg=tok.DANGER)
             return
+        finally:
+            _SYNC_LOCK.release()
         self.sync_thread = start_sync(self._paths)
         # Last: the callback may destroy this panel.
         self._on_saved(entry)
