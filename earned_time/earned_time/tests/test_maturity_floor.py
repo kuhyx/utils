@@ -14,9 +14,9 @@ from datetime import date, timedelta
 import pytest
 
 from earned_time import (
-    TUTOR,
     EARNERS,
     LADDER_FROM,
+    TUTOR,
     TUTOR_FROM,
     WORKOUT,
     Earner,

@@ -9,10 +9,10 @@ import pytest
 
 from earned_time import (
     AUTOMATION,
-    TUTOR,
     EARNERS,
     LADDER,
     LADDER_FROM,
+    TUTOR,
     TUTOR_EARNERS,
     TUTOR_FROM,
     TUTOR_LADDER,

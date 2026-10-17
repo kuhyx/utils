@@ -54,9 +54,7 @@ def test_minute_rows_sum(tmp_path: Path, key_file: Path) -> None:
     rows: list[object] = [minute("s", n, _at(18, n)) for n in (1, 2, 3)]
     rows.append(minute("s", 4, _at(18, 13), minutes=10))
     assert _units(tmp_path, key_file, rows) == 13
-    assert first_credit_at(
-        TUTOR, _ledger(tmp_path, rows), key_file, DAY
-    ) == _at(18, 1)
+    assert first_credit_at(TUTOR, _ledger(tmp_path, rows), key_file, DAY) == _at(18, 1)
 
 
 def test_legacy_rows_count_15() -> None:
