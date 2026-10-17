@@ -62,3 +62,12 @@ jobs:
             --cov=coverage_gaps --cov-branch \
             --cov-report=term-missing \
             --cov-fail-under=100
+
+      # gate_stamp.sh is the pre-push gate in every repo. Its tests drive real
+      # pre-commit in throwaway repos, and the hook-id helper runs under
+      # /usr/bin/python3 (the deployment interpreter), hence apt's PyYAML.
+      - name: gate_stamp (step / full --list)
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y python3-yaml
+          python -m pip install --upgrade pre-commit
+          PYTHONPATH=. python -m pytest scripts/tests -q

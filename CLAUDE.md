@@ -10,7 +10,7 @@ overwrite it with `repo_contract/templates/check_repo_contract.shim.sh`.
 ## Commands
 
 - run: n/a: collection of gates and libraries, no single entry point
-- test: `PYTHONPATH=. python -m pytest -q coverage_gaps/tests dep_freshness/tests file_length/tests home_paths/tests md_naming/tests repo_contract/tests`
+- test: `PYTHONPATH=. python -m pytest -q coverage_gaps/tests dep_freshness/tests file_length/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests`
 - test-changed: `scripts/test_changed.sh`
 - lint: `ruff check coverage_gaps repo_contract`
 - coverage: `PYTHONPATH=. python -m pytest -q repo_contract/tests --cov=repo_contract --cov-branch --cov-report=xml --cov-fail-under=100`
