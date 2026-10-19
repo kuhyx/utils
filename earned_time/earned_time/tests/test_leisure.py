@@ -22,7 +22,7 @@ FULL = {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 60}
 NONE = dict.fromkeys(FULL, 0)
 
 
-def _gaming(day: date, answers: dict[str, int], *, leisure: bool = False) -> int:
+def _gaming(day: date, answers: dict[str, int], *, leisure: bool | None = None) -> int:
     return resolve(answers, day, TUTOR_EARNERS, leisure=leisure).gaming_minutes
 
 

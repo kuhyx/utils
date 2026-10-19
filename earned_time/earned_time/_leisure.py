@@ -11,8 +11,10 @@ The first leisure day is the switch file ``LEISURE_FROM_PATH`` (0.15.0),
 written by ``leisure-watch go-live`` (always tomorrow's date); without a
 readable one it is the parked ``LEISURE_FROM``. Earlier days keep
 ``GAMING_BASE_MINUTES`` and ``GAMING_CEILING_MINUTES``, byte-identical.
-``resolve(..., leisure=True)`` prices any day with the leisure base and cap:
-the shadow budget the enforcer reports while it still enforces the old one.
+``resolve(..., leisure=...)`` (0.16.0): ``None`` decides by the switch file
+on ``day``, ``True`` forces the leisure base and cap (the shadow budget),
+``False`` forces the old ones -- so a consumer billing on the 06:00 gaming day
+passes ``leisure_active(gaming_day)`` instead of trusting the calendar day.
 """
 
 from __future__ import annotations
@@ -80,12 +82,12 @@ def leisure_active(day: date, path: Path = LEISURE_FROM_PATH) -> bool:
     return day >= leisure_from(path)
 
 
-def is_leisure(day: date, *, leisure: bool = False) -> bool:
-    """``leisure`` (forced: the shadow budget) or ``day`` is a leisure day.
+def is_leisure(day: date, *, leisure: bool | None = None) -> bool:
+    """``leisure`` if forced (``True``/``False``), else is ``day`` a leisure day.
 
     Looks ``LEISURE_FROM_PATH`` up at call time, so tests can redirect it.
     """
-    return leisure or leisure_active(day, LEISURE_FROM_PATH)
+    return leisure_active(day, LEISURE_FROM_PATH) if leisure is None else leisure
 
 
 def base_minutes(*, leisure: bool) -> int:

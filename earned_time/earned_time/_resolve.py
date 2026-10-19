@@ -88,7 +88,7 @@ def base_for(
     earners: tuple[Earner, ...] | None = None,
     *,
     first_credits: Mapping[str, date | None] | None = None,
-    leisure: bool = False,
+    leisure: bool | None = None,
 ) -> Base:
     """The floor for ``day`` (default today) under ``earners`` (default its own).
 
@@ -97,8 +97,9 @@ def base_for(
     derived separately so the ladder can never move a gaming minute.
     ``first_credits`` (per earner name) delays each penalty, and the ladder
     rung, to :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
-    The gaming base is :func:`gaming_base_minutes_for` the day, or with
-    ``leisure`` the leisure base whatever the date (:func:`is_leisure`).
+    The gaming base: ``leisure`` ``None`` -- by the switch file on the day,
+    ``True``/``False`` -- the leisure/old base whatever the date
+    (:func:`is_leisure`).
     """
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
@@ -166,7 +167,7 @@ def resolve(
     *,
     first_credits: Mapping[str, date | None] | None = None,
     sick: bool = False,
-    leisure: bool = False,
+    leisure: bool | None = None,
 ) -> Resolution:
     """Sum the base and every earned term, each capped at its ceiling.
 
@@ -186,9 +187,12 @@ def resolve(
             is 20:00 plus the terms' gaming pay
             (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0).
             Gaming and every term are unchanged.
-        leisure: Price gaming as a leisure day (0.14.0): the leisure base and
-            cap whatever the day and the switch file say -- the shadow budget.
-            Terms, penalties and shutdown are unchanged.
+        leisure: ``None`` (0.16.0 default): the switch file decides on
+            ``day``. ``True`` (0.14.0): the leisure base and cap whatever the
+            day says -- the shadow budget. ``False``: the old base and cap
+            whatever the file says -- a gaming day (06:00) still before the
+            switch while the calendar day is past it. Terms, penalties and
+            shutdown are unchanged.
 
     Returns:
         The resolution, with a term for every registered earner.

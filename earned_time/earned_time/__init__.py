@@ -23,9 +23,10 @@ A consumer's whole integration::
     apply(day.gaming_minutes)
 
 ``sick`` (0.11.0) only raises shutdown to at least 20:00; gaming is unchanged.
-``leisure=True`` (0.14.0) prices gaming with the leisure base and cap
-whatever the day: the shadow budget. The first real leisure day is
-:func:`leisure_from` (0.15.0, the switch file); ask :func:`leisure_active`.
+``leisure`` (0.16.0): ``None`` follows the switch file on ``day``, ``True``
+prices gaming with the leisure base and cap (the shadow budget), ``False``
+with the old ones. The first real leisure day is :func:`leisure_from`
+(0.15.0, the switch file); ask :func:`leisure_active` for the gaming day.
 
 How far to trust a gate is computed, not listed: :func:`maturity` (and
 ``python -m earned_time maturity``).

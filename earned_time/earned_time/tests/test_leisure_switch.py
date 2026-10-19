@@ -166,3 +166,26 @@ def test_leisure_flag_still_forces_past_a_later_file(
         resolve(FULL, UNIFIED_FROM, TUTOR_EARNERS, leisure=True).gaming_minutes == 600
     )
     assert resolve(FULL, date(2027, 1, 2), TUTOR_EARNERS).gaming_minutes == 480
+
+
+@pytest.mark.usefixtures("live")
+def test_leisure_false_forces_old_pricing_past_the_file() -> None:
+    # 0.16.0: the consumer's 06:00 gaming day may still be the eve while the
+    # calendar day is already the switch day (00:00-05:59 on go-live).
+    assert base_for(DAY, leisure=False).gaming_minutes == 180
+    assert resolve(NONE, DAY, TUTOR_EARNERS, leisure=False).gaming_minutes == 180
+    assert resolve(FULL, DAY, TUTOR_EARNERS, leisure=False).gaming_minutes == 480
+
+
+@pytest.mark.usefixtures("live")
+def test_leisure_none_decides_by_the_file() -> None:
+    eve = DAY - timedelta(days=1)
+    assert base_for(eve, leisure=None).gaming_minutes == 180
+    assert base_for(DAY, leisure=None).gaming_minutes == 300
+    assert resolve(FULL, eve, TUTOR_EARNERS, leisure=None).gaming_minutes == 480
+    assert resolve(FULL, DAY, TUTOR_EARNERS, leisure=None).gaming_minutes == 600
+
+
+def test_leisure_defaults_to_none() -> None:
+    for func in (base_for, resolve):
+        assert inspect.signature(func).parameters["leisure"].default is None

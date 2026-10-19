@@ -21,16 +21,16 @@ rows in its ledger — and is registered here once.
 **Leisure budget (0.14.0, `_leisure.py`).** From the first leisure day the
 budget covers all leisure (games, browsing, video, messaging): base 5 h -> 7 h,
 cap 8 h -> 10 h; pay, penalties and shutdown untouched (full day 480 -> 600).
-`resolve`/`base_for(..., leisure=True)` price any day so: the shadow budget.
+`resolve`/`base_for(..., leisure=)` (0.16.0): `None` = by the switch file on
+`day`, `True` = leisure pricing (shadow budget), `False` = old pricing; a
+consumer billing on the 06:00 gaming day passes `leisure_active(gaming_day)`.
 
 **The switch file (0.15.0).** The first leisure day is `leisure_from()`: the
-date in `/etc/leisure-watch/leisure_from` (`LEISURE_FROM_PATH`, one line
-`YYYY-MM-DD`, root:root 0644), else the parked `LEISURE_FROM` (2027-01-01).
-Read afresh each call (`O_NOFOLLOW|O_NONBLOCK`, regular file <= 64 bytes,
-strict format; anything else is parked; never raises), once per `resolve`.
-`leisure_active(day)` (`day >= leisure_from()`, gaming day) is the ONLY way a
-consumer asks "is Phase 2 on?"; none reads the file. `leisure-watch go-live`
-writes it (always tomorrow's date, after its preflight); `--undo` removes it.
+`YYYY-MM-DD` line in `/etc/leisure-watch/leisure_from` (`LEISURE_FROM_PATH`,
+root:root 0644; read afresh, once per `resolve`, `O_NOFOLLOW|O_NONBLOCK`,
+regular, <= 64 bytes, strict), else the parked `LEISURE_FROM` (2027-01-01);
+never raises. Consumers ask only `leisure_active(day)` (gaming day); none
+reads the file. `leisure-watch go-live` writes tomorrow's date; `--undo` removes it.
 
 **Shutdown** has two regimes, switched by date (`LADDER_FROM`, 2026-10-10 —
 never a same-day cut):
@@ -160,9 +160,9 @@ How far to trust a gate is computed from its ledger, never listed by name:
 ## API
 
 - `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False,
-  leisure=False) -> Resolution` — the one sum. `sick_shutdown_from(paid_minutes,
+  leisure=None) -> Resolution` — the one sum. `sick_shutdown_from(paid_minutes,
   day) -> int`. `base_for(day=None, earners=None, *, first_credits=None,
-  leisure=False) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
+  leisure=None) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
   `gaming_ceiling_minutes_for(day) -> int` — the gaming base and cap.
   `leisure_from(path=LEISURE_FROM_PATH) -> date`, `leisure_active(day, path=...)`.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
@@ -243,7 +243,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.15.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.16.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
