@@ -57,6 +57,9 @@ class Claim:
     arbiters, and the whole test suite does exactly that to exercise real
     ``flock`` contention without spawning subprocesses.
     """
+    grab_held: bool = False
+    """Whether the X grab is ACTUALLY held now (false before it lands and while
+    released, e.g. leetcode-guard study mode). See :mod:`gatelock._claimfile`."""
 
     def to_json(self) -> str:
         """Serialise this claim for its on-disk file."""
@@ -69,6 +72,7 @@ class Claim:
                 "grab": self.grab,
                 "disable_vt": self.disable_vt,
                 "instance_id": self.instance_id,
+                "grab_held": self.grab_held,
             }
         )
 
@@ -86,14 +90,17 @@ class Claim:
         if not isinstance(raw, dict):
             return None
         try:
+            grab = str(raw["grab"])
             return cls(
                 app=str(raw["app"]),
                 rank=int(raw["rank"]),
                 pid=int(raw["pid"]),
                 started=str(raw["started"]),
-                grab=str(raw["grab"]),
+                grab=grab,
                 disable_vt=bool(raw["disable_vt"]),
                 instance_id=str(raw["instance_id"]),
+                # A pre-0.11 writer never wrote the key: trust its declared grab.
+                grab_held=bool(raw.get("grab_held", grab != "none")),
             )
         except KeyError, TypeError, ValueError:
             return None

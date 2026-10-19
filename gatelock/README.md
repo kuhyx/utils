@@ -80,6 +80,17 @@ evening night-lockdown already happened?" from night-lockdown's
 re-arm for the rest of such a day; diet-guard does not. Missing or garbage
 means "no lockdown" (garbage warns), so the gate locks as before.
 
+`gatelock.held_grabs(claims_dir=None) -> tuple[Claim, ...]` answers "is a
+locker's X grab ACTUALLY held right now?": live claims (flock-proved) whose
+`grab_held` is true and whose declared grab is not `none`. `grab_held` turns
+true only after `grab_set`/`grab_set_global` succeeded, follows each recovery
+tick, and is cleared/restored around a deliberate release via
+`LockWindow.report_grab_held(held=...)` (or `Arbiter.set_grab_held`) --
+leetcode-guard's study mode. It is rewritten in place under the owner's flock.
+A claim from a pre-0.11 writer has no key and reads as `grab != "none"`. Root
+has no `XDG_RUNTIME_DIR`, so a root reader passes the user's dir
+(`/run/user/1000/gatelock/claims`).
+
 ## Development
 
 ```bash

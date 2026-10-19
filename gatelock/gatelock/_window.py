@@ -15,12 +15,8 @@ detection in :mod:`gatelock._detect`, re-assertion in
 :mod:`gatelock._recovery`, and cross-app priority in
 :mod:`gatelock._arbiter`.
 
-Arming order matters and is deliberate: **arm first, render second.** The grab
-and the VT-disable happen regardless of how many outputs are live, and the
-surfaces are then built for whatever the user can actually see -- possibly
-nothing. Zero live outputs means "lock without showing", never "decline to
-lock". The inverse of that rule is what left the machine unlocked on
-2026-07-25.
+Arming order (**arm first, render second**) is explained in
+:mod:`gatelock._arming`.
 """
 
 from __future__ import annotations
@@ -95,6 +91,7 @@ class LockWindow:
                 enumerator=enumerator,
                 detector=detector,
                 hooks=hooks,
+                on_grab_held=self.report_grab_held,
             ),
         )
         # The arming bundle is also where the window reaches its
@@ -107,6 +104,7 @@ class LockWindow:
             recovery=recovery,
             notify_focus_ready=self._notify_focus_ready,
             log_grab_blocked=self._log_grab_blocked,
+            notify_grab_held=lambda: self.report_grab_held(held=True),
         )
 
     @property
@@ -129,6 +127,15 @@ class LockWindow:
     def detector(self) -> OutputChangeDetector:
         """The output-change watcher; see :attr:`recovery` for when to stop it."""
         return self._arming.detector
+
+    def report_grab_held(self, *, held: bool) -> None:
+        """Publish whether the X grab is ACTUALLY held (``Claim.grab_held``).
+
+        Called on every successful grab and recovery tick; an app releasing the
+        grab on purpose (leetcode study mode) calls it False/True around that.
+        """
+        if self._arbiter is not None:
+            self._arbiter.set_grab_held(held=held)
 
     # -- window mechanics -----------------------------------------------------
 

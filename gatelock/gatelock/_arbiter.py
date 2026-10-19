@@ -31,12 +31,14 @@ arms anyway. See :meth:`Arbiter.evaluate`.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 import logging
 import os
 from typing import IO, TYPE_CHECKING, Final
 import uuid
 
+from gatelock._claimfile import CLAIMS_DIRNAME, rewrite_in_place
 from gatelock._claims import (
     ArbiterVerdict,
     Claim,
@@ -55,11 +57,7 @@ RANK_WAKE_ALARM: Final = 300
 RANK_SCREEN_LOCKER: Final = 200
 RANK_DIET_GUARD: Final = 100
 
-_CLAIMS_DIRNAME: Final = "claims"
 _HOLDER_FILENAME: Final = "holder.lock"
-
-# Ordering for the strength check. A stand-down is only safe towards an
-# incumbent whose grab is at least this strong.
 
 
 def _utc_now_iso() -> str:
@@ -89,7 +87,7 @@ class Arbiter:
             runtime_dir: Override for the state directory. Tests pass a tmp_path.
         """
         self._root = runtime_dir if runtime_dir is not None else default_runtime_dir()
-        self._claims_dir = self._root / _CLAIMS_DIRNAME
+        self._claims_dir = self._root / CLAIMS_DIRNAME
         self._claim = Claim(
             app=app,
             rank=rank,
@@ -133,6 +131,19 @@ class Arbiter:
         handle.write(self._claim.to_json())
         handle.flush()
         self._claim_handle = handle
+
+    def set_grab_held(self, *, held: bool) -> None:
+        """Record whether this app's X grab is ACTUALLY held right now.
+
+        Rewrites the claim (and the holder copy, if held) in place under the
+        existing flock -- see :mod:`gatelock._claimfile`. Idempotent, and
+        never raises: it runs inside grab and study-mode transitions.
+        """
+        if self._claim.grab_held is held:
+            return
+        self._claim = replace(self._claim, grab_held=held)
+        for handle in (self._claim_handle, self._holder_handle):
+            rewrite_in_place(handle, self._claim.to_json())
 
     def live_claims(self) -> tuple[Claim, ...]:
         """Return every claim whose owning process is still alive.

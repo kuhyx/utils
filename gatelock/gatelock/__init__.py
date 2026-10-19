@@ -14,6 +14,7 @@ from gatelock._arbiter import (
     RANK_WAKE_ALARM,
     Arbiter,
 )
+from gatelock._claimfile import held_grabs
 from gatelock._claims import ArbiterVerdict, Claim, default_runtime_dir, grab_strength
 from gatelock._config import GrabPolicy, LockConfig, SpaceStep, TypeRole
 from gatelock._detect import OutputChangeDetector
@@ -124,6 +125,7 @@ __all__ = [
     "escape_text_tab_trap",
     "grab_strength",
     "heading",
+    "held_grabs",
     "make_button",
     "measure_fit",
     "mirror_text_widgets",

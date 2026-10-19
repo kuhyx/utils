@@ -9,7 +9,7 @@ against a report without pulling in the machinery that builds one.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from gatelock._config import LockConfig
@@ -17,6 +17,18 @@ if TYPE_CHECKING:
     from gatelock._hooks import LockWindowHooks
     from gatelock._outputs import OutputEnumerator
     from gatelock._surfaces import SurfaceDelta, SurfaceSet
+
+
+class GrabHeldListener(Protocol):
+    """Told whether the grab is really ours (``Claim.grab_held``)."""
+
+    def __call__(self, *, held: bool) -> None:
+        """Record the grab state."""
+
+
+def ignore_grab_held(*, held: bool) -> None:
+    """Default :class:`GrabHeldListener`: no arbiter to tell."""
+    del held
 
 
 @dataclass(frozen=True)
@@ -46,3 +58,5 @@ class RecoveryCollaborators:
     enumerator: OutputEnumerator
     detector: OutputChangeDetector
     hooks: LockWindowHooks
+    on_grab_held: GrabHeldListener = ignore_grab_held
+    """Told each tick whether the grab is really ours (``Claim.grab_held``)."""

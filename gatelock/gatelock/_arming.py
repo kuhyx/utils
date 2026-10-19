@@ -51,6 +51,10 @@ _TOPMOST_ON = True
 _DEFAULT_GRAB_RETRY_MS = 200
 
 
+def _no_grab_listener() -> None:
+    """Default for :attr:`ArmingCollaborators.notify_grab_held`."""
+
+
 @dataclass(frozen=True)
 class ArmingCollaborators:
     """Everything the arming sequence needs from its owning window.
@@ -64,6 +68,8 @@ class ArmingCollaborators:
         notify_focus_ready: Called once the lock is mapped and grabbed.
         log_grab_blocked: Called with the attempt count when a global grab is
             still blocked, to name the holder and stand a weaker one down.
+        notify_grab_held: Called once a grab call has actually succeeded, so
+            the claim's ``grab_held`` turns true only then.
     """
 
     config: LockConfig
@@ -73,6 +79,7 @@ class ArmingCollaborators:
     recovery: RecoveryLoop
     notify_focus_ready: Callable[[], None]
     log_grab_blocked: Callable[[int], None]
+    notify_grab_held: Callable[[], None] = _no_grab_listener
 
 
 def setup(root: tk.Tk, collab: ArmingCollaborators) -> bool:
@@ -142,6 +149,7 @@ def grab_input(root: tk.Tk, collab: ArmingCollaborators) -> None:
     elif grab == "local":
         with contextlib.suppress(tk.TclError):
             root.grab_set()
+            collab.notify_grab_held()
     collab.detector.start()
     collab.recovery.start()
     root.after(100, collab.notify_focus_ready)
@@ -165,6 +173,7 @@ def acquire_global_grab(
             _logger.warning("Global grab failed, falling back to local grab")
             with contextlib.suppress(tk.TclError):
                 root.grab_set()
+                collab.notify_grab_held()
             return
         effective_retry_ms = retry_ms or _DEFAULT_GRAB_RETRY_MS
         if not attempt % collab.config.grab.log_every:
@@ -174,6 +183,7 @@ def acquire_global_grab(
             lambda: acquire_global_grab(root, collab, attempt=attempt + 1),
         )
         return
+    collab.notify_grab_held()
     with contextlib.suppress(tk.TclError):
         root.focus_force()
         collab.notify_focus_ready()

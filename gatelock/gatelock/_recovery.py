@@ -193,13 +193,15 @@ class RecoveryLoop:
         """
         if self._parts.config.resolved_grab() != "global":
             return False
-        if self.holds_grab():
-            return False
-        with contextlib.suppress(tk.TclError):
-            self._root.grab_set_global()
-            _logger.warning("global grab had been lost; re-acquired it")
-            return True
-        return False
+        held = self.holds_grab()
+        reasserted = False
+        if not held:
+            with contextlib.suppress(tk.TclError):
+                self._root.grab_set_global()
+                _logger.warning("global grab had been lost; re-acquired it")
+                reasserted = held = True
+        self._parts.on_grab_held(held=held)
+        return reasserted
 
     def holds_grab(self) -> bool:
         """Whether the grab is held by a window this application owns.
