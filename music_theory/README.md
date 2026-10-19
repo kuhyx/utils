@@ -70,6 +70,26 @@ and the signal is bit-crushed, hissed and low-passed. `degrade: 0` is byte-
 identical to the original, so "the ending is the opening, destroyed" is a
 one-flag transform on the same seed.
 
+## Render sound effects
+
+`sfx` renders spellcode's spell and move sounds -- sfxr-style parameter
+sets built from this package's own primitives, no AI audio and no sfxr
+port -- as 16-bit mono WAVs plus a `MANIFEST.json` (every parameter, the
+seed, the package version and each file's SHA-256):
+
+```
+python -m music_theory sfx --out sfx/                         # all 22, 44.1 kHz
+python -m music_theory sfx --out sfx/ --sample-rate 22050     # match the music beds
+python -m music_theory sfx --out sfx/ --only fire_hit --only dodge
+```
+
+Presets: `<element>_cast`, `<element>_hit` and `<element>_impact` for
+arcane, fire, water, lightning, earth and wind, plus `dodge`,
+`parry_normal`, `parry_perfect` and `fizzle`. Each is seeded from its
+name, so a re-render is byte-identical. A sound is a few `sfx.Layer`s
+(transient, body, tail, sub) mixed and normalised; define a new one with
+`sfx_layers.make(name, *layers)` and render it with `sfx.render`.
+
 ## Modules
 
 | module | article | contents |
@@ -83,7 +103,13 @@ one-flag transform on the same seed.
 | `sequencer` | 10 | beat grid, `NoteEvent`, bar-exact render |
 | `compose` | 11 | `Recipe` → bass, arpeggio, melody |
 | `degrade` | — | the ruin transform |
-| `analysis` | — | FFT peak and spectral centroid, so claims are testable |
+| `analysis` | — | FFT peak, spectral centroid, band energy, octave-band slope |
+| `noise` | — | seeded white and pink noise, Poisson grain gates |
+| `sweep` | — | pitch curves (glide, vibrato, arpeggio, jumps, retrigger), phase-accumulating oscillator, ring mod |
+| `envelopes` | — | exponential decay, attack-hold-punch-decay `Shape` |
+| `biquad` | — | resonant low/high/band-pass with a moving cutoff |
+| `sfx`, `sfx_layers` | — | sfxr-style layered parameter set and its renderer |
+| `sfx_presets*`, `sfx_render` | — | spellcode's 22 presets, WAVs + manifest |
 | `wav`, `manifest` | — | 16-bit mono PCM out, SHA-256 provenance |
 
 ## Develop

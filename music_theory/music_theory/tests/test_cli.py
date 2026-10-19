@@ -96,3 +96,26 @@ def test_module_entry_point(
         runpy.run_module("music_theory", run_name="__main__")
     assert info.value.code == 0
     assert "tone" in capsys.readouterr().out
+
+
+def test_sfx_renders_presets_and_manifest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    argv = ["sfx", "--out", str(tmp_path), "--sample-rate", "22050"]
+    assert cli.main([*argv, "--only", "dodge", "--only", "fizzle"]) == 0
+    assert sorted(p.name for p in tmp_path.glob("*.wav")) == [
+        "dodge.wav",
+        "fizzle.wav",
+    ]
+    assert (tmp_path / "MANIFEST.json").exists()
+    out = capsys.readouterr().out
+    assert "dodge.wav" in out
+    assert "aplay -q" in out
+
+
+def test_sfx_rejects_unknown_preset(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["sfx", "--out", str(tmp_path), "--only", "frost_hit"])
+    assert "invalid choice" in capsys.readouterr().err

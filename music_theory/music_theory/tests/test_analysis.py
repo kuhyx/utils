@@ -30,3 +30,28 @@ def test_spectral_centroid_of_silence_and_empty() -> None:
 def test_peak() -> None:
     assert analysis.peak(np.array([0.1, -0.7, 0.3])) == pytest.approx(0.7)
     assert analysis.peak(np.zeros(0)) == 0.0
+
+
+def test_band_energy_finds_a_sine_in_its_band() -> None:
+    signal = synth.oscillator(440.0, 0.5)
+    inside = analysis.band_energy(signal, 400.0, 500.0)
+    assert inside == pytest.approx(analysis.band_energy(signal, 0.0, 11025.0))
+    assert analysis.band_energy(signal, 1000.0, 2000.0) < inside * 1e-6
+    assert analysis.band_energy(np.zeros(0), 0.0, 100.0) == 0.0
+
+
+def test_spectral_slope_of_white_noise_is_flat() -> None:
+    rng = np.random.default_rng(1)
+    white = rng.uniform(-1.0, 1.0, 44100)
+    assert analysis.spectral_slope(white, 44100) == pytest.approx(0.0, abs=0.15)
+
+
+def test_spectral_slope_of_a_falling_spectrum_is_negative() -> None:
+    rng = np.random.default_rng(1)
+    dark = synth.lowpass(rng.uniform(-1.0, 1.0, 22050), 200.0)
+    assert analysis.spectral_slope(dark) < -1.0
+
+
+def test_spectral_slope_needs_two_bands() -> None:
+    with pytest.raises(ValueError, match="octave"):
+        analysis.spectral_slope(np.ones(100), 22050, 1000.0, 1500.0)

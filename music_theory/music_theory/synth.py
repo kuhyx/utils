@@ -66,10 +66,19 @@ def oscillator(
     sample_rate: int = SAMPLE_RATE,
 ) -> Signal:
     """One waveform at one frequency, amplitude 1, no envelope."""
+    phase = (time_axis(seconds, sample_rate) * hz) % 1.0
+    return waveshape(phase, waveform)
+
+
+def waveshape(phase: Signal, waveform: Waveform, duty: float = _HALF_CYCLE) -> Signal:
+    """One cycle's shape read at ``phase`` (0..1); ``duty`` is the square's high part.
+
+    Split from ``oscillator`` so a sweep, whose phase is accumulated rather
+    than ``t * hz``, draws exactly the same four timbres.
+    """
     if waveform not in WAVEFORMS:
         msg = f"unknown waveform {waveform!r}; choose one of {WAVEFORMS}"
         raise ValueError(msg)
-    phase = (time_axis(seconds, sample_rate) * hz) % 1.0
     if waveform == "sine":
         return np.sin(2.0 * math.pi * phase)
     saw = 2.0 * phase - 1.0
@@ -77,7 +86,7 @@ def oscillator(
         return saw
     if waveform == "triangle":
         return 2.0 * np.abs(saw) - 1.0
-    return np.where(phase < _HALF_CYCLE, 1.0, -1.0).astype(np.float64)
+    return np.where(phase < duty, 1.0, -1.0).astype(np.float64)
 
 
 def additive(

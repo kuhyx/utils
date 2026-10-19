@@ -10,20 +10,30 @@ it reproduced the shipped bytes -- or show exactly what changed.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from music_theory import __version__, wav
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from music_theory.compose import Recipe
     from music_theory.synth import Signal
 
 Entry = dict[str, object]
 
 
-def entry(recipe: Recipe, path: Path, signal: Signal) -> Entry:
+class Recordable(Protocol):
+    """Anything rendered from plain data: a ``compose.Recipe``, an ``sfx.Sfx``."""
+
+    @property
+    def sample_rate(self) -> int:
+        """Rate the file was rendered at."""
+
+    def to_dict(self) -> dict[str, object]:
+        """The full recipe as JSON-ready data."""
+
+
+def entry(recipe: Recordable, path: Path, signal: Signal) -> Entry:
     """Provenance record for one rendered file."""
     return {
         "file": path.name,

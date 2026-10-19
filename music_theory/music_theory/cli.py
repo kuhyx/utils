@@ -2,7 +2,8 @@
 """Command line: hear a section of the article, or render a recipe to a file.
 
 Subcommands: ``list``, ``explain <demo|all>``, ``demo <demo|all> --out DIR``
-and ``render --recipe recipe.json --out bed.wav [--manifest m.json]``.
+``render --recipe recipe.json --out bed.wav [--manifest m.json]`` and
+``sfx --out DIR [--sample-rate HZ] [--only NAME ...]``.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING
 
-from music_theory import compose, demos, manifest, wav
+from music_theory import compose, demos, manifest, sfx, sfx_presets, sfx_render, wav
 
 if TYPE_CHECKING:
     from music_theory.demo_support import Demo
@@ -39,6 +40,18 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--manifest", type=Path, help="manifest JSON to update")
     render.add_argument(
         "--degrade", type=float, help="override the recipe's degrade amount"
+    )
+    effects = sub.add_parser("sfx", help="render the SFX presets to WAVs + manifest")
+    effects.add_argument("--out", type=Path, required=True, help="directory to fill")
+    effects.add_argument(
+        "--sample-rate", type=int, choices=(22050, 44100), default=sfx.SFX_SAMPLE_RATE
+    )
+    effects.add_argument(
+        "--only",
+        action="append",
+        choices=sfx_presets.NAMES,
+        metavar="NAME",
+        help="render just this preset (repeatable); default: all",
     )
     return parser
 
@@ -89,6 +102,17 @@ def cmd_render(
     return 0
 
 
+def cmd_sfx(out_dir: Path, sample_rate: int, names: list[str] | None) -> int:
+    """Render SFX presets into ``out_dir`` and print how to hear each."""
+    entries = sfx_render.render_all(out_dir, sample_rate, names)
+    for name in sfx_presets.NAMES if names is None else names:
+        record = entries[f"{name}.wav"]
+        path = out_dir / f"{name}.wav"
+        _emit(f"{path.name}: {record['seconds']:.2f} s  {wav.play_command(path)}")
+    _emit(f"manifest: {out_dir / sfx_render.MANIFEST_NAME}")
+    return 0
+
+
 def _print_demo(demo: Demo) -> None:
     _emit(f"[{demo.section}] {demo.name}")
     for fact in demo.facts:
@@ -104,4 +128,6 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_explain(args.name)
     if args.command == "demo":
         return cmd_demo(args.name, args.out)
+    if args.command == "sfx":
+        return cmd_sfx(args.out, args.sample_rate, args.only)
     return cmd_render(args.recipe, args.out, args.manifest, args.degrade)

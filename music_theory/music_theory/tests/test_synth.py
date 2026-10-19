@@ -78,3 +78,12 @@ def test_to_int16_clips() -> None:
     out = synth.to_int16(np.array([2.0, -2.0, 0.0]))
     assert list(out) == [32767, -32767, 0]
     assert out.dtype == np.int16
+
+
+def test_waveshape_duty_sets_the_square_balance() -> None:
+    phase = np.linspace(0.0, 1.0, 1000, endpoint=False)
+    narrow = synth.waveshape(phase, "square", duty=0.25)
+    assert float(np.mean(narrow)) == pytest.approx(-0.5)
+    assert np.array_equal(synth.waveshape(phase, "saw"), 2.0 * phase - 1.0)
+    with pytest.raises(ValueError, match="unknown waveform"):
+        synth.waveshape(phase, cast("synth.Waveform", "noise"))
