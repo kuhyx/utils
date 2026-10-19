@@ -16,6 +16,7 @@ import tomllib
 from dep_freshness._tables import GITTAG, PYPI, TOOLCHAIN
 from dep_freshness.models import Dep
 from dep_freshness.parsers._lines import index
+from dep_freshness.registries import gittag
 from dep_freshness.versions import exact_pin
 
 _REQ = re.compile(
@@ -35,7 +36,7 @@ _SKIP_PREFIXES = ("-", "#", "git+", "http://", "https://", ".", "/")
 _DIRECT = re.compile(
     r"^\s*(?P<name>[A-Za-z0-9][A-Za-z0-9._-]*)"
     r"(?:\[[^\]]*\])?"
-    r"\s*@\s*git\+\S+?@(?P<ref>[A-Za-z0-9_.-]+-v[0-9][^\s#]*)"
+    r"\s*@\s*git\+(?P<url>\S+?)@(?P<ref>[A-Za-z0-9_.-]+-v[0-9][^\s#]*)"
 )
 
 
@@ -46,8 +47,9 @@ def _direct_reference(requirement: str, path: Path, line: int) -> Dep | None:
         return None
     ref = match.group("ref")
     package, _, version = ref.rpartition("-v")
+    name = gittag.qualified_name(match.group("url"), package or match.group("name"))
     return Dep(
-        ecosystem=GITTAG, name=package or match.group("name"), constraint=ref,
+        ecosystem=GITTAG, name=name, constraint=ref,
         path=path, line=line or _ref_line(path, ref), pinned=version or None,
     )
 
