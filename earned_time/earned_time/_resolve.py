@@ -26,11 +26,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from earned_time._ladder import on_ladder, shutdown_ceiling_for
-from earned_time._leisure import (
-    gaming_base_minutes_for,
-    gaming_ceiling_minutes_for,
-    leisure_day,
-)
+from earned_time._leisure import base_minutes, ceiling_minutes, is_leisure
 from earned_time._maturity import confirmed_start, penalty_start
 from earned_time._policy import SHUTDOWN_BASE_MINUTES, Earner
 from earned_time._registry import all_earners, earners_for
@@ -102,13 +98,24 @@ def base_for(
     ``first_credits`` (per earner name) delays each penalty, and the ladder
     rung, to :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
     The gaming base is :func:`gaming_base_minutes_for` the day, or with
-    ``leisure`` the leisure base whatever the date (:func:`leisure_day`).
+    ``leisure`` the leisure base whatever the date (:func:`is_leisure`).
     """
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
+    on = is_leisure(target, leisure=leisure)
+    return _base(target, registry, first_credits, on=on)
+
+
+def _base(
+    target: date,
+    registry: tuple[Earner, ...],
+    first_credits: Mapping[str, date | None] | None,
+    *,
+    on: bool,
+) -> Base:
     penalised = [e for e in registry if _penalised(e, target, first_credits)]
     return Base(
-        gaming_minutes=gaming_base_minutes_for(leisure_day(target, leisure=leisure))
+        gaming_minutes=base_minutes(leisure=on)
         - sum(e.max_gaming_minutes for e in penalised),
         shutdown_minutes=_shutdown_floor(target, registry, penalised),
     )
@@ -179,8 +186,8 @@ def resolve(
             is 20:00 plus the terms' gaming pay
             (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0).
             Gaming and every term are unchanged.
-        leisure: Price gaming as if ``LEISURE_FROM`` had passed (0.14.0): the
-            leisure base and cap whatever the day -- the shadow budget.
+        leisure: Price gaming as a leisure day (0.14.0): the leisure base and
+            cap whatever the day and the switch file say -- the shadow budget.
             Terms, penalties and shutdown are unchanged.
 
     Returns:
@@ -193,7 +200,9 @@ def resolve(
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
     _check_registered(answers, registry)
-    base = base_for(target, registry, first_credits=first_credits, leisure=leisure)
+    # One switch-file read per resolve, so base and cap can never disagree.
+    on = is_leisure(target, leisure=leisure)
+    base = _base(target, registry, first_credits, on=on)
     terms = [_term(item, answers, target) for item in registry]
     gaming = base.gaming_minutes + sum(t.gaming_minutes for t in terms)
     earned = min(
@@ -205,9 +214,7 @@ def resolve(
         day=target,
         base=base,
         terms=tuple(terms),
-        gaming_minutes=min(
-            gaming_ceiling_minutes_for(leisure_day(target, leisure=leisure)), gaming
-        ),
+        gaming_minutes=min(ceiling_minutes(leisure=on), gaming),
         shutdown_minutes=shutdown,
         sick=sick,
         sick_lift_minutes=shutdown - earned,

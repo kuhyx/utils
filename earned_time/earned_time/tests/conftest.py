@@ -13,6 +13,14 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+@pytest.fixture(autouse=True)
+def _no_real_switch_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the leisure switch file at a missing path, never the real /etc one."""
+    monkeypatch.setattr(
+        "earned_time._leisure.LEISURE_FROM_PATH", tmp_path / "no_leisure_from"
+    )
+
+
 @pytest.fixture
 def key_file(tmp_path: Path) -> Path:
     """The test HMAC key, written where a test can point ``maturity`` at it."""

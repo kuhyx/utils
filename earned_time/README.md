@@ -18,14 +18,19 @@ rows in its ledger — and is registered here once.
 `gaming_minutes` from its `penalty_from` date; each earner done adds its
 `gaming_minutes` back. Capped at `gaming_ceiling_minutes_for(day)`.
 
-**Leisure budget (0.14.0, `_leisure.py`).** From `LEISURE_FROM` the budget
-covers all leisure (games, browsing, video, messaging): base 5 h -> 7 h, cap
-8 h -> 10 h; pay, penalties and shutdown untouched (fully done day: 180 + 300
-= 480 before, 300 + 300 = 600 from it). `LEISURE_FROM` is parked at 2027-01-01
-until Phase 2 sets it to the day after kuhy confirms the shadow week, so every
-real day still resolves byte-identically. `resolve(..., leisure=True)` (and
-`base_for(..., leisure=True)`) prices any day with the leisure base and cap:
-the shadow budget the enforcer shows during that week.
+**Leisure budget (0.14.0, `_leisure.py`).** From the first leisure day the
+budget covers all leisure (games, browsing, video, messaging): base 5 h -> 7 h,
+cap 8 h -> 10 h; pay, penalties and shutdown untouched (full day 480 -> 600).
+`resolve`/`base_for(..., leisure=True)` price any day so: the shadow budget.
+
+**The switch file (0.15.0).** The first leisure day is `leisure_from()`: the
+date in `/etc/leisure-watch/leisure_from` (`LEISURE_FROM_PATH`, one line
+`YYYY-MM-DD`, root:root 0644), else the parked `LEISURE_FROM` (2027-01-01).
+Read afresh each call (`O_NOFOLLOW|O_NONBLOCK`, regular file <= 64 bytes,
+strict format; anything else is parked; never raises), once per `resolve`.
+`leisure_active(day)` (`day >= leisure_from()`, gaming day) is the ONLY way a
+consumer asks "is Phase 2 on?"; none reads the file. `leisure-watch go-live`
+writes it (always tomorrow's date, after its preflight); `--undo` removes it.
 
 **Shutdown** has two regimes, switched by date (`LADDER_FROM`, 2026-10-10 —
 never a same-day cut):
@@ -110,18 +115,12 @@ per-matcher reader `_match.ROW_UNITS`):
   every 5 minutes) are allowed under the same rules; each write fires
   screen-locker's `earner-bonus.path`, so per-minute rows rewrite the
   shutdown schedule once a minute.
-- Rollout order: no minute row may be written until every consumer process
-  runs 0.8.0. A 0.7.0 reader pays each row as a 15-minute block.
 
 Days before `TUTOR_FROM` resolve on `EARNERS` exactly as before. Consumers must
 iterate `earners_for(day)`, never `EARNERS`; `resolve`/`base_for` default to
 it, and ignore answers for an earner of another day's registry.
 
-**The gap waiver (`ANKI_WAIVED_FROM`, 2026-10-09 only).** Until `TUTOR_FROM`
-(2026-10-10) the registry is `EARNERS` without `anki` and `automation`: neither
-penalised nor paid, so the base rises by what they could pay back (nothing
-done 4 h / 19:00; everything 8 h / 23:00). The tutor was confirmed in 0.7.0
-(`confirmed_on` 2026-10-09), so its penalty bites from `TUTOR_FROM`.
+**Gap waiver** (`ANKI_WAIVED_FROM`, 2026-10-09): no anki/automation earner.
 
 ## Gate maturity (0.6.0)
 
@@ -154,8 +153,8 @@ How far to trust a gate is computed from its ledger, never listed by name:
   An unwired consumer (no `first_credits`) cuts the tutor from `penalty_from`:
   19:00 / 3 h.
 - **CLI:** `python -m earned_time maturity [--json] [--day YYYY-MM-DD]`
-  prints one row per ledger-backed earner of every registry. It is the only
-  code that resolves real paths (`~/<Earner.ledger>`,
+  prints one row per ledger-backed earner of every registry. It and
+  `leisure_from()` alone resolve real paths (`~/<Earner.ledger>`,
   `/etc/workout-locker/hmac.key`), and it only reads.
 
 ## API
@@ -165,6 +164,7 @@ How far to trust a gate is computed from its ledger, never listed by name:
   day) -> int`. `base_for(day=None, earners=None, *, first_credits=None,
   leisure=False) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
   `gaming_ceiling_minutes_for(day) -> int` — the gaming base and cap.
+  `leisure_from(path=LEISURE_FROM_PATH) -> date`, `leisure_active(day, path=...)`.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
   of the earliest verified credit for `day`, on its matcher's stamp
@@ -230,8 +230,8 @@ on the day itself is logged and does not count.
 ## Rules the consumers rely on
 
 - **Minutes everywhere.** Shutdown is minutes after local midnight.
-- **Paths are passed in.** No reader resolves a real path itself; consumers'
-  test suites redirect their own constants.
+- **Paths are passed in.** No reader resolves a real path itself, except the
+  switch file: consumer tests patch `earned_time._leisure.LEISURE_FROM_PATH`.
 - **`None` is "could not check", never "no".** It earns nothing (fail closed),
   but consumers log it. A missing answer in `resolve()` is logged as well; an
   unknown earner name raises.
@@ -243,7 +243,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.14.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.15.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
