@@ -26,13 +26,13 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from earned_time._ladder import on_ladder, shutdown_ceiling_for
-from earned_time._maturity import confirmed_start, penalty_start
-from earned_time._policy import (
-    GAMING_BASE_MINUTES,
-    GAMING_CEILING_MINUTES,
-    SHUTDOWN_BASE_MINUTES,
-    Earner,
+from earned_time._leisure import (
+    gaming_base_minutes_for,
+    gaming_ceiling_minutes_for,
+    leisure_day,
 )
+from earned_time._maturity import confirmed_start, penalty_start
+from earned_time._policy import SHUTDOWN_BASE_MINUTES, Earner
 from earned_time._registry import all_earners, earners_for
 from earned_time._resolution import Base, Resolution, Term
 from earned_time._sick import sick_shutdown_from
@@ -92,6 +92,7 @@ def base_for(
     earners: tuple[Earner, ...] | None = None,
     *,
     first_credits: Mapping[str, date | None] | None = None,
+    leisure: bool = False,
 ) -> Base:
     """The floor for ``day`` (default today) under ``earners`` (default its own).
 
@@ -100,12 +101,14 @@ def base_for(
     derived separately so the ladder can never move a gaming minute.
     ``first_credits`` (per earner name) delays each penalty, and the ladder
     rung, to :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
+    The gaming base is :func:`gaming_base_minutes_for` the day, or with
+    ``leisure`` the leisure base whatever the date (:func:`leisure_day`).
     """
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
     penalised = [e for e in registry if _penalised(e, target, first_credits)]
     return Base(
-        gaming_minutes=GAMING_BASE_MINUTES
+        gaming_minutes=gaming_base_minutes_for(leisure_day(target, leisure=leisure))
         - sum(e.max_gaming_minutes for e in penalised),
         shutdown_minutes=_shutdown_floor(target, registry, penalised),
     )
@@ -128,6 +131,22 @@ def _check_registered(
         raise KeyError(msg)
 
 
+def _term(item: Earner, answers: Mapping[str, Answer], day: date) -> Term:
+    """``item``'s term on ``day``; no answer at all is logged and earns nothing."""
+    if item.name not in answers:
+        _logger.warning(
+            "No answer for the %s earner; it earns nothing today", item.label
+        )
+    units = _units(answers.get(item.name))
+    count = units or 0
+    return Term(
+        earner=item,
+        answer=units,
+        gaming_minutes=item.gaming_for(count),
+        shutdown_minutes=item.shutdown_for(count, day),
+    )
+
+
 def _sick_or(earned: int, terms: list[Term], day: date) -> int:
     """A sick day's shutdown: 20:00 plus gaming pay, never below ``earned``."""
     return max(earned, sick_shutdown_from(sum(t.gaming_minutes for t in terms), day))
@@ -140,6 +159,7 @@ def resolve(
     *,
     first_credits: Mapping[str, date | None] | None = None,
     sick: bool = False,
+    leisure: bool = False,
 ) -> Resolution:
     """Sum the base and every earned term, each capped at its ceiling.
 
@@ -159,6 +179,9 @@ def resolve(
             is 20:00 plus the terms' gaming pay
             (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0).
             Gaming and every term are unchanged.
+        leisure: Price gaming as if ``LEISURE_FROM`` had passed (0.14.0): the
+            leisure base and cap whatever the day -- the shadow budget.
+            Terms, penalties and shutdown are unchanged.
 
     Returns:
         The resolution, with a term for every registered earner.
@@ -170,23 +193,8 @@ def resolve(
     target = day or _today()
     registry = earners_for(target) if earners is None else earners
     _check_registered(answers, registry)
-    base = base_for(target, registry, first_credits=first_credits)
-    terms: list[Term] = []
-    for item in registry:
-        if item.name not in answers:
-            _logger.warning(
-                "No answer for the %s earner; it earns nothing today", item.label
-            )
-        units = _units(answers.get(item.name))
-        count = units or 0
-        terms.append(
-            Term(
-                earner=item,
-                answer=units,
-                gaming_minutes=item.gaming_for(count),
-                shutdown_minutes=item.shutdown_for(count, target),
-            )
-        )
+    base = base_for(target, registry, first_credits=first_credits, leisure=leisure)
+    terms = [_term(item, answers, target) for item in registry]
     gaming = base.gaming_minutes + sum(t.gaming_minutes for t in terms)
     earned = min(
         shutdown_ceiling_for(target),
@@ -197,7 +205,9 @@ def resolve(
         day=target,
         base=base,
         terms=tuple(terms),
-        gaming_minutes=min(GAMING_CEILING_MINUTES, gaming),
+        gaming_minutes=min(
+            gaming_ceiling_minutes_for(leisure_day(target, leisure=leisure)), gaming
+        ),
         shutdown_minutes=shutdown,
         sick=sick,
         sick_lift_minutes=shutdown - earned,

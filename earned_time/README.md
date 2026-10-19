@@ -14,9 +14,18 @@ rows in its ledger — and is registered here once.
 
 ## The model
 
-**Gaming** (unchanged): a base of 5 h, minus every earner's `gaming_minutes`
-from its `penalty_from` date; each earner done adds its `gaming_minutes` back.
-Capped at 8 h.
+**Gaming**: a base (`gaming_base_minutes_for(day)`) minus every earner's
+`gaming_minutes` from its `penalty_from` date; each earner done adds its
+`gaming_minutes` back. Capped at `gaming_ceiling_minutes_for(day)`.
+
+**Leisure budget (0.14.0, `_leisure.py`).** From `LEISURE_FROM` the budget
+covers all leisure (games, browsing, video, messaging): base 5 h -> 7 h, cap
+8 h -> 10 h; pay, penalties and shutdown untouched (fully done day: 180 + 300
+= 480 before, 300 + 300 = 600 from it). `LEISURE_FROM` is parked at 2027-01-01
+until Phase 2 sets it to the day after kuhy confirms the shadow week, so every
+real day still resolves byte-identically. `resolve(..., leisure=True)` (and
+`base_for(..., leisure=True)`) prices any day with the leisure base and cap:
+the shadow budget the enforcer shows during that week.
 
 **Shutdown** has two regimes, switched by date (`LADDER_FROM`, 2026-10-10 —
 never a same-day cut):
@@ -29,8 +38,7 @@ never a same-day cut):
   earner name; all of a counted earner's capped units), so doing everything
   lands exactly on the ceiling. Since 0.6.1 `TUTOR_FROM == LADDER_FROM`, so
   every real ladder day uses `TUTOR_LADDER` (below); `LADDER`, the pre-tutor
-  split (workout 110, LeetCode 50, reading 30, Anki 25, Automation 25; floor
-  19:00), is never in force on a real day.
+  split (floor 19:00), is never in force on a real day.
 
   A second workout earns nothing more (`Rung.extra` defaults to 0).
   Move the alarm (`WAKE_MINUTES = 6 * 60`) and the whole ladder shifts an hour
@@ -59,11 +67,10 @@ registry is per day: `earners_for(day)` is `EARNERS` before it and
 `TUTOR_EARNERS` from it. From `TUTOR_FROM` Anki is retired (neither penalised
 nor paid) and the tutor is `TUTOR` (name `tutor`), a counted earner on the
 tutor's ledger (`~/.local/share/tutor/ledger.json`, `tutor_match` on
-`detail.ended_at`). Until 0.9.0 it was `AUTOMATION_TUTOR`, name `automation`,
-on `~/.local/share/automation_tutor/ledger.json`; rows carry no earner name,
-so the rename only moved the ledger (copied whole, old rows still pay).
-Since 0.8.0 it pays per **active
-minute** (a unit is one minute), at most 60 a day summed across sessions.
+`detail.ended_at`). Until 0.9.0 it was `AUTOMATION_TUTOR` (name `automation`,
+its own ledger, copied whole on the rename: old rows still pay).
+Since 0.8.0 it pays per **active minute** (a unit is one minute), at most 60
+a day summed across sessions.
 **Weekday quota (0.10.0, `TUTOR_QUOTA_FROM` 2026-10-12, `_quota.py`):** all 60
 units take 15 min Tue-Thu (`WORKDAYS`, a copy of freedays'), 30 Mon/Fri, 50
 Sat/Sun; `credit_units` scales the day's deduped minute sum,
@@ -110,15 +117,11 @@ Days before `TUTOR_FROM` resolve on `EARNERS` exactly as before. Consumers must
 iterate `earners_for(day)`, never `EARNERS`; `resolve`/`base_for` default to
 it, and ignore answers for an earner of another day's registry.
 
-**The gap waiver (`ANKI_WAIVED_FROM`, 2026-10-09).** anki-guard never wrote a
-credit, and the tutor is not confirmed yet, so from `ANKI_WAIVED_FROM` until
-`TUTOR_FROM` the registry is `EARNERS` without `anki` and `automation`:
-neither penalised nor paid. The base rises by exactly what the two could have
-paid back (nothing done: 4 h / 19:00, pre-ladder; everything done: still
-8 h / 23:00), so it can only ever raise time. `TUTOR_FROM` is 2026-10-10
-(0.6.1), the day after the deploy, never the deploy day; the waiver therefore
-covers 2026-10-09 only. The tutor was confirmed in 0.7.0 (`confirmed_on`
-2026-10-09), so its penalty bites from `TUTOR_FROM`.
+**The gap waiver (`ANKI_WAIVED_FROM`, 2026-10-09 only).** Until `TUTOR_FROM`
+(2026-10-10) the registry is `EARNERS` without `anki` and `automation`: neither
+penalised nor paid, so the base rises by what they could pay back (nothing
+done 4 h / 19:00; everything 8 h / 23:00). The tutor was confirmed in 0.7.0
+(`confirmed_on` 2026-10-09), so its penalty bites from `TUTOR_FROM`.
 
 ## Gate maturity (0.6.0)
 
@@ -157,9 +160,11 @@ How far to trust a gate is computed from its ledger, never listed by name:
 
 ## API
 
-- `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False)`
-  `-> Resolution` — the one sum. `sick_shutdown_from(paid_minutes, day) -> int`.
-- `base_for(day=None, earners=EARNERS) -> Base` — the day's floors.
+- `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False,
+  leisure=False) -> Resolution` — the one sum. `sick_shutdown_from(paid_minutes,
+  day) -> int`. `base_for(day=None, earners=None, *, first_credits=None,
+  leisure=False) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
+  `gaming_ceiling_minutes_for(day) -> int` — the gaming base and cap.
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
   of the earliest verified credit for `day`, on its matcher's stamp
@@ -174,11 +179,10 @@ How far to trust a gate is computed from its ledger, never listed by name:
   on a day, and every earner of every registry (what a ledger watcher must
   watch). They read `earned_time.EARNERS` through the package, so a consumer
   test that patches it still registers its stand-in.
-- `shutdown_minutes_for(earner, day) -> int`, `extra_shutdown_minutes_for(earner,
-  day) -> int`, `shutdown_ceiling_for(day) -> int`, `on_ladder(day) -> bool` — what a status
-  view needs to list what is still left to earn. `Earner.shutdown_for(units,
-  day=None)` is the day-aware sum (default today). Never read
-  `earner.shutdown_minutes` directly: it is the pre-ladder value.
+- `shutdown_minutes_for(earner, day)`, `extra_shutdown_minutes_for(earner, day)`,
+  `shutdown_ceiling_for(day)` (ints), `on_ladder(day) -> bool` — what a status
+  view lists as still left to earn. `Earner.shutdown_for(units, day=None)` is
+  the day-aware sum. Never read `earner.shutdown_minutes`: pre-ladder value.
 - `day_window(day)`, `today_window(now=None)`, `entry_signature`, `verified`.
 
 ## The workout ledger
@@ -217,10 +221,9 @@ on the day itself is logged and does not count.
    Then give it a rung in `TUTOR_LADDER` (`PIANO.name: Rung(20)`), and, if its
    matcher decides on an event stamp, an entry in `_match.CREDIT_STAMPS`.
 
-   On the ladder a new earner's rung comes out of the floor from its
-   penalty start (a pure bonus: the day its pin lands; the ceiling is fixed):
-   re-split the rungs and ship it the day the
-   gate can actually be satisfied.
+   On the ladder a new earner's rung comes out of the floor from its penalty
+   start (a pure bonus: the day its pin lands; the ceiling is fixed): re-split
+   the rungs and ship it the day the gate can actually be satisfied.
 3. Bump the version, tag `earned-time-vX.Y.Z`, and bump the pin in both
    consumers. Neither needs code for a ledger-backed flat earner.
 
@@ -232,17 +235,15 @@ on the day itself is logged and does not count.
 - **`None` is "could not check", never "no".** It earns nothing (fail closed),
   but consumers log it. A missing answer in `resolve()` is logged as well; an
   unknown earner name raises.
-- **The HMAC key is root-owned and 0644 on purpose.** The gates run as the
-  user and must sign their rows, so the user can read the key; root owns it
-  so a user process cannot replace or rotate it. The signature therefore
-  stops casual edits and corruption, not a determined forger with a shell --
-  the accepted trade-off of user-run gates.
+- **The HMAC key is root-owned and 0644 on purpose.** User-run gates must sign
+  rows, so the user reads it; root owns it so no user process can replace it.
+  It stops casual edits and corruption, not a determined forger with a shell.
 - **Stdlib only.** The gaming daemon imports this as root, headless.
 
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.13.1#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.14.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

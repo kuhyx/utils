@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -127,9 +127,10 @@ def test_earner_without_ladder_values_keeps_its_own() -> None:
     assert extra_shutdown_minutes_for(plain, FIRST) == 5
 
 
-def test_shutdown_for_defaults_to_today(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ladder, "LADDER_FROM", date(2000, 1, 1))
-    assert WORKOUT.shutdown_for(2) == 110
+def test_shutdown_for_defaults_to_today() -> None:
+    # Pinned to today, not a constant: a literal broke when UNIFIED_FROM passed.
+    today = datetime.now(tz=UTC).astimezone().date()
+    assert WORKOUT.shutdown_for(2) == WORKOUT.shutdown_for(2, today)
 
 
 def test_the_ladder() -> None:

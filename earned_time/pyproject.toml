@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "earned-time"
-version = "0.13.2"
+version = "0.14.0"
 description = "Penalty-then-reward registry: what every gate app earns in gaming time and shutdown time"
 requires-python = ">=3.14"
 dependencies = []
@@ -32,6 +32,10 @@ unfixable = []
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
 "**/test_*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+
+[tool.ruff.lint.pylint]
+# Same as [tool.pylint.design] max-args: resolve()'s keyword-only switches.
+max-args = 6
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -108,6 +112,9 @@ min-public-methods = 0
 max-module-lines = 1000
 # Earner is a frozen registry record: its fields are the policy (cf. music_theory).
 max-attributes = 13
+# resolve()'s keyword-only switches (first_credits, sick, leisure) are the
+# public API every consumer calls; bundling them would break each caller.
+max-args = 6
 
 [tool.pylint.typecheck]
 generated-members = [

@@ -23,6 +23,8 @@ A consumer's whole integration::
     apply(day.gaming_minutes)
 
 ``sick`` (0.11.0) only raises shutdown to at least 20:00; gaming is unchanged.
+``leisure=True`` (0.14.0) prices gaming with the leisure base and cap
+(:data:`LEISURE_FROM`) whatever the day: the shadow budget.
 
 How far to trust a gate is computed, not listed: :func:`maturity` (and
 ``python -m earned_time maturity``).
@@ -57,6 +59,13 @@ from earned_time._ladder import (
     shutdown_minutes_for,
 )
 from earned_time._ledger import done_today, entry_signature, today_window, verified
+from earned_time._leisure import (
+    LEISURE_BASE_MINUTES,
+    LEISURE_CEILING_MINUTES,
+    LEISURE_FROM,
+    gaming_base_minutes_for,
+    gaming_ceiling_minutes_for,
+)
 from earned_time._maturity import (
     MATURE_MIN_AGE_DAYS,
     MATURE_MIN_CREDIT_DAYS,
@@ -96,6 +105,9 @@ __all__ = [
     "LADDER",
     "LADDER_FROM",
     "LEETCODE",
+    "LEISURE_BASE_MINUTES",
+    "LEISURE_CEILING_MINUTES",
+    "LEISURE_FROM",
     "MATURE_MIN_AGE_DAYS",
     "MATURE_MIN_CREDIT_DAYS",
     "READING",
@@ -130,6 +142,8 @@ __all__ = [
     "entry_signature",
     "extra_shutdown_minutes_for",
     "first_credit_at",
+    "gaming_base_minutes_for",
+    "gaming_ceiling_minutes_for",
     "ladder_for",
     "maturity",
     "on_ladder",
