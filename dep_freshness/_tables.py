@@ -104,9 +104,14 @@ MAX_WORKERS: Final = 8
 # against LTS, so the gate targets LTS. One-line switch to "current".
 NODE_CHANNEL: Final = "lts"
 
-# The interpreter is pacman-managed here. A gate satisfiable only by fighting
-# the distro gets disabled, so Python is compared to what is INSTALLED.
-PYTHON_SOURCE: Final = "installed"
+# Python is a registry answer like every other toolchain (kuhy, 2026-10-20).
+# It used to be the interpreter running the gate, which made the verdict
+# depend on the machine: `setup-python` "3.x" gave spellcode 3.15.0 on one
+# runner and 3.14.8 on the next. See registries/toolchain.py for the source.
+PYTHON_RELEASES: Final = (
+    "https://www.python.org/api/v2/downloads/release/"
+    "?is_published=true&pre_release=false"
+)
 
 # --- Manifest discovery -----------------------------------------------------
 

@@ -60,11 +60,6 @@ def test_node_with_no_feed_is_unknown(feed):
     assert tc.node_latest() is None
 
 
-def test_python_reports_the_running_interpreter():
-    import platform
-    assert tc.python_installed() == platform.python_version()
-
-
 LS_REMOTE = (
     "aaa\trefs/tags/crdt_sync_dart-v0.10.0\n"
     "bbb\trefs/tags/crdt_sync_dart-v0.11.0\n"

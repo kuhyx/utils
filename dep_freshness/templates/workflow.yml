@@ -37,11 +37,10 @@ jobs:
           repository: kuhyx/utils
           path: .utils
 
-      # "3.x", never a pinned minor: the Python target IS the interpreter the
-      # gate runs under (registries/toolchain.python_installed), so a runner
-      # held a release behind this machine reports a repo's `requires-python`
-      # as excluding "latest" while the same check passes locally. flax-docs-mcp
-      # hit exactly that -- `>=3.14` green here, red on a 3.13 runner.
+      # Any recent Python runs the gate. The Python TARGET is python.org's
+      # newest release (registries/toolchain.python_latest), not this
+      # interpreter: when it was, "3.x" resolved to 3.15.0 on one runner and
+      # 3.14.8 on the next, and spellcode's allowlist flipped dead/required.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

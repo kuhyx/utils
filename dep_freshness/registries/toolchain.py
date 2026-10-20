@@ -1,19 +1,24 @@
-"""Latest stable Flutter/Dart, Node and Python, for the toolchain checks (Q3).
+"""Latest stable Flutter/Dart, Node, Python and Gradle, for the toolchain checks (Q3).
 
-Python is deliberately compared against the INSTALLED interpreter rather than
-python.org: on Arch it is pacman-managed, and a gate that can only be satisfied
-by fighting the distro gets switched off.
+Python comes from python.org's release API, NOT the interpreter running the
+gate. That used to be the target, and it made the verdict a property of the
+machine: `setup-python` "3.x" resolved to 3.15.0 on one runner and 3.14.8 on
+another, so spellcode's `transitive:` allowlist entry was dead on one and
+required on the other (2026-10-20). python.org is first-party, filters
+pre-releases server-side, and answers in one request; endoflife.date is a
+third party, and cpython's git tags would mean walking every rc tag.
 """
 
 from __future__ import annotations
 
-import platform
+import re
 
 from dep_freshness._tables import (
     FLUTTER_RELEASES,
     GRADLE_RELEASES,
     NODE_CHANNEL,
     NODE_RELEASES,
+    PYTHON_RELEASES,
 )
 from dep_freshness.registries.http import get_json
 from dep_freshness.versions import newest_stable
@@ -47,9 +52,22 @@ def node_latest(channel: str = NODE_CHANNEL) -> str | None:
     return newest_stable(candidates)
 
 
-def python_installed() -> str:
-    """The interpreter this gate is running under — the Python target."""
-    return platform.python_version()
+# Exactly "Python X.Y.Z": the feed also lists "Python install manager 26.4"
+# (the Windows launcher), which read as a version would be Python 26.
+_CPYTHON_RELEASE = re.compile(r"Python (\d+\.\d+\.\d+)")
+
+
+def python_latest() -> str | None:
+    """Newest final CPython release on python.org."""
+    payload = get_json(PYTHON_RELEASES)
+    if not payload:
+        return None
+    candidates = []
+    for release in payload:
+        match = _CPYTHON_RELEASE.fullmatch(release.get("name") or "")
+        if match and not release.get("pre_release"):
+            candidates.append(match.group(1))
+    return newest_stable(candidates)
 
 
 def gradle_latest() -> str | None:
