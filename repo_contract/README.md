@@ -68,6 +68,31 @@ GitHub Actions), then bootstraps the `## Commands` section and
 The hook only fires on commits touching CLAUDE.md/AGENTS.md/test_changed.sh,
 so a repo that never got the installer is caught only by `sweep.py`.
 
+## Websites: the AgentReady gate
+
+Every website kuhy owns must pass `~/src/utils/agent_ready` (decided
+2026-10-22). A repo is a website when `repo-contract.toml` has an
+`[agent_ready]` table, or when detection finds a node web build: a `build`
+script in package.json plus a Vite or Astro config or a root `index.html`.
+`check.py` fails a detected repo that has no table. Keys:
+`dist = "<build dir>"` with optional `build` and `install`, or
+`url = "https://..."` for server-rendered sites, or `skip = "<reason>"` for a
+repo that is not a website. `act = true` turns on the act checks.
+
+For a website, the installer also writes the proposed table (it never
+overwrites one), the `scripts/check_agent_ready.sh` shim, the `agent-ready`
+pre-commit hook, and `.github/workflows/agent-ready.yml`. That workflow checks
+out kuhyx/utils into `.utils`, sets up Node, and runs
+`check_agent_ready.sh --strict --install`. The shared gate
+`scripts/check_agent_ready.sh` builds the site and runs
+`agent_ready/check.sh dist|url`. The build runs in a throwaway copy of the
+working tree (`isolate.py`), because a live `dist/` may be bind-mounted into
+Caddy and must never be emptied by a commit. The hook only fires when a
+web-relevant file is staged (`web.DEFAULT_FILES`, overridable with
+`files = "<regex>"`); CI rebuilds on every push. Without `--strict`, an unreachable url
+degrades to a pass, and the gate defers to that workflow when run inside
+another GitHub Actions job.
+
 ## Tests
 
 ```bash

@@ -8,9 +8,11 @@ from pathlib import Path
 import pytest
 
 from repo_contract import install as inst
+from repo_contract import web
 from repo_contract.check import violations
 
 from .conftest import good_repo, write
+from .test_web import vite_repo
 
 
 def python_repo(root: Path) -> Path:
@@ -112,3 +114,88 @@ def test_main_reports_bootstrap_actions(
     python_repo(repo)
     inst.main([str(repo)])
     assert "bootstrap: created scripts/test_changed.sh" in capsys.readouterr().out
+
+
+WEB_PIECES = [
+    "repo-contract.toml ([agent_ready])",
+    "scripts/check_agent_ready.sh",
+    ".github/workflows/agent-ready.yml",
+    ".pre-commit-config.yaml (agent-ready hook)",
+]
+
+
+def test_vite_repo_gets_the_agent_ready_gate(repo: Path) -> None:
+    vite_repo(repo)
+    assert inst.plan(repo)[3:] == WEB_PIECES
+    assert inst.install(repo)[3:] == WEB_PIECES
+    toml = (repo / "repo-contract.toml").read_text(encoding="utf-8")
+    assert 'dist = "dist"' in toml and 'build = "pnpm run build"' in toml
+    hooks = (repo / inst.PRECOMMIT).read_text(encoding="utf-8")
+    assert "id: repo-contract" in hooks and "id: agent-ready" in hooks
+    assert (repo / "scripts/check_agent_ready.sh").stat().st_mode & stat.S_IXUSR
+    assert "check_agent_ready.sh --strict --install" in (
+        repo / ".github/workflows/agent-ready.yml"
+    ).read_text(encoding="utf-8")
+    assert inst.install(repo) == []
+    assert inst.plan(repo) == []
+
+
+def test_declared_url_site_gets_gate_but_config_is_kept(repo: Path) -> None:
+    body = '# mine\n[agent_ready]\nurl = "https://x.example"\n'
+    write(repo, "repo-contract.toml", body)
+    assert inst.install(repo)[3:] == WEB_PIECES[1:]
+    assert (repo / "repo-contract.toml").read_text(encoding="utf-8") == body
+
+
+def test_existing_toml_without_table_gets_it_appended(repo: Path) -> None:
+    vite_repo(repo)
+    write(repo, "repo-contract.toml", "[other]\nx = 1")
+    inst.install(repo)
+    text = (repo / "repo-contract.toml").read_text(encoding="utf-8")
+    assert text.startswith("[other]\nx = 1\n") and "[agent_ready]" in text
+
+
+def test_skipped_or_broken_config_installs_no_web_pieces(repo: Path) -> None:
+    write(repo, "repo-contract.toml", '[agent_ready]\nskip = "auth-gated"\n')
+    assert len(inst.plan(repo)) == 3
+    write(repo, "repo-contract.toml", "[agent_ready]\n")
+    assert len(inst.install(repo)) == 3
+
+
+def test_marker_skips_agent_ready_workflow(repo: Path) -> None:
+    write(repo, ".dep-freshness-no-workflow")
+    write(repo, "repo-contract.toml", '[agent_ready]\nurl = "https://x.example"\n')
+    inst.install(repo)
+    assert not (repo / ".github/workflows/agent-ready.yml").exists()
+
+
+def _agent_ready_files(repo: Path) -> list[str]:
+    lines = (repo / inst.PRECOMMIT).read_text(encoding="utf-8").splitlines()
+    start = lines.index("      - id: agent-ready")
+    return [ln for ln in lines[start:] if ln.startswith("        files: ")]
+
+
+def test_hook_carries_the_files_filter_and_follows_config(repo: Path) -> None:
+    vite_repo(repo)
+    inst.install(repo)
+    assert _agent_ready_files(repo) == ["        files: '" + web.DEFAULT_FILES + "'"]
+    with (repo / "repo-contract.toml").open("a", encoding="utf-8") as fh:
+        fh.write('files = "^(app/|it\'s\\\\.html$)"\n')
+    assert inst.plan(repo) == [".pre-commit-config.yaml (agent-ready hook)"]
+    assert inst.install(repo) == [".pre-commit-config.yaml (agent-ready hook)"]
+    assert _agent_ready_files(repo) == ["        files: '^(app/|it''s\\.html$)'"]
+    assert inst.install(repo) == []
+
+
+def test_hook_without_files_line_gets_one(repo: Path) -> None:
+    write(repo, "repo-contract.toml", '[agent_ready]\nurl = "https://x.example"\n')
+    write(
+        repo,
+        inst.PRECOMMIT.as_posix(),
+        "repos:\n  - repo: local\n    hooks:\n      - id: agent-ready\n"
+        "        entry: scripts/check_agent_ready.sh\n\n"
+        "      - id: other\n        entry: x\n",
+    )
+    inst.install(repo)
+    lines = (repo / inst.PRECOMMIT).read_text(encoding="utf-8").splitlines()
+    assert lines[5].startswith("        files: '") and lines[7] == "      - id: other"

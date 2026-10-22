@@ -1,0 +1,50 @@
+name: agent-ready
+
+# Every website kuhy owns passes the AgentReady checker. The local pre-commit
+# hook can be skipped (a fresh clone has no hooks), so this rebuilds the site
+# from a clean checkout and checks the output on every push. Settings live in
+# repo-contract.toml [agent_ready]; see ~/src/utils/repo_contract/web.py.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  agent-ready:
+    name: AgentReady
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The gate (repo_contract) and the checker (agent_ready) both live in
+      # the shared utils repo, so every site is judged by the same checker.
+      - name: Check out the shared gate
+        uses: actions/checkout@v4
+        with:
+          repository: kuhyx/utils
+          path: .utils
+
+      # The gate and checker are stdlib-only (tomllib needs 3.11+).
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # Node comes from .nvmrc (the dependency-freshness pin). Without one the
+      # runner's preinstalled Node builds the site; a channel name like lts/*
+      # here would turn the dependency-freshness gate red in every site repo.
+      - name: Set up Node (pinned by .nvmrc)
+        if: hashFiles('.nvmrc') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # pnpm switches itself to the `packageManager` version in package.json.
+      - name: Install pnpm
+        if: hashFiles('pnpm-lock.yaml') != ''
+        run: npm install --global pnpm
+
+      - name: Build and check the site
+        run: bash .utils/scripts/check_agent_ready.sh --strict --install

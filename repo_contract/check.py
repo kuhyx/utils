@@ -25,6 +25,7 @@ from repo_contract.contract import (
     verbose_in_script,
 )
 from repo_contract.stacks import detect_stacks, has_tests
+from repo_contract.web import problems as web_problems
 
 EXIT_OK, EXIT_VIOLATIONS, EXIT_UNREADABLE = 0, 1, 2
 DOC_NAMES = ("CLAUDE.md", "AGENTS.md")
@@ -99,7 +100,17 @@ def _check_consistency(
 
 
 def violations(repo: Path) -> tuple[list[str], list[str]]:
-    """(violations, detected stacks) for `repo`. Raises Unreadable."""
+    """(violations, detected stacks) for `repo`. Raises Unreadable.
+
+    Website repos also owe the AgentReady gate (web.problems), reported
+    whatever state the Commands section is in.
+    """
+    found, stacks = _doc_violations(repo)
+    return found + web_problems(repo), stacks
+
+
+def _doc_violations(repo: Path) -> tuple[list[str], list[str]]:
+    """Violations of the `## Commands` contract proper."""
     stacks = detect_stacks(repo)
     text = read_doc(repo)
     if text is None:

@@ -6,7 +6,9 @@
 #
 # Run this on EVERY new repo, right after `git init`. Idempotent. Pieces:
 # scripts/check_repo_contract.sh shim, pre-commit hook, CI workflow (skipped
-# when the repo has .dep-freshness-no-workflow), Commands section.
+# when the repo has .dep-freshness-no-workflow), Commands section. A website
+# (Vite/Astro/index.html build, or [agent_ready] in repo-contract.toml) also
+# gets the AgentReady gate: config table, shim, hook, agent-ready workflow.
 #
 # Usage: scripts/install_repo_contract_gate.sh <repo> [--check] [--no-bootstrap]
 # Exit: 0 contract satisfied | 1 violations left (e.g. <FILL IN>) | 2 not a git repo

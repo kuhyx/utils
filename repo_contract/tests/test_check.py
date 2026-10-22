@@ -9,6 +9,7 @@ import pytest
 from repo_contract.check import Unreadable, main, read_doc, violations
 
 from .conftest import GOOD, good_repo, write
+from .test_web import vite_repo
 
 
 def problems(repo: Path) -> list[str]:
@@ -132,3 +133,16 @@ def test_verbose_and_placeholder_reported(repo: Path) -> None:
     out = problems(repo)
     assert any("quiet by default" in p for p in out)
     assert any("placeholder" in p for p in out)
+
+
+def test_unconfigured_web_repo_is_a_violation(repo: Path) -> None:
+    good_repo(repo)
+    vite_repo(repo)
+    found, _ = violations(repo)
+    assert any("web build detected" in p for p in found)
+
+
+def test_web_problems_reported_even_without_claude_md(repo: Path) -> None:
+    write(repo, "repo-contract.toml", "[agent_ready]\n")
+    found, _ = violations(repo)
+    assert any(p.startswith("repo-contract.toml:") for p in found)

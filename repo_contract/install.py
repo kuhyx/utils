@@ -25,15 +25,14 @@ from dep_freshness.install import NO_WORKFLOW_MARKER
 from repo_contract import bootstrap
 from repo_contract.check import violations
 from repo_contract.infer import propose
+from repo_contract.install_web import install_web, plan_web
+from repo_contract.precommit import PRECOMMIT, needs_hook, write_hook
 from repo_contract.stacks import detect_stacks
 
 TEMPLATES = bootstrap.TEMPLATES
 SHIM = Path("scripts/check_repo_contract.sh")
 WORKFLOW = Path(".github/workflows/repo-contract.yml")
-PRECOMMIT = Path(".pre-commit-config.yaml")
 HOOK_ID = "repo-contract"
-LOCAL_REPO = "  - repo: local"
-EMPTY_PRECOMMIT = f"repos:\n{LOCAL_REPO}\n    hooks:\n"
 
 
 def _template(name: str) -> str:
@@ -60,54 +59,20 @@ def _needs_workflow(repo: Path) -> bool:
     )
 
 
-def _needs_hook(repo: Path) -> bool:
-    target = repo / PRECOMMIT
-    return not target.is_file() or f"id: {HOOK_ID}" not in target.read_text(
-        encoding="utf-8"
-    )
-
-
-def _local_block_end(lines: list[str]) -> int:
-    """Index just past the LAST `- repo: local` block, or -1 if there is none."""
-    starts = [n for n, line in enumerate(lines) if line.rstrip() == LOCAL_REPO]
-    if not starts:
-        return -1
-    after = [
-        n for n in range(starts[-1] + 1, len(lines)) if lines[n].startswith("  - repo:")
-    ]
-    return after[0] if after else len(lines)
-
-
-def _write_hook(repo: Path) -> None:
-    """Insert the hook into the LAST local hooks list, keeping comments intact."""
-    target = repo / PRECOMMIT
-    body = target.read_text(encoding="utf-8") if target.is_file() else EMPTY_PRECOMMIT
-    lines = (body if body.endswith("\n") else body + "\n").split("\n")[:-1]
-    cut = _local_block_end(lines)
-    if cut < 0:
-        raise ValueError(
-            f"{target} has no `{LOCAL_REPO}` block to add the hook to; "
-            "add one by hand, then re-run"
-        )
-    block = [
-        ln
-        for ln in _template("pre-commit-snippet.yaml").rstrip("\n").split("\n")
-        if not ln.startswith("#")
-    ]
-    lines[cut:cut] = ["", *block]
-    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
 def plan(repo: Path) -> list[str]:
-    """Which gate pieces are missing or drifted (the Commands section excluded)."""
+    """Which gate pieces are missing or drifted (the Commands section excluded).
+
+    A website (detected or declared in repo-contract.toml) also gets the
+    AgentReady gate: config, shim, workflow and hook (see install_web.py).
+    """
     todo = []
     if _needs_shim(repo):
         todo.append(str(SHIM))
     if _needs_workflow(repo):
         todo.append(str(WORKFLOW))
-    if _needs_hook(repo):
+    if needs_hook(repo, HOOK_ID):
         todo.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
-    return todo
+    return todo + plan_web(repo)
 
 
 def install(repo: Path) -> list[str]:
@@ -124,10 +89,10 @@ def install(repo: Path) -> list[str]:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(_template("repo-contract.yml"), encoding="utf-8")
         done.append(str(WORKFLOW))
-    if _needs_hook(repo):
-        _write_hook(repo)
+    if needs_hook(repo, HOOK_ID):
+        write_hook(repo, _template("pre-commit-snippet.yaml"))
         done.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
-    return done
+    return done + install_web(repo)
 
 
 def bootstrap_commands(repo: Path) -> list[str]:
