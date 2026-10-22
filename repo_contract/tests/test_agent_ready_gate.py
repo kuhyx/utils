@@ -168,7 +168,11 @@ def test_pre_commit_in_ci_defers_to_the_workflow(
 
 
 @pytest.mark.skipif(not gate.CHECKER.exists(), reason="agent_ready not checked out")
-def test_real_checker_fails_a_bare_build(tmp_path: Path) -> None:
+def test_real_checker_fails_a_bare_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # In CI the gate defers to the workflow (returns 0); force the local path.
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
     root = site(tmp_path, '[agent_ready]\ndist = "dist"\n')
     write(root, "dist/index.html", "<!doctype html><title>x</title><p>hi</p>")
     assert gate.main(["--repo", str(root)]) == 1
