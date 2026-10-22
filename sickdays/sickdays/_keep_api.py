@@ -13,10 +13,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sickdays._api import actor_id, load
+from sickdays._api import actor_id, load, require_sick
 from sickdays._audit import record_event
 from sickdays._day import to_iso, today
-from sickdays._errors import NotSickError
 from sickdays._keep import normalise_keep, read_keep, validate_locker
 from sickdays._model import SickDay, is_sick_record
 from sickdays._paths import resolve_paths
@@ -98,10 +97,7 @@ def set_kept_lockers(
     resolved = resolve_paths(paths)
     refuse_past(day, today(now), "changed")
     log = read_pool_strict(resolved.log)
-    existing = log.get(to_iso(day))
-    if existing is None or not is_sick_record(existing):
-        msg = f"{to_iso(day)} is not a sick day"
-        raise NotSickError(msg)
+    existing = require_sick(log, day)
     actor = actor_id(resolved)
     write_keep(log, existing, kept, actor=actor, resolved=resolved)
     record_event("keep", day, actor=actor, keep=kept, paths=resolved)

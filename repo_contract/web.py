@@ -23,10 +23,9 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-
-import tomllib
 
 from repo_contract.infer import _pm
 from repo_contract.sources import package_scripts, read_text

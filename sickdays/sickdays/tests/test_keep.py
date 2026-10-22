@@ -88,7 +88,7 @@ def test_validate_locker_names_the_choices() -> None:
 def test_normalise_deduplicates_and_refuses_junk() -> None:
     assert normalise_keep(["diet", "diet", "book"]) == {"book", "diet"}
     assert normalise_keep(()) == frozenset()
-    with pytest.raises(ValueError, match="not the string"):
+    with pytest.raises(TypeError, match="not the string"):
         normalise_keep("diet")
     with pytest.raises(ValueError, match="unknown locker"):
         normalise_keep(["diet", "nope"])

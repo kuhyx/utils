@@ -58,11 +58,12 @@ def normalise_keep(keep: Iterable[str]) -> frozenset[str]:
     A bare string is refused rather than iterated character by character.
 
     Raises:
+        TypeError: ``keep`` is a bare string, not a collection of ids.
         ValueError: An id is not one of :data:`sickdays.LOCKERS`.
     """
     if isinstance(keep, str):
         msg = f"keep must be a collection of locker ids, not the string {keep!r}"
-        raise ValueError(msg)
+        raise TypeError(msg)
     return frozenset(validate_locker(locker) for locker in keep)
 
 

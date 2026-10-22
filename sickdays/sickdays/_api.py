@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from datetime import date
     from pathlib import Path
 
-    from crdt_sync import Log
+    from crdt_sync import Log, Record
 
     from sickdays._conflict import FreePredicate
 
@@ -45,6 +45,19 @@ def load(log_path: Path | None = None) -> Log:
 def actor_id(paths: Paths | None = None) -> str:
     """This install's persisted device uuid, created on first call."""
     return load_device_identity(resolve_paths(paths).device_id).device_id
+
+
+def require_sick(log: Log, day: date) -> Record:
+    """The record that makes ``day`` sick in ``log``.
+
+    Raises:
+        NotSickError: ``day`` is not a sick day.
+    """
+    existing = log.get(to_iso(day))
+    if existing is None or not is_sick_record(existing):
+        msg = f"{to_iso(day)} is not a sick day"
+        raise NotSickError(msg)
+    return existing
 
 
 def is_sick_day(
@@ -125,10 +138,7 @@ def remove_sick_day(
     resolved = resolve_paths(paths)
     refuse_past(day, today(now), "removed")
     log = read_pool_strict(resolved.log)
-    existing = log.get(to_iso(day))
-    if existing is None or not is_sick_record(existing):
-        msg = f"{to_iso(day)} is not a sick day"
-        raise NotSickError(msg)
+    require_sick(log, day)
     entry = SickDay(day=day, is_sick=False, actor=actor_id(resolved))
     write_entry(log, entry, resolved)
     record_event("remove", day, actor=entry.actor, paths=resolved)
