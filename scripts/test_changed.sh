@@ -16,7 +16,7 @@ while IFS= read -r f; do
     [[ -n "$f" && -e "$f" ]] && CHANGED+=("$f")
 done < <({ git diff --name-only HEAD 2>/dev/null || true; git ls-files --others --exclude-standard; } | sort -u)
 
-readonly GATES=(coverage_gaps dep_freshness file_length home_paths md_naming repo_contract)
+readonly GATES=(agent_ready coverage_gaps dep_freshness file_length home_paths md_naming repo_contract)
 dirs=()
 unmapped=0
 for f in "${CHANGED[@]}"; do

@@ -56,6 +56,15 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=100
 
+      # Every web repo's pre-commit and CI run this checker against its dist/,
+      # so a false green here ships an un-agent-ready site fleet-wide.
+      - name: agent_ready — 100% branch coverage on the checker
+        run: |
+          PYTHONPATH=. python -m pytest agent_ready/tests -q \
+            --cov=agent_ready --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=100
+
       - name: coverage_gaps — 100% branch coverage on the lister
         run: |
           PYTHONPATH=. python -m pytest coverage_gaps/tests -q \
