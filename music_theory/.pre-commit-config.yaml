@@ -65,7 +65,7 @@ repos:
         types: [python]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.0
+    rev: v0.17.2
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --exit-non-zero-on-fix, --show-fixes]
@@ -80,7 +80,7 @@ repos:
         additional_dependencies:
           # Without numpy the NDArray alias is an unresolved variable and
           # every signature using it fails valid-type.
-          - numpy==2.5.3
+          - numpy==2.5.4
         args:
           - --ignore-missing-imports
           - --no-error-summary
@@ -116,7 +116,7 @@ repos:
           - pytest
           # numpy is a real runtime dependency; without it every module is an
           # import-error and the score collapses below the gate.
-          - numpy==2.5.3
+          - numpy==2.5.4
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4

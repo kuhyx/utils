@@ -7,7 +7,7 @@ name = "music_theory"
 version = "0.1.0"
 description = "Music theory from first principles, as code: pitch, tuning, scales, chords, progressions, and a tiny synth to hear them"
 requires-python = ">=3.14"
-dependencies = ["numpy==2.5.3"]
+dependencies = ["numpy==2.5.4"]
 
 [tool.setuptools.packages.find]
 include = ["music_theory*"]
