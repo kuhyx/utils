@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "24.21.0"
+          node-version: "24.22.1"
 
       # The preset is a `link:../ts_config` dependency. pnpm links the
       # directory but installs nothing inside it, and a flat config imports
