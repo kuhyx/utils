@@ -6,13 +6,12 @@
 # from a client that waits for hooks, and the interactive TUI streams first.
 #   leetcode <url-or-slug> [what you are stuck on...]
 #
-# Symlinked from ~/.local/bin/leetcode. The package lives in leetcode-guard;
-# the repo root goes on PYTHONPATH so the launcher works from any checkout,
-# installed or not, and -P keeps the caller's cwd off sys.path.
+# Symlinked from ~/.local/bin/leetcode. The package is found through
+# install.sh's editable install, like the Stop-hook shim; no PYTHONPATH here,
+# because the REPL passes its environment on to `claude -p` and every hook and
+# Bash call of the coached session would inherit it. -P keeps cwd off sys.path.
 # ============================================================================
 
 set -euo pipefail
 
-repo="$(dirname "$(dirname "$(readlink -f "$0")")")"
-PYTHONPATH="${repo}${PYTHONPATH:+:${PYTHONPATH}}" \
-    exec /usr/bin/python3 -P -m leetcode_coach.leetcode_repl "$@"
+exec /usr/bin/python3 -P -m leetcode_coach.leetcode_repl "$@"

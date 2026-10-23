@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 from typing import Any
@@ -167,8 +168,17 @@ def test_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_launcher_runs_the_package_repl() -> None:
+    # The real launcher finds the package through install.sh's editable
+    # install; PYTHONPATH stands in for it here (-P still honours it).
+    env = {**os.environ, "PYTHONPATH": str(LAUNCHER.resolve().parents[1])}
     proc = subprocess.run(
-        [str(LAUNCHER), "--help"], capture_output=True, text=True, check=False
+        [str(LAUNCHER), "--help"], capture_output=True, text=True, check=False, env=env
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.startswith("Usage: leetcode [--local]")
+
+
+def test_launcher_does_not_leak_pythonpath_into_the_session() -> None:
+    """The REPL hands its environment to `claude -p`; the launcher adds nothing."""
+    body = LAUNCHER.read_text(encoding="utf-8").split("set -euo pipefail", 1)[1]
+    assert "PYTHONPATH" not in body
