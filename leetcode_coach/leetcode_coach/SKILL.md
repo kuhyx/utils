@@ -244,3 +244,5 @@ The right client is `leetcode <url>` (print mode: the Stop hook can still
 withhold a reply; the TUI has already streamed it). `leetcode --local` runs
 offline on Ollama; everything above `## Model and client` is its system
 prompt. Clients, gates and the session log: `DOCS-clients.md` here.
+
+The commands and the method as the status app shows them: `DOCS-how-to.md`.

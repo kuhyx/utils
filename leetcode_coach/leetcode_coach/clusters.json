@@ -1,40 +1,40 @@
 {
   "clusters": {
     "bit-cancellation": [
-      {"id": 268, "slug": "missing-number"},
-      {"id": 260, "slug": "single-number-iii"},
-      {"id": 169, "slug": "majority-element"},
-      {"id": 137, "slug": "single-number-ii"}
+      {"id": 268, "slug": "missing-number", "title": "Missing Number"},
+      {"id": 260, "slug": "single-number-iii", "title": "Single Number III"},
+      {"id": 169, "slug": "majority-element", "title": "Majority Element"},
+      {"id": 137, "slug": "single-number-ii", "title": "Single Number II"}
     ],
     "two-pointers": [
-      {"id": 167, "slug": "two-sum-ii-input-array-is-sorted"},
-      {"id": 15, "slug": "3sum"},
-      {"id": 11, "slug": "container-with-most-water"},
-      {"id": 42, "slug": "trapping-rain-water"}
+      {"id": 167, "slug": "two-sum-ii-input-array-is-sorted", "title": "Two Sum II - Input Array Is Sorted"},
+      {"id": 15, "slug": "3sum", "title": "3Sum"},
+      {"id": 11, "slug": "container-with-most-water", "title": "Container With Most Water"},
+      {"id": 42, "slug": "trapping-rain-water", "title": "Trapping Rain Water"}
     ],
     "sliding-window": [
-      {"id": 3, "slug": "longest-substring-without-repeating-characters"},
-      {"id": 424, "slug": "longest-repeating-character-replacement"},
-      {"id": 567, "slug": "permutation-in-string"},
-      {"id": 76, "slug": "minimum-window-substring"}
+      {"id": 3, "slug": "longest-substring-without-repeating-characters", "title": "Longest Substring Without Repeating Characters"},
+      {"id": 424, "slug": "longest-repeating-character-replacement", "title": "Longest Repeating Character Replacement"},
+      {"id": 567, "slug": "permutation-in-string", "title": "Permutation in String"},
+      {"id": 76, "slug": "minimum-window-substring", "title": "Minimum Window Substring"}
     ],
     "prefix-sum-hash": [
-      {"id": 560, "slug": "subarray-sum-equals-k"},
-      {"id": 523, "slug": "continuous-subarray-sum"},
-      {"id": 974, "slug": "subarray-sums-divisible-by-k"},
-      {"id": 525, "slug": "contiguous-array"}
+      {"id": 560, "slug": "subarray-sum-equals-k", "title": "Subarray Sum Equals K"},
+      {"id": 523, "slug": "continuous-subarray-sum", "title": "Continuous Subarray Sum"},
+      {"id": 974, "slug": "subarray-sums-divisible-by-k", "title": "Subarray Sums Divisible by K"},
+      {"id": 525, "slug": "contiguous-array", "title": "Contiguous Array"}
     ],
     "monotonic-stack": [
-      {"id": 739, "slug": "daily-temperatures"},
-      {"id": 496, "slug": "next-greater-element-i"},
-      {"id": 503, "slug": "next-greater-element-ii"},
-      {"id": 84, "slug": "largest-rectangle-in-histogram"}
+      {"id": 739, "slug": "daily-temperatures", "title": "Daily Temperatures"},
+      {"id": 496, "slug": "next-greater-element-i", "title": "Next Greater Element I"},
+      {"id": 503, "slug": "next-greater-element-ii", "title": "Next Greater Element II"},
+      {"id": 84, "slug": "largest-rectangle-in-histogram", "title": "Largest Rectangle in Histogram"}
     ],
     "intervals": [
-      {"id": 56, "slug": "merge-intervals"},
-      {"id": 57, "slug": "insert-interval"},
-      {"id": 435, "slug": "non-overlapping-intervals"},
-      {"id": 452, "slug": "minimum-number-of-arrows-to-burst-balloons"}
+      {"id": 56, "slug": "merge-intervals", "title": "Merge Intervals"},
+      {"id": 57, "slug": "insert-interval", "title": "Insert Interval"},
+      {"id": 435, "slug": "non-overlapping-intervals", "title": "Non-overlapping Intervals"},
+      {"id": 452, "slug": "minimum-number-of-arrows-to-burst-balloons", "title": "Minimum Number of Arrows to Burst Balloons"}
     ]
   }
 }

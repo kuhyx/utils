@@ -27,7 +27,7 @@ import logging
 import os
 import sys
 
-from leetcode_coach import progress
+from leetcode_coach import how_to, progress
 from leetcode_guard._live_solved import check_solved
 from leetcode_guard._settings import build_client
 
@@ -66,9 +66,10 @@ def _due() -> int:
         print("no re-tests due")
         return 0
     for row in rows:
+        command = how_to.retest_command(row["slug"])
         print(
             f"{row['due']}  {row['slug']}  re-test {row['stage']}/{STAGES}  "
-            f"({row['cluster'] or 'no cluster'})  ->  leetcode --retest {row['slug']}"
+            f"({row['cluster'] or 'no cluster'})  ->  {command}"
         )
     return 0
 
