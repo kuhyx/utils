@@ -4,7 +4,7 @@
     "invertible": "every step has a known undo: a + x - x = a",
     "commutative": "operand order does not matter: a + b = b + a",
     "associative": "grouping does not matter, so a running fold works: (a + b) + c = a + (b + c)",
-    "identity element": "a neutral value e with a op e = a: 0 for + ^ gcd, -Infinity for max",
+    "identity element": "a neutral value e with a op e = a: 0 for + ^ gcd, -Infinity for max, +Infinity for min",
     "idempotent": "combining a value with itself changes nothing: max(a, a) = a",
     "selective": "the result is always one of the operands: max(a, b) is a or b",
     "divides its inputs": "the result divides every operand, so folding more values can only shrink it",
@@ -74,7 +74,7 @@
     },
     {
       "name": "hash map",
-      "aliases": ["hashmap", "hash table", "new Map", "dictionary"],
+      "aliases": ["hashmap", "hash table", "new Map"],
       "properties": ["O(1) lookup", "stores a value per key", "arbitrary keys"]
     },
     {
@@ -129,7 +129,7 @@
     },
     {
       "name": "sort by start + merge",
-      "aliases": ["merge intervals", "sort by start"],
+      "aliases": ["sort by start", "sort then combine"],
       "properties": ["needs sorted input", "overlaps become adjacent", "single pass"]
     },
     {

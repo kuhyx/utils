@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from leetcode_coach import card_rules, toolbox, toolbox_cards
+from leetcode_coach import card_rules, progress, toolbox, toolbox_cards
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,6 +45,19 @@ def test_names_and_aliases_are_unique() -> None:
         for n in [e["name"], *e["aliases"]]
     ]
     assert len(names) == len(set(names))
+
+
+def test_no_name_is_a_cluster_problem_title() -> None:
+    # The leak bounce fires on any entry name or alias before the first code
+    # event, so one that is a problem's own title bounces its restatement.
+    titles = {
+        p["slug"].replace("-", " ")
+        for problems in progress.load_clusters().values()
+        for p in problems
+    }
+    for entry in toolbox.load()["entries"]:
+        for name in [entry["name"], *entry["aliases"]]:
+            assert name.casefold() not in titles, name
 
 
 def test_no_entry_property_set_nests_inside_another() -> None:
