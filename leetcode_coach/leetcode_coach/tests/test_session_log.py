@@ -9,19 +9,31 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from leetcode_coach import session_log
+from leetcode_coach import progress, session_log
 from leetcode_guard import _coach_log
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_sessions_dir_follows_the_env(
+def test_sessions_dir_is_the_one_progress_reads(tmp_path: Path) -> None:
+    assert session_log.sessions_dir() == tmp_path / "sessions"
+    assert session_log.sessions_dir() == progress.sessions_dir()
+
+
+def test_the_cluster_env_is_stamped_on_every_event(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    assert session_log.sessions_dir() == tmp_path / "sessions"
-    monkeypatch.setenv(session_log.SESSIONS_ENV, "")
-    assert session_log.sessions_dir() == session_log.DEFAULT_DIR
+    path = tmp_path / "log.jsonl"
+    session_log.append(path, "req")
+    monkeypatch.setenv(progress.CLUSTER_ENV, "bit-cancellation")
+    session_log.append(path, "code")
+    session_log.append(path, "rung", rung="H1", cluster="explicit")
+    assert [e.get("cluster") for e in session_log.read(path)] == [
+        None,
+        "bit-cancellation",
+        "explicit",
+    ]
 
 
 @pytest.mark.parametrize(

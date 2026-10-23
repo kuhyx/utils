@@ -41,7 +41,7 @@ from typing import Protocol, cast
 
 import genanki
 
-from leetcode_coach import anki_connect, card_rules
+from leetcode_coach import anki_connect, card_rules, session_log
 
 DECK_ID = 1_695_042_117_001  # fixed: every session's file imports into the same deck
 MODEL_ID = 1_695_042_117_002
@@ -159,10 +159,13 @@ def main() -> int:
     if online:
         done = push_direct(slug, cards, replace=replace)
         print(f"{len(cards)} cards -> Anki desktop: {done}")
-        return 0
-    out = build_apkg(slug, cards, today)
-    print(f"{len(cards)} cards -> {out} (Anki desktop not open). Import with:")
-    print(f"anki {shlex.quote(str(out))}")
+    else:
+        out = build_apkg(slug, cards, today)
+        print(f"{len(cards)} cards -> {out} (Anki desktop not open). Import with:")
+        print(f"anki {shlex.quote(str(out))}")
+    # Delivered: the post-mortem is done. Re-test completion and "solved"
+    # (progress.py) read this event from the REPL's session log.
+    session_log.append_current("postmortem", cards=len(cards))
     return 0
 
 

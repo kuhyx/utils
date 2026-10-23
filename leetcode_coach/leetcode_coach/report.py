@@ -16,6 +16,7 @@ from leetcode_coach import session_log
 if TYPE_CHECKING:
     from pathlib import Path
 
+COMMAND = "report"
 RUNGS = ("H0", "H1", "H2", "H3")
 WIDTHS = (36, 17, 10, 8)
 HEADER = ("problem", "req-before-code", "max-rung", "reveal", "req_check")

@@ -1,0 +1,146 @@
+{
+  "properties": {
+    "self-inverse": "applying the same value twice undoes it: a ^ x ^ x = a",
+    "invertible": "every step has a known undo: a + x - x = a",
+    "commutative": "operand order does not matter: a + b = b + a",
+    "associative": "grouping does not matter, so a running fold works: (a + b) + c = a + (b + c)",
+    "identity element": "a neutral value e with a op e = a: 0 for + ^ gcd, -Infinity for max, +Infinity for min",
+    "idempotent": "combining a value with itself changes nothing: max(a, a) = a",
+    "selective": "the result is always one of the operands: max(a, b) is a or b",
+    "divides its inputs": "the result divides every operand, so folding more values can only shrink it",
+    "works per bit": "each bit position is computed independently of the others",
+    "carries between bits": "bit positions interact: a carry moves into the next position",
+    "cancels any k-fold repeat": "a value that occurs exactly k times leaves no trace, for any chosen k",
+    "isolates one bit": "keeps a single set bit and clears the rest: x & -x keeps the lowest one",
+    "O(1) extra space": "a fixed number of variables besides the input, however large the input",
+    "single pass": "reads the input once, front to back",
+    "O(1) lookup": "asks 'seen x?' or 'what is stored for x?' in (expected) constant time",
+    "stores a value per key": "remembers something per key (a count, an index), not only that it was seen",
+    "presence only": "remembers whether a key was seen and nothing else",
+    "arbitrary keys": "keys can be any value: strings, huge or negative numbers",
+    "bounded key range": "keys come from a small known range (26 letters, 0..n), so an array indexed by key works",
+    "two moving indexes": "two indexes that each move in one direction only, so the scan is O(n)",
+    "from both ends": "the two indexes start at opposite ends and move toward each other",
+    "window moves right": "both indexes move left to right; the range between them is the current window",
+    "monotone condition": "only correct when validity changes once as a range grows (no negatives in a sum)",
+    "needs sorted input": "only correct once the input is sorted",
+    "O(n log n) time": "costs about n log n comparisons, more than one linear pass",
+    "makes equal values adjacent": "afterwards equal (and close) values sit next to each other",
+    "O(log n) per query": "each question halves the remaining range, so it costs about log n steps",
+    "range query in O(1)": "after O(n) setup, any contiguous range's total is one subtraction",
+    "needs an inverse": "only works over an operation that can be undone (+ with -, ^ with ^); max has none",
+    "keeps every prefix": "stores all n prefix values, so any (l, r) range can be asked later",
+    "handles negatives": "stays correct when values can be negative (a sliding window does not)",
+    "needs a majority": "only correct when one value occurs more than n/2 times",
+    "last-in-first-out": "the most recently added element is the first one taken out",
+    "next-greater lookup": "for every element, finds the nearest later element that is larger (flip for smaller)",
+    "amortized O(n)": "each element is added and removed at most once, so the total work is linear",
+    "overlaps become adjacent": "after sorting by start, every interval that overlaps the current group comes right after it",
+    "earliest end first": "choosing the interval that ends first leaves the most room for the rest",
+    "greedy": "commits to the locally best choice and never revisits it",
+    "O(log n) push and pop-min": "insert and remove-the-smallest each cost about log n; flip the comparison for largest",
+    "partial order": "only the top element is guaranteed to be in place; the rest is not sorted"
+  },
+  "entries": [
+    {
+      "name": "XOR",
+      "aliases": ["^", "exclusive or", "bitwise xor"],
+      "properties": ["self-inverse", "invertible", "commutative", "associative", "identity element", "works per bit"]
+    },
+    {
+      "name": "sum / difference",
+      "aliases": ["running sum", "subtract to undo", "Gauss sum formula"],
+      "properties": ["invertible", "commutative", "associative", "identity element", "carries between bits"]
+    },
+    {
+      "name": "min / max",
+      "aliases": ["Math.max", "Math.min", "running max", "running min"],
+      "properties": ["commutative", "associative", "identity element", "idempotent", "selective"]
+    },
+    {
+      "name": "gcd",
+      "aliases": ["greatest common divisor", "Euclid's algorithm", "Euclidean algorithm"],
+      "properties": ["commutative", "associative", "identity element", "idempotent", "divides its inputs"]
+    },
+    {
+      "name": "per-bit counts mod k",
+      "aliases": ["count each bit mod k", "bit counting mod 3", "ones and twos masks"],
+      "properties": ["works per bit", "cancels any k-fold repeat", "O(1) extra space"]
+    },
+    {
+      "name": "lowest set bit",
+      "aliases": ["x & -x", "rightmost set bit", "isolate lowest bit"],
+      "properties": ["isolates one bit"]
+    },
+    {
+      "name": "hash map",
+      "aliases": ["hashmap", "hash table", "new Map"],
+      "properties": ["O(1) lookup", "stores a value per key", "arbitrary keys"]
+    },
+    {
+      "name": "hash set",
+      "aliases": ["hashset", "new Set", "seen set"],
+      "properties": ["O(1) lookup", "presence only", "arbitrary keys"]
+    },
+    {
+      "name": "counting array",
+      "aliases": ["frequency array", "count array", "array of 26 counts"],
+      "properties": ["O(1) lookup", "stores a value per key", "bounded key range"]
+    },
+    {
+      "name": "two pointers",
+      "aliases": ["left and right pointers", "opposite-end pointers"],
+      "properties": ["two moving indexes", "from both ends", "O(1) extra space"]
+    },
+    {
+      "name": "sliding window",
+      "aliases": ["expanding window", "shrinking window", "variable-size window"],
+      "properties": ["two moving indexes", "window moves right", "monotone condition"]
+    },
+    {
+      "name": "sorting",
+      "aliases": ["sort first", "Array.prototype.sort", ".sort("],
+      "properties": ["O(n log n) time", "makes equal values adjacent"]
+    },
+    {
+      "name": "binary search",
+      "aliases": ["bisect", "lower bound", "halving search"],
+      "properties": ["needs sorted input", "O(log n) per query"]
+    },
+    {
+      "name": "prefix sums",
+      "aliases": ["prefix sum array", "cumulative sum", "running totals array"],
+      "properties": ["range query in O(1)", "needs an inverse", "keeps every prefix"]
+    },
+    {
+      "name": "prefix sum + hash map",
+      "aliases": ["map of seen prefix sums", "prefix count map"],
+      "properties": ["needs an inverse", "single pass", "O(1) lookup", "handles negatives"]
+    },
+    {
+      "name": "Boyer-Moore majority vote",
+      "aliases": ["Boyer–Moore", "majority vote", "candidate and counter"],
+      "properties": ["needs a majority", "single pass", "O(1) extra space"]
+    },
+    {
+      "name": "monotonic stack",
+      "aliases": ["monotone stack", "increasing stack", "decreasing stack"],
+      "properties": ["last-in-first-out", "next-greater lookup", "amortized O(n)"]
+    },
+    {
+      "name": "sort by start + merge",
+      "aliases": ["sort by start", "sort then combine"],
+      "properties": ["needs sorted input", "overlaps become adjacent", "single pass"]
+    },
+    {
+      "name": "sort by end + greedy pick",
+      "aliases": ["sort by end", "interval scheduling", "activity selection"],
+      "properties": ["needs sorted input", "earliest end first", "greedy"]
+    },
+    {
+      "name": "heap",
+      "aliases": ["priority queue", "min-heap", "max-heap", "heapq"],
+      "properties": ["O(log n) push and pop-min", "partial order"]
+    }
+  ]
+}

@@ -115,7 +115,7 @@ class PhaseGate:
         def source() -> str:
             return local_session.fetched_statement(problem) or session_log.slug(problem)
 
-        return cls(log, toolbox.load(), source)
+        return cls(log, toolbox.load_safe(), source)
 
     def statement(self) -> str:
         """The problem statement, fetched once on first use."""

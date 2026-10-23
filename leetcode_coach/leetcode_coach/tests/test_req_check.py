@@ -58,7 +58,7 @@ def test_extract_json(text: str, obj: object) -> None:
     assert req_check.extract_json(text) == obj
 
 
-VOCAB = toolbox.load(FIXTURE_TOOLBOX).properties
+VOCAB = toolbox.load_safe(FIXTURE_TOOLBOX).properties
 
 
 @pytest.mark.parametrize(
@@ -84,7 +84,7 @@ def test_parse_verdict_keeps_only_vocabulary_properties(
 
 
 def test_the_prompt_carries_statement_list_and_vocabulary() -> None:
-    prompt = req_check.check_prompt(STATEMENT, "req: one pass", toolbox.load())
+    prompt = req_check.check_prompt(STATEMENT, "req: one pass", toolbox.load_safe())
     assert STATEMENT in prompt
     assert "req: one pass" in prompt
     assert "self-inverse: applying it twice" in prompt
@@ -94,7 +94,7 @@ def test_the_prompt_carries_statement_list_and_vocabulary() -> None:
 def test_haiku_answers_first(monkeypatch: pytest.MonkeyPatch) -> None:
     sent = _ollama(monkeypatch, "unused")
     ask = _haiku({"verdict": "incomplete", "missing": ["constant-space", "XOR"]})
-    got = req_check.check(STATEMENT, "req: loop", toolbox.load(), ask)
+    got = req_check.check(STATEMENT, "req: loop", toolbox.load_safe(), ask)
     assert got == req_check.Check("incomplete", ("constant-space",), "haiku")
     args, _prompt = ask.calls[0]
     assert args[:2] == ["--model", "haiku"]
@@ -114,7 +114,7 @@ def test_ollama_steps_in_when_haiku_cannot_answer(
     monkeypatch: pytest.MonkeyPatch, haiku_says: object
 ) -> None:
     _ollama(monkeypatch, '{"verdict": "pass", "missing": []}')
-    got = req_check.check(STATEMENT, "req: x", toolbox.load(), _haiku(haiku_says))
+    got = req_check.check(STATEMENT, "req: x", toolbox.load_safe(), _haiku(haiku_says))
     assert got == req_check.Check("pass", (), "ollama")
 
 
@@ -125,7 +125,7 @@ def test_both_down_fails_open_unverified(
     monkeypatch: pytest.MonkeyPatch, ollama: str | Exception
 ) -> None:
     _ollama(monkeypatch, ollama)
-    got = req_check.check(STATEMENT, "req: x", toolbox.load(), _haiku("nope"))
+    got = req_check.check(STATEMENT, "req: x", toolbox.load_safe(), _haiku("nope"))
     assert got == req_check.Check("unverified", (), "none")
 
 
@@ -141,7 +141,7 @@ def test_an_empty_vocabulary_cannot_be_checked(monkeypatch: pytest.MonkeyPatch) 
 def test_the_default_asker_is_the_claude_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     ask = _haiku({"verdict": "pass"})
     monkeypatch.setattr(claude_cli, "ask", ask)
-    assert req_check.check(STATEMENT, "req: x", toolbox.load()).via == "haiku"
+    assert req_check.check(STATEMENT, "req: x", toolbox.load_safe()).via == "haiku"
     assert ask.calls[0][0][:2] == ["--model", "haiku"]
 
 

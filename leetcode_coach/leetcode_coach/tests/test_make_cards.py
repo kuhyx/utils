@@ -5,11 +5,14 @@ from __future__ import annotations
 import io
 import json
 import runpy
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from leetcode_coach import anki_connect, make_cards
+from leetcode_coach import anki_connect, make_cards, session_log
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _card(front: str, back: str = "x") -> dict[str, str]:
@@ -124,3 +127,19 @@ def test_script_entry_point(
         runpy.run_path(make_cards.__file__, run_name="__main__")
     assert exit_info.value.code == 1
     assert capsys.readouterr().err.startswith("Usage: make_cards.py")
+
+
+def test_delivery_marks_the_post_mortem_in_the_session_log(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(make_cards, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(anki_connect, "available", lambda: False)
+    assert _run(monkeypatch, ["--dry-run", "-"], GOOD) == 0
+    assert _run(monkeypatch, ["-"], GOOD) == 0  # no session: nothing written
+    log = tmp_path / "log.jsonl"
+    monkeypatch.setenv(session_log.LOG_ENV, str(log))
+    assert _run(monkeypatch, ["--dry-run", "-"], GOOD) == 0
+    assert not log.exists()
+    assert _run(monkeypatch, ["-"], GOOD) == 0
+    (event,) = session_log.read(log)
+    assert (event["event"], event["cards"]) == ("postmortem", 1)

@@ -7,8 +7,8 @@ description: >
   every reply ends with something for kuhy to try. Never prints a solution
   unless kuhy types `reveal`. Use on /leetcode <url> [what you are stuck
   on] AND whenever kuhy pastes a leetcode.com/problems/ URL without SOLVE:
-  (hook leetcode_url_userprompt.sh tells you to). Ends with a post-mortem: 1-6 one-line Anki cards (.apkg)
-  about the confusions, never the solution.
+  (hook leetcode_url_userprompt.sh tells you to). Ends with a post-mortem: property -> operation
+  Anki cards generated from the toolbox, never the solution.
 argument-hint: "<leetcode URL or slug> [what you're stuck on]"
 ---
 
@@ -163,57 +163,62 @@ opened with ("cancel stops the function at a random place") and ask what
 is wrong with it now. A passing submission does not retire a misconception;
 only a corrected sentence from them does.
 
-## 5b. Post-mortem: Anki cards
+## 5b. Post-mortem: requirement list, then property cards
 
-After the loop is closed, in the same reply, build the cards:
+After the loop is closed, in the same reply:
 
-1. List every turn where kuhy was wrong or stuck. Each is one candidate
-   card; the original confusion is always one. Drop the ones that were
-   about *this problem* rather than a reusable mechanism. Test: would the
-   card still be worth reviewing if kuhy never saw this problem again?
-   A card restating the rule kuhy reasoned out in chat fails it.
-   - Knowing *what* to do but failing to write it (every failed code
-     attempt) earns a **write-it card**: the front names a *sibling* task,
-     not this problem ("TS: write makeCounter()" for a once() session; count
-     digits for a sum-of-digits one), the back is complete code — never
-     `{ ... }`. Conceptual cards alone test theory kuhy already had: the
-     2026-09-25 audit found 7 of 8 decks with zero code cards.
-   - Ask for the thing itself. Yes/no and either/or fronts ("nest or
-     separate loops?" → "Nest.") are coin flips; the builder rejects them,
-     and two questions on one front.
-   - Every back that is code or claims runtime behaviour gets run in `node`
-     first, also after shortening it to 8 words (the audit's two false backs
-     were born that way: "`n /= 10` loop never terminates" — it ends after
-     326 passes; "subtract 1 flips the rest to 1" — only the lowest bits).
-2. Pipe the cards to the builder in ONE Bash call (no file, no Write tool):
+1. Ask kuhy for the requirement list as *properties* (what must vanish, what
+   must survive, how much space), not code or an operation name; then, for
+   every hint rung kuhy saw, which requirement that hint handed over.
+2. Cards are **property -> operation only** (TODO-coach.md decision 11): one
+   per toolbox entry the solution relied on, generated from `toolbox.json`
+   (front = its properties, back = its name), in ONE Bash call:
    ```bash
-   ~/.claude/skills/leetcode/make_cards.py - <<'EOF'
-   {"slug": "<slug>", "cards": [{"front": "...", "back": "..."}]}
-   EOF
+   python3 -m leetcode_coach.toolbox_cards cards "<entry>" ["<entry>" ...] \
+     | ~/.claude/skills/leetcode/make_cards.py -
    ```
-   - front: one question, ≤20 words, prefixed with the language
-     ("JS: cancel a pending setTimeout?")
-   - back: ≤8 words, ideally one token (`clearTimeout(id)`). The builder
-     rejects longer backs — shorten, do not argue with it.
-   - 1–6 cards. Never a card whose back is the solution to the problem.
-   On "cards rejected", fix the named card and rerun.
-3. Relay the script's stdout verbatim as markdown, NOT in a code fence
-   (the table must render). With Anki open (AnkiConnect) the cards are in
-   deck "LeetCode" and synced. Otherwise it wrote an `.apkg` and printed a
-   bare `anki '<path>'` line to run (kuhy pasted the old `import: anki …`
-   label as a command, twice); do not launch anki yourself. Re-running
-   updates the same notes. To *rewrite* a deck, `--replace` (Anki open)
-   deletes dropped cards; keep a good card's front byte-identical so its
-   history survives. `--dry-run` validates without delivering.
+   Names or aliases, 1-6 per call. They all share the slug `toolbox`, so
+   never `--replace` here: it would delete every other entry's card.
+3. An operation kuhy named that is **not** in the toolbox: propose its
+   properties from the `toolbox.json` vocabulary and ask kuhy to confirm or
+   correct them. Only after kuhy confirms, append it (`append_entry`) --
+   never on your own judgement, never with unconfirmed properties:
+   ```bash
+   python3 -m leetcode_coach.toolbox_cards add "<name>" --alias "<alias>" \
+     --property "<prop>" --property "<prop>"
+   ```
+   Refused because the set nests with another entry's? Ask kuhy which
+   property tells the two apart. Then build its card as in step 2.
+4. Relay the builder's stdout verbatim -- as markdown, NOT inside a code
+   fence (the table must render): the table and the delivery line.
+   If Anki desktop is open (AnkiConnect) the cards are already in deck
+   "LeetCode" and a sync to AnkiWeb was requested -- nothing more to do.
+   Otherwise it wrote an `.apkg` and printed a bare `anki '<path>'` line to
+   run (kuhy pasted the old `import: anki ...` label as a command, twice); do
+   not launch anki yourself. Re-running updates the same notes, it does not
+   duplicate. "cards rejected" is a generator bug: report it, do not edit.
 
 ## 5c. After the exit: "how would I find this on my own?"
 
-A request for a method, coached like any rung. No reassurance, no verdict
-on kuhy's ability, no "everyone memorises it" (2026-10-20: three replies of
-comfort first). Say bluntly who supplied which step, never reframe kuhy's
-diagnosis as the problem's fault, then have kuhy compare the `req:` list
-with what the solution needed and name the requirement a hint gave them.
-That method gets a card (rebuild the deck: `--replace` or rerun).
+That is a request for a method, coached like any rung. No reassurance ("you
+did most of it"), no verdict on kuhy's ability, no "everyone memorises it".
+Say bluntly who supplied which step, never reframe kuhy's own diagnosis of
+a mistake as the problem's fault, then have kuhy write the requirement list
+(what vanishes, what survives, what that demands of the operation) and name
+the requirement a hint gave them. The method *is* that list, and its card is
+the property card of the entry the list points to (§5b step 2): build it if
+the deck does not have it yet. 2026-10-20: three replies of comfort before
+the method appeared.
+
+## 5d. Cold re-test
+
+`[cold re-test]` in the arguments (`leetcode --retest <slug>`, due +3 and
++10 days after a solve) means kuhy solved this before; you have no history,
+so do not ask about the old code. In the opening, say plainly: **do NOT
+submit on LeetCode** -- a resubmission mints a gate credit. Then coach as
+usual, requirement list first, and judge by running the statement's examples
+locally with `node` (section 4). The normal exit and post-mortem (5, 5b)
+mark the re-test done.
 
 ## 6. `reveal` — the only override
 
@@ -235,16 +240,7 @@ so if you are not sonnet, the **first line** of your opening message is
 then continue with the opening. `hooks/leetcode_model_gate_userprompt.sh`
 enforces it from the next prompt on.
 
-The right client is `leetcode <url>` (this package's `leetcode` launcher,
-symlinked from `~/.local/bin`): a print-mode loop on sonnet that also runs
-the req-before-code gate and the session log (`leetcode report`). The Stop
-hook (`stop_gate.py`) sends back a reply with a pasteable line or an early
-toolbox name, but the TUI has already streamed it (2026-09-21: the blocked
-`for` loop was visible above the rewrite); print mode waits. TUI: best-effort.
-
-**Offline / out of quota.** `leetcode --local <url>` coaches on
-`qwen3:30b-a3b-instruct-2507` via Ollama, and the REPL switches there by
-itself, history intact, on "You've hit your ... limit". With no hooks there,
-`local_coach.py` runs the same detectors on every draft; three leaky drafts
-are withheld. Everything above `## Model and client` is its system prompt,
-minus section 1. `python3 -m leetcode_coach.eval_local`: acceptance run.
+The right client is `leetcode <url>` (print mode: the Stop hook can still
+withhold a reply; the TUI has already streamed it). `leetcode --local` runs
+offline on Ollama; everything above `## Model and client` is its system
+prompt. Clients, gates and the session log: `DOCS-clients.md` here.

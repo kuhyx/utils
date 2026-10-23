@@ -96,7 +96,7 @@ def _gate(
         return f"statement {len(fetched)}"
 
     log = tmp_path / "log.jsonl"
-    return phase.PhaseGate(log, toolbox.load(), statement), checks
+    return phase.PhaseGate(log, toolbox.load_safe(), statement), checks
 
 
 def _events(gate: phase.PhaseGate) -> list[object]:
@@ -206,7 +206,9 @@ def test_leaks_only_before_code_and_never_what_kuhy_typed(
 def test_a_statement_naming_an_entry_lets_the_coach_restate_it(
     tmp_path: Path,
 ) -> None:
-    gate = phase.PhaseGate(tmp_path / "l.jsonl", toolbox.load(), lambda: "Use XOR.")
+    gate = phase.PhaseGate(
+        tmp_path / "l.jsonl", toolbox.load_safe(), lambda: "Use XOR."
+    )
     assert gate.leaks("XOR here", []) == []
 
 

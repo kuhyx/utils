@@ -24,11 +24,12 @@ its prints ARE the session (T201 exemption in pyproject.toml).
 
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import sys
 
-from leetcode_coach import local_session, phase, report
+from leetcode_coach import cluster_cli, local_session, phase, report
 from leetcode_coach.claude_cli import ask, is_limit_hit
 
 # Named, not __name__: under `-m` this module is `__main__`, which would escape
@@ -97,23 +98,31 @@ def run_claude(model: str, problem: list[str]) -> int:
         ]
 
 
+def start_session(problem: list[str], *, local: bool) -> int:
+    """One coaching session for `<url-or-slug> [stuck on...]`."""
+    if local:
+        opener = local_session.opening_message(problem[1:])
+        gate = phase.PhaseGate.open(problem[0])
+        return local_session.run(problem[0], [], opener, read_block, gate=gate)
+    return run_claude(os.environ.get("LEETCODE_MODEL", "sonnet"), problem)
+
+
 def main(argv: list[str]) -> int:
     """Parse `[--local] <url-or-slug> [stuck on...]` (or `report`) and run it."""
     local = "--local" in argv
     args = [a for a in argv if a != "--local"]
-    if args[:1] == ["report"]:
+    if args[:1] == [report.COMMAND]:
         return report.main(args[1:])
     if not args or args[0] in {"-h", "--help"}:
         print("Usage: leetcode [--local] <url-or-slug> [what you are stuck on...]")
         print("  LEETCODE_MODEL=opus leetcode ...     to use a stronger model")
         print("  --local   coach on the local Ollama model (free, offline)")
+        print("  leetcode due | --cluster <name> | --retest <slug>   (--dry-run)")
         print("  leetcode report   req-before-code, max rung, reveal per problem")
         return 0
-    if local:
-        opener = local_session.opening_message(args[1:])
-        gate = phase.PhaseGate.open(args[0])
-        return local_session.run(args[0], [], opener, read_block, gate=gate)
-    return run_claude(os.environ.get("LEETCODE_MODEL", "sonnet"), args)
+    if args[0] in cluster_cli.COMMANDS:
+        return cluster_cli.main(args, functools.partial(start_session, local=local))
+    return start_session(args, local=local)
 
 
 if __name__ == "__main__":

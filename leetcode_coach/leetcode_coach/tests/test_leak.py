@@ -7,7 +7,7 @@ import pytest
 from leetcode_coach import leak, toolbox
 from leetcode_coach.tests._shared import FIXTURE_TOOLBOX
 
-BOX = toolbox.load(FIXTURE_TOOLBOX)
+BOX = toolbox.load_safe(FIXTURE_TOOLBOX)
 
 
 @pytest.mark.parametrize(

@@ -62,7 +62,7 @@ def verdict(raw: str, reply: str) -> str | None:
         return None
     if not _code_seen(users):
         quoted = [gate_detector.allowed_text(entries)]
-        named = leak.leaked_names(reply, quoted, toolbox.load())
+        named = leak.leaked_names(reply, quoted, toolbox.load_safe())
         if named:
             return local_prompt.GATE_REASON_LEAK.format(names=", ".join(named))
     idents = gate_detector.starter_identifiers(entries)

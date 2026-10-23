@@ -163,7 +163,7 @@ def test_run_with_a_gate_holds_code_back(
 ) -> None:
     fake = FakeChat(SAFE, SAFE)
     _session(monkeypatch, chat=fake)
-    gate = phase.PhaseGate(tmp_path / "log.jsonl", toolbox.load(), lambda: "s")
+    gate = phase.PhaseGate(tmp_path / "log.jsonl", toolbox.load_safe(), lambda: "s")
     blocks = iter(["function f(nums) {\n  return 0;\n}", "hint", "quit"])
     assert local_session.run("x", [], "Start.", lambda: next(blocks), gate=gate) == 0
     out = capsys.readouterr().out
