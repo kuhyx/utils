@@ -47,6 +47,20 @@ def test_names_and_aliases_are_unique() -> None:
     assert len(names) == len(set(names))
 
 
+def test_no_property_meaning_names_an_entry() -> None:
+    # The incomplete-list note shows meanings to kuhy before code; one that
+    # says "a ^ x ^ x = a" hands over the answer it is asking him to find.
+    box = toolbox.load()
+    names = {n.casefold() for e in box["entries"] for n in [e["name"], *e["aliases"]]}
+    leaks = {
+        prop: hit
+        for prop, meaning in box["properties"].items()
+        for hit in names | {"^", "&", "sort"}
+        if hit in meaning.casefold()
+    }
+    assert leaks == {}
+
+
 def test_no_name_is_a_cluster_problem_title() -> None:
     # The leak bounce fires on any entry name or alias before the first code
     # event, so one that is a problem's own title bounces its restatement.
