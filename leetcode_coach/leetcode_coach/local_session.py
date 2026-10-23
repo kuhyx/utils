@@ -19,6 +19,8 @@ from leetcode_coach import local_backend, local_cards, local_coach
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from leetcode_coach import phase
+
 _LOG = logging.getLogger(__name__)
 
 CARD_RETRIES = 2
@@ -38,18 +40,33 @@ def is_quit(block: str) -> bool:
     return block.strip().lower() in {"quit", "exit"}
 
 
+def _run_fetcher(
+    problem: str, runner: Callable[..., subprocess.CompletedProcess[str]]
+) -> subprocess.CompletedProcess[str]:
+    return runner(
+        [sys.executable, str(local_coach.SKILL_DIR / "fetch_problem.py"), problem],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def fetched_statement(
+    problem: str,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> str | None:
+    """Statement + starter code, or None when it cannot be fetched (no prompt)."""
+    proc = _run_fetcher(problem, runner)
+    return proc.stdout if proc.returncode == 0 else None
+
+
 def fetch_statement(
     problem: str,
     read: Callable[[], str | None],
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> str | None:
     """Statement + starter code, or whatever kuhy pastes when it cannot be fetched."""
-    proc = runner(
-        [sys.executable, str(local_coach.SKILL_DIR / "fetch_problem.py"), problem],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    proc = _run_fetcher(problem, runner)
     if proc.returncode == 0:
         return proc.stdout
     why = "premium or unknown problem" if proc.returncode == FETCH_PREMIUM else ""
@@ -72,11 +89,15 @@ def confirm_gpu(ask: Callable[[str], str] = input) -> bool:
     return answer.strip().lower() in {"y", "yes"}
 
 
-def show(turn: local_coach.Turn, coach: local_coach.LocalCoach) -> None:
+def show(
+    turn: local_coach.Turn,
+    coach: local_coach.LocalCoach,
+    gate: phase.PhaseGate | None = None,
+) -> None:
     """Print one reply; build its cards deck, feeding rejections back."""
     for _ in range(CARD_RETRIES + 1):
         display, payload = local_cards.split_cards(turn.text)
-        print(display)
+        print(gate.after_reply(display) if gate else display)
         if payload is None:
             return
         ok, out = local_cards.deliver_cards(payload)
@@ -90,13 +111,28 @@ def show(turn: local_coach.Turn, coach: local_coach.LocalCoach) -> None:
         )
 
 
+def _screen(gate: phase.PhaseGate | None, block: str) -> str | None:
+    """The block to send the coach (None when the phase gate refuses it)."""
+    if gate is None:
+        return block
+    sent, note = gate.screen(block)
+    if note:
+        print(note)
+    return sent
+
+
 def run(
     problem: str,
     history: list[dict[str, str]],
     first: str,
     read: Callable[[], str | None],
+    gate: phase.PhaseGate | None = None,
 ) -> int:
-    """Coach locally until kuhy quits. `first` is sent before reading input."""
+    """Coach locally until kuhy quits. `first` is sent before reading input.
+
+    With a `gate`, every block passes the req-before-code phase gate first and
+    every reply the toolbox leak check (`first` was screened by the caller).
+    """
     statement = fetch_statement(problem, read)
     if not statement:
         return 1
@@ -105,11 +141,16 @@ def run(
             print("[not loading the local model]")
             return 1
         coach = local_coach.LocalCoach.start(statement, history)
+        if gate is not None:
+            gate.known = statement
+            coach.leak_guard = gate.leaks
         print(f"[local: {local_backend.MODEL} via Ollama]\n\n...", flush=True)
-        show(coach.respond(first), coach)
+        show(coach.respond(first), coach, gate)
         while (block := read()) is not None and not is_quit(block):
+            if (sent := _screen(gate, block)) is None:
+                continue
             print("\n...", flush=True)
-            show(coach.respond(block), coach)
+            show(coach.respond(sent), coach, gate)
     except (urllib.error.URLError, ConnectionError) as exc:
         _LOG.warning("Ollama is not reachable: %s", exc)
         print(f"[Ollama is not reachable at {local_backend.OLLAMA_URL}: {exc}]")

@@ -30,12 +30,12 @@ LOCAL_NOTES = """
 - Write plain markdown for a terminal. No emoji.
 - Never write code that uses the starter's function or parameter names unless
   kuhy has typed `reveal`. A client-side gate rejects such replies.
-- Never name the data structure or algorithm that solves the problem before
-  rung H3 -- not even inside a calibration question. Ask about what kuhy
-  already said instead.
+- Never name an operation, data structure or algorithm before kuhy has
+  written code (unless kuhy named it first) -- not even inside a calibration
+  question. Ask about the properties kuhy listed instead.
 - The LAST line of every reply is exactly one question or one instruction for
-  kuhy. Nothing after it. ONE question mark in the whole closing paragraph:
-  never stack questions ("What happens? Why?").
+  kuhy; only the `<!-- rung:Hn -->` line may follow it. ONE question mark in
+  the closing paragraph: never stack questions ("What happens? Why?").
 - Never state the key insight, the fix, or what the code "must" do. On a buggy
   paste, describe what the data does on one concrete input from the examples
   ("with [3,2,4] and target 6, at i=0 `seen` already holds 3 when the lookup
@@ -59,11 +59,18 @@ GATE_REASON_CODE = (
     "Rewrite it without that snippet: describe the data or "
     "name the construct, and keep the one question at the end."
 )
+GATE_REASON_LEAK = (
+    "leetcode gate: your reply names {names} before kuhy has written any code. "
+    "Rewrite it without naming an operation or structure: ask about the "
+    "properties the operation needs, and keep the one question at the end."
+)
 GATE_REASON_SHAPE = (
     "leetcode gate: end with exactly ONE question or ONE "
     "instruction -- your closing paragraph asks more than one "
     "thing or ends on neither. Rewrite it."
 )
+RUNG_RE = re.compile(r"<!--\s*rung:\s*(H[0-3])\s*-->")
+"""The coach's trailing hint-rung marker (SKILL.md section 3); logged, never shown."""
 IMPERATIVE = re.compile(
     r"^(try|write|predict|explain|tell|describe|trace|run|paste|list|sketch|"
     r"walk|show|give|say|name|work|think|check|change|fix|look|answer|type|"
@@ -99,3 +106,11 @@ def ends_with_one_task(text: str) -> bool:
     sentences = [x for x in re.split(r"(?<=[.?!])\s+", last) if x.strip()]
     final = sentences[-1].strip()
     return final.endswith("?") or bool(IMPERATIVE.match(final))
+
+
+def split_rung(text: str) -> tuple[str, str | None]:
+    """`text` without its ``<!-- rung:Hn -->`` markers, and the last rung named."""
+    rungs = RUNG_RE.findall(text)
+    if not rungs:
+        return text, None
+    return RUNG_RE.sub("", text).strip(), rungs[-1]

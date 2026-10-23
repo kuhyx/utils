@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import urllib.error
 
 import pytest
 
-from leetcode_coach import local_backend, local_coach, local_session
+from leetcode_coach import local_backend, local_coach, local_session, phase, toolbox
 from leetcode_coach.tests._shared import SAFE, STATEMENT, FakeChat, completed
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_opening_message_and_quit() -> None:
@@ -126,7 +129,7 @@ def test_run_reports_an_unreachable_ollama(
     _session(monkeypatch, chat=down)
     assert local_session.run("x", [], "Start.", lambda: None) == 1
     out = capsys.readouterr().out
-    assert "[Ollama is not reachable at http://localhost:11434: " in out
+    assert f"[Ollama is not reachable at {local_backend.OLLAMA_URL}: " in out
     assert out.endswith("[start it with: systemctl start ollama]\n")
 
 
@@ -140,3 +143,31 @@ def test_run_reports_a_context_overflow(
     _session(monkeypatch, chat=full)
     assert local_session.run("x", [], "Start.", lambda: None) == 1
     assert capsys.readouterr().out.endswith("[too long]\n")
+
+
+def test_fetched_statement_never_asks_for_a_paste() -> None:
+    ok = local_session.fetched_statement(
+        "x", runner=lambda *_a, **_k: completed(0, STATEMENT)
+    )
+    assert ok == STATEMENT
+    assert (
+        local_session.fetched_statement("x", runner=lambda *_a, **_k: completed(2))
+        is None
+    )
+
+
+def test_run_with_a_gate_holds_code_back(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake = FakeChat(SAFE, SAFE)
+    _session(monkeypatch, chat=fake)
+    gate = phase.PhaseGate(tmp_path / "log.jsonl", toolbox.load(), lambda: "s")
+    blocks = iter(["function f(nums) {\n  return 0;\n}", "hint", "quit"])
+    assert local_session.run("x", [], "Start.", lambda: next(blocks), gate=gate) == 0
+    out = capsys.readouterr().out
+    assert "[code held back: write the requirement list first" in out
+    assert out.count(SAFE) == 2
+    assert len(fake.prompts) == 2  # the code never reached the model
+    assert gate.known == STATEMENT

@@ -1,0 +1,27 @@
+{
+  "entries": [
+    {
+      "name": "XOR",
+      "aliases": ["^", "exclusive or", "bitwise xor"],
+      "properties": ["self-inverse", "commutative", "associative"]
+    },
+    {
+      "name": "hash map",
+      "aliases": ["hashmap", "dictionary"],
+      "properties": ["constant-time-lookup"]
+    },
+    {
+      "name": "sum formula",
+      "aliases": ["Gauss sum"],
+      "properties": ["constant-space", "closed-form-total"]
+    }
+  ],
+  "properties": {
+    "self-inverse": "applying it twice with the same value undoes it",
+    "commutative": "the order of the operands does not change the result",
+    "associative": "the grouping of the operands does not change the result",
+    "constant-time-lookup": "answers 'have I seen this?' without scanning",
+    "constant-space": "memory does not grow with the input",
+    "closed-form-total": "the expected total is known without iterating"
+  }
+}

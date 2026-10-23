@@ -1,5 +1,8 @@
 """Stop hook: in a /leetcode session, refuse a reply that hands kuhy a line of code.
 
+Before kuhy's first code it also bounces a reply that names a toolbox entry
+(`leak`), except an entry kuhy or the fetched problem already named.
+
 The prose rule ("never write a line for their code") held in one haiku
 role-play out of two, so it is adjudicated here instead. A reply is blocked
 when any code span or fenced block in it uses an identifier from the
@@ -19,10 +22,18 @@ IS the hook's interface (hence the T201 exemption in pyproject.toml).
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sys
 
-from leetcode_coach import gate_detector
+from leetcode_coach import (
+    gate_detector,
+    leak,
+    local_prompt,
+    phase,
+    session_log,
+    toolbox,
+)
 
 SKILL_LINK = Path.home() / ".claude" / "skills" / "leetcode"
 # A /leetcode slash command, or a model-invoked Skill(leetcode) load (which
@@ -49,6 +60,11 @@ def verdict(raw: str, reply: str) -> str | None:
     users = [gate_detector.kuhy_text(e) for e in entries if e.get("type") == "user"]
     if any(u.strip() == "reveal" for u in users):
         return None
+    if not _code_seen(users):
+        quoted = [gate_detector.allowed_text(entries)]
+        named = leak.leaked_names(reply, quoted, toolbox.load())
+        if named:
+            return local_prompt.GATE_REASON_LEAK.format(names=", ".join(named))
     idents = gate_detector.starter_identifiers(entries)
     if not idents:
         return None
@@ -62,6 +78,19 @@ def verdict(raw: str, reply: str) -> str | None:
         + ". Rewrite it without that snippet: describe the data or name the "
         "construct, and keep the one question at the end."
     )
+
+
+def _code_seen(users: list[str]) -> bool:
+    """Whether kuhy's code has reached the coach: the REPL's log says so.
+
+    The REPL exports the log path (`session_log.LOG_ENV`). The TUI has no REPL
+    and no log, so there a code block among kuhy's own turns stands in for the
+    ``code`` event (regex only: a hook must not wait on a model).
+    """
+    log = os.environ.get(session_log.LOG_ENV)
+    if log:
+        return session_log.has_code(Path(log))
+    return any(phase.regex_verdict(u.strip()) is True for u in users)
 
 
 def blocks_so_far(session_id: str, prompt_id: str) -> int:

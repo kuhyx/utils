@@ -30,7 +30,8 @@ def test_system_prompt_drops_fetch_step_and_model_gate() -> None:
     prompt = local_prompt.system_prompt(skill, STATEMENT)
     assert "fetch_problem.py" not in prompt
     assert "/model sonnet" not in prompt
-    assert "## 3. The hint ladder" in prompt
+    assert "## 3. Requirements first, then the hint ladder" in prompt
+    assert "<!-- rung:H0 -->" in prompt
     assert prompt.rstrip().endswith("```")
     assert "var twoSum" in prompt
 

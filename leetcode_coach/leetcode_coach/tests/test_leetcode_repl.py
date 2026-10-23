@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from leetcode_coach import leetcode_repl, local_session
+from leetcode_coach import claude_cli, leetcode_repl, local_session, report
 
 LAUNCHER = Path(leetcode_repl.__file__).with_name("leetcode")
 
@@ -29,12 +28,16 @@ LAUNCHER = Path(leetcode_repl.__file__).with_name("leetcode")
     ],
 )
 def test_is_limit_hit(reply: dict[str, Any], *, hit: bool) -> None:
-    assert leetcode_repl.is_limit_hit(reply) is hit
+    assert claude_cli.is_limit_hit(reply) is hit
 
 
 def _fake_run(handed: dict[str, Any]) -> Any:
     def fake_run(
-        problem: str, history: list[dict[str, str]], first: str, _r: object
+        problem: str,
+        history: list[dict[str, str]],
+        first: str,
+        _r: object,
+        **_kw: object,
     ) -> int:
         handed.update(problem=problem, history=history, first=first)
         return 0
@@ -126,24 +129,6 @@ def test_read_block_joins_lines_until_a_blank(
     assert leetcode_repl.read_block() == "x"
 
 
-def test_ask_parses_a_failing_claude_stub(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    stub = tmp_path / "claude"
-    body = json.dumps({"is_error": True, "result": "You've hit your session limit"})
-    (tmp_path / "out.json").write_text(body)
-    stub.write_text(f"#!/bin/sh\ncat {tmp_path / 'out.json'}\necho boom >&2\nexit 1\n")
-    stub.chmod(0o755)
-    monkeypatch.setattr(leetcode_repl, "CLAUDE", str(stub))
-    reply = leetcode_repl.ask([], "hi")
-    assert leetcode_repl.is_limit_hit(reply)
-    assert reply["_stderr"] == "boom"
-    stub.write_text("#!/bin/sh\necho not-json\nexit 3\n")
-    assert leetcode_repl.ask([], "hi")["result"].startswith("[claude exited 3]")
-    stub.write_text("#!/bin/sh\necho '[1]'\n")
-    assert leetcode_repl.ask([], "hi") == {"_stderr": ""}
-
-
 def test_repl_defaults_to_sonnet(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[str] = []
     monkeypatch.delenv("LEETCODE_MODEL", raising=False)
@@ -158,6 +143,18 @@ def test_local_flag_skips_claude(monkeypatch: pytest.MonkeyPatch) -> None:
     assert leetcode_repl.main(["--local", "two-sum", "loops"]) == 0
     assert handed["problem"] == "two-sum"
     assert handed["first"].endswith("stuck on: loops")
+
+
+def test_report_is_a_subcommand(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[list[str]] = []
+
+    def fake_report(argv: list[str]) -> int:
+        seen.append(argv)
+        return 0
+
+    monkeypatch.setattr(report, "main", fake_report)
+    assert leetcode_repl.main(["report"]) == 0
+    assert seen == [[]]
 
 
 def test_help_prints_usage(capsys: pytest.CaptureFixture[str]) -> None:

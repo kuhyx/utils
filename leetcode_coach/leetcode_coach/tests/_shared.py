@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
 from typing import Any
 
 from leetcode_coach import local_backend
 
+FIXTURE_TOOLBOX = Path(__file__).with_name("_toolbox_fixture.json")
+"""Three entries and six properties: the toolbox every coach test runs on."""
 STATEMENT = """# 1. Two Sum (Easy)
 Return indices of two numbers adding up to target.
 

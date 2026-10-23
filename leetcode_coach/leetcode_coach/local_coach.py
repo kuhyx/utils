@@ -62,6 +62,8 @@ class LocalCoach:
     chat: Callable[[list[dict[str, str]]], local_backend.LocalReply] = (
         local_backend.chat
     )
+    leak_guard: Callable[[str, list[str]], list[str]] | None = None
+    """Toolbox entries a draft names too early (`PhaseGate.leaks`); off if None."""
 
     @classmethod
     def start(
@@ -95,14 +97,18 @@ class LocalCoach:
             total += reply.seconds
             display, payload = local_cards.split_cards(reply.text)
             bad = gate_findings(display, self.statement, self.user_texts())
-            if not bad:
-                last_clean = reply.text
-                if payload is not None or local_prompt.ends_with_one_task(display):
-                    return self._accept(reply.text, total, attempt)
-                reason = local_prompt.GATE_REASON_SHAPE
-            else:
+            named = self._leaks(display) if not bad else []
+            if bad:
                 snippets = "; ".join(f"`{b}`" for b in bad)
                 reason = local_prompt.GATE_REASON_CODE.format(snippets=snippets)
+            elif named:
+                reason = local_prompt.GATE_REASON_LEAK.format(names=", ".join(named))
+            else:
+                last_clean = reply.text
+                prose, _rung = local_prompt.split_rung(display)
+                if payload is not None or local_prompt.ends_with_one_task(prose):
+                    return self._accept(reply.text, total, attempt)
+                reason = local_prompt.GATE_REASON_SHAPE
             scratch += [
                 {"role": "assistant", "content": reply.text},
                 {"role": "user", "content": reason},
@@ -111,6 +117,12 @@ class LocalCoach:
             return self._accept(last_clean, total, MAX_TRIES)
         self.history.append({"role": "assistant", "content": local_prompt.WITHHELD})
         return Turn(local_prompt.WITHHELD, total, MAX_TRIES, withheld=True)
+
+    def _leaks(self, display: str) -> list[str]:
+        """Entry names the draft gives away, per the session's leak guard."""
+        if self.leak_guard is None:
+            return []
+        return self.leak_guard(display, self.user_texts())
 
     def _accept(self, text: str, seconds: float, attempts: int) -> Turn:
         """Record `text` as the assistant's reply and wrap it as a Turn."""
