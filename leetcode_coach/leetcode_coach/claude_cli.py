@@ -37,17 +37,26 @@ def claude_bin() -> str:
 
 
 def ask(
-    args: list[str], prompt: str, *, timeout: float | None = None
+    args: list[str],
+    prompt: str,
+    *,
+    timeout: float | None = None,
+    env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """One `claude -p` turn; the JSON result, or a stand-in carrying stderr."""
-    env = {**os.environ, "CLAUDE_TTY_FIX_OFF": "1"}
+    """One `claude -p` turn; the JSON result, or a stand-in carrying stderr.
+
+    `env` is merged over this process's environment for the child only: the
+    relay hands each session its own ``LEETCODE_COACH_LOG`` this way, never
+    through ``os.environ`` (one process serves many sessions).
+    """
+    child_env = {**os.environ, "CLAUDE_TTY_FIX_OFF": "1", **(env or {})}
     try:
         proc = subprocess.run(
             [claude_bin(), "-p", *args, "--output-format", "json", prompt],
             capture_output=True,
             stdin=subprocess.DEVNULL,  # claude -p would otherwise drain REPL input
             text=True,
-            env=env,
+            env=child_env,
             check=False,
             cwd=Path.home(),
             timeout=timeout,

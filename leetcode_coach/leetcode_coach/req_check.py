@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 _LOG = logging.getLogger(__name__)
 
 HAIKU_TIMEOUT_S = 50.0
+LOCAL_TIMEOUT_S = 200.0
+"""Ollama's share of a check: with haiku's 50 s it fits the relay's 280 s cap."""
 HAIKU_ARGS = [
     "--model",
     "haiku",
@@ -113,7 +115,7 @@ def check_prompt(statement: str, req: str, box: Toolbox) -> str:
     )
 
 
-def _ask_models[T](
+def ask_models[T](
     system: str,
     prompt: str,
     validate: Callable[[dict[str, Any] | None], T | None],
@@ -130,7 +132,11 @@ def _ask_models[T](
             return got, "haiku"
     try:
         local = local_backend.chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            timeout=LOCAL_TIMEOUT_S,
         )
     except (urllib.error.URLError, OSError, local_backend.ContextOverflowError) as exc:
         _LOG.warning("Ollama could not answer the check either: %s", exc)
@@ -149,7 +155,7 @@ def check(
     if not box.properties:
         _LOG.warning("no property vocabulary: the req list stays unverified")
         return Check("unverified")
-    got = _ask_models(
+    got = ask_models(
         CHECK_SYSTEM,
         check_prompt(statement, req, box),
         lambda obj: parse_verdict(obj, box.properties),
@@ -170,5 +176,5 @@ def looks_like_code(
     block: str, ask: Callable[..., dict[str, Any]] | None = None
 ) -> bool:
     """The model's call on a block the regex could not decide; prose if unsure."""
-    got = _ask_models(CODE_SYSTEM, block, _code_flag, ask)
+    got = ask_models(CODE_SYSTEM, block, _code_flag, ask)
     return False if got is None else got[0]

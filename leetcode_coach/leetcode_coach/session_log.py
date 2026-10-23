@@ -6,7 +6,11 @@ directory follows ``LEETCODE_COACH_SESSIONS_DIR``: `progress.sessions_dir`).
 Every line is one object with ``event`` and ``ts``; ``req_check`` carries ``verdict``,
 ``rung`` carries ``rung``. That contract is FIXED: ``leetcode_guard._coach_log``
 reads it for the status app, so a new kind of fact rides as an extra field on
-an existing event (``code`` + ``req_incomplete``), never as a new event name.
+an existing event (``code`` + ``req_incomplete``), and new names only together
+with the reader: ``session_start``, ``grade``, ``chat`` and ``session_end``
+came with ``_coach_log.EVENTS`` in one commit (DOCS-coach-relay.md section 5).
+A file can hold several app sessions; each starts at its ``session_start``
+(`current`), and a CLI-only file is one session.
 
 Every event carries ``cluster`` while ``LEETCODE_COACH_CLUSTER`` is set
 (`leetcode --cluster` sets it for the session it starts).
@@ -32,7 +36,10 @@ _LOG = logging.getLogger(__name__)
 LOG_ENV = "LEETCODE_COACH_LOG"
 """Set by the REPL so the Stop hook (a grandchild) reads the same log."""
 EVENTS = frozenset(
-    {"req", "req_check", "code", "rung", "reveal", "postmortem", "retest"}
+    {
+        *("req", "req_check", "code", "rung", "reveal", "postmortem", "retest"),
+        *("session_start", "grade", "chat", "session_end"),
+    }
 )
 
 
@@ -95,9 +102,15 @@ def read(path: Path) -> list[dict[str, Any]]:
     return [obj for obj in parsed if isinstance(obj, dict)]
 
 
+def current(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The events of the file's latest session: from its last ``session_start``."""
+    starts = [i for i, e in enumerate(events) if e.get("event") == "session_start"]
+    return events[starts[-1] :] if starts else events
+
+
 def has_code(path: Path) -> bool:
     """Whether kuhy's code has reached the coach in this session."""
-    return any(e.get("event") == "code" for e in read(path))
+    return any(e.get("event") == "code" for e in current(read(path)))
 
 
 def append_current(event: str, **fields: object) -> bool:
@@ -107,8 +120,8 @@ def append_current(event: str, **fields: object) -> bool:
     logging ``postmortem`` once the cards are delivered. The TUI has no REPL
     and so no log: nothing is written there.
     """
-    current = os.environ.get(LOG_ENV)
-    if not current:
+    exported = os.environ.get(LOG_ENV)
+    if not exported:
         return False
-    append(Path(current), event, **fields)
+    append(Path(exported), event, **fields)
     return True

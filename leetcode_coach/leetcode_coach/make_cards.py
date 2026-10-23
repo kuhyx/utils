@@ -123,6 +123,30 @@ def build_apkg(slug: str, cards: list[card_rules.Card], today: str) -> Path:
     return out
 
 
+def deliver(
+    slug: str,
+    cards: list[card_rules.Card],
+    *,
+    replace: bool = False,
+    online: bool | None = None,
+) -> str:
+    """Log already-validated `cards` and deliver them; the delivery line.
+
+    AnkiConnect when Anki is open, else an .apkg. The coach relay calls this
+    in-process (no ``postmortem`` here: the caller logs it to its own log).
+    """
+    today = dt.datetime.now(tz=dt.UTC).date().isoformat()
+    _log(slug, cards, today)
+    if anki_connect.available() if online is None else online:
+        done = push_direct(slug, cards, replace=replace)
+        return f"{len(cards)} cards -> Anki desktop: {done}"
+    out = build_apkg(slug, cards, today)
+    return (
+        f"{len(cards)} cards -> {out} (Anki desktop not open). Import with:\n"
+        f"anki {shlex.quote(str(out))}"
+    )
+
+
 def _usage() -> str:
     """The `Usage:` line of this module's docstring."""
     return (__doc__ or "").strip().splitlines()[2]
@@ -153,16 +177,8 @@ def main() -> int:
             "--replace needs Anki open (AnkiConnect); nothing changed", file=sys.stderr
         )
         return 1
-    today = dt.datetime.now(tz=dt.UTC).date().isoformat()
-    _log(slug, cards, today)
     print(card_rules.table(cards))
-    if online:
-        done = push_direct(slug, cards, replace=replace)
-        print(f"{len(cards)} cards -> Anki desktop: {done}")
-    else:
-        out = build_apkg(slug, cards, today)
-        print(f"{len(cards)} cards -> {out} (Anki desktop not open). Import with:")
-        print(f"anki {shlex.quote(str(out))}")
+    print(deliver(slug, cards, replace=replace, online=online))
     # Delivered: the post-mortem is done. Re-test completion and "solved"
     # (progress.py) read this event from the REPL's session log.
     session_log.append_current("postmortem", cards=len(cards))

@@ -6,7 +6,8 @@ A call made with ``--model haiku`` is the checker; any other is the coach.
 Each call takes the next answer of its kind -- ``{"result": "..."}`` is printed
 the way ``--output-format json`` prints it, ``{"exit": n, "stderr": "..."}``
 fails -- and appends ``{"kind", "args", "prompt"}`` to ``calls.jsonl`` so a
-test can prove what did and did not reach the model.
+test can prove what did and did not reach the model, and with which
+``LEETCODE_COACH_LOG`` in its env.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ def main() -> int:
     kind = "haiku" if model == "haiku" else "coach"
     with (root / "calls.jsonl").open("a", encoding="utf-8") as fh:
         record = {"kind": kind, "args": args[:-1], "prompt": args[-1]}
+        record["log"] = os.environ.get("LEETCODE_COACH_LOG", "")
         fh.write(json.dumps(record) + "\n")
     counter = root / f"{kind}.used"
     used = int(counter.read_text(encoding="utf-8")) if counter.exists() else 0

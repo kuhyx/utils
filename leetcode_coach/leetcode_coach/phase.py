@@ -73,15 +73,42 @@ class ReqState:
         return self.accepted or self.forced
 
 
+REQ_STEP = 2
+"""The app's step 2 (requirements) in ``grade`` events."""
+
+
+def _step2_grades(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        e for e in events if e.get("event") == "grade" and e.get("step") == REQ_STEP
+    ]
+
+
 def req_state(events: list[dict[str, Any]]) -> ReqState:
-    """Accepted on a pass/unverified check; forced after `MAX_LISTS` incompletes."""
+    """Accepted on a pass/unverified check; forced after `MAX_LISTS` incompletes.
+
+    A step-2 ``grade`` with ``forced: true`` (the app's "continue anyway")
+    forces it too, or a forced step 2 would still refuse kuhy's code.
+    """
     verdicts = [e.get("verdict") for e in events if e.get("event") == "req_check"]
     tries = verdicts.count("incomplete")
     accepted = "pass" in verdicts or "unverified" in verdicts
-    return ReqState(accepted, not accepted and tries >= MAX_LISTS, tries)
+    pushed = any(e.get("forced") is True for e in _step2_grades(events))
+    forced = not accepted and (tries >= MAX_LISTS or pushed)
+    return ReqState(accepted, forced, tries)
 
 
-def _property_line(prop: str, box: toolbox.Toolbox) -> str:
+def step2_attempts(events: list[dict[str, Any]]) -> int:
+    """Failed step-2 tries: incomplete lists plus app ``fail`` grades.
+
+    A ``fail`` (the list read as code, or named an operation) never reaches
+    the checker, so it has no ``req_check``; a ``partial`` does, and is
+    already counted there. CLI and app count one file alike.
+    """
+    fails = sum(1 for e in _step2_grades(events) if e.get("grade") == "fail")
+    return req_state(events).tries + fails
+
+
+def property_line(prop: str, box: toolbox.Toolbox) -> str:
     """`prop: meaning`, or just `prop` when the meaning names an entry.
 
     Some meanings illustrate with the operation itself (self-inverse:
@@ -99,7 +126,7 @@ def _req_note(result: req_check.Check, state: ReqState, box: toolbox.Toolbox) ->
     if state.forced:
         missing = ", ".join(result.missing)
         return f"[req list still incomplete ({missing}) -- code accepted anyway]"
-    props = "\n".join(f"  - {_property_line(p, box)}" for p in result.missing)
+    props = "\n".join(f"  - {property_line(p, box)}" for p in result.missing)
     return (
         f"[req list incomplete -- it does not yet say these properties:\n{props}\n"
         f" revise with req: ({state.tries} of {MAX_LISTS})]"
@@ -133,24 +160,34 @@ class PhaseGate:
             self.known = self.source()
         return self.known
 
+    def events(self) -> list[dict[str, Any]]:
+        """This session's log events (`session_log.current`)."""
+        return session_log.current(session_log.read(self.log))
+
     def code_seen(self) -> bool:
         """Whether a code block has been let through this session."""
         return session_log.has_code(self.log)
 
-    def screen(self, block: str) -> tuple[str | None, str]:
-        """(what to send the coach, or None to refuse; a note for kuhy)."""
+    def screen(
+        self, block: str, *, is_code: bool | None = None
+    ) -> tuple[str | None, str]:
+        """(what to send the coach, or None to refuse; a note for kuhy).
+
+        `is_code` is a verdict the caller already reached (the relay judges a
+        message before its own step-2 check), so the model is not asked twice.
+        """
         text = block.strip()
         if text.lower() == "reveal":
             session_log.append(self.log, "reveal")
             return block, ""
         if REQ_RE.match(text):
             return self._req(block)
-        verdict = regex_verdict(text)
+        verdict = regex_verdict(text) if is_code is None else is_code
         if verdict is None:
             verdict = req_check.looks_like_code(text, self.ask)
         if not verdict:
             return block, ""
-        state = req_state(session_log.read(self.log))
+        state = req_state(self.events())
         if not state.open:
             return None, self._refusal(state)
         extra = {"req_incomplete": True} if state.forced else {}
@@ -167,11 +204,15 @@ class PhaseGate:
             missing=list(result.missing),
             via=result.via,
         )
-        state = req_state(session_log.read(self.log))
+        state = req_state(self.events())
         tag = result.verdict
         if result.missing:
             tag += "; missing properties: " + ", ".join(result.missing)
         return f"{block}\n\n[req check: {tag}]", _req_note(result, state, self.toolbox)
+
+    def refusal_note(self) -> str:
+        """The line a refused code block gets now (the relay's ``note``)."""
+        return self._refusal(req_state(self.events()))
 
     @staticmethod
     def _refusal(state: ReqState) -> str:

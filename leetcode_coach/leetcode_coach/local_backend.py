@@ -87,8 +87,12 @@ def chat(
     *,
     post: Callable[[str, dict[str, Any] | None, float], dict[str, Any]] = http_json,
     clock: Callable[[], float] = time.monotonic,
+    timeout: float = REQUEST_TIMEOUT_S,
 ) -> LocalReply:
     """Ask the local model for the next assistant message.
+
+    `timeout` bounds the HTTP call; the relay passes less than the default so
+    a whole request fits its cap (DOCS-coach-relay.md section 1).
 
     Raises:
         ContextOverflowError: when the prompt would not fit in `NUM_CTX`.
@@ -105,7 +109,7 @@ def chat(
         "options": {"num_ctx": NUM_CTX, "temperature": TEMPERATURE},
     }
     start = clock()
-    data = post(f"{OLLAMA_URL}/api/chat", payload, REQUEST_TIMEOUT_S)
+    data = post(f"{OLLAMA_URL}/api/chat", payload, timeout)
     seconds = clock() - start
     prompt_tokens = int(data.get("prompt_eval_count") or 0)
     if prompt_tokens >= NUM_CTX:

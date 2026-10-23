@@ -33,7 +33,7 @@ def _haiku(answer: object) -> _Haiku:
 def _ollama(monkeypatch: pytest.MonkeyPatch, text: str | Exception) -> list[Any]:
     sent: list[Any] = []
 
-    def chat(messages: list[dict[str, str]]) -> local_backend.LocalReply:
+    def chat(messages: list[dict[str, str]], **_kw: object) -> local_backend.LocalReply:
         sent.append(messages)
         if isinstance(text, Exception):
             raise text
