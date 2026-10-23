@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# ============================================================================
+# leetcode — coaching session in print mode, on the cheapest model.
+# Print mode matters: the no-solution Stop gate can only withhold a reply
+# from a client that waits for hooks, and the interactive TUI streams first.
+#   leetcode <url-or-slug> [what you are stuck on...]
+#
+# Symlinked from ~/.local/bin/leetcode. The package lives in leetcode-guard;
+# the repo root goes on PYTHONPATH so the launcher works from any checkout,
+# installed or not, and -P keeps the caller's cwd off sys.path.
+# ============================================================================
+
+set -euo pipefail
+
+repo="$(dirname "$(dirname "$(readlink -f "$0")")")"
+PYTHONPATH="${repo}${PYTHONPATH:+:${PYTHONPATH}}" \
+    exec /usr/bin/python3 -P -m leetcode_coach.leetcode_repl "$@"
