@@ -31,7 +31,8 @@ Both REPL paths run `phase.PhaseGate` on every block kuhy sends:
   event carries `req_incomplete: true`).
 - Until the first `code` event, a reply naming a toolbox entry or alias is
   bounced (`leak.py`: the Stop hook on the Claude path, `local_coach` on the
-  local one), except names kuhy or the fetched statement already used.
+  local one), except names kuhy already typed (not the statement: its tags
+  and hints name the answer).
 - Each reply's `<!-- rung:Hn -->` marker is logged and stripped.
 
 Every step lands in `~/.local/share/leetcode-coach/sessions/<date>-<slug>.jsonl`

@@ -5,9 +5,11 @@ its name or any alias, e.g. "XOR", "^", "hash map" -- hands over step 3 of the
 method (searching the toolbox by properties). Shared by the Stop hook
 (`stop_gate`) and the offline coach (`local_coach`), so both judge alike.
 
-An entry kuhy (or the problem statement) already named is free for the whole
-session, under every alias: after "is it XOR?" the honest answer has to be
-able to say XOR, or the rewrite can never pass and the gate loops.
+An entry kuhy already named is free for the whole session, under every
+alias: after "is it XOR?" the honest answer has to be able to say XOR, or
+the rewrite can never pass and the gate loops. Only kuhy's own words count:
+the fetched statement carries LeetCode's topic tags and hints ("Hash
+Table", "Sliding Window"), so exempting it would pre-clear the answer.
 
 Matching is case-insensitive on whole tokens. ``\b`` does not work next to a
 symbol alias like ``^``, so the boundary is "no word character either side":

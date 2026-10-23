@@ -1,7 +1,8 @@
 """Stop hook: in a /leetcode session, refuse a reply that hands kuhy a line of code.
 
 Before kuhy's first code it also bounces a reply that names a toolbox entry
-(`leak`), except an entry kuhy or the fetched problem already named.
+(`leak`), except an entry kuhy already named. Not the fetched problem:
+its topic tags and site hints say "Hash Table", "Two Pointers".
 
 The prose rule ("never write a line for their code") held in one haiku
 role-play out of two, so it is adjudicated here instead. A reply is blocked
@@ -61,8 +62,7 @@ def verdict(raw: str, reply: str) -> str | None:
     if any(u.strip() == "reveal" for u in users):
         return None
     if not _code_seen(users):
-        quoted = [gate_detector.allowed_text(entries)]
-        named = leak.leaked_names(reply, quoted, toolbox.load_safe())
+        named = leak.leaked_names(reply, users, toolbox.load_safe())
         if named:
             return local_prompt.GATE_REASON_LEAK.format(names=", ".join(named))
     idents = gate_detector.starter_identifiers(entries)

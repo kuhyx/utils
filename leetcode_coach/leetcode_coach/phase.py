@@ -81,6 +81,16 @@ def req_state(events: list[dict[str, Any]]) -> ReqState:
     return ReqState(accepted, not accepted and tries >= MAX_LISTS, tries)
 
 
+def _property_line(prop: str, box: toolbox.Toolbox) -> str:
+    """`prop: meaning`, or just `prop` when the meaning names an entry.
+
+    Some meanings illustrate with the operation itself (self-inverse:
+    "a ^ x ^ x = a"); shown to kuhy that is the answer, not a property.
+    """
+    meaning = box.properties[prop]
+    return prop if leak.leaked_names(meaning, [], box) else f"{prop}: {meaning}"
+
+
 def _req_note(result: req_check.Check, state: ReqState, box: toolbox.Toolbox) -> str:
     if result.verdict == "pass":
         return "[req list accepted -- code is open]"
@@ -89,7 +99,7 @@ def _req_note(result: req_check.Check, state: ReqState, box: toolbox.Toolbox) ->
     if state.forced:
         missing = ", ".join(result.missing)
         return f"[req list still incomplete ({missing}) -- code accepted anyway]"
-    props = "\n".join(f"  - {p}: {box.properties[p]}" for p in result.missing)
+    props = "\n".join(f"  - {_property_line(p, box)}" for p in result.missing)
     return (
         f"[req list incomplete -- it does not yet say these properties:\n{props}\n"
         f" revise with req: ({state.tries} of {MAX_LISTS})]"
@@ -187,5 +197,4 @@ class PhaseGate:
         """Toolbox entries `reply` names too early (the local path's bounce)."""
         if any(t.strip() == "reveal" for t in user_texts) or self.code_seen():
             return []
-        allowed = [*user_texts, self.statement()]
-        return leak.leaked_names(reply, allowed, self.toolbox)
+        return leak.leaked_names(reply, user_texts, self.toolbox)

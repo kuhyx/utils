@@ -203,13 +203,27 @@ def test_leaks_only_before_code_and_never_what_kuhy_typed(
     assert gate.leaks(reply, []) == []
 
 
-def test_a_statement_naming_an_entry_lets_the_coach_restate_it(
-    tmp_path: Path,
-) -> None:
+def test_the_statement_does_not_free_a_name(tmp_path: Path) -> None:
     gate = phase.PhaseGate(
-        tmp_path / "l.jsonl", toolbox.load_safe(), lambda: "Use XOR."
+        tmp_path / "l.jsonl", toolbox.load_safe(), lambda: "Topics: XOR."
     )
-    assert gate.leaks("XOR here", []) == []
+    assert gate.leaks("XOR here", []) == ["XOR"]
+
+
+def test_a_meaning_that_names_an_entry_is_not_shown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    box = toolbox.Toolbox(
+        (toolbox.Entry("XOR", ("^",), ("self-inverse",)),),
+        {"self-inverse": "a ^ x ^ x = a", "constant-space": "memory stays flat"},
+    )
+    missing = req_check.Check("incomplete", ("self-inverse", "constant-space"))
+    monkeypatch.setattr(req_check, "check", _Checks(missing))
+    gate = phase.PhaseGate(tmp_path / "l.jsonl", box, lambda: "s")
+    _, note = gate.screen("req: one pass")
+    assert "  - self-inverse\n" in note
+    assert "  - constant-space: memory stays flat\n" in note
+    assert "^" not in note
 
 
 def test_open_exports_the_log_path_for_the_hooks(

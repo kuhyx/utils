@@ -48,14 +48,19 @@ def test_the_bounce_reason_does_not_whitelist_itself() -> None:
     assert stop_gate.verdict(_raw(SLASH_LOAD, feedback), LEAKY) is not None
 
 
-def test_names_in_the_fetched_statement_may_be_restated() -> None:
+def test_the_fetched_statement_whitelists_nothing() -> None:
+    """Its topic tags and site hints name the answer ("Topics: Hash Table")."""
     tool = {
         "type": "user",
         "message": {
-            "content": [{"type": "tool_result", "content": "Solve it with XOR."}]
+            "content": [
+                {"type": "tool_result", "content": "Topics: Hash Table. Use XOR."}
+            ]
         },
     }
-    assert stop_gate.verdict(_raw(SLASH_LOAD, tool), LEAKY) is None
+    raw = _raw(SLASH_LOAD, tool)
+    assert stop_gate.verdict(raw, LEAKY) is not None
+    assert stop_gate.verdict(raw, "Would a hash map help?") is not None
 
 
 def test_the_session_log_lifts_the_bounce_once_code_exists(
