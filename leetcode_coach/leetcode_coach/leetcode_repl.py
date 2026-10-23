@@ -21,6 +21,7 @@ its prints ARE the session (T201 exemption in pyproject.toml).
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import os
@@ -31,7 +32,7 @@ import subprocess
 import sys
 from typing import Any
 
-from leetcode_coach import local_session
+from leetcode_coach import cluster_cli, local_session
 
 # Named, not __name__: under `-m` this module is `__main__`, which would escape
 # the package logger's NullHandler and print the warning to the session.
@@ -127,6 +128,14 @@ def run_claude(model: str, problem: list[str]) -> int:
         ]
 
 
+def start_session(problem: list[str], *, local: bool) -> int:
+    """One coaching session for `<url-or-slug> [stuck on...]`."""
+    if local:
+        opener = local_session.opening_message(problem[1:])
+        return local_session.run(problem[0], [], opener, read_block)
+    return run_claude(os.environ.get("LEETCODE_MODEL", "sonnet"), problem)
+
+
 def main(argv: list[str]) -> int:
     """Parse `[--local] <url-or-slug> [stuck on...]` and run a session."""
     local = "--local" in argv
@@ -135,11 +144,11 @@ def main(argv: list[str]) -> int:
         print("Usage: leetcode [--local] <url-or-slug> [what you are stuck on...]")
         print("  LEETCODE_MODEL=opus leetcode ...     to use a stronger model")
         print("  --local   coach on the local Ollama model (free, offline)")
+        print("  leetcode due | --cluster <name> | --retest <slug>   (--dry-run)")
         return 0
-    if local:
-        opener = local_session.opening_message(args[1:])
-        return local_session.run(args[0], [], opener, read_block)
-    return run_claude(os.environ.get("LEETCODE_MODEL", "sonnet"), args)
+    if args[0] in cluster_cli.COMMANDS:
+        return cluster_cli.main(args, functools.partial(start_session, local=local))
+    return start_session(args, local=local)
 
 
 if __name__ == "__main__":

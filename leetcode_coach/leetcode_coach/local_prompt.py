@@ -45,11 +45,12 @@ LOCAL_NOTES = """
   that typing `reveal` ends the exercise.
 - Never repeat a previous reply. Answer what kuhy just wrote.
 - For the post-mortem cards (section 5b), do NOT print a Bash command. Emit one
-  fenced block tagged `cards` holding the JSON, e.g.
+  fenced block tagged `cards` naming the toolbox entries, e.g.
   ```cards
-  {"slug": "<slug>", "cards": [{"front": "JS: ...?", "back": "..."}]}
+  {"toolbox": ["<entry name>", "<entry name>"]}
   ```
-  The client builds the deck and shows the result.
+  The client builds the property cards and shows the result. Never append to
+  the toolbox from this client: tell kuhy to do it in a Claude session.
 
 # The problem (already fetched)
 

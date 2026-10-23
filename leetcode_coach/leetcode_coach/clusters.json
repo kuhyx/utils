@@ -1,0 +1,40 @@
+{
+  "clusters": {
+    "bit-cancellation": [
+      {"id": 268, "slug": "missing-number"},
+      {"id": 260, "slug": "single-number-iii"},
+      {"id": 169, "slug": "majority-element"},
+      {"id": 137, "slug": "single-number-ii"}
+    ],
+    "two-pointers": [
+      {"id": 167, "slug": "two-sum-ii-input-array-is-sorted"},
+      {"id": 15, "slug": "3sum"},
+      {"id": 11, "slug": "container-with-most-water"},
+      {"id": 42, "slug": "trapping-rain-water"}
+    ],
+    "sliding-window": [
+      {"id": 3, "slug": "longest-substring-without-repeating-characters"},
+      {"id": 424, "slug": "longest-repeating-character-replacement"},
+      {"id": 567, "slug": "permutation-in-string"},
+      {"id": 76, "slug": "minimum-window-substring"}
+    ],
+    "prefix-sum-hash": [
+      {"id": 560, "slug": "subarray-sum-equals-k"},
+      {"id": 523, "slug": "continuous-subarray-sum"},
+      {"id": 974, "slug": "subarray-sums-divisible-by-k"},
+      {"id": 525, "slug": "contiguous-array"}
+    ],
+    "monotonic-stack": [
+      {"id": 739, "slug": "daily-temperatures"},
+      {"id": 496, "slug": "next-greater-element-i"},
+      {"id": 503, "slug": "next-greater-element-ii"},
+      {"id": 84, "slug": "largest-rectangle-in-histogram"}
+    ],
+    "intervals": [
+      {"id": 56, "slug": "merge-intervals"},
+      {"id": 57, "slug": "insert-interval"},
+      {"id": 435, "slug": "non-overlapping-intervals"},
+      {"id": 452, "slug": "minimum-number-of-arrows-to-burst-balloons"}
+    ]
+  }
+}

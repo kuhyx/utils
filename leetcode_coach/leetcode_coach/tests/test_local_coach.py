@@ -99,6 +99,21 @@ def test_deliver_cards_pipes_to_make_cards() -> None:
     assert local_cards.deliver_cards({"invalid": "x"})[0] is False
 
 
+def test_a_toolbox_block_becomes_property_cards() -> None:
+    seen: dict[str, Any] = {}
+
+    def run(cmd: list[str], **kw: Any) -> subprocess.CompletedProcess[str]:
+        seen.update(input=json.loads(kw["input"]))
+        return completed(0, "| table |")
+
+    assert local_cards.deliver_cards({"toolbox": ["xor"]}, run=run)[0]
+    assert seen["input"]["slug"] == "toolbox"
+    assert seen["input"]["cards"][0]["back"] == "XOR"
+    ok, out = local_cards.deliver_cards({"toolbox": ["segment tree"]}, run=run)
+    assert not ok
+    assert "not in the toolbox" in out
+
+
 def test_rejected_cards_are_fed_back_once_fixed(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

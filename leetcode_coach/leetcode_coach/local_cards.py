@@ -14,6 +14,8 @@ import subprocess
 import sys
 from typing import TYPE_CHECKING, Any
 
+from leetcode_coach import toolbox_cards
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -43,6 +45,15 @@ def deliver_cards(
     """Pipe the cards to the card builder; (accepted, its stdout+stderr)."""
     if "invalid" in payload:
         return False, f"cards block is not a JSON object: {payload['invalid']!r}"
+    if "toolbox" in payload:
+        # Property -> operation cards (decision 11) come from toolbox.json,
+        # so the local model names entries instead of typing fronts.
+        try:
+            cards = toolbox_cards.cards_for(list(payload["toolbox"]))
+        except KeyError as exc:
+            _LOG.warning("cards block names an unknown entry: %s", exc)
+            return False, str(exc.args[0])
+        payload = {"slug": toolbox_cards.SLUG, "cards": cards}
     proc = run(
         [sys.executable, "-m", "leetcode_coach.make_cards", "-"],
         input=json.dumps(payload),
