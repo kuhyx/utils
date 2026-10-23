@@ -1,0 +1,268 @@
+{
+  "problems": {
+    "missing-number": {
+      "design_rule": "Constant extra space in one linear pass rules out remembering which values were seen, so the answer must come from folding every value into one accumulator in a way that makes each present value cancel against the full 0..n range.",
+      "entries": ["XOR"],
+      "also_accepted": ["sum / difference"],
+      "key_requirements": ["invertible", "commutative", "associative"],
+      "postmortem_points": [
+        "Named the property that does the work: every present value can be undone against the full range, in any order, leaving only the absent one.",
+        "Counted the range as n + 1 members against n values, which is why the leftover is exactly the missing one.",
+        "Noted that more than one operation has the undo property, and the choice between them is about overflow and clarity, not correctness."
+      ]
+    },
+    "single-number-iii": {
+      "design_rule": "Two values appear once and the rest twice, with constant extra space, so pairs must cancel in a single fold and the two survivors must then be separated by one position where they differ.",
+      "entries": ["XOR", "lowest set bit"],
+      "also_accepted": [],
+      "key_requirements": ["self-inverse", "commutative", "isolates one bit"],
+      "postmortem_points": [
+        "Named that applying a value twice undoes it, so the full fold leaves the combination of the two unique values.",
+        "Recognised that the leftover is nonzero because the two values differ, so at least one bit position tells them apart.",
+        "Split the input into two groups by that one bit and folded each group, so each pair stays together and each survivor lands alone."
+      ]
+    },
+    "majority-element": {
+      "design_rule": "A value occurs more than n/2 times and the follow-up asks for linear time with constant space, so you cannot tally every value; a single running candidate that pairs off against different values must be enough.",
+      "entries": ["Boyer-Moore majority vote"],
+      "also_accepted": ["hash map", "sorting"],
+      "key_requirements": ["needs a majority", "single pass", "O(1) extra space"],
+      "postmortem_points": [
+        "Named the guarantee the method rests on: the result is only right because one value really occurs more than half the time.",
+        "Explained why pairing each occurrence against a different value cannot eliminate the majority value.",
+        "Stated the cost trade-off of the tally and the ordering approaches against the constant-space one."
+      ]
+    },
+    "single-number-ii": {
+      "design_rule": "Every value appears three times except one, with constant extra space, so pairwise cancellation leaves the triples behind and the only workable state is a tiny counter for each bit position.",
+      "entries": ["per-bit counts mod k"],
+      "also_accepted": [],
+      "key_requirements": ["cancels any k-fold repeat", "works per bit", "O(1) extra space"],
+      "postmortem_points": [
+        "Named why undoing by pairs fails here: a value seen three times does not cancel, so the repeat count must be part of the rule.",
+        "Treated each bit position independently, counting its occurrences modulo three, so the triples vanish and the single value remains.",
+        "Noted that the counter per bit is a fixed number of variables, which is what satisfies the space limit, and that k = 3 can be swapped for any repeat count."
+      ]
+    },
+    "two-sum-ii-input-array-is-sorted": {
+      "design_rule": "The input is already ordered and only constant extra space is allowed, so the order itself must tell you which end to move after each comparison instead of remembering complements.",
+      "entries": ["two pointers"],
+      "also_accepted": ["binary search"],
+      "key_requirements": ["two moving indexes", "from both ends", "O(1) extra space"],
+      "postmortem_points": [
+        "Named the property of the input that makes a decision safe: a too-small total can only be fixed by raising the lower end, a too-large one by lowering the upper end.",
+        "Argued that each step discards a position that can no longer be part of an answer, so the scan is linear.",
+        "Noted that the memory-based approach is excluded by the space limit, not by correctness."
+      ]
+    },
+    "3sum": {
+      "design_rule": "Finding all distinct triples is cubic if unordered, so fix one value, order the rest so a pair search is linear, and skip repeated values to avoid duplicate triples.",
+      "entries": ["sorting", "two pointers"],
+      "also_accepted": ["hash set"],
+      "key_requirements": ["makes equal values adjacent", "two moving indexes", "from both ends"],
+      "postmortem_points": [
+        "Reduced the problem to a pair search for each fixed first value, with total cost n log n for the ordering plus n squared for the searches.",
+        "Used the ordering twice: to drive the pair search from both ends and to skip equal neighbours so no triple repeats.",
+        "Handled the duplicate skips at both the fixed value and after a hit, and said why each is needed."
+      ]
+    },
+    "container-with-most-water": {
+      "design_rule": "The width only shrinks as the walls close in, so a better container needs a taller shorter wall, which means always giving up the shorter wall and never the taller one.",
+      "entries": ["two pointers"],
+      "also_accepted": [],
+      "key_requirements": ["two moving indexes", "from both ends"],
+      "postmortem_points": [
+        "Started from the widest pair and argued why moving the taller wall can never help while moving the shorter one might.",
+        "Stated the invariant: every pair that was skipped is no better than a pair already measured.",
+        "Kept the best area seen so far as the only state, one linear scan with constant space."
+      ]
+    },
+    "trapping-rain-water": {
+      "design_rule": "Water above a bar is set by the lower of the tallest bars on its two sides, so you need those side maxima without storing them for every position, which a scan from both ends can supply.",
+      "entries": ["two pointers", "min / max"],
+      "also_accepted": ["monotonic stack"],
+      "key_requirements": ["two moving indexes", "from both ends", "associative"],
+      "postmortem_points": [
+        "Named the per-position rule: the level is the lower of the best bar to the left and the best bar to the right, minus the bar itself.",
+        "Explained why the side with the smaller best-so-far is already decided, so only that side moves.",
+        "Compared the stored-per-position version with the two-ended scan on memory."
+      ]
+    },
+    "longest-substring-without-repeating-characters": {
+      "design_rule": "The answer is a longest contiguous range with no repeat, and a range that contains a repeat stays invalid as it grows, so both ends can only move right and the range can be repaired by moving the left end.",
+      "entries": ["sliding window", "hash set"],
+      "also_accepted": ["hash map", "counting array"],
+      "key_requirements": ["window moves right", "monotone condition", "O(1) lookup"],
+      "postmortem_points": [
+        "Named why validity changes only once as the range grows: once a repeat is inside, extending it cannot fix it.",
+        "Used the constant-time membership test to know when to move the left end.",
+        "Argued the linear cost: each position enters and leaves the range at most once."
+      ]
+    },
+    "longest-repeating-character-replacement": {
+      "design_rule": "A range is fixable when its length minus its most frequent letter fits the replacement budget, and that stays true for any smaller range inside it, so a range that only moves right can track the best length with per-letter counts.",
+      "entries": ["sliding window", "counting array"],
+      "also_accepted": ["hash map"],
+      "key_requirements": ["window moves right", "monotone condition", "stores a value per key"],
+      "postmortem_points": [
+        "Turned the budget into a property of the range: length minus the highest count must not exceed the allowance.",
+        "Explained why the highest count never needs lowering: a stale high count can only stop the range from growing, never make an answer wrong, because a longer answer needs a higher count first.",
+        "Kept per-letter counts over a small fixed alphabet and updated them as each end moves."
+      ]
+    },
+    "permutation-in-string": {
+      "design_rule": "A rearrangement of a pattern is a range of the same length with the same per-letter counts, so a fixed-length range that slides right can be compared incrementally instead of rebuilt.",
+      "entries": ["sliding window", "counting array"],
+      "also_accepted": ["hash map"],
+      "key_requirements": ["window moves right", "stores a value per key"],
+      "postmortem_points": [
+        "Reduced the order-free match to equality of per-letter counts.",
+        "Moved the range one step at a time, adding the new letter and removing the old one, so each step costs constant work.",
+        "Kept a count of letters currently matching, or compared a small fixed-size table, instead of recomparing everything."
+      ]
+    },
+    "minimum-window-substring": {
+      "design_rule": "The shortest range covering all required letters stays covering as it grows, so grow the right end until it covers, then shrink the left end while it still does, tracking the required counts per letter.",
+      "entries": ["sliding window", "hash map"],
+      "also_accepted": ["counting array"],
+      "key_requirements": ["window moves right", "monotone condition", "stores a value per key"],
+      "postmortem_points": [
+        "Named that being covered is a property that only gets easier as the range grows, which is what makes shrinking safe.",
+        "Tracked how many required letters are still short instead of recomparing all counts at every step.",
+        "Recorded the best range only at the moment the shrinking loop stops being valid, and handled repeated required letters with counts."
+      ]
+    },
+    "subarray-sum-equals-k": {
+      "design_rule": "Values can be negative, so a range that only moves right cannot be repaired by its total; instead the sum of any range is a difference of two running totals, so count how often each earlier total was seen.",
+      "entries": ["prefix sum + hash map"],
+      "also_accepted": [],
+      "key_requirements": ["needs an inverse", "handles negatives", "single pass", "O(1) lookup"],
+      "postmortem_points": [
+        "Named why growing and shrinking by the total fails here: negatives break the single change of validity.",
+        "Expressed a range sum as the later total minus the earlier total, so the question becomes whether total minus the target was seen before.",
+        "Counted each earlier total rather than only marking it, and recorded the empty start so ranges beginning at the first element are found."
+      ]
+    },
+    "continuous-subarray-sum": {
+      "design_rule": "Being a multiple of k is not monotone as a range grows, so a moving range cannot work; two running totals with the same remainder bound a range whose sum is a multiple of k, and the length-two minimum needs the earliest position of each remainder.",
+      "entries": ["prefix sum + hash map"],
+      "also_accepted": [],
+      "key_requirements": ["needs an inverse", "single pass", "O(1) lookup"],
+      "postmortem_points": [
+        "Turned divisibility into equality of remainders between two running totals.",
+        "Stored the first position of each remainder and never overwrote it, so the length condition can be checked.",
+        "Seeded the empty start at position minus one, and handled two adjacent zero values as the edge case."
+      ]
+    },
+    "subarray-sums-divisible-by-k": {
+      "design_rule": "A range sum divisible by k means two running totals share a remainder, and values can be negative so remainders must be normalised, so count the occurrences of each remainder as the scan proceeds.",
+      "entries": ["prefix sum + hash map"],
+      "also_accepted": [],
+      "key_requirements": ["needs an inverse", "handles negatives", "O(1) lookup"],
+      "postmortem_points": [
+        "Reduced the question to counting pairs of running totals with equal remainders.",
+        "Normalised negative remainders into the range 0 to k minus 1, and said why the language remainder operator needs that fix.",
+        "Counted pairs as each new total arrives, by adding the number of earlier equal remainders, and seeded the empty start."
+      ]
+    },
+    "contiguous-array": {
+      "design_rule": "Equal numbers of zeros and ones is not a count that a moving range can steer, but relabelling zero as minus one turns it into a range summing to zero, so the earliest position of each running total gives the longest range.",
+      "entries": ["prefix sum + hash map"],
+      "also_accepted": [],
+      "key_requirements": ["needs an inverse", "handles negatives", "O(1) lookup"],
+      "postmortem_points": [
+        "Relabelled one value so that balanced becomes a total of zero, and noted that this introduces negatives.",
+        "Stored only the first position of each running total because the longest range wants the earliest match.",
+        "Seeded the empty start so a balanced range from the beginning counts."
+      ]
+    },
+    "daily-temperatures": {
+      "design_rule": "For each day you need the nearest later day that is warmer, and answering all days in one linear pass means holding the still-unanswered days in an order where the most recent is resolved first.",
+      "entries": ["monotonic stack"],
+      "also_accepted": [],
+      "key_requirements": ["next-greater lookup", "last-in-first-out", "amortized O(n)"],
+      "postmortem_points": [
+        "Framed the task as a nearest-later-larger lookup for every position.",
+        "Kept the unresolved days with their values decreasing, so a warmer day resolves exactly the most recent ones it beats.",
+        "Argued the linear total: each day is added once and removed once, and stored positions rather than values to get distances."
+      ]
+    },
+    "next-greater-element-i": {
+      "design_rule": "Every query value is looked up in a second list, and the nearest later larger element is needed for all of them, so compute it once per element of the big list in one pass and answer the queries by key.",
+      "entries": ["monotonic stack", "hash map"],
+      "also_accepted": [],
+      "key_requirements": ["next-greater lookup", "last-in-first-out", "stores a value per key"],
+      "postmortem_points": [
+        "Separated the two jobs: finding the nearest later larger value for every element, and answering the queries by value.",
+        "Used distinct values as keys to store each answer, and defaulted to minus one for elements never resolved.",
+        "Argued the linear cost of the pass: each element enters and leaves once."
+      ]
+    },
+    "next-greater-element-ii": {
+      "design_rule": "The array is circular, so the nearest larger element may lie before the position, and since one pass over the list cannot see it, the same pass must cover every position twice while still resolving the most recent unresolved ones first.",
+      "entries": ["monotonic stack"],
+      "also_accepted": [],
+      "key_requirements": ["next-greater lookup", "last-in-first-out", "amortized O(n)"],
+      "postmortem_points": [
+        "Handled the wrap-around by visiting each position a second time through the remainder of the index, instead of copying the list.",
+        "Recorded answers only on the first visit, since an element resolved earlier is already settled.",
+        "Argued the cost is still linear: at most two additions and removals per element."
+      ]
+    },
+    "largest-rectangle-in-histogram": {
+      "design_rule": "Each bar's best rectangle extends to the nearest strictly lower bar on each side, so a single pass must find both limits for every bar, which means resolving the most recent taller bars as soon as a lower one arrives.",
+      "entries": ["monotonic stack"],
+      "also_accepted": [],
+      "key_requirements": ["next-greater lookup", "last-in-first-out", "amortized O(n)"],
+      "postmortem_points": [
+        "Reframed it as a nearest-lower lookup on both sides for every bar, the mirror of a nearest-larger lookup.",
+        "Computed the width from the new limit and the limit stored below the removed bar, and flushed the remaining bars with a sentinel at the end.",
+        "Argued the linear total: each bar is added once and removed once, and equal heights need no special case if the comparison is chosen consistently."
+      ]
+    },
+    "merge-intervals": {
+      "design_rule": "Overlapping ranges can be scattered anywhere in the input, so order them by start; then everything that overlaps the current group follows right after it and one pass can extend or close the group.",
+      "entries": ["sort by start + merge"],
+      "also_accepted": [],
+      "key_requirements": ["overlaps become adjacent", "needs sorted input", "single pass"],
+      "postmortem_points": [
+        "Named why the ordering by start makes the single comparison with the last group enough.",
+        "Treated touching ranges deliberately (whether a shared endpoint counts as overlap) and extended the end with the larger of the two ends.",
+        "Stated the cost: n log n for the ordering dominates the linear merge."
+      ]
+    },
+    "insert-interval": {
+      "design_rule": "The existing ranges are already ordered by start and disjoint, so no reordering is needed: those entirely before the new one stay, those overlapping it are absorbed into one, and the rest follow.",
+      "entries": ["sort by start + merge"],
+      "also_accepted": ["binary search"],
+      "key_requirements": ["overlaps become adjacent", "needs sorted input", "single pass"],
+      "postmortem_points": [
+        "Used the given order instead of reordering, so the work is one linear pass in three phases: before, overlapping, after.",
+        "Merged the overlapping run by taking the smallest start and the largest end among it and the new range.",
+        "Handled the edge cases: the new range at either extreme, touching endpoints, and an empty input list."
+      ]
+    },
+    "non-overlapping-intervals": {
+      "design_rule": "Removing the fewest ranges means keeping the most that do not overlap, and the range that finishes first always leaves the most room for the rest, so a locally best choice is never regretted.",
+      "entries": ["sort by end + greedy pick"],
+      "also_accepted": [],
+      "key_requirements": ["earliest end first", "greedy", "needs sorted input"],
+      "postmortem_points": [
+        "Flipped the question: the answer is the total minus the largest set of mutually compatible ranges.",
+        "Gave the exchange argument for why taking the earliest finish is never worse than any other first choice.",
+        "Counted a range as compatible only if it starts at or after the last kept end, and decided that touching counts as compatible."
+      ]
+    },
+    "minimum-number-of-arrows-to-burst-balloons": {
+      "design_rule": "One arrow serves every range that contains its position, so the fewest arrows come from sweeping ranges by their right end and placing each arrow at the earliest end that still covers everything not yet served.",
+      "entries": ["sort by end + greedy pick"],
+      "also_accepted": ["sort by start + merge"],
+      "key_requirements": ["earliest end first", "greedy", "needs sorted input"],
+      "postmortem_points": [
+        "Recognised this as the same structure as keeping the most compatible ranges: a group of ranges sharing a point costs one arrow.",
+        "Placed the arrow at the earliest end and counted a new arrow only when the next range starts strictly after it.",
+        "Ordered by comparing rather than subtracting, since the coordinates can be negative and reach the integer limits."
+      ]
+    }
+  }
+}
