@@ -35,9 +35,11 @@ if TYPE_CHECKING:
 
     from earned_time._policy import Earner, Window
 
+from earned_time._match import ROW_KINDS
+
 _logger: Final = logging.getLogger(__name__)
 
-_CREDIT: Final = "credit"
+_CREDIT_ONLY: Final = frozenset({"credit"})
 
 
 def entry_signature(entry: dict[str, object], key: bytes) -> str:
@@ -119,7 +121,9 @@ def read_rows(ledger: Path, earner: Earner) -> list[object] | None:
 def counting_rows(
     earner: Earner, ledger: Path, key_file: Path, window: Window
 ) -> Iterator[dict[str, object]] | None:
-    """The verified ``credit`` rows that ``earner.match`` counts in ``window``.
+    """The verified rows that ``earner.match`` counts in ``window``.
+
+    ``credit`` rows, plus whatever else ``ROW_KINDS`` shows that matcher.
 
     ``None`` when the key or the ledger cannot be read.
 
@@ -136,11 +140,12 @@ def counting_rows(
     if rows is None:
         return None
     match = earner.match
+    kinds = ROW_KINDS.get(match, _CREDIT_ONLY)
     return (
         row
         for row in rows
         if isinstance(row, dict)
-        and row.get("kind") == _CREDIT
+        and row.get("kind") in kinds
         and verified(row, key)
         and match(row, window)
     )

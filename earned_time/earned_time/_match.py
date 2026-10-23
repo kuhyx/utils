@@ -37,8 +37,21 @@ def leetcode_match(row: dict[str, object], window: Window) -> bool:
     ``day`` is the *harvesting* run's date and runs late, so it is only the
     fallback for a row without a usable stamp: it can miss a late solve but
     never invent one.
+
+    A day paid ahead from banked credits counts too (0.17.0, kuhy 2026-10-23:
+    working ahead must not forfeit the bonus). leetcode-guard writes a
+    ``charge`` with ``source == "leetcode"`` only when verified credits cover
+    the day; its escape hatch and outage path write other sources and pay
+    nothing. The charge counts for the day it names.
     """
     detail = row.get("detail")
+    if row.get("kind") == "charge":
+        local = datetime.fromtimestamp(window[0], tz=UTC).astimezone().date()
+        return (
+            isinstance(detail, dict)
+            and detail.get("source") == "leetcode"
+            and row.get("day") == local.isoformat()
+        )
     raw = detail.get("submitted_at") if isinstance(detail, dict) else None
     if raw is not None:
         landed = _within(raw, window)
@@ -171,4 +184,10 @@ CREDIT_STAMPS: Final[Mapping[CreditMatch, str]] = MappingProxyType(
 # and means something else, so this is never read generically.
 ROW_UNITS: Final[Mapping[CreditMatch, Callable[[dict[str, object]], int | None]]] = (
     MappingProxyType({tutor_match: tutor_minutes})
+)
+# Which ledger row kinds each matcher is shown; a matcher without an entry
+# sees only ``credit`` rows. LeetCode also sees ``charge`` rows, so a day
+# settled from banked credits counts (``leetcode_match``).
+ROW_KINDS: Final[Mapping[CreditMatch, frozenset[str]]] = MappingProxyType(
+    {leetcode_match: frozenset({"credit", "charge"})}
 )
