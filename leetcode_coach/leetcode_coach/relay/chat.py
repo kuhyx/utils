@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from typing import TYPE_CHECKING, Any, Final
 import urllib.error
 
@@ -33,6 +34,9 @@ if TYPE_CHECKING:
 _logger: Final = logging.getLogger(__name__)
 
 TURN_TIMEOUT_S: Final = 240.0
+REQUEST_CAP_S: Final = 280.0
+"""A whole request; a coach turn gets what is left of it (at most 240 s)."""
+MIN_TURN_S: Final = 15.0
 RESETS_RE: Final = re.compile(r"resets\s+([^\n]+?)\s*$", re.IGNORECASE | re.MULTILINE)
 TurnError = CoachError
 """A coach turn produced no reply (``model_error`` / ``claude_unavailable``)."""
@@ -61,9 +65,20 @@ class CoachChat:
         """Bind the claude call and the local model (both injectable)."""
         self._ask = ask
         self._local_chat = local_chat
+        self.monotonic: Callable[[], float] = time.monotonic
+        self.deadline = float("inf")
+        """When the running request hits `REQUEST_CAP_S` (set by `Coach.handle`)."""
+
+    def budget(self) -> float:
+        """Seconds this turn may take; `model_error` when too few are left."""
+        left = self.deadline - self.monotonic()
+        if left < MIN_TURN_S:
+            msg = "The PC ran out of time for this turn; send it again."
+            raise TurnError(msg, code="model_error", retry=True)
+        return min(TURN_TIMEOUT_S, left)
 
     def _bounded(self, messages: list[dict[str, str]]) -> local_backend.LocalReply:
-        return self._local_chat(messages, timeout=TURN_TIMEOUT_S)
+        return self._local_chat(messages, timeout=self.budget())
 
     def open(self, session: Session) -> str:
         """The coach's opening reply for a fresh session."""
@@ -79,7 +94,7 @@ class CoachChat:
         args = ["--model", model()]
         if resume and session.claude_id:
             args += ["--resume", session.claude_id]
-        reply = self._ask(args, text, timeout=TURN_TIMEOUT_S, env=_env(session))
+        reply = self._ask(args, text, timeout=self.budget(), env=_env(session))
         if claude_cli.is_limit_hit(reply):
             reason = str(reply.get("result") or "usage limit")
             _logger.warning("claude usage limit (%s): coaching on locally", reason)

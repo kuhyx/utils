@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from leetcode_coach import answer_key, claude_cli, local_backend, toolbox
 from leetcode_coach.relay import config, grading, protocol, runcode, steps, turns
-from leetcode_coach.relay.chat import CoachChat
+from leetcode_coach.relay.chat import REQUEST_CAP_S, CoachChat
 from leetcode_coach.relay.errors import CoachError
 from leetcode_coach.relay.probe import ACCEPTED, AcceptedProbe
 from leetcode_coach.relay.session import Session, grade_line, restore, save
@@ -170,6 +170,7 @@ class Coach:
     def handle(self, req: protocol.Request) -> dict[str, Any]:
         """Run one request; its result (section 2)."""
         with self.lock:
+            self.chat.deadline = self.chat.monotonic() + REQUEST_CAP_S
             try:
                 data = self._dispatch(req)
             except CoachError as exc:

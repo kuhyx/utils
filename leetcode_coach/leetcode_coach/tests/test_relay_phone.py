@@ -90,6 +90,7 @@ def test_events_at_every_depth_reach_the_lane(link: Any) -> None:
     made.consider(rid(), {"req": _req()})
     limited = rid()
     made.consider(limited, {"req": _req()})
+    assert made.outbox.drain()
     assert "rate_limited" in str(rec.calls[-1][2])
     assert rec.calls[-1][1] == f"requests/{limited}/result"
     assert rec.paths("put").count("heartbeat") == 1
@@ -101,6 +102,7 @@ def test_results_go_only_to_the_phone(link: Any) -> None:
     made.on_result(desktop, {"ok": True})
     phone_req = type("R", (), {"transport": "phone", "rid": rid()})()
     made.on_result(phone_req, {"ok": True})
+    assert made.outbox.drain()
     puts = rec.paths("put")
     assert f"requests/{phone_req.rid}/result" in puts
     assert f"requests/{desktop.rid}/result" not in puts
@@ -111,18 +113,26 @@ def test_write_failures_are_logged_and_retried(
 ) -> None:
     made, rec, _lane = link
     coach = made.coach
+    assert made.outbox.drain()
+    rec.calls.clear()
     rec.fail = {"delete"}
     with caplog.at_level(logging.WARNING):
         started(coach)
+        assert not made.outbox.drain()
     assert "RTDB chat reset failed" in caplog.text
-    assert rec.paths("patch") == []
-    rec.fail = {"patch"}
-    made.on_state(coach.state(), coach.session)
-    assert made._sent == set()
+    assert rec.calls == []  # nothing overtook the failed reset
+    assert made.outbox.pending() == ["chat reset", "chat", "state", "heartbeat"]
+    made.on_state(coach.state(), coach.session)  # newer state/beat replace waiting
+    assert made.outbox.pending() == ["chat reset", "chat", "state", "heartbeat"]
     rec.fail = set()
-    made.on_state(coach.state(), coach.session)
-    assert rec.calls[-2][0] == "patch"
-    assert json.loads(str(rec.calls[0][2]))["schema"] == 1
+    assert made.outbox.drain()
+    assert [(m, p) for m, p, _v in rec.calls] == [
+        ("delete", "chat"),
+        ("patch", "chat"),
+        ("put", "state"),
+        ("put", "heartbeat"),
+    ]
+    assert json.loads(str(rec.calls[2][2]))["schema"] == 1
 
 
 def test_rescan_answers_and_cleans_up(
@@ -149,6 +159,7 @@ def test_rescan_answers_and_cleans_up(
         "junk": 5,
     }
     made.rescan()
+    assert made.outbox.drain()
     assert sorted(rec.paths("delete")) == sorted(
         [f"requests/{old}", f"requests/{lost}"]
     )

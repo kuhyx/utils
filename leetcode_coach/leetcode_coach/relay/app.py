@@ -104,6 +104,7 @@ class Relay:  # pylint: disable=too-many-instance-attributes
         )
         phone.attach()
         self.phone = phone
+        self._spawn("rtdb-write", lambda: phone.outbox.run(self.stop_event))
         self._spawn("rtdb-listen", lambda: phone.listen(self.stop_event))
         self._spawn(
             "rtdb-tend", lambda: phone.tend(self.stop_event, self.stop_event.wait)
@@ -133,6 +134,8 @@ class Relay:  # pylint: disable=too-many-instance-attributes
         """Stop taking requests, let the running one finish, close the port."""
         self.stop_event.set()
         self.lane.stop()
+        if self.phone is not None:
+            self.phone.outbox.wake()
         if any(t.name == "http" for t in self._threads):
             self.server.shutdown()  # blocks unless serve_forever runs
         self.server.server_close()

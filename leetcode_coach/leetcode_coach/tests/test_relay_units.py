@@ -169,3 +169,17 @@ def test_env_and_config_seams(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.delenv(config.PORT_ENV)
     assert config.state_dir() == config.DEFAULT_DIR
     assert config.port() == config.DEFAULT_PORT
+
+
+def test_a_turn_gets_what_is_left_of_the_request(tmp_path: Path) -> None:
+    ask = FakeAsk([{"result": "Hi?"}, {"result": "Ok?"}])
+    coach = make_coach(tmp_path, ask)
+    sid = started(coach)
+    assert ask.calls[0]["timeout"] == chat.TURN_TIMEOUT_S
+    ticks = iter([0.0, 100.0, 0.0, 270.0])
+    coach.chat.monotonic = lambda: next(ticks)
+    assert coach.handle(req("chat", session=sid, text="so what then?"))["ok"]
+    assert ask.calls[-1]["timeout"] == 180.0
+    late = coach.handle(req("chat", session=sid, text="and now?"))
+    assert late["code"] == "model_error"
+    assert late["retry"] is True

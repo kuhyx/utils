@@ -8,8 +8,9 @@ on the shared lane. Results, ``state`` (a JSON string leaf) and the chat
 lines are written as they change; the heartbeat every `HEARTBEAT_S` and on
 every ``rev`` or busy change. ``requests/{rid}`` goes 24 h after its result.
 
-Firebase being down never stops the relay: every write failure is logged
-and the next change or beat tries again; the desktop keeps being served.
+Writes only ever *enqueue* (`outbox`): the lane's worker never waits on
+Firebase, so a hanging or down database never slows the desktop. A failed
+write is logged and retried in order; the relay never exits over it.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from leetcode_coach.relay import protocol, sse
 from leetcode_coach.relay.done import DAY_MS
+from leetcode_coach.relay.outbox import Outbox
 from leetcode_coach.relay.rtdb import SERVER_TIME, RtdbError
 
 if TYPE_CHECKING:
@@ -74,18 +76,10 @@ class PhoneLink:
         self._clock = clock_ms
         self._beat_every = heartbeat_s
         self._rescan_every = rescan_s
-        self._write_lock = threading.Lock()
+        self.outbox = Outbox()
+        self._mirror_lock = threading.Lock()
         self._chat_sid: str | None = None
         self._sent: set[str] = set()
-
-    def _write(self, what: str, call: Callable[[], None]) -> bool:
-        with self._write_lock:
-            try:
-                call()
-            except RtdbError as exc:
-                _logger.warning("RTDB %s failed: %s", what, exc)
-                return False
-        return True
 
     def attach(self) -> None:
         """Listen to the lane and the backend; then mirror everything once."""
@@ -98,12 +92,14 @@ class PhoneLink:
     def beat(self) -> None:
         """PUT the heartbeat (``beat`` as a server timestamp)."""
         beat = {**self._heartbeat(), "beat": SERVER_TIME}
-        self._write("heartbeat", lambda: self.rtdb.put("heartbeat", beat))
+        put = functools.partial(self.rtdb.put, "heartbeat", beat)
+        self.outbox.put("heartbeat", put, latest="heartbeat")
 
     def put_result(self, rid: str, result: dict[str, Any]) -> None:
         """``requests/{rid}/result`` as a JSON string leaf."""
         text = json.dumps(result, ensure_ascii=False)
-        self._write("result", lambda: self.rtdb.put(f"requests/{rid}/result", text))
+        put = functools.partial(self.rtdb.put, f"requests/{rid}/result", text)
+        self.outbox.put("result", put)
 
     def on_result(self, req: protocol.Request, result: dict[str, Any]) -> None:
         """A finished request: answer it if it came from the phone."""
@@ -111,21 +107,25 @@ class PhoneLink:
             self.put_result(req.rid, result)
 
     def on_state(self, state: dict[str, Any], session: Session | None) -> None:
-        """Mirror ``state``, the new chat lines and the heartbeat."""
+        """Queue the chat lines, then ``state``, then the heartbeat."""
         text = json.dumps(state, ensure_ascii=False)
-        self._write("state", lambda: self.rtdb.put("state", text))
-        sid = None if session is None else session.sid
-        if sid != self._chat_sid and self._write(
-            "chat reset", lambda: self.rtdb.delete("chat")
-        ):
-            self._chat_sid, self._sent = sid, set()
-        if session is not None and sid == self._chat_sid:
+        with self._mirror_lock:
+            sid = None if session is None else session.sid
+            if sid != self._chat_sid:
+                self.outbox.put(
+                    "chat reset", functools.partial(self.rtdb.delete, "chat")
+                )
+                self._chat_sid, self._sent = sid, set()
+            lines = {} if session is None else dict(session.chat)
             new: dict[str, object] = {
-                k: v for k, v in session.chat.items() if k not in self._sent
+                k: v for k, v in lines.items() if k not in self._sent
             }
-            if new and self._write("chat", lambda: self.rtdb.patch("chat", new)):
+            if new:
+                self.outbox.put("chat", functools.partial(self.rtdb.patch, "chat", new))
                 self._sent |= set(new)
-        self.beat()
+            put = functools.partial(self.rtdb.put, "state", text)
+            self.outbox.put("state", put, latest="state")
+            self.beat()
 
     def consider(self, rid: str, node: object) -> None:
         """One ``requests/{rid}`` node: answer, queue, or leave it."""
@@ -183,7 +183,7 @@ class PhoneLink:
             done = self.lane.done.get(str(rid))
             if done is None or now - done.at > DAY_MS:
                 drop = functools.partial(self.rtdb.delete, f"requests/{rid}")
-                self._write("cleanup", drop)
+                self.outbox.put("cleanup", drop)
 
     def listen(self, stop: threading.Event) -> None:
         """The SSE loop; a cancelled stream leaves the rescans to carry on."""
