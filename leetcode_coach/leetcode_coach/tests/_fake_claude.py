@@ -5,9 +5,9 @@ Reads ``$FAKE_CLAUDE_DIR/script.json``: ``{"haiku": [...], "coach": [...]}``.
 A call made with ``--model haiku`` is the checker; any other is the coach.
 Each call takes the next answer of its kind -- ``{"result": "..."}`` is printed
 the way ``--output-format json`` prints it, ``{"exit": n, "stderr": "..."}``
-fails -- and appends ``{"kind", "args", "prompt"}`` to ``calls.jsonl`` so a
-test can prove what did and did not reach the model, and with which
-``LEETCODE_COACH_LOG`` in its env.
+fails, ``"sleep": s`` delays either (a slow turn) -- and appends
+``{"kind", "args", "prompt"}`` to ``calls.jsonl`` so a test can prove what did
+and did not reach the model, and with which ``LEETCODE_COACH_LOG`` in its env.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 
 
 def main() -> int:
@@ -33,6 +34,7 @@ def main() -> int:
     counter.write_text(str(used + 1), encoding="utf-8")
     script = json.loads((root / "script.json").read_text(encoding="utf-8"))
     answer = script[kind][used]
+    time.sleep(float(answer.get("sleep", 0)))
     if "exit" in answer:
         sys.stderr.write(answer.get("stderr", ""))
         return int(answer["exit"])
