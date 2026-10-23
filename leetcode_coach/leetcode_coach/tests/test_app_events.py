@@ -84,6 +84,16 @@ def test_step_two_attempts_count_incomplete_lists_and_fail_grades() -> None:
     assert phase.step2_attempts(events) == 3
 
 
+def test_a_force_is_not_a_step_two_try() -> None:
+    """A force repeats the last try's grade (`fail`); it is no try itself.
+
+    Measured against the live relay 2026-10-23: three named-a-tool fails and
+    a force showed ``attempts: 4`` in the state.
+    """
+    fails = [_grade(2, "fail"), _grade(2, "fail"), _grade(2, "fail")]
+    assert phase.step2_attempts([*fails, _grade(2, "fail", forced=True)]) == 3
+
+
 def _gate(log: Path, answers: list[bool] | None = None) -> phase.PhaseGate:
     asked: list[str] = []
 

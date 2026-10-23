@@ -102,9 +102,14 @@ def step2_attempts(events: list[dict[str, Any]]) -> int:
 
     A ``fail`` (the list read as code, or named an operation) never reaches
     the checker, so it has no ``req_check``; a ``partial`` does, and is
-    already counted there. CLI and app count one file alike.
+    already counted there. CLI and app count one file alike. A force
+    repeats the last try's grade but is not a try, so it is not counted.
     """
-    fails = sum(1 for e in _step2_grades(events) if e.get("grade") == "fail")
+    fails = sum(
+        1
+        for e in _step2_grades(events)
+        if e.get("grade") == "fail" and e.get("forced") is not True
+    )
     return req_state(events).tries + fails
 
 
