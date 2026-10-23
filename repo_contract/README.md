@@ -93,6 +93,44 @@ web-relevant file is staged (`web.DEFAULT_FILES`, overridable with
 degrades to a pass, and the gate defers to that workflow when run inside
 another GitHub Actions job.
 
+## Flutter apps: the launcher rules
+
+Decided by kuhy 2026-10-23 (`launcher.py`). They apply to every tracked
+`pubspec.yaml` whose `dependencies:` pull in the Flutter SDK and that has an
+`android/` dir beside it, at the root or nested (`app/`, screen-locker's
+`stronglift_replacement/workout_app`). Violations are prefixed `launcher:`
+(or `launcher [<app dir>]:` for a nested app).
+
+1. **Launcher name** (`launcher_label.py`): `<application android:label>`
+   of the main manifest matches `^[A-Z][A-Za-z]{0,9}$`, and so does the
+   `android:label` of any activity or alias with a MAIN + LAUNCHER filter
+   (it overrides the application label on the launcher). A literal,
+   `@string/<name>` and `${placeholder}` are all resolved. A placeholder is
+   checked at every `manifestPlaceholders` assignment in
+   `android/app/build.gradle[.kts]`, except inside a variant that sets
+   `applicationIdSuffix`: rule 3 hides that variant from the launcher.
+   Anything unresolvable fails. The rules and messages mirror testsAndMisc
+   `python_pkg/app_icons/labels.py`.
+2. **Desktop name**: every tracked `*.desktop` file in the repo has a
+   `[Desktop Entry] Name=` that passes rule 1.
+3. **Hidden variants** (`android_manifest.py`): a buildType or flavor whose
+   own gradle block sets `applicationIdSuffix` needs
+   `android/app/src/<variant>/AndroidManifest.xml` removing the LAUNCHER
+   category (`tools:node="remove"` on the `<category>`) from each launcher
+   activity. MAIN must stay, so `am start -n` still works.
+4. **Icon size** (`png_ink.py`, stdlib only): `assets/icon/icon_foreground.png`,
+   when present, is 8-bit RGBA 1024x1024. Its furthest inked pixel
+   (alpha > 127) sits 340px ±1% from the ink-box centre, and that centre is
+   within 2px of (512, 512). This is the shared generator's `fit.py`
+   measurement. An app that cannot ship the PNG declares
+   `[launcher_icon] skip = "<reason>"` in a `repo-contract.toml` beside its
+   pubspec, and the reason is required.
+
+The repo-contract hook's `files:` (template `pre-commit-snippet.yaml`) also
+matches every file these rules read. `install.py` never rewrites an existing
+hook, so roll a widened regex out with
+`python3 -m repo_contract.hook_sync [--apply] [REPO ...]` (dry run by default).
+
 ## Tests
 
 ```bash

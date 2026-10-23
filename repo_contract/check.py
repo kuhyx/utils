@@ -24,6 +24,7 @@ from repo_contract.contract import (
     script_token,
     verbose_in_script,
 )
+from repo_contract.launcher import problems as launcher_problems
 from repo_contract.stacks import detect_stacks, has_tests
 from repo_contract.web import problems as web_problems
 
@@ -102,11 +103,12 @@ def _check_consistency(
 def violations(repo: Path) -> tuple[list[str], list[str]]:
     """(violations, detected stacks) for `repo`. Raises Unreadable.
 
-    Website repos also owe the AgentReady gate (web.problems), reported
-    whatever state the Commands section is in.
+    Website repos also owe the AgentReady gate (web.problems), and Flutter
+    apps the launcher rules (launcher.problems), reported whatever state the
+    Commands section is in.
     """
     found, stacks = _doc_violations(repo)
-    return found + web_problems(repo), stacks
+    return found + web_problems(repo) + launcher_problems(repo), stacks
 
 
 def _doc_violations(repo: Path) -> tuple[list[str], list[str]]:

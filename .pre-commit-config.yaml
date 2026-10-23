@@ -48,7 +48,7 @@ repos:
         entry: scripts/check_repo_contract.sh
         language: system
         pass_filenames: false
-        files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$
+        files: ^(CLAUDE\.md|AGENTS\.md|scripts/test_changed\.sh)$|(^|/)(AndroidManifest\.xml|build\.gradle(\.kts)?|strings\.xml|pubspec\.yaml|repo-contract\.toml|[^/]+\.desktop|assets/icon/[^/]+\.png)$
 
       - id: md-naming
         name: markdown naming convention
