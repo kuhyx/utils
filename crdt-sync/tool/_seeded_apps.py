@@ -55,4 +55,8 @@ DEFAULT_APPS: Final = (
     # ~/src/tutor: its PC worker answers the Flutter client's requests over
     # RTDB (/tutor/v1), headless, with a session of its own.
     "tutor",
+    # ~/src/sufler: its PC TTS relay (tts/sufler_tts/relay/setup.py) answers
+    # the Flutter client over RTDB (/sufler), headless, reading
+    # ~/.config/sufler/firebase_auth.json via credential_store_for("sufler").
+    "sufler",
 )

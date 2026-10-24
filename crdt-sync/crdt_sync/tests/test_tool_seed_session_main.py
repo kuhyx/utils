@@ -59,6 +59,25 @@ def test_home_guard_is_among_the_default_apps() -> None:
     assert "home_guard" in ss.DEFAULT_APPS
 
 
+def test_sufler_is_among_the_default_apps() -> None:
+    """Its PC TTS relay (``sufler_tts.relay.setup``) reads
+    ``~/.config/sufler/firebase_auth.json`` via ``credential_store_for``."""
+    assert "sufler" in ss.DEFAULT_APPS
+
+
+def test_the_app_flag_accepts_sufler() -> None:
+    """``--app sufler`` must parse (argparse choices come from DEFAULT_APPS)."""
+    with (
+        patch.object(ss.FirebaseConfig, "load", return_value=_CONFIG),
+        patch.object(git, "fetch_id_token", return_value=_ID_VALUE),
+        patch.object(ss, "seed_apps", return_value=["sufler"]) as seeded,
+    ):
+        code = ss.main([*_ARGV, "--app", "sufler"])
+
+    assert code == 0
+    assert seeded.call_args.args[2] == ("sufler",)
+
+
 def test_a_single_app_can_be_selected() -> None:
     """--app narrows the run, which is what a rerun after a failure uses."""
     with (
