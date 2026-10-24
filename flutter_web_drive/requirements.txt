@@ -1,0 +1,3 @@
+# Exact pins, newest stable (shared dependency-freshness gate).
+mcp==2.3.0
+websocket-client==1.9.2
