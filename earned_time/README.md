@@ -10,7 +10,7 @@ gaming time and shutdown time, read by both consumers.
 
 A gate (leetcode-guard, book-guard, anki-guard, screen-locker's workout
 credit, ...) never touches either. It publishes a fact — HMAC-signed `credit`
-rows in its ledger — and is registered here once. LeetCode also counts its signed `source == "leetcode"` `charge` for the day (0.17.0, `ROW_KINDS`): a day paid ahead from banked credits earns like a solve; escape and outage charges never do.
+rows in its ledger — and is registered here once. LeetCode also counts its signed `source == "leetcode"` `charge` for the day (0.17.0, `ROW_KINDS`): a day paid ahead from banked credits earns like a solve; escape and outage charges never do. Since 0.18.0 that charge is the *only* LeetCode row that earns while the gate is on: a credit is one unit of a price that may be 5, so one solve on a 5-credit day earns nothing. A consumer passes `gate_off=True` (live: a free day, or a sick day not keeping `leetcode`) to `done_today` / `first_credit_at` / `credit_units`, and then one verified solve earns again (`PAID_DAY_KINDS`).
 
 ## The model
 
@@ -243,7 +243,7 @@ on the day itself is logged and does not count.
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.17.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.18.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports

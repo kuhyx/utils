@@ -191,3 +191,12 @@ ROW_UNITS: Final[Mapping[CreditMatch, Callable[[dict[str, object]], int | None]]
 ROW_KINDS: Final[Mapping[CreditMatch, frozenset[str]]] = MappingProxyType(
     {leetcode_match: frozenset({"credit", "charge"})}
 )
+# The narrower kinds a matcher is shown while its gate is on (0.18.0). A
+# LeetCode credit is one unit of a price that may be 5, so while the gate
+# gates only the charge it writes once the price is covered earns (kuhy,
+# 2026-10-24: one solve on a 5-credit day paid the whole bonus). The
+# consumer passes ``gate_off`` live on a free or stood-down sick day, when
+# there is no price, and the ``ROW_KINDS`` view applies again.
+PAID_DAY_KINDS: Final[Mapping[CreditMatch, frozenset[str]]] = MappingProxyType(
+    {leetcode_match: frozenset({"charge"})}
+)

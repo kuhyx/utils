@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
     from earned_time._policy import Earner, Window
 
-from earned_time._match import ROW_KINDS
+from earned_time._match import PAID_DAY_KINDS, ROW_KINDS
 
 _logger: Final = logging.getLogger(__name__)
 
@@ -119,11 +119,19 @@ def read_rows(ledger: Path, earner: Earner) -> list[object] | None:
 
 
 def counting_rows(
-    earner: Earner, ledger: Path, key_file: Path, window: Window
+    earner: Earner,
+    ledger: Path,
+    key_file: Path,
+    window: Window,
+    *,
+    gate_off: bool = False,
 ) -> Iterator[dict[str, object]] | None:
     """The verified rows that ``earner.match`` counts in ``window``.
 
-    ``credit`` rows, plus whatever else ``ROW_KINDS`` shows that matcher.
+    ``credit`` rows, plus whatever else ``ROW_KINDS`` shows that matcher --
+    narrowed to ``PAID_DAY_KINDS`` unless the consumer says the gate is off
+    today. ``gate_off`` defaults to False so a caller that forgets it fails
+    closed: no bonus for a part-paid day.
 
     ``None`` when the key or the ledger cannot be read.
 
@@ -141,6 +149,8 @@ def counting_rows(
         return None
     match = earner.match
     kinds = ROW_KINDS.get(match, _CREDIT_ONLY)
+    if not gate_off:
+        kinds = PAID_DAY_KINDS.get(match, kinds)
     return (
         row
         for row in rows
@@ -157,6 +167,7 @@ def done_today(
     key_file: Path,
     *,
     now: datetime | None = None,
+    gate_off: bool = False,
 ) -> bool | None:
     """Whether ``earner``'s ledger holds a verified credit that counts today.
 
@@ -165,6 +176,8 @@ def done_today(
         ledger: The gate's ledger file, resolved by the caller.
         key_file: The shared HMAC key, resolved by the caller.
         now: Stand-in for the current time, for tests.
+        gate_off: The consumer's live answer to "is this gate off today?"
+            (see :func:`counting_rows`). Never read from a ledger.
 
     Returns:
         True or False when the ledger could be read and verified, ``None``
@@ -173,7 +186,7 @@ def done_today(
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
     """
-    rows = counting_rows(earner, ledger, key_file, today_window(now))
+    rows = counting_rows(earner, ledger, key_file, today_window(now), gate_off=gate_off)
     if rows is None:
         return None
     return any(True for _ in rows)

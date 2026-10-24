@@ -94,7 +94,9 @@ def test_unreadable_ledger(tmp_path: Path) -> None:
 def test_done_today(tmp_path: Path, key_file: Path) -> None:
     good = _signed({"kind": "credit", "detail": {"submitted_at": INSIDE}})
     path = _ledger(tmp_path, [good])
-    assert done_today(LEETCODE, path, key_file, now=NOON) is True
+    # A bare credit earns only while the gate is off (0.18.0,
+    # test_paid_day_only.py); the reader itself is what this pins.
+    assert done_today(LEETCODE, path, key_file, now=NOON, gate_off=True) is True
 
 
 def test_not_done_today(tmp_path: Path, key_file: Path) -> None:

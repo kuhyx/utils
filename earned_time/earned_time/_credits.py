@@ -61,7 +61,12 @@ def credit_time(earner: Earner, row: dict[str, object]) -> float | None:
 
 
 def first_credit_at(
-    earner: Earner, ledger: Path, key_file: Path, day: date
+    earner: Earner,
+    ledger: Path,
+    key_file: Path,
+    day: date,
+    *,
+    gate_off: bool = False,
 ) -> float | None:
     """When ``earner``'s first verified credit that counts for ``day`` happened.
 
@@ -70,6 +75,7 @@ def first_credit_at(
         ledger: The gate's ledger file, resolved by the caller.
         key_file: The shared HMAC key, resolved by the caller.
         day: The local day the credit must count for (by ``match``).
+        gate_off: Whether the gate is off on ``day`` (``counting_rows``).
 
     Returns:
         The earliest :func:`credit_time` among the counting rows, as unix
@@ -79,7 +85,7 @@ def first_credit_at(
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
     """
-    rows = counting_rows(earner, ledger, key_file, day_window(day))
+    rows = counting_rows(earner, ledger, key_file, day_window(day), gate_off=gate_off)
     if rows is None:
         return None
     times = [t for t in (credit_time(earner, row) for row in rows) if t is not None]
@@ -96,7 +102,14 @@ def row_units(earner: Earner, row: dict[str, object]) -> int:
     return 1 if reader is None else reader(row) or 0
 
 
-def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int | None:
+def credit_units(
+    earner: Earner,
+    ledger: Path,
+    key_file: Path,
+    day: date,
+    *,
+    gate_off: bool = False,
+) -> int | None:
     """How many units the verified credit rows pay for ``day``.
 
     Each row pays :func:`row_units`: 1 for most earners (the workout), its
@@ -111,6 +124,7 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
         ledger: The gate's ledger file, resolved by the caller.
         key_file: The shared HMAC key, resolved by the caller.
         day: The local day the rows must count for (by ``match``).
+        gate_off: Whether the gate is off on ``day`` (``counting_rows``).
 
     Returns:
         The sum (``0`` included), or ``None`` when the ledger or key could
@@ -122,7 +136,7 @@ def credit_units(earner: Earner, ledger: Path, key_file: Path, day: date) -> int
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
     """
-    rows = counting_rows(earner, ledger, key_file, day_window(day))
+    rows = counting_rows(earner, ledger, key_file, day_window(day), gate_off=gate_off)
     if rows is None:
         return None
     by_id: dict[object, int] = {}
