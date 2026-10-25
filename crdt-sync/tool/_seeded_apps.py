@@ -59,4 +59,12 @@ DEFAULT_APPS: Final = (
     # the Flutter client over RTDB (/sufler), headless, reading
     # ~/.config/sufler/firebase_auth.json via credential_store_for("sufler").
     "sufler",
+    # ~/src/kartka's headless agent instance (tools/agent): its wrapper serves
+    # this file once per launch as /sync-credentials, so the web build signs
+    # in with no password and no browser consent of its own.
+    "kartka-agent",
+    # ~/src/kartka/tools/source_eval: the weekly source evaluator publishes
+    # /kartka/source_health via credential_store_for("kartka-source-eval")
+    # and falls back to the retired password only with no session here.
+    "kartka-source-eval",
 )
