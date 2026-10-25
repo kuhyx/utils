@@ -79,7 +79,9 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
     try {
       return await _http.get(await _uri(path, query: query));
     } on http.ClientException catch (exc) {
-      throw FirebaseSyncError('network error reading $path: $exc');
+      // .message, never the exception: its toString prints the request URL,
+      // whose query is `?auth=<ID token>`. Same at every catch below.
+      throw FirebaseSyncError('network error reading $path: ${exc.message}');
     }
   }
 
@@ -126,7 +128,7 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
     try {
       res = await _http.put(await _uri(path), body: jsonEncode(text));
     } on http.ClientException catch (exc) {
-      throw FirebaseSyncError('network error writing $path: $exc');
+      throw FirebaseSyncError('network error writing $path: ${exc.message}');
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       _raise('writing $path', res);
@@ -143,7 +145,7 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
     try {
       res = await _http.patch(await _uri(path), body: jsonEncode(values));
     } on http.ClientException catch (exc) {
-      throw FirebaseSyncError('network error patching $path: $exc');
+      throw FirebaseSyncError('network error patching $path: ${exc.message}');
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       _raise('patching $path', res);
@@ -178,7 +180,7 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
     try {
       res = await _http.delete(await _uri(path));
     } on http.ClientException catch (exc) {
-      throw FirebaseSyncError('network error deleting $path: $exc');
+      throw FirebaseSyncError('network error deleting $path: ${exc.message}');
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       _raise('deleting $path', res);

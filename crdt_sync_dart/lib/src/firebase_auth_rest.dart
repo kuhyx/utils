@@ -221,7 +221,7 @@ class FirebaseTokenProvider {
         body: jsonEncode(payload),
       );
     } on http.ClientException catch (exc) {
-      throw FirebaseAuthError('network error trying to $what: $exc');
+      throw FirebaseAuthError('network error trying to $what: ${exc.message}');
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw FirebaseAuthError(
