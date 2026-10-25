@@ -61,11 +61,11 @@ packages:
     dependency: "direct main"
     description:
       path: crdt_sync_dart
-      ref: "crdt_sync_dart-v0.11.1"
-      resolved-ref: "978d32af3af66f0d6500c4c6c0c6df5370ebe9a2"
+      ref: "crdt_sync_dart-v0.11.2"
+      resolved-ref: "1b5515fd8b1192207896c409212483aeb09704ea"
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.11.1"
+    version: "0.11.2"
   crypto:
     dependency: "direct main"
     description:
