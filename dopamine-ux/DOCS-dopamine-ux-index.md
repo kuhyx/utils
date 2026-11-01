@@ -101,7 +101,7 @@ what remains instead.
 | 01-motion-tokens.md | DONE 2026-08-22 | `f741896` | `motion.md` frozen; `AppDuration`/`AppCurve` + `--duration-*`/`--ease-*` shipped. Tags: `design_system-v0.2.0`, `web_ui-v0.3.2`. |
 | 02-structural-check.md | not started | — | — |
 | 03-diet-guard.md | not started | — | — |
-| 04-screen-locker.md | not started | — | — |
+| 04-screen-locker.md | DONE 2026-11-01 | `89c65bd` | Status window `_section_streak` + week-transition reward text (kept in `extra_benefits_state.json`); the dead 09:00 early-bird claim is not shown. Per kuhy: no daily-streak state, no shutdown time, no freezes. Commit is on a worktree branch, unpushed. |
 | 05-workout-app.md | not started | — | — |
 | 06-todo.md | not started | — | — |
 | 07-dufs-theme.md | not started | — | — |
