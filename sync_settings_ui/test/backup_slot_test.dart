@@ -70,15 +70,28 @@ void main() {
         restore: (_) async => called = true,
       );
 
-      await slot.import();
+      await expectLater(slot.import(), throwsA(isA<BackupCancelled>()));
 
       expect(called, isFalse);
+    });
+
+    test('a cancelled save dialog reports the cancellation', () async {
+      fake.acceptSave = false;
+      final slot = BackupSlot.json(
+        label: 'inventory',
+        fileName: 'inv.json',
+        build: () async => {'items': 3},
+        restore: (_) async {},
+      );
+
+      await expectLater(slot.export(), throwsA(isA<BackupCancelled>()));
     });
   });
 }
 
 class _FakePlatform implements DataTransferPlatform {
   String? picked;
+  bool acceptSave = true;
   final saved = <(String, String)>[];
 
   @override
@@ -88,7 +101,7 @@ class _FakePlatform implements DataTransferPlatform {
     String mimeType = 'application/json',
   }) async {
     saved.add((fileName, text));
-    return true;
+    return acceptSave;
   }
 
   @override

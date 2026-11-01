@@ -1,5 +1,14 @@
 import 'package:data_transfer_flutter/data_transfer_flutter.dart';
 
+/// Thrown by a [BackupSlot] callback when the user dismissed the file dialog.
+///
+/// Not a failure: [SyncSettingsScreen] clears its status line instead of
+/// claiming success or showing an error.
+class BackupCancelled implements Exception {
+  /// Creates the signal.
+  const BackupCancelled();
+}
+
 /// An injectable local export/import delegate for [SyncSettingsScreen]'s
 /// optional "Backup" section.
 ///
@@ -24,7 +33,8 @@ class BackupSlot {
   /// Export saves `build()` as [fileName] to device storage (system Save-as
   /// on Android/iOS, a save dialog on desktop, a download on web). Import
   /// lets the user pick a JSON file and hands the decoded object to
-  /// [restore]; a cancelled picker restores nothing.
+  /// [restore]. A dismissed dialog throws [BackupCancelled] (and a cancelled
+  /// picker restores nothing).
   factory BackupSlot.json({
     required String label,
     required String fileName,
@@ -33,11 +43,13 @@ class BackupSlot {
   }) => BackupSlot(
     label: label,
     export: () async {
-      await exportJson(fileName: fileName, json: await build());
+      final saved = await exportJson(fileName: fileName, json: await build());
+      if (!saved) throw const BackupCancelled();
     },
     import: () async {
       final json = await pickJson();
-      if (json != null) await restore(json);
+      if (json == null) throw const BackupCancelled();
+      await restore(json);
     },
   );
 

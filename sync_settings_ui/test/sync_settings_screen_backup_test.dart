@@ -17,6 +17,38 @@ Widget _wrap(Widget child) => MaterialApp(home: child);
 
 void main() {
   group('Backup section', () {
+    testWidgets('a cancelled export or import claims no success', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SyncSettingsScreen(
+            accountLoader: () async => null,
+            accountSaver: (_) async {},
+            accountClearer: () async {},
+            sessionProbe: () async => false,
+            firebaseFactory: () async => null,
+            backup: BackupSlot(
+              label: 'notes',
+              export: () async => throw const BackupCancelled(),
+              import: () async => throw const BackupCancelled(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Export notes'));
+      await tester.pumpAndSettle();
+      expect(find.text('Exported notes.'), findsNothing);
+      expect(find.textContaining('failed'), findsNothing);
+
+      await tester.tap(find.text('Import notes'));
+      await tester.pumpAndSettle();
+      expect(find.text('Imported notes.'), findsNothing);
+      expect(find.textContaining('failed'), findsNothing);
+    });
+
     testWidgets('omitted entirely when backup is null', (tester) async {
       await tester.pumpWidget(
         _wrap(

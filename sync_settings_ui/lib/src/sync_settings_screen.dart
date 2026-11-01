@@ -123,6 +123,8 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     try {
       await backup.export();
       if (mounted) setState(() => _status = 'Exported ${backup.label}.');
+    } on BackupCancelled {
+      if (mounted) setState(() => _status = null);
     } on Exception catch (error) {
       if (mounted) setState(() => _status = 'Export failed: $error');
     }
@@ -132,6 +134,8 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     try {
       await backup.import();
       if (mounted) setState(() => _status = 'Imported ${backup.label}.');
+    } on BackupCancelled {
+      if (mounted) setState(() => _status = null);
     } on Exception catch (error) {
       if (mounted) setState(() => _status = 'Import failed: $error');
     }
