@@ -11,6 +11,9 @@ local-first: hologram.page/blog/local-first-means-three-different-things).
   random key stored in the OS keystore and copied to new devices.
 - Migration: re-encrypt existing logs in place, or new prefix + one-time copy.
 - Scope: payload only (keep HLC/ids clear for merge) or whole record.
+- diet_guard's `export_keys` document (random data-export keys, synced as a
+  keyring) sits in plaintext in RTDB, so Firebase can read them: it must move
+  under E2E too, with its key source decided here first.
 - tutor uses its own RTDB client (`~/src/tutor/app/lib/sync/rtdb_client.dart`):
   in or out of scope.
 
