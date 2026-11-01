@@ -1,4 +1,4 @@
-"""The coach's per-problem session log (TODO-coach.md decision 8).
+"""The coach's per-problem session log (DOCS-coach-spec.md decision 8).
 
 One JSONL file per problem and day,
 ``~/.local/share/leetcode-coach/sessions/<YYYY-MM-DD>-<slug>.jsonl`` (the

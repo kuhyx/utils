@@ -1,4 +1,4 @@
-"""The operation toolbox (TODO-coach.md decision 9), read from ``toolbox.json``.
+"""The operation toolbox (DOCS-coach-spec.md decision 9), read from ``toolbox.json``.
 
 Schema: ``{"entries": [{"name", "aliases": [...], "properties": [...]}],
 "properties": {"<prop>": "<one-line meaning>"}}``. Every entry property is a

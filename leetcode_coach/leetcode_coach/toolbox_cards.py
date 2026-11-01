@@ -1,6 +1,6 @@
 """Toolbox entries as post-mortem cards, and the one way to grow the toolbox.
 
-TODO-coach.md decision 11: post-mortem cards are property -> operation only.
+DOCS-coach-spec.md decision 11: post-mortem cards are property -> operation only.
 The front lists an entry's properties, the back is its name, so the card asks
 "which tool has exactly these properties?". All cards share the fixed slug
 ``toolbox``: the card builder derives a note's guid from (slug, front), so one

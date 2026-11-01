@@ -16,7 +16,7 @@ itself, history intact, on "You've hit your ... limit". With no hooks there,
 are withheld. Everything above `## Model and client` is its system prompt,
 minus section 1. `python3 -m leetcode_coach.eval_local`: acceptance run.
 
-## The req-before-code gate (TODO-coach.md decisions 4-8)
+## The req-before-code gate (DOCS-coach-spec.md decisions 4-8)
 
 Both REPL paths run `phase.PhaseGate` on every block kuhy sends:
 

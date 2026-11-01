@@ -1,6 +1,6 @@
 """The spec's scripted session, run the same way over either transport.
 
-TODO-coach-ui.md "Done": start Missing Number, each graded step answers
+DOCS-coach-ui-spec.md "Done": start Missing Number, each graded step answers
 pass/partial/fail with feedback, the next step is blocked until a pass or
 the 3rd try, the chat round-trips, Hint logs a rung, run-code runs on real
 node, a simulated Accepted passes step 4 within one poll, the post-mortem is

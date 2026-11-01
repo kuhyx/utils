@@ -1,4 +1,4 @@
-"""Tests for the answer key (TODO-coach-ui.md decision 5).
+"""Tests for the answer key (DOCS-coach-ui-spec.md decision 5).
 
 The key is grader-internal: nothing in it is displayed. Even so, the design
 rule and the post-mortem points are what the grader's feedback is built from,

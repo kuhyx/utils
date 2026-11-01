@@ -1,4 +1,4 @@
-"""No relay route reaches the ledger (TODO-coach-ui.md decision 2, contract 4).
+"""No relay route reaches the ledger (DOCS-coach-ui-spec.md decision 2, contract 4).
 
 Walks the import closure of every ``leetcode_coach.relay`` module by AST --
 through ``leetcode_coach`` and ``leetcode_guard`` alike, ``TYPE_CHECKING``

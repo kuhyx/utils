@@ -1,6 +1,6 @@
 """Cluster progress and the cold re-test schedule, derived from the session logs.
 
-TODO-coach.md decisions 10 and 12. Nothing here keeps state of its own: the
+DOCS-coach-spec.md decisions 10 and 12. Nothing here keeps state of its own: the
 JSONL session logs (``<YYYY-MM-DD>-<slug>.jsonl``, decision 8) are the only
 record, so progress survives anything that survives the logs.
 

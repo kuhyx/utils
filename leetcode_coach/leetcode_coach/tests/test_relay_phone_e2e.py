@@ -1,4 +1,4 @@
-"""TODO-coach-ui.md "Done", phone path: the scripted session through RTDB.
+"""DOCS-coach-ui-spec.md "Done", phone path: the scripted session through RTDB.
 
 The phone PUTs ``requests/{rid}/req`` into an in-process fake RTDB (REST +
 SSE) and polls ``requests/{rid}/result``; the relay streams the requests and

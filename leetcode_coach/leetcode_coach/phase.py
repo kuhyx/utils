@@ -1,6 +1,6 @@
 """The req-before-code phase gate, run by the REPL on both paths.
 
-TODO-coach.md decisions 4-6: a message starting ``req:`` is kuhy's
+DOCS-coach-spec.md decisions 4-6: a message starting ``req:`` is kuhy's
 requirement list. Until one is accepted, a block that is code is refused
 here, with a one-line reason, and never reaches the coach model. A list is
 accepted when the checker passes it or cannot judge it (fail open); after the

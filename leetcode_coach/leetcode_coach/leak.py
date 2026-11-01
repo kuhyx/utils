@@ -1,4 +1,4 @@
-r"""Which toolbox entries a coach reply names (TODO-coach.md decision 7).
+r"""Which toolbox entries a coach reply names (DOCS-coach-spec.md decision 7).
 
 Until kuhy's first code, a reply that names an operation from the toolbox --
 its name or any alias, e.g. "XOR", "^", "hash map" -- hands over step 3 of the

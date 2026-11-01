@@ -170,7 +170,7 @@ After the loop is closed, in the same reply:
 1. Ask kuhy for the requirement list as *properties* (what must vanish, what
    must survive, how much space), not code or an operation name; then, for
    every hint rung kuhy saw, which requirement that hint handed over.
-2. Cards are **property -> operation only** (TODO-coach.md decision 11): one
+2. Cards are **property -> operation only** (DOCS-coach-spec.md decision 11): one
    per toolbox entry the solution relied on, generated from `toolbox.json`
    (front = its properties, back = its name), in ONE Bash call:
    ```bash

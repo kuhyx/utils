@@ -1,6 +1,6 @@
 """`leetcode due`, `leetcode --cluster <name>` and `leetcode --retest <slug>`.
 
-TODO-coach.md decisions 10 and 12, on top of `progress` (which derives
+DOCS-coach-spec.md decisions 10 and 12, on top of `progress` (which derives
 everything from the session logs):
 
 * ``due`` lists the cold re-tests that are due (+3 and +10 days after a solve).

@@ -1,4 +1,4 @@
-"""Scripted end-to-end runs of the req-first coach (TODO-coach.md "Build done").
+"""Scripted end-to-end runs of the req-first coach (DOCS-coach-spec.md "Build done").
 
 The REPL runs in-process against a fake `claude` binary (LEETCODE_CLAUDE_BIN,
 a real subprocess per turn) and a fake Ollama on a localhost port, with

@@ -1,4 +1,4 @@
-"""The grader's answer key (TODO-coach-ui.md decision 5), from ``answer_key.json``.
+"""The grader's answer key (DOCS-coach-ui-spec.md decision 5), from ``answer_key.json``.
 
 Schema: ``{"problems": {"<slug>": {"design_rule", "entries", "also_accepted",
 "key_requirements", "postmortem_points"}}}``, one entry per cluster problem.

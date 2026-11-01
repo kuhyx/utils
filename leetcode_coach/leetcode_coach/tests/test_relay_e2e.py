@@ -1,4 +1,4 @@
-"""TODO-coach-ui.md "Done", desktop path: the scripted session over loopback.
+"""DOCS-coach-ui-spec.md "Done", desktop path: the scripted session over loopback.
 
 The flow and its assertions live in ``_relay_flow``; here it runs over the
 real HTTP API on port 0, with the guard's paths redirected (so the data dir

@@ -1,6 +1,6 @@
 """Judge kuhy's requirement list, and ambiguous code, on a cheap model.
 
-TODO-coach.md decision 5: a separate ``claude -p --model haiku`` call (the
+DOCS-coach-spec.md decision 5: a separate ``claude -p --model haiku`` call (the
 coaching session stays on sonnet), Ollama through `local_backend` when haiku
 is out of quota, errors or answers something that is not the JSON asked for,
 and when neither answers the gate fails OPEN: ``unverified``, kuhy continues.
