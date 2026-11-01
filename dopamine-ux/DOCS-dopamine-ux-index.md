@@ -81,7 +81,7 @@ of truth** — if a prompt needs correcting, fix it here and re-distribute.
 | 01 | `~/src/utils/prompts/dopamine-ux-01-motion-tokens.md` — deleted (done) |
 | 02 | `~/src/utils/prompts/dopamine-ux-02-structural-check.md` |
 | 03 | `~/src/diet-guard/prompts/dopamine-ux-diet-guard.md` |
-| 04 | `~/src/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |
+| 04 | `~/src/screen-locker/prompts/dopamine-ux-04-screen-locker.md` — deleted (done) |
 | 05 | `~/src/screen-locker/prompts/dopamine-ux-05-workout-app.md` — deleted (done) |
 | 06 | `~/src/todo/prompts/dopamine-ux-todo.md` |
 | 07 | `~/src/dufs-cloud/prompts/dopamine-ux-07-theme.md` |
