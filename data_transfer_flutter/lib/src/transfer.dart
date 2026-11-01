@@ -21,7 +21,19 @@ Future<bool> exportJson({
 
 /// [exportJson] for an already-encoded JSON string.
 Future<bool> exportJsonText({required String fileName, required String text}) =>
-    DataTransfer.platform.saveText(fileName: fileName, text: text);
+    exportTextFile(fileName: fileName, text: text);
+
+/// Saves any text file ([mimeType], e.g. `text/csv`) to device storage, with
+/// the same host behaviour as [exportJson]. False when cancelled.
+Future<bool> exportTextFile({
+  required String fileName,
+  required String text,
+  String mimeType = 'application/json',
+}) => DataTransfer.platform.saveText(
+  fileName: fileName,
+  text: text,
+  mimeType: mimeType,
+);
 
 /// Optional second action: offers [json] to the share sheet.
 Future<bool> shareJson({

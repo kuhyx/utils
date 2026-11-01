@@ -16,20 +16,24 @@ class WebDataTransferPlatform implements DataTransferPlatform {
   Future<bool> saveText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async {
     // `saveTo` on web clicks a synthetic anchor: the path is ignored and the
     // browser's download UI decides where the file lands.
     await XFile.fromData(
       utf8.encode(text),
-      mimeType: 'application/json',
+      mimeType: mimeType,
       name: fileName,
     ).saveTo('');
     return true;
   }
 
   @override
-  Future<bool> shareText({required String fileName, required String text}) =>
-      saveText(fileName: fileName, text: text);
+  Future<bool> shareText({
+    required String fileName,
+    required String text,
+    String mimeType = 'application/json',
+  }) => saveText(fileName: fileName, text: text, mimeType: mimeType);
 
   @override
   Future<String?> pickText() async {

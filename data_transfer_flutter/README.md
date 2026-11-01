@@ -11,7 +11,7 @@ dependencies:
   data_transfer_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: data_transfer_flutter-v0.1.0
+      ref: data_transfer_flutter-v0.2.0
       path: data_transfer_flutter
 ```
 
@@ -26,6 +26,7 @@ final map = await pickJson(); // null when cancelled
   use the system "Save as" document picker (`file_picker` `saveFile`, i.e.
   ACTION_CREATE_DOCUMENT), desktop a save dialog (`file_selector`), web a
   browser download. Returns false when cancelled.
+- `exportTextFile` does the same for any text (`text/csv`, `text/calendar`).
 - `shareJson` is an optional second action (share sheet). It is never the
   only way out: a stock phone's share sheet has no local save target.
 - `pickJson` / `pickJsonText` use the system open-document picker.

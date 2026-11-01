@@ -45,6 +45,26 @@ void main() {
     });
   });
 
+  group('exportTextFile', () {
+    test('saves non-JSON text with its own mime type', () async {
+      final saved = await exportTextFile(
+        fileName: 'a.csv',
+        text: 'a,b\n',
+        mimeType: 'text/csv',
+      );
+
+      expect(saved, isTrue);
+      expect(fake.saves.single, ('a.csv', 'a,b\n'));
+      expect(fake.saveMimes.single, 'text/csv');
+    });
+
+    test('exportJsonText keeps the JSON mime type', () async {
+      await exportJsonText(fileName: 'a.json', text: '{}');
+
+      expect(fake.saveMimes.single, 'application/json');
+    });
+  });
+
   group('shareJson', () {
     test('uses the share action, not save', () async {
       final shared = await shareJson(fileName: 'c.json', json: {'k': 2});

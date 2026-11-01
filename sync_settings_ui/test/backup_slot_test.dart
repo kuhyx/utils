@@ -85,6 +85,7 @@ class _FakePlatform implements DataTransferPlatform {
   Future<bool> saveText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async {
     saved.add((fileName, text));
     return true;
@@ -94,6 +95,7 @@ class _FakePlatform implements DataTransferPlatform {
   Future<bool> shareText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async => true;
 
   @override

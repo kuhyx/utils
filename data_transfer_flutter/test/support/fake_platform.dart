@@ -11,6 +11,9 @@ class FakePlatform implements DataTransferPlatform {
   /// `(fileName, text)` of every [saveText] call.
   final saves = <(String, String)>[];
 
+  /// The mime type of every [saveText] call, in order.
+  final saveMimes = <String>[];
+
   /// `(fileName, text)` of every [shareText] call.
   final shares = <(String, String)>[];
 
@@ -18,8 +21,10 @@ class FakePlatform implements DataTransferPlatform {
   Future<bool> saveText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async {
     saves.add((fileName, text));
+    saveMimes.add(mimeType);
     return accept;
   }
 
@@ -27,6 +32,7 @@ class FakePlatform implements DataTransferPlatform {
   Future<bool> shareText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async {
     shares.add((fileName, text));
     return accept;

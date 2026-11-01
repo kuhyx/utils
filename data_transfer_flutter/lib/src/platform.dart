@@ -9,14 +9,22 @@ abstract interface class DataTransferPlatform {
   /// Android/iOS: the system "Save as" document picker (device storage).
   /// Desktop: a save dialog. Web: a browser download. Returns false when the
   /// user cancelled.
-  Future<bool> saveText({required String fileName, required String text});
+  Future<bool> saveText({
+    required String fileName,
+    required String text,
+    String mimeType = 'application/json',
+  });
 
   /// Offers [text] as [fileName] to the share sheet, where the host has one.
   ///
   /// A second action only: a share sheet can route the data to cloud apps, so
   /// it never replaces [saveText]. Hosts without a sheet fall back to
   /// [saveText].
-  Future<bool> shareText({required String fileName, required String text});
+  Future<bool> shareText({
+    required String fileName,
+    required String text,
+    String mimeType = 'application/json',
+  });
 
   /// Opens the system open-document picker and returns the file's text, or
   /// null when the user cancelled.

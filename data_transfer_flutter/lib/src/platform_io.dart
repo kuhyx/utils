@@ -12,11 +12,19 @@ import 'package:share_plus/share_plus.dart';
 
 /// Writes [bytes] through the system "Save as" picker; false on cancel.
 typedef DocumentSaver =
-    Future<bool> Function({required String fileName, required Uint8List bytes});
+    Future<bool> Function({
+      required String fileName,
+      required Uint8List bytes,
+      required String mimeType,
+    });
 
 /// Offers [text] as a file named [fileName] to the share sheet.
 typedef SheetSharer =
-    Future<bool> Function({required String fileName, required String text});
+    Future<bool> Function({
+      required String fileName,
+      required String text,
+      required String mimeType,
+    });
 
 /// The platform for hosts that have `dart:io`.
 DataTransferPlatform createDefaultPlatform() => IoDataTransferPlatform();
@@ -46,16 +54,18 @@ class IoDataTransferPlatform implements DataTransferPlatform {
   Future<bool> saveText({
     required String fileName,
     required String text,
+    String mimeType = 'application/json',
   }) async {
     if (_isMobile) {
       return await _documentSaver(
         fileName: fileName,
         bytes: Uint8List.fromList(utf8.encode(text)),
+        mimeType: mimeType,
       );
     }
     final location = await getSaveLocation(
       suggestedName: fileName,
-      acceptedTypeGroups: const [jsonTypeGroup],
+      acceptedTypeGroups: [saveTypeGroup(fileName, mimeType)],
     );
     if (location == null) return false;
     await File(location.path).writeAsString(text);
@@ -63,10 +73,13 @@ class IoDataTransferPlatform implements DataTransferPlatform {
   }
 
   @override
-  Future<bool> shareText({required String fileName, required String text}) =>
-      _isMobile
-      ? _sheetSharer(fileName: fileName, text: text)
-      : saveText(fileName: fileName, text: text);
+  Future<bool> shareText({
+    required String fileName,
+    required String text,
+    String mimeType = 'application/json',
+  }) => _isMobile
+      ? _sheetSharer(fileName: fileName, text: text, mimeType: mimeType)
+      : saveText(fileName: fileName, text: text, mimeType: mimeType);
 
   @override
   Future<String?> pickText() async {
@@ -81,11 +94,12 @@ class IoDataTransferPlatform implements DataTransferPlatform {
 Future<bool> _saveViaDocumentPicker({
   required String fileName,
   required Uint8List bytes,
+  required String mimeType,
 }) async {
   final saved = await FilePicker.saveFile(
     fileName: fileName,
     bytes: bytes,
-    mimeType: 'application/json',
+    mimeType: mimeType,
   );
   return saved != null;
 }
@@ -93,12 +107,13 @@ Future<bool> _saveViaDocumentPicker({
 Future<bool> _shareViaSheet({
   required String fileName,
   required String text,
+  required String mimeType,
 }) async {
   final dir = await getTemporaryDirectory();
   final file = File(p.join(dir.path, fileName));
   await file.writeAsString(text);
   await SharePlus.instance.share(
-    ShareParams(files: [XFile(file.path, mimeType: 'application/json')]),
+    ShareParams(files: [XFile(file.path, mimeType: mimeType)]),
   );
   return true;
 }
