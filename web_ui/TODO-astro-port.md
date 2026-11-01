@@ -70,4 +70,11 @@ update and there must be no console errors.
   - foss-audit: v0.4.0
 - Astro docs: "Publish to NPM" (shipping `.astro`), and `reference/container-reference`.
 
+## order
+Migration order across kuhy's repos:
+1. `web_ui` first (this file), because every other repo waits for its tag.
+2. Content sites next (public sites, e.g. teatr-pw's Astro version).
+3. Small apps after.
+4. `control-panel` and `steam-backlog-enforcer` last, after every other repo.
+
 REMOVE ME AFTER FINISH

@@ -162,3 +162,59 @@ body {
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
+
+/* Print default (brennenputh.me/blog/printable-websites). Colour tokens are
+ * dropped for paper: black on white, links spelled out, code boxed. Elements
+ * marked .noPrint (nav, header, controls) vanish; .onlyPrint is the inverse
+ * and is hidden on screen by the rule below the block. */
+@media print {
+  .noPrint,
+  nav.noPrint,
+  header.noPrint {
+    display: none;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+
+  h1 {
+    font-size: 16pt;
+  }
+
+  h2 {
+    font-size: 14pt;
+  }
+
+  h3 {
+    font-size: 13pt;
+  }
+
+  pre,
+  code {
+    border: 1px solid black;
+    font-size: 11pt;
+    break-inside: avoid;
+  }
+
+  figure,
+  img {
+    break-inside: avoid;
+  }
+
+  a {
+    color: black;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+@media screen {
+  .onlyPrint {
+    display: none;
+  }
+}

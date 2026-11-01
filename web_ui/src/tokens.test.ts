@@ -139,4 +139,13 @@ describe("tokens.css", () => {
     // Shadows are ink-tinted rgba; neutrals are never pure.
     expect(css).not.toMatch(/#fff\b|#ffffff\b|#000\b|#000000\b|rgba\(0,\s*0,\s*0/i);
   });
+
+  it("ships a print block that hides .noPrint and boxes code", () => {
+    const print = css.slice(css.indexOf("@media print"));
+    expect(print).toContain(".noPrint");
+    expect(print).toMatch(/font-size:\s*12pt/);
+    expect(print).toMatch(/pre,\s*code\s*{[^}]*1px solid black[^}]*11pt[^}]*break-inside:\s*avoid/);
+    expect(print).toContain('a[href^="http"]::after');
+    expect(css).toMatch(/@media screen\s*{\s*\.onlyPrint\s*{\s*display:\s*none/);
+  });
 });
