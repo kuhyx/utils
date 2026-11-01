@@ -4,3 +4,4 @@ build/
 pubspec.lock
 coverage/
 *.iml
+pubspec_overrides.yaml
