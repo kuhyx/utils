@@ -11,8 +11,8 @@ overwrite it with `repo_contract/templates/check_repo_contract.shim.sh`.
 ## Commands
 
 - run: n/a: collection of gates and libraries, no single entry point
-- test: `PYTHONPATH=. python -m pytest -q agent_ready/tests coverage_gaps/tests dep_freshness/tests file_length/tests flutter_web_drive/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests`
+- test: `PYTHONPATH=. python -m pytest -q agent_ready/tests coverage_gaps/tests dep_freshness/tests file_length/tests flutter_web_drive/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests unified-design-system/tests`
 - test-changed: `scripts/test_changed.sh`
 - lint: `ruff check agent_ready coverage_gaps flutter_web_drive repo_contract`
-- coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests flutter_web_drive/tests repo_contract/tests --cov=agent_ready --cov=flutter_web_drive --cov=repo_contract --cov-branch --cov-report=xml --cov-fail-under=100`
+- coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests flutter_web_drive/tests repo_contract/tests unified-design-system/tests --cov=agent_ready --cov=flutter_web_drive --cov=repo_contract --cov=conformance --cov=conformance_diff --cov-branch --cov-report=xml --cov-fail-under=100`
 - coverage-gaps: `coverage-gaps coverage.xml`
