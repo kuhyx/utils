@@ -82,7 +82,7 @@ of truth** — if a prompt needs correcting, fix it here and re-distribute.
 | 02 | `~/src/utils/prompts/dopamine-ux-02-structural-check.md` |
 | 03 | `~/src/diet-guard/prompts/dopamine-ux-diet-guard.md` |
 | 04 | `~/src/screen-locker/prompts/dopamine-ux-04-screen-locker.md` |
-| 05 | `~/src/screen-locker/prompts/dopamine-ux-05-workout-app.md` |
+| 05 | `~/src/screen-locker/prompts/dopamine-ux-05-workout-app.md` — deleted (done) |
 | 06 | `~/src/todo/prompts/dopamine-ux-todo.md` |
 | 07 | `~/src/dufs-cloud/prompts/dopamine-ux-07-theme.md` |
 | 08 | `~/src/dufs-cloud/prompts/dopamine-ux-08-motion.md` |
@@ -102,7 +102,7 @@ what remains instead.
 | 02-structural-check.md | not started | — | — |
 | 03-diet-guard.md | not started | — | — |
 | 04-screen-locker.md | DONE 2026-11-01 | `89c65bd` | Status window `_section_streak` + week-transition reward text (kept in `extra_benefits_state.json`); the dead 09:00 early-bird claim is not shown. Per kuhy: no daily-streak state, no shutdown time, no freezes. Commit is on a worktree branch, unpushed. |
-| 05-workout-app.md | not started | — | — |
+| 05-workout-app.md | DONE 2026-11-01 | `e938201` | Set/warmup `selectionClick`, finish `mediumImpact` + generated chime (music_theory, pinned tag) + dialog arrival, `AppDuration`/`AppCurve` in theme.dart, streak counts up, reduced motion honoured, one Settings "Sound" switch for chime and break-end (foreground service too). Worktree commits, unpushed; `62c1c2c` covers old export/import gaps. |
 | 06-todo.md | not started | — | — |
 | 07-dufs-theme.md | not started | — | — |
 | 08-dufs-motion.md | not started | — | — |
