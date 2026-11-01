@@ -45,12 +45,19 @@ def test_newest_stable_ignores_unparseable_entries():
     # PyPI stub packages date-stamp a fourth component. Capping the regex at
     # three reported this exact pin as unpinned *against its own value*.
     ("==2.33.0.20260712", "2.33.0.20260712"),
+    # PEP 440 post/dev/pre releases are exact pins too (pytest-asyncio).
+    ("1.4.1.post1", "1.4.1.post1"), ("==1.4.1.post1", "1.4.1.post1"),
+    ("2.0.post3", "2.0.post3"), ("1.0.dev2", "1.0.dev2"),
+    ("==2.0rc1", "2.0rc1"), ("1.2.3a1", "1.2.3a1"), ("1.2b4", "1.2b4"),
+    ("1.0.post1.dev2", "1.0.post1.dev2"),
 ])
 def test_exact_pins_are_recognised(raw, expected):
     assert exact_pin(raw) == expected
 
 
-@pytest.mark.parametrize("raw", ["^1.6.0", ">=1.6.0", "any", "*", "", ">=1,<2", "~1.2"])
+@pytest.mark.parametrize("raw", ["^1.6.0", ">=1.6.0", "any", "*", "", ">=1,<2", "~1.2",
+    ">=1.4.1.post1", "~=1.4", "1.4.post", "1.4.postx", "1.4.1.post1,<2",
+])
 def test_ranges_are_not_exact_pins(raw):
     assert exact_pin(raw) is None
 
@@ -59,6 +66,13 @@ def test_behind_compares_versions():
     assert behind("1.6.0", "1.7.0")
     assert not behind("1.7.0", "1.7.0")
     assert not behind("1.8.0", "1.7.0")
+
+
+def test_a_post_release_is_newer_than_its_base_release():
+    assert behind("1.4.1", "1.4.1.post1")
+    assert not behind("1.4.1.post1", "1.4.1")
+    assert not is_prerelease("1.4.1.post1")
+    assert newest_stable(["1.4.1", "1.4.1.post1", "1.4.0"]) == "1.4.1.post1"
 
 
 def test_behind_never_fires_on_unparseable_input():

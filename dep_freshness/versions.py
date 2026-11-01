@@ -160,10 +160,12 @@ def behind(pinned: str, latest: str) -> bool:
 # date-stamp a fourth (`types-requests==2.33.0.20260712`), and capping at
 # three reported an exact pin as unpinned against itself. A project-name
 # prefix (`natural-comparator-1.1`) is part of the pin, since it is what the
-# registry's version list spells.
+# registry's version list spells. PEP 440 `(a|b|rc)N`, `.postN` and `.devN`
+# follow the release (`pytest-asyncio==1.4.1.post1`), before the semver suffix.
 EXACT = re.compile(
     r"^\s*(?:==\s*)?(?:[A-Za-z][A-Za-z_.-]*?-(?=v?\d))?"
-    r"v?\d+(?:\.\d+)*(?:[-+][0-9A-Za-z.-]+)?\s*$"
+    r"v?\d+(?:\.\d+)*(?:(?:a|b|rc)\d+)?(?:\.post\d+)?(?:\.dev\d+)?"
+    r"(?:[-+][0-9A-Za-z.-]+)?\s*$"
 )
 
 
