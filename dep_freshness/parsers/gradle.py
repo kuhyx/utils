@@ -3,7 +3,7 @@
 The version catalog is the one place a Gradle build should declare versions,
 which makes it a manifest the gate can read without evaluating Kotlin DSL.
 A build may have several (`settings.gradle.kts` can `from(files(...))` any
-`*.versions.toml`; TachiyomiSY has three), so the suffix is what is matched.
+`*.versions.toml`; a large app can have several), so the suffix is what is matched.
 Three shapes appear in `[libraries]` and `[plugins]`:
 
     foo = "group:artifact:1.2.3"                         # inline string
@@ -12,7 +12,7 @@ Three shapes appear in `[libraries]` and `[plugins]`:
     plug = { id = "com.example.plugin", version.ref = "x" }
 
 A library with no version is managed by a BOM (`junit-platform-launcher`
-in TachiyomiSY) and is skipped: the BOM's own entry is the pin that counts.
+in a typical app) and is skipped: the BOM's own entry is the pin that counts.
 A rich version table (`{ strictly = "1.2" }`) is read as the constraint it
 spells and lands as unpinned when it is a range, like every other ecosystem.
 

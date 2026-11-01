@@ -1,8 +1,8 @@
 """The `upstream:` predicate: does the fork's upstream still pin this version?
 
 A fork cannot always take a release before the project it tracks does --
-moko-resources 0.27.0 rewrites every string accessor across 300 files of
-TachiyomiSY and would break each future upstream commit that adds a string.
+a library that rewrites every string accessor across 300 files of the fork
+would break each future upstream commit that adds a string.
 "Wait for upstream" is the honest reason, and it is checkable: fetch the
 upstream repository's copy of the SAME manifest, parse it with the same
 parser, and compare the pin. Equal means the entry holds; different means

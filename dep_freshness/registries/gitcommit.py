@@ -1,6 +1,6 @@
 """JitPack artifacts pinned to a commit: "newest" is the default branch's HEAD.
 
-Seven of TachiyomiSY's dependencies are `com.github.<owner>:<repo>` at a
+Some Android builds depend on `com.github.<owner>:<repo>` at a
 short hash. No registry lists a "latest" for those, and a hash is not a
 version, so the gate's question becomes the only one a commit pin admits:
 is the pinned commit still what the source repository's default branch

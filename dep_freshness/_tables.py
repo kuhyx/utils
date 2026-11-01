@@ -208,7 +208,7 @@ ALLOWLIST_MAX_DAYS: Final = 90
 TRANSITIVE_PREFIX: Final = "transitive:"
 # A fork's predicate: the entry holds only while the upstream repository's own
 # copy of the same manifest pins the same version, and dies the day upstream
-# bumps. TachiyomiSY cannot take moko-resources 0.27.0 (a 300-file accessor
-# rewrite that breaks every future upstream string) before jobobby04 does.
+# bumps. A fork that cannot take a release (e.g. a 300-file accessor rewrite
+# that breaks every future upstream string) before its upstream does.
 UPSTREAM_PREFIX: Final = "upstream:"
 GITHUB_RAW: Final = "https://raw.githubusercontent.com/{repo}/HEAD/{path}"

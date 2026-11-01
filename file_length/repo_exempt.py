@@ -2,7 +2,7 @@
 
 The shared tables in :mod:`file_length._tables` hold exemptions that are true
 everywhere (generated, vendored, wordlists). A fork of a third-party project
-can also carry data that is code only by extension -- TachiyomiSY's
+can also carry data that is code only by extension -- e.g. a fork's
 ``exh/eh/tags/*.kt`` are 6000-line string tables that upstream regenerates --
 and that knowledge belongs next to the data, in the repo, not in a shared
 list every other repo loads.
@@ -60,7 +60,7 @@ def glob_to_regex(pattern: str) -> re.Pattern[str]:
     `**` spans directories, `*` and `?` stop at a slash. Hand-rolled rather
     than `PurePath.full_match` because that needs Python 3.13 and the gate
     runs on whatever `python3` a CI runner ships (3.12 broke it in the
-    TachiyomiSY fork's first CI run).
+    a fork's first CI run).
     """
     out: list[str] = []
     i = 0
