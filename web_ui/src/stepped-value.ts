@@ -1,7 +1,7 @@
 /**
  * The keyboard contract of the range slider, kept pure and in its own module
- * so range-slider.tsx exports only the component (react-refresh needs that
- * for HMR to keep working) and the contract is testable without layout.
+ * so the element module holds only DOM wiring and the contract is testable
+ * without layout.
  */
 import { nth, valueQuantile } from "./quantile.ts";
 

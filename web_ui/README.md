@@ -13,16 +13,34 @@ this package is its executable form for the web.
 ```jsonc
 // package.json — pnpm only, see "Why the &path: suffix" below.
 "dependencies": {
-  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.3.1&path:/web_ui"
+  "@kuhyx/web-ui": "github:kuhyx/utils#web_ui-v0.5.0&path:/web_ui"
 }
 ```
 
-```ts
-import "@kuhyx/web-ui/tokens.css";        // once, at the app entry point
-import "@kuhyx/web-ui/range-slider.css";  // only if you use RangeSlider
+Astro is the only supported framework (`peerDependencies.astro >=7.4.0`).
 
-import { RangeSlider, fuzzyMatch, quantileValue } from "@kuhyx/web-ui";
+```astro
+---
+// Layout / page frontmatter
+import RangeSlider from "@kuhyx/web-ui/RangeSlider.astro";
+import "@kuhyx/web-ui/tokens.css";        // once, in the shared layout
+import "@kuhyx/web-ui/range-slider.css";  // only if you use RangeSlider
+---
+<RangeSlider label="Stars" />
+<script>
+  import "@kuhyx/web-ui/range-slider";    // registers <range-slider>
+  const slider = document.querySelector("range-slider");
+  slider.values = [0, 0, 3, 40, 900];     // ascending distribution
+  slider.format = (value) => `${value} stars`;
+  slider.addEventListener("change", (event) => {
+    const { lo, hi } = event.detail;      // bubbles; raw values, lo <= hi
+  });
+</script>
 ```
+
+Pure helpers (`fuzzyMatch`, `quantileValue`, ...) come from
+`import { fuzzyMatch } from "@kuhyx/web-ui";`. That entry point touches no DOM,
+so it is safe in frontmatter.
 
 ### Why the `&path:/web_ui` suffix
 
@@ -33,23 +51,31 @@ pnpm supports the subdirectory via `&path:/<dir>`, which is why both consumers
 are pnpm. This is the only difference from the Dart (`git: {url, ref, path}`) and
 Python (`#subdirectory=`) conventions the rest of `utils` follows.
 
-### Why `dist/` is committed
+### Why `dist/` is committed, and why `.astro` ships as source
 
-Vite does not transpile dependencies, so shipping raw `.tsx` would force
-per-repo bundler config on every consumer. The tag carries a prebuilt `dist/`
-(ESM + `.d.ts`, JSX already compiled, `.ts` specifiers rewritten to `.js`), so
-consumers stay at zero config. **`pnpm build` before tagging, always** — a tag
-whose `dist/` is stale ships old code to every consumer with no error.
+tsc cannot emit `.astro`, so `src/RangeSlider.astro` ships as it is and Astro
+compiles it from the dependency. Everything TypeScript ships prebuilt: the tag
+carries `dist/` (ESM + `.d.ts`, `.ts` specifiers rewritten to `.js`), and the
+`.astro` file imports `../dist/...`, never the `.ts` source. **`pnpm build`
+before tagging, always** — a tag whose `dist/` is stale ships old code to every
+consumer with no error.
 
 ## What's here
 
 | Export | Notes |
 | --- | --- |
 | `tokens.css` | The `:root` block: palette, spacing, radius, type, shadows, focus ring. Also sets `:focus-visible` globally. |
-| `RangeSlider` | Dual-thumb slider over a value *distribution*, not a linear ramp. |
+| `RangeSlider.astro` | Server-rendered shell for `<range-slider>`. Props: `values`, `lo`, `hi`, `label`, `format` (server-side, first paint of the head only). Its `<script>` registers the element. |
+| `range-slider` | The custom element. `values` and `format` properties, `lo` / `hi` / `label` attributes, bubbling `change` event with `{ lo, hi }`. Adopts the server markup, or builds it in plain HTML. |
 | `range-slider.css` | Its styling, entirely in tokens. |
 | `quantile.ts` helpers | `nth`, `clamp01`, `quantileValue`, `valueQuantile`, `fractionFromPointer`. |
+| `stepped-value.ts` helpers | `keyTarget`, `steppedValue`. |
 | `fuzzyMatch` | Case-insensitive subsequence match. |
+
+The element writes `lo` / `hi` itself on every change, so it works without any
+wiring; set the attributes from outside to override it (e.g. a URL-hash restore).
+With fewer than two `values` the slider stays hidden. `values` set before the
+element upgrades is picked up on connect.
 
 ### The categorical ramp
 
@@ -69,7 +95,7 @@ candidate reaches only ΔE 17.9. Group the tail into "other" instead.
 `fractionFromPointer` is deliberately pure geometry: it makes the slider's
 behaviour testable without layout, which jsdom does not implement.
 
-### RangeSlider is keyboard-operable
+### `<range-slider>` is keyboard-operable
 
 Both donor copies were pointer-only. The design system requires that every
 action be reachable with the keyboard alone, and a `role="slider"` that ignores
@@ -81,7 +107,7 @@ arrow keys is an ARIA role that lies — so the shared version adds:
 | `PageDown` / `PageUp` | Step ten distinct values |
 | `Home` / `End` | Jump to the distribution's bounds |
 
-Pass `label` **and** `format` to get the built-in head (name + value readout);
+Set `label` **and** `format` to get the built-in head (name + value readout);
 omit them for a bare track when the caller draws its own chrome, as
 dufs-cloud's `SizeRange`/`DurationRange` wrappers do.
 
@@ -95,9 +121,9 @@ arrow key, and jsdom's evenly-spaced fixtures do not catch it.
 
 ```bash
 pnpm install
-pnpm test       # vitest
+pnpm test       # vitest (jsdom for the element, AstroContainer for the .astro markup)
 pnpm coverage   # 100% branches/functions/lines/statements, enforced
-pnpm lint       # tsc --noEmit && eslint
+pnpm lint       # tsc --noEmit && eslint && astro check
 pnpm build      # tsc -b + copy CSS into dist/
 ```
 

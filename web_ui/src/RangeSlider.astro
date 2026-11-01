@@ -1,0 +1,66 @@
+---
+/**
+ * Server-rendered shell for `<range-slider>`. The `<script>` below registers
+ * the element, which adopts this markup and takes over; set `.values` from a
+ * client script. Pass `values` here only to render the thumbs in place.
+ * `format` runs on the server and only draws the first paint of the head.
+ */
+import { nth, valueQuantile } from "../dist/quantile.js";
+
+interface Props {
+  format?: (value: number) => string;
+  hi?: number;
+  label?: string;
+  lo?: number;
+  values?: readonly number[];
+}
+
+const { format, label, values = [] } = Astro.props;
+const ready = values.length >= 2;
+const lowest = ready ? nth(values, 0) : 0;
+const highest = ready ? nth(values, values.length - 1) : 0;
+const lo = Astro.props.lo ?? lowest;
+const hi = Astro.props.hi ?? highest;
+const loFraction = ready ? valueQuantile(values, lo) * 100 : 0;
+const hiFraction = ready ? valueQuantile(values, hi) * 100 : 100;
+const name = label ?? "Range";
+const thumbs = [
+  { aria: `${name} minimum`, fraction: loFraction, now: lo, which: "lo" },
+  { aria: `${name} maximum`, fraction: hiFraction, now: hi, which: "hi" },
+] as const;
+---
+
+<range-slider lo={Astro.props.lo} hi={Astro.props.hi} label={label}>
+  <div class="slider" hidden={!ready}>
+    {
+      label !== undefined && format !== undefined && ready && (
+        <div class="slider-head">
+          <span>{label}</span>
+          <span class="slider-value">{format(lo)} – {format(hi)}</span>
+        </div>
+      )
+    }
+    <div class="slider-track">
+      <div class="slider-fill" style={`left: ${loFraction}%; width: ${hiFraction - loFraction}%`}></div>
+      {
+        thumbs.map((thumb) => (
+          <button
+            aria-label={thumb.aria}
+            aria-valuemax={highest}
+            aria-valuemin={lowest}
+            aria-valuenow={thumb.now}
+            class={`slider-thumb slider-${thumb.which}`}
+            role="slider"
+            style={`left: ${thumb.fraction}%`}
+            tabindex="0"
+            type="button"
+          ></button>
+        ))
+      }
+    </div>
+  </div>
+</range-slider>
+
+<script>
+  import "../dist/range-slider-element.js";
+</script>
