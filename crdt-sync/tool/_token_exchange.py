@@ -44,9 +44,17 @@ def _authorization_code(params: dict[str, str], redirect_uri: str, state: str) -
 
 
 def _exchange_code(
-    code: str, client_id: str, client_secret: str, redirect_uri: str
+    code: str,
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+    code_verifier: str = "",
 ) -> str:
-    """Trade the authorization code for an ID token at Google's endpoint."""
+    """Trade the authorization code for an ID token at Google's endpoint.
+
+    ``code_verifier`` is sent only when given, for PKCE flows.
+    """
+    pkce = {"code_verifier": code_verifier} if code_verifier else {}
     try:
         response = requests.post(
             _TOKEN_EXCHANGE_URL,
@@ -56,6 +64,7 @@ def _exchange_code(
                 "client_secret": client_secret,
                 "redirect_uri": redirect_uri,
                 "grant_type": "authorization_code",
+                **pkce,
             },
             timeout=_TIMEOUT_SECONDS,
         )
