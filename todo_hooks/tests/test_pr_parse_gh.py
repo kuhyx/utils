@@ -71,3 +71,14 @@ def test_merged_prs_parses_fields() -> None:
     prs = gh.merged_prs("kuhyx", "demo", "abc", fake)
     assert [(p.number, p.merged) for p in prs] == [(5, True), (6, False)]
     assert fake.calls[0] == ["api", "repos/kuhyx/demo/commits/abc/pulls"]
+
+
+def test_run_gh_unknown_commit_is_not_found(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fake = tmp_path / "gh"
+    fake.write_text('#!/bin/sh\necho "gh: No commit found (HTTP 422)" >&2\nexit 1\n')
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tmp_path}:/usr/bin")
+    with pytest.raises(gh.GhNotFound):
+        gh.run_gh(["x"])

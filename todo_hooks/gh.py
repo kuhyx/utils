@@ -17,6 +17,10 @@ class GhError(Exception):
     """gh missing, offline, failing or answering nonsense."""
 
 
+class GhNotFound(GhError):
+    """GitHub does not know the commit (HTTP 404/422), e.g. an unpushed sha."""
+
+
 @dataclass(frozen=True)
 class PullRequest:
     """A pull request GitHub links to a commit."""
@@ -44,7 +48,10 @@ def run_gh(args: list[str]) -> str:
         msg = "gh timed out"
         raise GhError(msg) from err
     if done.returncode != 0:
-        raise GhError(done.stderr.strip() or f"gh exit {done.returncode}")
+        message = done.stderr.strip() or f"gh exit {done.returncode}"
+        if "(HTTP 404)" in message or "(HTTP 422)" in message:
+            raise GhNotFound(message)
+        raise GhError(message)
     return done.stdout
 
 

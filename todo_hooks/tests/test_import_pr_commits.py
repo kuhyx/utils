@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from todo_hooks import import_pr
+from todo_hooks import gh, import_pr
 from todo_hooks.tests._fakes import FakeGh, line, make_pr
 from todo_hooks.tests._pr_helpers import pr_repo, search_client
 from todo_hooks.tests.conftest import git
@@ -160,3 +160,45 @@ def test_nothing_new_to_import_is_silent(
     ctx, out = make_ctx(search_client(existing), root)
     assert import_pr.import_for_commits(ctx, [sha], FakeGh({sha: [make_pr(7)]})) == 0
     assert out == []
+
+
+def test_rewrite_includes_upstream_commits_after_pull_rebase(tmp_path: Path) -> None:
+    upstream = tmp_path / "up.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(upstream))
+    mine, other = tmp_path / "mine", tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(upstream), str(mine))
+    (mine / "a").write_text("a")
+    git(mine, "add", "a")
+    git(mine, "commit", "-q", "-m", "base")
+    git(mine, "push", "-q", "origin", "HEAD:main")
+    git(tmp_path, "clone", "-q", str(upstream), str(other))
+    (other / "b").write_text("b")
+    git(other, "add", "b")
+    git(other, "commit", "-q", "-m", "arrives via pull")
+    git(other, "push", "-q", "origin", "HEAD:main")
+    arrived = git(other, "rev-parse", "HEAD")
+    (mine / "c").write_text("c")
+    git(mine, "add", "c")
+    git(mine, "commit", "-q", "-m", "local only")
+    git(mine, "pull", "-q", "--rebase", "origin", "main")
+    replayed = git(mine, "rev-parse", "HEAD")
+    shas = import_pr.commits_post_rewrite(mine, "rebase", f"old {replayed}\n")
+    assert arrived in shas
+    assert shas.count(replayed) == 1
+
+
+def test_unpushed_commit_does_not_stop_the_scan(
+    make_repo: Callable[..., Path],
+    make_ctx: Callable[..., tuple[Context, list[str]]],
+) -> None:
+    root = pr_repo(make_repo, 1)
+    fake = FakeGh({"known": [make_pr(7)]})
+
+    def runner(args: list[str]) -> str:
+        if "unpushed" in args[1]:
+            raise gh.GhNotFound("No commit found (HTTP 422)")
+        return fake(args)
+
+    client = search_client()
+    ctx, _ = make_ctx(client, root)
+    assert import_pr.import_for_commits(ctx, ["unpushed", "known"], runner) == 3

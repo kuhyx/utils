@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from todo_hooks.context import Context
 
 MAX_COMMITS = 30
+_PAIR_FIELDS = 2
 USAGE = (
     "usage: python3 -m todo_hooks import-pr "
     "post-merge | post-rewrite [rebase] | --range A..B"
@@ -38,11 +39,15 @@ def commits_post_merge(root: Path) -> list[str]:
 
 
 def commits_post_rewrite(root: Path, command: str, pairs: str) -> list[str]:
-    """New shas from git's ``old new`` stdin lines; only for a rebase."""
+    """Rebase only: ORIG_HEAD..HEAD plus the new shas of stdin ``old new`` lines."""
     if command != "rebase":
         return []
-    shas = [row.split()[1] for row in pairs.splitlines() if len(row.split()) >= 2]  # noqa: PLR2004
-    return shas[:MAX_COMMITS] or commits_post_merge(root)
+    shas = commits_post_merge(root)
+    for row in pairs.splitlines():
+        fields = row.split()
+        if len(fields) >= _PAIR_FIELDS and fields[1] not in shas:
+            shas.append(fields[1])
+    return shas[:MAX_COMMITS]
 
 
 def read_stdin(timeout: float = 1.0) -> str:
@@ -74,6 +79,15 @@ def _add(client: TaskClient, repo: str, number: int, item: TodoItem) -> bool:
     return True
 
 
+def _prs_of(
+    slug: tuple[str, str], sha: str, runner: Callable[[list[str]], str] | None
+) -> list[gh.PullRequest]:
+    try:
+        return gh.merged_prs(slug[0], slug[1], sha, runner)
+    except gh.GhNotFound:
+        return []
+
+
 def import_for_commits(
     ctx: Context, shas: list[str], runner: Callable[[list[str]], str] | None
 ) -> int:
@@ -89,7 +103,7 @@ def import_for_commits(
     client: TaskClient | None = None
     try:
         for sha in shas:
-            for pr in gh.merged_prs(slug[0], slug[1], sha, runner):
+            for pr in _prs_of(slug, sha, runner):
                 items = parse_todo_items(pr.body)
                 if not pr.merged or pr.number in seen or not items:
                     continue

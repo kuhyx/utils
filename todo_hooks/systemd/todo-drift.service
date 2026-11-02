@@ -6,4 +6,4 @@ Type=oneshot
 ExecStart=%h/src/utils/scripts/todo_hooks.sh sweep
 Nice=19
 IOSchedulingClass=idle
-TimeoutStartSec=30min
+TimeoutStartSec=infinity
