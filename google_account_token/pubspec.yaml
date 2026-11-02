@@ -1,0 +1,27 @@
+name: google_account_token
+description: >-
+  Android one-tap Google ID token via AccountManager: the system account
+  chooser, then an `audience:server:client_id:` token for Firebase
+  signInWithIdp. No browser, no Google client library. Other platforms
+  return null so callers fall back to their password path.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.kuhy.google_account_token
+        pluginClass: GoogleAccountTokenPlugin

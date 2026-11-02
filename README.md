@@ -42,6 +42,21 @@ dependencies:
       path: sync_settings_ui
 ```
 
+## google_account_token/
+
+Flutter plugin (Android only; other platforms return null): one-tap Google ID
+token via `AccountManager`, replacing `google_sign_in` in the sync apps.
+
+Consume via:
+```yaml
+dependencies:
+  google_account_token:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: google_account_token-v0.1.0
+      path: google_account_token
+```
+
 ## crdt-sync/
 
 Python CRDT sync library (package: `crdt_sync`, not published to PyPI). Same
