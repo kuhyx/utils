@@ -37,13 +37,13 @@ beating a PB) and todo (reward capture, not completion count).
 |---|---|---|---|
 | 01 | `01-motion-tokens.md` | `~/src/utils` | 3 |
 | 02 | `02-structural-check.md` | `~/src/utils` | 2 |
-| 03 | `03-diet-guard.md` | `~/src/diet-guard` | 4 |
-| 04 | `04-screen-locker.md` | `~/src/screen-locker` | 3 |
-| 05 | `05-workout-app.md` | `~/src/screen-locker/stronglift_replacement/workout_app` | 4 |
+| 03 | todo note `85ca329b-9809-412c-a47f-eddf055322cf` | `~/src/diet-guard` | 4 |
+| 04 | todo note `73a20837-6480-4b31-b966-1898a4e7272e` | `~/src/screen-locker` | 3 |
+| 05 | todo note `e50d6a03-ae7d-4da5-bbd3-c33b17f6f074` | `~/src/screen-locker/stronglift_replacement/workout_app` | 4 |
 | 06 | `06-todo.md` | `~/src/todo` | 3 |
 | 07 | `07-dufs-theme.md` | `~/src/dufs-cloud` | 2 |
-| 08 | `08-dufs-motion.md` | `~/src/dufs-cloud` | 4 |
-| 09 | `09-wake-alarm.md` | `~/src/wake-alarm` | 2 |
+| 08 | todo note `e301e090-b2ee-4e26-8387-00f356b63521` | `~/src/dufs-cloud` | 4 |
+| 09 | todo note `9e1e4922-9f29-4bad-bcf4-96826aa8ffa4` | `~/src/wake-alarm` | 2 |
 
 **27 ranked findings total.**
 
@@ -100,13 +100,13 @@ what remains instead.
 |---|---|---|---|
 | 01-motion-tokens.md | DONE 2026-08-22 | `f741896` | `motion.md` frozen; `AppDuration`/`AppCurve` + `--duration-*`/`--ease-*` shipped. Tags: `design_system-v0.2.0`, `web_ui-v0.3.2`. |
 | 02-structural-check.md | not started | — | — |
-| 03-diet-guard.md | not started | — | — |
-| 04-screen-locker.md | DONE 2026-11-01 | `89c65bd` | Status window `_section_streak` + week-transition reward text (kept in `extra_benefits_state.json`); the dead 09:00 early-bird claim is not shown. Per kuhy: no daily-streak state, no shutdown time, no freezes. Commit is on a worktree branch, unpushed. |
-| 05-workout-app.md | DONE 2026-11-01 | `e938201` | Set/warmup `selectionClick`, finish `mediumImpact` + generated chime (music_theory, pinned tag) + dialog arrival, `AppDuration`/`AppCurve` in theme.dart, streak counts up, reduced motion honoured, one Settings "Sound" switch for chime and break-end (foreground service too). Worktree commits, unpushed; `62c1c2c` covers old export/import gaps. |
+| todo note `85ca329b-9809-412c-a47f-eddf055322cf` | not started | — | — |
+| todo note `73a20837-6480-4b31-b966-1898a4e7272e` | DONE 2026-11-01 | `89c65bd` | Status window `_section_streak` + week-transition reward text (kept in `extra_benefits_state.json`); the dead 09:00 early-bird claim is not shown. Per kuhy: no daily-streak state, no shutdown time, no freezes. Commit is on a worktree branch, unpushed. |
+| todo note `e50d6a03-ae7d-4da5-bbd3-c33b17f6f074` | DONE 2026-11-01 | `e938201` | Set/warmup `selectionClick`, finish `mediumImpact` + generated chime (music_theory, pinned tag) + dialog arrival, `AppDuration`/`AppCurve` in theme.dart, streak counts up, reduced motion honoured, one Settings "Sound" switch for chime and break-end (foreground service too). Worktree commits, unpushed; `62c1c2c` covers old export/import gaps. |
 | 06-todo.md | PARTIAL 2026-11-02 (step 1 DONE; step 2 sound REJECTED by kuhy) | `kuhyx/todo-app 2ffae26` | haptic + checkmark on capture, appRoute motion tokens, animated wizard bar; no sound by decision |
 | 07-dufs-theme.md | not started | — | — |
-| 08-dufs-motion.md | not started | — | — |
-| 09-wake-alarm.md | not started | — | — |
+| todo note `e301e090-b2ee-4e26-8387-00f356b63521` | not started | — | — |
+| todo note `9e1e4922-9f29-4bad-bcf4-96826aa8ffa4` | not started | — | — |
 
 ## Keeping these prompts honest
 

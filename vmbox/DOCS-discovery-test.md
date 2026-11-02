@@ -209,5 +209,3 @@ All four, in this order:
    why the midnight-shutdown timer stays rejected: a Fail powers the machine off
    mid-session, regardless of how clean its prose neighbourhood is.
 4. A written undo recipe captured *before* the subject runs.
-
-REMOVE ME AFTER FINISH
