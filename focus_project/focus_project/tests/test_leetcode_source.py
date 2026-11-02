@@ -19,7 +19,7 @@ from focus_project.tests.test_minutes import D1, at, project
 KEY = b"k" * 32
 
 
-def ac_row(ts: float, eid: str = "ac:1", key: bytes = KEY) -> dict:
+def ac_row(ts: float, eid: str = "ac:1", key: bytes = KEY) -> dict[str, Any]:
     row: dict[str, Any] = {
         "entry_id": eid,
         "kind": "credit",

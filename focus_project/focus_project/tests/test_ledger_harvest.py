@@ -7,6 +7,7 @@ from datetime import date, timedelta
 import json
 import logging
 from pathlib import Path  # noqa: TC003
+from typing import Any
 
 import earned_time
 import pytest
@@ -23,8 +24,11 @@ def _key(tmp_path: Path) -> None:
     (tmp_path / "hmac.key").write_bytes(KEY)
 
 
-def rows() -> list[dict]:
-    return json.loads(ledger.ledger_path().read_text())["entries"]
+def rows() -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = json.loads(ledger.ledger_path().read_text())[
+        "entries"
+    ]
+    return entries
 
 
 def beats(*times: float) -> None:
@@ -146,7 +150,7 @@ def test_forged_and_malformed_rows_do_not_count() -> None:
         "detail": {**good["detail"], "minutes": 50},
     }
     other_key = ledger.build_row("hr", D1, 9, 9, b"x" * 32, now=at(9))
-    junk: list = [
+    junk: list[Any] = [
         "str",
         {"kind": "charge"},
         {**good, "detail": "no"},

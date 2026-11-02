@@ -100,7 +100,7 @@ def test_broken_adapter_import_contributes_zero(
     def broken(name: str) -> None:
         raise ImportError(name)
 
-    monkeypatch.setattr(sources.importlib, "import_module", broken)
+    monkeypatch.setattr("focus_project.sources.importlib.import_module", broken)
     with caplog.at_level(logging.ERROR):
         result = sources.collect_by_source(DAY, PROJECT)
     assert all(spans == [] for spans in result.values())
