@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from md_naming import rules
-from md_naming.tests.conftest import write
 
 
 @pytest.mark.parametrize(
@@ -17,9 +16,7 @@ from md_naming.tests.conftest import write
         "CLAUDE.md",
         "CLAUDE-extra.md",
         "DOCS-x.md",
-        "TODO-y.md",
         "DOCS.md",
-        "TODO.md",
         "README.markdown",
     ],
 )
@@ -37,6 +34,8 @@ def test_allowed_names(name: str) -> None:
         "MIGRATION.md",
         "refactor_claude_todo.md",
         "my-TODO.md",
+        "TODO-y.md",
+        "TODO.md",
     ],
 )
 def test_rejected_names(name: str) -> None:
@@ -111,17 +110,6 @@ def test_is_todo() -> None:
     # Prefix alone is not enough; it must still be markdown.
     assert not rules.is_todo(Path("TODO-x.txt"))
 
-
-def test_contains_marker(tmp_path: Path) -> None:
-    marked = write(tmp_path, "a.md", "text\nREMOVE ME AFTER FINISH\n")
-    plain = write(tmp_path, "b.md", "text\n")
-    assert rules.contains_marker(marked)
-    assert not rules.contains_marker(plain)
-
-
-def test_contains_marker_unreadable(tmp_path: Path) -> None:
-    """A path that cannot be read answers False rather than raising."""
-    assert not rules.contains_marker(tmp_path / "missing.md")
 
 
 @pytest.mark.parametrize("repo", [".nvm", ".oh-my-zsh", ".cargo", ".pyenv"])

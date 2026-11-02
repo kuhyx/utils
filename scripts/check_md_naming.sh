@@ -3,10 +3,8 @@
 # ============================================================================
 # Fail if any markdown file breaks the shared naming convention.
 #
-# Four namespaces -- README.md, CLAUDE*.md, DOCS*.md, TODO*.md -- so a future
-# session can tell a live task from a finished record without re-deriving it.
-# TODO files carry "REMOVE ME AFTER FINISH" and are deleted when the work
-# lands; nothing else may carry that marker.
+# Three namespaces -- README.md, CLAUDE*.md, DOCS*.md. TODO*.md is banned:
+# tasks live in the todo app (MCP add_task, or todo_note.dart --repo).
 #
 # This is the REAL gate. Per-repo scripts/check_md_naming.sh files are thin
 # shims that exec this one -- do not overwrite this file with a shim, or every

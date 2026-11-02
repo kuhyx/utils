@@ -27,8 +27,8 @@ repos:
         language: system
         pass_filenames: true
 
-      # Four markdown namespaces (README / CLAUDE* / DOCS* / TODO*), plus the
-      # rule that a TODO carries "REMOVE ME AFTER FINISH" and nothing else may.
+      # Three markdown namespaces (README / CLAUDE* / DOCS*); TODO*.md is banned
+      # (tasks live in the todo app).
       # Shared gate in ~/src/utils owns the namespaces and the exemption list, so
       # one repo's idea of a valid name cannot drift from every other repo's.
       # Since the 2026-09-11 reorganisation ~ holds eleven visible entries and

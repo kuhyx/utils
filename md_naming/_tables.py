@@ -1,7 +1,7 @@
 """Exemption tables and namespace rules for the markdown-naming convention.
 
 The data half: which basenames are reserved by external tooling, which
-directory trees are exempt, and the literal marker every TODO file carries.
+directory trees are exempt, and the prefix of the banned TODO files.
 :mod:`md_naming.rules` holds the predicates that read these, and
 :mod:`md_naming.config` re-exports both as the public surface.
 
@@ -15,24 +15,21 @@ from __future__ import annotations
 import re
 
 
-#: The four namespaces. A markdown file in a kuhy-owned repo must match one.
+#: The three namespaces. A markdown file in a kuhy-owned repo must match one.
 #:
 #: README  -- what this directory is and how to run it.
 #: CLAUDE* -- instructions Claude must read.
 #: DOCS*   -- reference, findings, design records. Permanent.
-#: TODO*   -- outstanding work. Carries MARKER; deleted when the work lands.
-ALLOWED_PATTERN = re.compile(r"^(README|CLAUDE.*|DOCS.*|TODO.*)\.(md|markdown)$")
+#:
+#: TODO*.md is banned outright (tasks live in the todo app).
+ALLOWED_PATTERN = re.compile(r"^(README|CLAUDE.*|DOCS.*)\.(md|markdown)$")
 
-#: The literal every TODO file must contain, and that no other file may.
-#: CI greps this exact string, so it cannot be paraphrased.
+#: Legacy: the removal marker of the retired TODO convention. No gate reads it
+#: any more; only the one-shot migrate/apply.py (kept as a record) imports it.
 MARKER = "REMOVE ME AFTER FINISH"
 
-#: Prefix identifying a task file, for the reverse check (marker => TODO*).
+#: Prefix identifying a banned task file.
 TODO_PREFIX = "TODO"
-
-#: A TODO older than this many days gets a CI ::warning::. Never a failure:
-#: no machine can prove a task is finished, so the honest mechanism is a nudge.
-STALE_DAYS = 90
 
 #: Basenames owned by external tooling. Renaming these breaks the tool, so
 #: they are exempt from the namespace rule rather than migrated.

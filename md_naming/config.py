@@ -1,8 +1,8 @@
 """Shared configuration for the markdown-naming convention.
 
-Single source of truth for the four namespaces, the removal marker and the
-exemption list, imported by the pre-commit gate (`check.py`) and the staleness
-reporter (`stale.py`). This module is the public surface:
+Single source of truth for the three namespaces, the TODO ban and the
+exemption list, imported by the pre-commit gate (`check.py`). This module is
+the public surface:
 :mod:`md_naming._tables` holds the data, :mod:`md_naming.rules` the predicates.
 """
 
@@ -15,11 +15,9 @@ from md_naming._tables import (
     EXTRA_THIRD_PARTY,
     HARNESS_NAMES,
     MARKER,
-    STALE_DAYS,
     TODO_PREFIX,
 )
 from md_naming.rules import (
-    contains_marker,
     has_allowed_name,
     is_exempt,
     is_markdown,
@@ -33,9 +31,7 @@ __all__ = [
     "EXTRA_THIRD_PARTY",
     "HARNESS_NAMES",
     "MARKER",
-    "STALE_DAYS",
     "TODO_PREFIX",
-    "contains_marker",
     "has_allowed_name",
     "is_exempt",
     "is_markdown",

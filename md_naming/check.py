@@ -3,14 +3,12 @@
 Invoked by `scripts/check_md_naming.sh`, which pre-commit calls with the
 staged files. Exits 1 and lists every violation; exits 0 silently otherwise.
 
-Three rules, checked together because they only work as a set:
+Two rules:
 
-1. Naming    -- a markdown file must be README / CLAUDE* / DOCS* / TODO*.
-2. Marker    -- a TODO* file must contain the removal marker.
-3. Reverse   -- a file containing the marker must be named TODO*.
+1. Naming    -- a markdown file must be README / CLAUDE* / DOCS*.
+2. TODO ban  -- no TODO*.md at all. Tasks live in the todo app, not in files.
 
-Rule 3 is what stops the convention leaking: without it a task file can be
-renamed DOCS-something.md, keep its marker, and quietly become permanent.
+The old "REMOVE ME AFTER FINISH" marker rules are retired with TODO files.
 
 The check is deliberately deterministic code rather than a judgement call --
 adjudication belongs in an exit code, not in a model.
@@ -27,12 +25,16 @@ if __package__ in (None, ""):  # pragma: no cover - plain-script import path
 
 from file_length.check import git_ignored, iter_all
 from md_naming.config import (
-    MARKER,
-    contains_marker,
     has_allowed_name,
     is_exempt,
     is_markdown,
     is_todo,
+)
+
+#: One line, because it is the whole instruction a blocked committer sees.
+TODO_BANNED = (
+    "TODO*.md files are banned: add a task with the todo MCP add_task "
+    "(or todo_note.dart --repo kuhyx/<name>)"
 )
 
 
@@ -58,21 +60,12 @@ def violations_for(path: Path) -> list[str]:
     full = absolutize(path)
     problems: list[str] = []
 
-    if is_markdown(path) and not is_exempt(full) and not has_allowed_name(path):
-        problems.append("name must start with README / CLAUDE / DOCS / TODO")
-
-    # The marker rules apply even to exempt-by-name files: a CONTRIBUTING.md
-    # carrying "REMOVE ME AFTER FINISH" is a task wearing a reserved name, and
-    # that is precisely the leak rule 3 exists to catch.
-    if is_markdown(path):
-        marked = contains_marker(full)
-        if is_todo(path) and not marked:
-            problems.append(f'TODO file must contain the line "{MARKER}"')
-        if marked and not is_todo(path):
-            problems.append(
-                f'contains "{MARKER}" but is not named TODO*.md '
-                "-- rename it, or drop the marker if it is not a task"
-            )
+    if not is_markdown(path) or is_exempt(full):
+        return problems
+    if is_todo(path):
+        problems.append(TODO_BANNED)
+    elif not has_allowed_name(path):
+        problems.append("name must start with README / CLAUDE / DOCS")
 
     return problems
 
@@ -118,7 +111,7 @@ def main() -> int:
     for path, problem in sorted(found, key=lambda item: str(item[0])):
         print(f"  {path}: {problem}", file=sys.stderr)
     print(
-        "\nNamespaces: README.md, CLAUDE*.md, DOCS*.md, TODO*.md\n"
+        "\nNamespaces: README.md, CLAUDE*.md, DOCS*.md (no TODO*.md)\n"
         "See ~/.claude/skills/md-file-conventions/SKILL.md",
         file=sys.stderr,
     )

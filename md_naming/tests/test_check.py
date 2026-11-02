@@ -1,4 +1,4 @@
-"""The gate itself: the three rules and the CLI."""
+"""The gate itself: the naming and TODO-ban rules and the CLI."""
 
 from __future__ import annotations
 
@@ -19,21 +19,30 @@ def test_absolutize_anchors_relative(tmp_path: Path, monkeypatch) -> None:
     assert check.absolutize(Path("b.md")) == tmp_path / "b.md"
 
 
-def test_good_todo_has_no_violations(tmp_path: Path) -> None:
-    path = write(tmp_path, "TODO-a.md", "# a\n\nREMOVE ME AFTER FINISH\n")
-    assert check.violations_for(path) == []
+@pytest.mark.parametrize(
+    ("name", "body"),
+    [
+        ("TODO-a.md", "# a\n\nREMOVE ME AFTER FINISH\n"),
+        ("TODO-a.md", "# a\n"),
+        ("TODO.md", "# a\n"),
+        ("sub/TODO-b.markdown", "# b\n"),
+    ],
+)
+def test_any_todo_file_is_banned(tmp_path: Path, name: str, body: str) -> None:
+    """Tasks live in the todo app; a TODO*.md fails with or without a marker."""
+    (problem,) = check.violations_for(write(tmp_path, name, body))
+    assert problem == check.TODO_BANNED
 
 
-def test_todo_without_marker(tmp_path: Path) -> None:
-    path = write(tmp_path, "TODO-a.md", "# a\n")
-    (problem,) = check.violations_for(path)
-    assert "must contain" in problem
+def test_todo_message_points_at_the_todo_app() -> None:
+    assert "add_task" in check.TODO_BANNED
+    assert "todo_note.dart --repo" in check.TODO_BANNED
+    assert "\n" not in check.TODO_BANNED
 
 
-def test_marker_outside_todo(tmp_path: Path) -> None:
+def test_marker_is_no_longer_special(tmp_path: Path) -> None:
     path = write(tmp_path, "DOCS-a.md", "REMOVE ME AFTER FINISH\n")
-    (problem,) = check.violations_for(path)
-    assert "not named TODO" in problem
+    assert check.violations_for(path) == []
 
 
 def test_bad_name(tmp_path: Path) -> None:
@@ -42,14 +51,9 @@ def test_bad_name(tmp_path: Path) -> None:
     assert "must start with" in problem
 
 
-def test_exempt_name_skips_naming_but_not_marker(tmp_path: Path) -> None:
-    """A reserved name carrying the marker is a task in disguise."""
+def test_exempt_name_skips_naming(tmp_path: Path) -> None:
     clean = write(tmp_path, "CONTRIBUTING.md", "# c\n")
     assert check.violations_for(clean) == []
-
-    sneaky = write(tmp_path, "SECURITY.md", "REMOVE ME AFTER FINISH\n")
-    (problem,) = check.violations_for(sneaky)
-    assert "not named TODO" in problem
 
 
 def test_non_markdown_ignored(tmp_path: Path) -> None:
@@ -59,7 +63,7 @@ def test_non_markdown_ignored(tmp_path: Path) -> None:
 
 def test_main_clean_tree(repo: Path, monkeypatch, capsys) -> None:
     write(repo, "README.md")
-    write(repo, "TODO-a.md", "REMOVE ME AFTER FINISH\n")
+    write(repo, "DOCS-a.md")
     monkeypatch.chdir(repo)
     monkeypatch.setattr("sys.argv", ["check", "--all"])
     assert check.main() == 0
@@ -72,6 +76,14 @@ def test_main_reports_violations(repo: Path, monkeypatch, capsys) -> None:
     monkeypatch.setattr("sys.argv", ["check", "--all"])
     assert check.main() == 1
     assert "must start with" in capsys.readouterr().err
+
+
+def test_main_reports_banned_todo(repo: Path, monkeypatch, capsys) -> None:
+    write(repo, "TODO-a.md", "REMOVE ME AFTER FINISH\n")
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr("sys.argv", ["check", "TODO-a.md"])
+    assert check.main() == 1
+    assert "TODO*.md files are banned" in capsys.readouterr().err
 
 
 def test_main_named_paths(repo: Path, monkeypatch, capsys) -> None:

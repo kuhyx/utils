@@ -25,7 +25,6 @@ from md_naming._tables import (
     DATED_BACKUP,
     EXTRA_THIRD_PARTY,
     HARNESS_NAMES,
-    MARKER,
     TODO_PREFIX,
 )
 
@@ -89,22 +88,11 @@ def is_exempt(path: Path) -> bool:
 
 
 def has_allowed_name(path: Path) -> bool:
-    """True if the basename matches one of the four namespaces."""
+    """True if the basename matches one of the three namespaces."""
     return bool(ALLOWED_PATTERN.match(path.name))
 
 
 def is_todo(path: Path) -> bool:
-    """True if `path` is a task file by name."""
+    """True if `path` is a (banned) task file by name."""
     return path.name.startswith(TODO_PREFIX) and is_markdown(path)
 
-
-def contains_marker(path: Path) -> bool:
-    """True if `path` contains the removal marker.
-
-    Unreadable and binary files answer False rather than raising: a file the
-    gate cannot read is reported by the naming rule, not crashed on here.
-    """
-    try:
-        return MARKER in path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return False
