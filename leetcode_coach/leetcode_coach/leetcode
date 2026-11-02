@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# ============================================================================
+# leetcode — coaching session in print mode, on the cheapest model.
+# Print mode matters: the no-solution Stop gate can only withhold a reply
+# from a client that waits for hooks, and the interactive TUI streams first.
+#   leetcode <url-or-slug> [what you are stuck on...]
+#
+# Symlinked from ~/.local/bin/leetcode. The package is found through
+# install.sh's editable install, like the Stop-hook shim; no PYTHONPATH here,
+# because the REPL passes its environment on to `claude -p` and every hook and
+# Bash call of the coached session would inherit it. -P keeps cwd off sys.path.
+# ============================================================================
+
+set -euo pipefail
+
+exec /usr/bin/python3 -P -m leetcode_coach.leetcode_repl "$@"
