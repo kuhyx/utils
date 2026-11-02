@@ -168,17 +168,14 @@ How far to trust a gate is computed from its ledger, never listed by name:
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
   of the earliest verified credit for `day`, on its matcher's stamp
-  (`_match.CREDIT_STAMPS`; Anki/Automation: `created_at`). It can lie outside
-  `day` (Anki's rollover, a rest day declared the evening before).
-- `credit_units(earner, ledger, key_file, day) -> int | None` — the units
-  the verified rows pay for `day`: 1 per row (the workout), or the row's own
-  count (the tutor's `detail.minutes`, legacy block rows 15; from 0.10.0 the
-  day's sum scaled to its weekday quota). A repeated `entry_id` pays once,
-  its smallest count; `max_units` is applied by `resolve`.
+  (`_match.CREDIT_STAMPS`; else `created_at`); it can lie outside `day`.
+- `credit_units(earner, ledger, key_file, day) -> int | None` — the units the
+  verified rows pay for `day`: 1 per row (the workout), or the row's own count
+  (`detail.minutes`: tutor, legacy blocks 15, from 0.10.0 scaled to its weekday
+  quota; focus). A repeated `entry_id` pays once; `resolve` applies `max_units`.
 - `earners_for(day)`, `all_earners()`, `registries()` — the registry in force
   on a day, and every earner of every registry (what a ledger watcher must
-  watch). They read `earned_time.EARNERS` through the package, so a consumer
-  test that patches it still registers its stand-in.
+  watch). They read `earned_time.EARNERS` through the package, so a patch holds.
 - `shutdown_minutes_for(earner, day)`, `extra_shutdown_minutes_for(earner, day)`,
   `shutdown_ceiling_for(day)` (ints), `on_ladder(day) -> bool` — what a status
   view lists as still left to earn. `Earner.shutdown_for(units, day=None)` is
@@ -187,14 +184,21 @@ How far to trust a gate is computed from its ledger, never listed by name:
 
 ## The workout ledger
 
-`WORKOUT` is `kind="counted"` with a ledger at
-`~/.local/share/workout_locker/ledger.json`, written by screen-locker: one
-signed credit row per credited unit,
-`{"kind": "credit", "entry_id", "day", "detail": {"completed_at", "source"}}`.
-`workout_match` counts a `runnerup_tcx` row when `completed_at` falls in the
-window, and a `rest_day` row on the `day` it names — only if
-`detail.declared_at` is before that day's local midnight. A rest day declared
-on the day itself is logged and does not count.
+`WORKOUT` is `kind="counted"`, ledger `~/.local/share/workout_locker/ledger.json`
+(screen-locker; one signed credit row per unit, `detail.completed_at`/`source`).
+`workout_match` counts a `runnerup_tcx` row by `completed_at`, a `rest_day` row
+on its `day` only if `detail.declared_at` predates that day (else logged, no).
+
+## The focus project (0.19.0)
+
+While `focus_project.active(day)` returns a project, `earners_for` drops the
+gates it `replaces` (`book` = `reading`) and adds one counted `focus` earner
+(`max_units` = `daily_minutes`) paying what they paid (shutdown by their rungs,
+gaming by `max_gaming_minutes`: 60+60+60 over 120 min = 1.5/min):
+`floor(summed minutes * pay / daily_minutes)`, never per row. The penalty runs
+from the start day, cutting what the replaced gates cost; maturity never delays it. Ledger `~/.local/share/focus_project/ledger.json`:
+signed `credit` rows, `entry_id` `<project>-<YYYYMMDD>-m<n>`, `detail.minutes` (positive int),
+`detail.ended_at` (else `day`). `focus_project` unusable = no project (logged).
 
 ## Adding a gate
 
@@ -208,43 +212,39 @@ on the day itself is logged and does not count.
    ```python
    PIANO = Earner(
        name="piano",                    # also screen-locker's "piano_bonus_date" stamp
-       label="piano",
        gaming_minutes=30,
        shutdown_minutes=30,             # pre-ladder value
        penalty_from=date(2026, 11, 1),  # gaming base drops by 30 from then on
        ledger=".local/share/piano_guard/ledger.json",
        match=piano_match,               # which verified credit rows count today
-       missing_ledger_is_no=True,
    )
    ```
 
-   Then give it a rung in `TUTOR_LADDER` (`PIANO.name: Rung(20)`), and, if its
-   matcher decides on an event stamp, an entry in `_match.CREDIT_STAMPS`.
+   Then a rung in `TUTOR_LADDER` (`PIANO.name: Rung(20)`) and, for an event
+   stamp, an entry in `_match.CREDIT_STAMPS`.
 
-   On the ladder a new earner's rung comes out of the floor from its penalty
-   start (a pure bonus: the day its pin lands; the ceiling is fixed): re-split
-   the rungs and ship it the day the gate can actually be satisfied.
-3. Bump the version, tag `earned-time-vX.Y.Z`, and bump the pin in both
-   consumers. Neither needs code for a ledger-backed flat earner.
+   A new rung comes out of the floor from its penalty start (a pure bonus:
+   the day its pin lands): ship it the day the gate can be satisfied.
+3. Bump, tag `earned-time-vX.Y.Z`, re-pin every consumer (no code needed).
 
 ## Rules the consumers rely on
 
 - **Minutes everywhere.** Shutdown is minutes after local midnight.
-- **Paths are passed in.** No reader resolves a real path itself, except the
-  switch file: consumer tests patch `earned_time._leisure.LEISURE_FROM_PATH`.
+- **Paths are passed in.** Only the switch file is resolved here
+  (patch `earned_time._leisure.LEISURE_FROM_PATH`).
 - **`None` is "could not check", never "no".** It earns nothing (fail closed),
   but consumers log it. A missing answer in `resolve()` is logged as well; an
   unknown earner name raises.
-- **The HMAC key is root-owned and 0644 on purpose.** User-run gates must sign
-  rows, so the user reads it; root owns it so no user process can replace it.
-  It stops casual edits and corruption, not a determined forger with a shell.
-- **Stdlib only.** The gaming daemon imports this as root, headless.
+- **The HMAC key is root 0644 on purpose.** User-run gates sign rows with it;
+  it stops casual edits, not a determined forger with a shell.
+- **Stdlib only.** The root gaming daemon imports this headless; `focus_project`
+  (stdlib too) is imported lazily and may be absent.
 
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.18.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.19.0#subdirectory=earned_time"
 ```
 
-The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy`, so it imports
-from the same user site-packages. Test: `scripts/run_subproject_tests.sh earned_time`.
+The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy` and imports from
+the same user site-packages. Test: `scripts/run_subproject_tests.sh earned_time`.

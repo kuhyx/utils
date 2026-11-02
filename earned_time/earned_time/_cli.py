@@ -20,6 +20,7 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Final
 
+from earned_time._focus import FOCUS_WATCH
 from earned_time._maturity import Maturity, maturity
 from earned_time._registry import all_earners, earners_for
 
@@ -57,9 +58,14 @@ def _gates(day: date) -> list[tuple[str, Earner, Maturity]]:
     and after ``TUTOR_FROM`` until 0.9.0); those get their ledger's directory
     appended.
     """
-    earners = [e for e in all_earners() if e.ledger is not None]
-    names = Counter(e.name for e in earners)
     registered = earners_for(day)
+    earners = [
+        e
+        for e in (*all_earners(), *registered)
+        if e.ledger is not None and e is not FOCUS_WATCH
+    ]
+    earners = list(dict.fromkeys(earners))
+    names = Counter(e.name for e in earners)
     gates = []
     for item in earners:
         ledger = Path(str(item.ledger))

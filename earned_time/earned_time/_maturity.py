@@ -31,6 +31,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Final, Literal
 
 from earned_time._evidence import credit_history
+from earned_time._focus import FocusEarner
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -100,11 +101,12 @@ def penalty_start(earner: Earner, first_credit: date | None) -> date | None:
     (never paid out, or could not check): :func:`confirmed_start` when kuhy
     set ``confirmed_on`` -- fail closed, deleting a ledger lifts nothing --
     else ``None``, not penalised. ``None`` for a pure bonus. Never earlier
-    than ``penalty_from``.
+    than ``penalty_from``. A focus earner is never delayed: its first credit
+    comes on the day its penalty starts (0.19.0).
     """
     start = confirmed_start(earner)
-    if start is None:
-        return None
+    if start is None or isinstance(earner, FocusEarner):
+        return start
     if first_credit is None:
         return start if earner.confirmed_on is not None else None
     return max(start, first_credit + _DAY)

@@ -167,6 +167,30 @@ def tutor_match(row: dict[str, object], window: Window) -> bool:
     return landed
 
 
+def focus_minutes(row: dict[str, object]) -> int | None:
+    """Minutes a focus row pays: ``detail.minutes``, a positive int, else ``None``."""
+    detail = row.get("detail")
+    raw = detail.get("minutes") if isinstance(detail, dict) else None
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+        return None
+    return raw
+
+
+def focus_match(row: dict[str, object], window: Window) -> bool:
+    """A focus credit counts on the day of ``detail.ended_at``, else its ``day``."""
+    if focus_minutes(row) is None:
+        _logger.warning("focus credit %r has bad minutes", row.get("entry_id"))
+        return False
+    detail = row.get("detail")
+    landed = _within(
+        detail.get("ended_at") if isinstance(detail, dict) else None, window
+    )
+    if landed is not None:
+        return landed
+    local = datetime.fromtimestamp(window[0], tz=UTC).astimezone()
+    return row.get("day") == local.date().isoformat()
+
+
 # The ``detail`` field each matcher decides on: the unix second the work
 # happened, which :func:`earned_time._credits.credit_time` reports. A matcher
 # without one (Anki's day key) falls back to the row's ``created_at``.
@@ -176,6 +200,7 @@ CREDIT_STAMPS: Final[Mapping[CreditMatch, str]] = MappingProxyType(
         reading_match: "ended_at",
         workout_match: "completed_at",
         tutor_match: "ended_at",
+        focus_match: "ended_at",
     }
 )
 # How many units one counting row pays, per matcher; a matcher without an
@@ -183,7 +208,7 @@ CREDIT_STAMPS: Final[Mapping[CreditMatch, str]] = MappingProxyType(
 # count (``detail.minutes``): book-guard's ``detail.minutes`` is a string
 # and means something else, so this is never read generically.
 ROW_UNITS: Final[Mapping[CreditMatch, Callable[[dict[str, object]], int | None]]] = (
-    MappingProxyType({tutor_match: tutor_minutes})
+    MappingProxyType({tutor_match: tutor_minutes, focus_match: focus_minutes})
 )
 # Which ledger row kinds each matcher is shown; a matcher without an entry
 # sees only ``credit`` rows. LeetCode also sees ``charge`` rows, so a day

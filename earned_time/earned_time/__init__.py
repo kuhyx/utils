@@ -43,6 +43,7 @@ from earned_time._credits import (
     first_credit_at,
 )
 from earned_time._evidence import real_credit
+from earned_time._focus import FOCUS_LEDGER, FocusEarner
 from earned_time._ladder import (
     ANKI_WAIVED_FROM,
     LADDER,
@@ -105,6 +106,7 @@ __all__ = [
     "ANKI_WAIVED_FROM",
     "AUTOMATION",
     "EARNERS",
+    "FOCUS_LEDGER",
     "GAMING_BASE_MINUTES",
     "GAMING_CEILING_MINUTES",
     "LADDER",
@@ -132,6 +134,7 @@ __all__ = [
     "WORKOUT",
     "Base",
     "Earner",
+    "FocusEarner",
     "Level",
     "Maturity",
     "Resolution",

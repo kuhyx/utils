@@ -156,13 +156,15 @@ def shutdown_minutes_for(item: Earner, day: date) -> int:
     without a rung, its own ``shutdown_minutes``.
     """
     rung = _rung(item, day)
-    return item.shutdown_minutes if rung is None else rung.first
+    return item.shutdown_for(1, day) if rung is None else rung.first
 
 
 def extra_shutdown_minutes_for(item: Earner, day: date) -> int:
     """What ``item``'s second unit earns on ``day`` (counted only)."""
     rung = _rung(item, day)
-    return item.extra_shutdown_minutes if rung is None else rung.second
+    if rung is not None:
+        return rung.second
+    return item.shutdown_for(2, day) - item.shutdown_for(1, day)
 
 
 def shutdown_units_minutes(item: Earner, units: int, day: date) -> int:
