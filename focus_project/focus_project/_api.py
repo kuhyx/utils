@@ -8,6 +8,7 @@ from datetime import date  # noqa: TC003
 import logging
 import re
 import time
+from urllib.parse import urlsplit
 
 from focus_project import _clock, _store
 from focus_project._errors import RegistryError
@@ -15,6 +16,7 @@ from focus_project._model import GATES, Project, normalize_gate
 
 _LOG = logging.getLogger(__name__)
 _ID = re.compile(r"[a-z0-9][a-z0-9-]*")
+MAX_WORK_URL = 2000
 
 
 def list_projects() -> list[Project]:
@@ -47,7 +49,23 @@ def stands_down(gate: str, day: date) -> bool:
     return project is not None and project.replaces_gate(gate)
 
 
+def _validate_work_url(url: str) -> None:
+    """Empty, or a plain http(s) URL with a host: it goes to ``xdg-open``."""
+    if not url:
+        return
+    parts = urlsplit(url) if url.isprintable() and " " not in url else None
+    if (
+        parts is None
+        or len(url) > MAX_WORK_URL
+        or parts.scheme not in {"http", "https"}
+        or not parts.netloc
+    ):
+        msg = "work_url must be an http(s) URL without spaces (or empty)"
+        raise ValueError(msg)
+
+
 def _validate(project: Project) -> None:
+    _validate_work_url(project.work_url)
     if not _ID.fullmatch(project.id):
         msg = f"id {project.id!r} must be a lowercase slug"
         raise ValueError(msg)
@@ -79,6 +97,7 @@ def create_project(  # noqa: PLR0913
     unlock_minutes: int,
     subjects: list[str] | None = None,
     site_patterns: list[str] | None = None,
+    work_url: str = "",
 ) -> Project:
     """Add a project; ValueError on bad input, a duplicate id or an overlap."""
     project = Project(
@@ -91,6 +110,7 @@ def create_project(  # noqa: PLR0913
         unlock_minutes=unlock_minutes,
         subjects=tuple(subjects or ()),
         site_patterns=tuple(site_patterns or ()),
+        work_url=work_url,
         created_ms=time.time_ns() // 1_000_000,
     )
     _validate(project)

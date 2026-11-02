@@ -21,6 +21,7 @@ _EDITABLE = frozenset(
         "unlock_minutes",
         "subjects",
         "site_patterns",
+        "work_url",
     }
 )
 _TUPLES = ("subjects", "site_patterns")
@@ -77,7 +78,7 @@ def update_project(
     """Edit ``project_id``; ValueError on bad input, overlap or a past edit.
 
     Editable: name, start, end, replaces, daily_minutes, unlock_minutes,
-    subjects, site_patterns. A started project's start cannot move; changed
+    subjects, site_patterns, work_url. A started project's start cannot move; changed
     minute targets apply from ``today`` (default: now) on, earlier days keep
     theirs. KeyError for an unknown id.
     """

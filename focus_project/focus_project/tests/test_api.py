@@ -191,3 +191,48 @@ def test_failed_write_keeps_old_file(data: Path) -> None:
         _make("two", start=D4 + timedelta(days=3), end=D4 + timedelta(days=4))
     assert (data / "projects.json").read_text() == before
     assert not list(data.glob("*.tmp"))
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "javascript:alert(1)",
+        "file:///etc/passwd",
+        "ftp://example.com",
+        "https://",
+        "https://exa mple.com",
+        "https://example.com/\n",
+        "https://example.com/" + "a" * 2100,
+        "www.hackerrank.com",
+    ],
+)
+def test_work_url_must_be_a_plain_http_url(bad: str) -> None:
+    with pytest.raises(ValueError, match="work_url"):
+        fp.create_project(
+            "w",
+            name="W",
+            start=date(2026, 11, 2),
+            end=date(2026, 11, 5),
+            replaces=["leetcode"],
+            daily_minutes=60,
+            unlock_minutes=0,
+            work_url=bad,
+        )
+
+
+def test_work_url_round_trips_and_old_rows_read_empty(data: Path) -> None:
+    made = fp.create_project(
+        "w",
+        name="W",
+        start=date(2026, 11, 2),
+        end=date(2026, 11, 5),
+        replaces=["leetcode"],
+        daily_minutes=60,
+        unlock_minutes=0,
+        work_url="https://www.hackerrank.com/dashboard",
+    )
+    assert fp.list_projects() == [made]
+    assert made.to_dict()["work_url"] == "https://www.hackerrank.com/dashboard"
+    row = made.to_dict()
+    del row["work_url"]
+    assert fp.Project.from_dict(row).work_url == ""

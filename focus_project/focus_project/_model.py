@@ -59,6 +59,8 @@ class Project:
     site_patterns: tuple[str, ...] = ()
     ended_on: date | None = None
     created_ms: int = 0
+    # Where the work happens (http/https); empty = the first site pattern.
+    work_url: str = ""
     # Earlier targets, oldest first: an edit applies from its day, never back.
     history: tuple[Limits, ...] = ()
 
@@ -102,6 +104,7 @@ class Project:
             "site_patterns": list(self.site_patterns),
             "ended_on": self.ended_on.isoformat() if self.ended_on else None,
             "created_ms": self.created_ms,
+            "work_url": self.work_url,
             "history": [h.to_dict() for h in self.history],
         }
 
@@ -122,6 +125,7 @@ class Project:
                 site_patterns=tuple(row.get("site_patterns", ())),
                 ended_on=date.fromisoformat(ended) if ended else None,
                 created_ms=int(row.get("created_ms", 0)),
+                work_url=str(row.get("work_url") or ""),
                 history=tuple(Limits.from_dict(h) for h in row.get("history", ())),
             )
         except (KeyError, TypeError, ValueError, AttributeError) as exc:

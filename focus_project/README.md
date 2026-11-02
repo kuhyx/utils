@@ -19,4 +19,5 @@ the clock earns only once the clock reaches it); `record_activity` rejects a `ts
 more than 120 s ahead (ValueError). `end_project(id, day)` rejects a past `day`
 (ValueError); today or later is fine. The harvester pays every project day of the
 last 31 days, so late-synced events for older days are credited (idempotent).
+Open the work: `python3 -m focus_project.open [--no-site]` (tutor focus screen, `work_url`).
 Install: `./install.sh` (stdlib only, editable user install for `/usr/bin/python3`).

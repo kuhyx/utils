@@ -171,3 +171,17 @@ def test_status_and_minutes_use_the_day_values(tmp_path: Path) -> None:
     assert fp.status(D1)["daily_minutes"] == 120
     assert fp.status(D1)["unlock_minutes"] == 30
     assert fp.status(D1 + DAY)["daily_minutes"] == 60
+
+
+def test_work_url_is_editable_kept_and_clearable() -> None:
+    _make()
+    url = "https://www.hackerrank.com/dashboard"
+    assert fp.update_project("hr", today=D1, work_url=url).work_url == url
+    assert fp.update_project("hr", today=D1, name="Other").work_url == url
+    assert fp.update_project("hr", today=D1, work_url="").work_url == ""
+
+
+def test_update_refuses_a_non_http_work_url() -> None:
+    _make()
+    with pytest.raises(ValueError, match="work_url"):
+        fp.update_project("hr", today=D1, work_url="javascript:alert(1)")
