@@ -67,4 +67,8 @@ DEFAULT_APPS: Final = (
     # /kartka/source_health via credential_store_for("kartka-source-eval")
     # and falls back to the retired password only with no session here.
     "kartka-source-eval",
+    # ~/src/todo/mcp: the Dart todo MCP server (systemd --user, :8735) is one
+    # more sync node with its own session, read once from
+    # ~/.config/todo-mcp/firebase_auth.json at start.
+    "todo-mcp",
 )
