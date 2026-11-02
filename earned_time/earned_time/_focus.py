@@ -61,6 +61,12 @@ def _active(day: date) -> Any:  # noqa: ANN401
         return None
 
 
+def daily_on(project: Any, day: date) -> int:  # noqa: ANN401
+    """``day``'s target: ``project.daily_on(day)`` (a later edit never re-prices it)."""
+    pick = getattr(project, "daily_on", None)
+    return int(pick(day) if pick is not None else project.daily_minutes)
+
+
 def focus_earner(project: Any, dropped: tuple[Earner, ...], day: date) -> Earner:  # noqa: ANN401
     """The ``focus`` earner paying what ``dropped`` paid, over ``project``."""
     return FocusEarner(
@@ -74,7 +80,7 @@ def focus_earner(project: Any, dropped: tuple[Earner, ...], day: date) -> Earner
             shutdown_units_minutes(e, e.max_units or 1, day) for e in dropped
         ),
         kind="counted",
-        max_units=int(project.daily_minutes),
+        max_units=daily_on(project, day),
         penalty_from=project.start,
         confirmed_on=project.start - timedelta(days=1),
         ledger=FOCUS_LEDGER,
@@ -103,7 +109,7 @@ def with_focus(registry: tuple[Earner, ...], day: date) -> tuple[Earner, ...]:
         return registry
     gates = {_SYNONYMS.get(g, g) for g in project.replaces}
     dropped = tuple(e for e in registry if e.name in gates)
-    if not dropped or int(project.daily_minutes) < 1:
+    if not dropped or daily_on(project, day) < 1:
         return registry
     kept = tuple(e for e in registry if e not in dropped)
     return (*kept, focus_earner(project, dropped, day))

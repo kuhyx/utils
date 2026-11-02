@@ -193,7 +193,7 @@ on its `day` only if `detail.declared_at` predates that day (else logged, no).
 
 While `focus_project.active(day)` returns a project, `earners_for` drops the
 gates it `replaces` (`book` = `reading`) and adds one counted `focus` earner
-(`max_units` = `daily_minutes`) paying what they paid (shutdown by their rungs,
+(`max_units` = the day's `daily_on`) paying what they paid (shutdown by their rungs,
 gaming by `max_gaming_minutes`: 60+60+60 over 120 min = 1.5/min):
 `floor(summed minutes * pay / daily_minutes)`, never per row. The penalty runs
 from the start day, cutting what the replaced gates cost; maturity never delays it. Ledger `~/.local/share/focus_project/ledger.json`:

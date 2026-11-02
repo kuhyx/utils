@@ -1,12 +1,9 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""The focus project earner: registry swap, pay, rounding, penalty, fail mode."""
+"""The focus project earner: registry swap, pay, rounding, penalty."""
 
 from __future__ import annotations
 
 from datetime import date, timedelta
-import logging
-import sys
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,7 +11,6 @@ import pytest
 import earned_time
 from earned_time import (
     TUTOR_EARNERS,
-    FocusEarner,
     all_earners,
     credit_units,
     earners_for,
@@ -25,56 +21,11 @@ from earned_time import (
     shutdown_minutes_for,
 )
 from earned_time._focus import focus_earner
-from earned_time._match import focus_match, focus_minutes
-from earned_time.tests._maturity_rows import at, ledger_file, signed
+from earned_time.tests._focus_fakes import DAY, START, activate, focus, project, row
+from earned_time.tests._maturity_rows import ledger_file
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-START = date(2026, 11, 2)
-DAY = START + timedelta(days=1)
-
-
-def project(**changes: object) -> SimpleNamespace:
-    """A fake ``focus_project.Project`` (the contract's fields)."""
-    fields: dict[str, object] = {
-        "start": START,
-        "end": START + timedelta(days=3),
-        "replaces": ("leetcode", "reading", "tutor"),
-        "daily_minutes": 120,
-    }
-    return SimpleNamespace(**{**fields, **changes})
-
-
-def activate(monkeypatch: pytest.MonkeyPatch, active: object) -> None:
-    """Make ``focus_project.active`` return ``active`` on project days only."""
-
-    def on(day: date) -> object:
-        return active if START <= day <= START + timedelta(days=3) else None
-
-    monkeypatch.setitem(sys.modules, "focus_project", SimpleNamespace(active=on))
-
-
-def row(
-    minutes: object, n: int, day: date = DAY, **detail: object
-) -> dict[str, object]:
-    """A signed focus credit row ending at noon on ``day``."""
-    return signed(
-        {
-            "kind": "credit",
-            "entry_id": f"hr-{day:%Y%m%d}-m{n}",
-            "day": day.isoformat(),
-            "detail": {"minutes": minutes, "ended_at": at(day), **detail},
-        }
-    )
-
-
-def focus(monkeypatch: pytest.MonkeyPatch, **changes: object) -> FocusEarner:
-    """Today's focus earner under a fake project."""
-    activate(monkeypatch, project(**changes))
-    (found,) = (e for e in earners_for(DAY) if e.name == "focus")
-    assert isinstance(found, FocusEarner)
-    return found
 
 
 def test_the_replaced_gates_leave_and_focus_joins(
@@ -203,46 +154,3 @@ def test_the_path_unit_watches_the_focus_ledger() -> None:
 def test_focus_pays_only_replaced_gates_that_exist() -> None:
     item = focus_earner(project(), (earned_time.LEETCODE,), DAY)
     assert (item.gaming_minutes, item.shutdown_minutes) == (60, 60)
-
-
-@pytest.mark.parametrize("failure", [ImportError("gone"), ValueError("bad json")])
-def test_a_broken_focus_project_means_no_project_and_logs_once(
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-    failure: Exception,
-) -> None:
-    def broken(_day: date) -> object:
-        raise failure
-
-    monkeypatch.setitem(sys.modules, "focus_project", SimpleNamespace(active=broken))
-    monkeypatch.setattr("earned_time._focus._warned", set())
-    with caplog.at_level(logging.WARNING):
-        assert earners_for(DAY) is TUTOR_EARNERS
-        assert earners_for(DAY) is TUTOR_EARNERS
-    assert sum("behaving as if no project" in m for m in caplog.messages) == 1
-
-
-def test_a_missing_package_is_no_project(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setitem(sys.modules, "focus_project", None)
-    assert earners_for(DAY) is TUTOR_EARNERS
-
-
-def test_rows_count_by_ended_at_then_by_day(caplog: pytest.LogCaptureFixture) -> None:
-    window = earned_time.day_window(DAY)
-    assert focus_match(row(5, 5), window)
-    assert not focus_match(row(5, 5, START), window)
-    nostamp = signed(
-        {"kind": "credit", "day": DAY.isoformat(), "detail": {"minutes": 5}}
-    )
-    assert focus_match(nostamp, window)
-    assert not focus_match({**nostamp, "day": START.isoformat()}, window)
-    with caplog.at_level(logging.WARNING):
-        assert not focus_match(row(0, 1), window)
-    assert "bad minutes" in caplog.text
-
-
-@pytest.mark.parametrize("bad", [0, -1, True, 1.5, "5", None])
-def test_minutes_must_be_a_positive_int(bad: object) -> None:
-    assert focus_minutes({"detail": {"minutes": bad}}) is None
-    assert focus_minutes({"detail": "x"}) is None
-    assert focus_minutes({"detail": {"minutes": 4}}) == 4
