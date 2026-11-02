@@ -31,10 +31,8 @@ _warned: set[str] = set()
 class FocusEarner(Earner):
     """Counted; ``gaming_minutes``/``shutdown_minutes`` pay a FULL day.
 
-    ``cut_gaming_minutes``: the base cut, what the replaced penalised gates cost.
+    The gaming base cut is all of it, LeetCode's free hour too (kuhy 2026-11-02).
     """
-
-    cut_gaming_minutes: int = 0
 
     def gaming_for(self, units: int) -> int:
         """Gaming minutes of ``units`` focused minutes, floored."""
@@ -73,9 +71,6 @@ def focus_earner(project: Any, dropped: tuple[Earner, ...], day: date) -> Earner
         name="focus",
         label="Focus",
         gaming_minutes=sum(e.max_gaming_minutes for e in dropped),
-        cut_gaming_minutes=sum(
-            e.max_gaming_minutes for e in dropped if e.penalty_from is not None
-        ),
         shutdown_minutes=sum(
             shutdown_units_minutes(e, e.max_units or 1, day) for e in dropped
         ),

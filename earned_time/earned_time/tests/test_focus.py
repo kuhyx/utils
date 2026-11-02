@@ -92,28 +92,41 @@ def test_many_small_rows_pay_what_one_row_pays(
 def test_resolve_prices_base_terms_and_ceiling(monkeypatch: pytest.MonkeyPatch) -> None:
     activate(monkeypatch, project())
     nothing = resolve({"workout": 0, "focus": 0}, DAY, leisure=False)
-    assert nothing.base.gaming_minutes == 300 - 120
+    assert nothing.base.gaming_minutes == 300 - 180
     assert nothing.base.shutdown_minutes == 18 * 60
     half = resolve({"workout": 0, "focus": 60}, DAY, leisure=False)
-    assert half.gaming_minutes == 180 + 90
+    assert half.gaming_minutes == 120 + 90
     assert half.shutdown_minutes == 18 * 60 + 90
     full = resolve({"workout": 1, "focus": 120}, DAY, leisure=False)
     assert full.shutdown_minutes == 23 * 60
 
 
-def test_a_project_day_is_neutral_against_the_gates_it_replaced(
+def test_a_full_project_day_pays_what_the_replaced_gates_paid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Shutdown matches the old full day; gaming loses LeetCode's free hour."""
+    activate(monkeypatch, project())
+    done = {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 60, "focus": 120}
+    old = resolve(done, DAY, TUTOR_EARNERS, leisure=False)
+    new = resolve(done, DAY, leisure=False)
+    assert new.shutdown_minutes == old.shutdown_minutes
+    # kuhy 2026-11-02: LeetCode's bonus hour was free on top of the base; the
+    # project day cuts it and pays it back, so the full day nets 60 less.
+    assert new.gaming_minutes == old.gaming_minutes - 60
+    unsolved = resolve({**done, "leetcode": 0}, DAY, TUTOR_EARNERS, leisure=False)
+    assert new.gaming_minutes == unsolved.gaming_minutes
+
+
+def test_an_idle_project_day_also_cuts_the_free_leetcode_hour(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """kuhy 2026-11-02: a project day cuts all it can pay (180), not 120."""
     activate(monkeypatch, project())
     zero = {"workout": 0, "leetcode": 0, "reading": 0, "tutor": 0, "focus": 0}
-    done = {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 60, "focus": 120}
-    for answers in (zero, done):
-        old = resolve(answers, DAY, TUTOR_EARNERS, leisure=False)
-        new = resolve(answers, DAY, leisure=False)
-        assert (new.gaming_minutes, new.shutdown_minutes) == (
-            old.gaming_minutes,
-            old.shutdown_minutes,
-        )
+    old = resolve(zero, DAY, TUTOR_EARNERS, leisure=False)
+    new = resolve(zero, DAY, leisure=False)
+    assert new.gaming_minutes == old.gaming_minutes - 60
+    assert new.shutdown_minutes == old.shutdown_minutes
 
 
 def test_the_penalty_is_not_delayed_by_the_first_credit(
@@ -125,7 +138,7 @@ def test_the_penalty_is_not_delayed_by_the_first_credit(
     plain = resolve(answers, START, leisure=False)
     paid = resolve(answers, START, first_credits={"focus": START}, leisure=False)
     assert paid.base == plain.base
-    assert plain.base.gaming_minutes == 300 - 120
+    assert plain.base.gaming_minutes == 300 - 180
 
 
 def test_maturity_reads_the_focus_ledger(
