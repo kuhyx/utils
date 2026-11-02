@@ -64,6 +64,11 @@ MAVEN_REPOS: Final = (
     "https://repo1.maven.org/maven2/",
     "https://plugins.gradle.org/m2/",
 )
+# Asked only when none of the above knows an artifact AND the group is not
+# `com.github.*` (whose metadata is the 401 above): JitPack also hosts
+# artifacts under their own group, e.g. `cz.adaptech.tesseract4android`,
+# whose metadata answers 200 with the full release list.
+JITPACK_REPO: Final = "https://jitpack.io/"
 UTILS_TAG_REMOTE: Final = "https://github.com/kuhyx/utils"
 # JitPack coordinates: `com.github.<owner>:<repo>` or
 # `com.github.<owner>.<repo>:<module>`; the GitHub repo is what "HEAD" means.

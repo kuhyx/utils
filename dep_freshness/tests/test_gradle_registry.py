@@ -147,6 +147,47 @@ def test_a_tagless_repo_and_a_non_jitpack_name_are_none(repos, monkeypatch):
     assert calls == [("https://github.com/o/r", "--tags", "--refs")]
 
 
+JITPACK = maven.JITPACK_REPO
+TESSERACT = "cz.adaptech.tesseract4android:tesseract4android"
+
+
+def test_a_jitpack_only_artifact_is_answered_by_jitpack_metadata(repos):
+    """Tesseract4Android is published on JitPack under its own group, not
+    `com.github.*`, so there is no source repo to read tags from; JitPack's
+    metadata for it answers 200 and lists every release."""
+    repos[maven.metadata_url(JITPACK, TESSERACT)] = metadata(
+        "4.7.0", "4.9.0", "4.1.1a", latest="4.9.0"
+    )
+    assert maven.latest(TESSERACT) == "4.9.0"
+
+
+def test_jitpack_is_asked_last_and_only_when_nobody_else_knows_the_name(
+    repos, monkeypatch
+):
+    asked: list[str] = []
+    monkeypatch.setattr(
+        maven, "get_text", lambda url, *a, **k: asked.append(url) or repos.get(url)
+    )
+    repos[maven.metadata_url(CENTRAL, "io.coil-kt:coil")] = metadata("2.7.0")
+    assert maven.latest("io.coil-kt:coil") == "2.7.0"
+    assert not any(url.startswith(JITPACK) for url in asked)
+
+
+def test_a_github_jitpack_name_never_asks_jitpack_metadata(repos, monkeypatch):
+    """That endpoint answers 401 for `com.github.*`; the tags are the answer."""
+    asked: list[str] = []
+    monkeypatch.setattr(
+        maven, "get_text", lambda url, *a, **k: asked.append(url) or None
+    )
+    tags(monkeypatch, {"o/r": ["1.0.0"]})
+    assert maven.latest("com.github.o:r") == "1.0.0"
+    assert not any(url.startswith(JITPACK) for url in asked)
+
+
+def test_a_name_jitpack_does_not_know_either_is_none(repos):
+    assert maven.latest(TESSERACT) is None
+
+
 def test_an_unreachable_repo_is_offline(repos, monkeypatch):
     tags(monkeypatch, {})
     with pytest.raises(Offline):

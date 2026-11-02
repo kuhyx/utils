@@ -16,7 +16,9 @@ artifacts published nowhere else (PhotoView, DirectionalViewPager). Since
 themselves still download, so a `com.github.<owner>:<repo>` name that no
 repository knows is answered from the GitHub repo's tags over `git
 ls-remote` (unmetered, no token). JitPack's version IS the tag name, `v`
-prefix included, so the tags are compared as they are.
+prefix included, so the tags are compared as they are. Artifacts JitPack
+hosts under their OWN group (`cz.adaptech.tesseract4android`) still get
+200 metadata there, so JitPack is the last resort for any other name.
 
 `<latest>` and `<release>` in the metadata are not trusted: AndroidX writes
 `1.2.0-alpha03` into `<latest>` routinely. The full `<versions>` list goes
@@ -32,7 +34,12 @@ from __future__ import annotations
 
 from xml.etree import ElementTree
 
-from dep_freshness._tables import GITHUB_REMOTE, MAVEN_REPOS
+from dep_freshness._tables import (
+    GITHUB_REMOTE,
+    JITPACK_GROUP_PREFIX,
+    JITPACK_REPO,
+    MAVEN_REPOS,
+)
 from dep_freshness.registries._git import ls_remote
 from dep_freshness.registries.gitcommit import source_repo
 from dep_freshness.registries.http import get_text
@@ -69,6 +76,15 @@ def github_tags(name: str) -> list[str]:
     return [line.rpartition("refs/tags/")[2] for line in lines if "refs/tags/" in line]
 
 
+def _jitpack_versions(name: str) -> list[str]:
+    """What only JitPack knows: tags for `com.github.*`, metadata otherwise."""
+    if name.startswith(JITPACK_GROUP_PREFIX):
+        return github_tags(name)
+    url = metadata_url(JITPACK_REPO, name)
+    body = get_text(url) if url else None
+    return versions_in(body) if body is not None else []
+
+
 def latest(name: str) -> str | None:
     seen: list[str] = []
     for repo in MAVEN_REPOS:
@@ -79,5 +95,5 @@ def latest(name: str) -> str | None:
         if body is not None:
             seen.extend(versions_in(body))
     if not seen:
-        seen.extend(github_tags(name))
+        seen.extend(_jitpack_versions(name))
     return reference(seen) or newest_per_generation(seen)
