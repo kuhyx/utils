@@ -28,7 +28,7 @@ class Paths:
         return cls(
             token_file=Path(
                 env.get("TODO_MCP_TOKEN_FILE")
-                or base / ".config" / "todo-mcp" / "client-token"
+                or base / ".config" / "todo-mcp-client" / "token"
             ),
             trust_file=Path(
                 env.get("TODO_HOOKS_TRUST_FILE")

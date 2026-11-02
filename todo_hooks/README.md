@@ -20,7 +20,7 @@ Run as `scripts/todo_hooks.sh <command>` or `PYTHONPATH=<utils> python3 -m todo_
 
 ## Server
 
-`TODO_MCP_URL` (default `http://127.0.0.1:8735/mcp`), token from `TODO_MCP_TOKEN` else `~/.config/todo-mcp/client-token` (0600). Handshake: `initialize`, `notifications/initialized`, then `tools/call`, all with the `Mcp-Session-Id` the first reply returns.
+`TODO_MCP_URL` (default `http://127.0.0.1:8735/mcp`), token from `TODO_MCP_TOKEN` else `~/.config/todo-mcp-client/token` (0600). Handshake: `initialize`, `notifications/initialized`, then `tools/call`, all with the `Mcp-Session-Id` the first reply returns.
 
 ## Wiring a repo
 

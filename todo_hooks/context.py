@@ -34,13 +34,14 @@ class Context:
         env: Mapping[str, str] | None = None,
         cwd: Path | None = None,
         make_client: Callable[[], TaskClient] | None = None,
+        budget: float | None = None,
     ) -> Context:
         """Real defaults: ``os.environ``, the cwd, ``~`` paths, a live client."""
         use_env = dict(os.environ) if env is None else dict(env)
         paths = Paths.default(use_env)
 
         def live() -> TaskClient:
-            return McpClient.from_env(use_env, paths.token_file)
+            return McpClient.from_env(use_env, paths.token_file, budget=budget)
 
         return cls(
             env=use_env,

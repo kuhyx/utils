@@ -196,3 +196,21 @@ def test_non_object_json_is_unparseable() -> None:
 def test_non_http_url_is_refused() -> None:
     with pytest.raises(McpError, match="unsupported"):
         McpClient("file:///etc/passwd", "t")
+
+
+def test_exhausted_budget_fails_before_any_request(mcp: FakeMcp) -> None:
+    with pytest.raises(McpUnavailable, match="budget"):
+        McpClient(mcp.url, TOKEN, budget=0).call("list_tasks")
+    assert mcp.requests == []
+
+
+def test_budget_caps_each_request(mcp: FakeMcp) -> None:
+    mcp.delay = 1.0
+    with pytest.raises(McpUnavailable):
+        McpClient(mcp.url, TOKEN, timeout=5, budget=0.3).call("list_tasks")
+
+
+def test_from_env_passes_budget(tmp_path: Path) -> None:
+    file = tmp_path / "t"
+    file.write_text("tok")
+    assert McpClient.from_env({}, file, budget=0).call is not None

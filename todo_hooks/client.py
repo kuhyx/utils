@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import http.client
 import json
+import time
 from typing import TYPE_CHECKING, Any, Protocol, Self
 import urllib.error
 import urllib.request
@@ -84,24 +85,35 @@ def _parse_reply(content_type: str, body: str) -> dict[str, Any]:
 class McpClient:
     """One lazily initialised MCP session; ``close`` it (or use ``with``)."""
 
-    def __init__(self, url: str, token: str, timeout: float = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        url: str,
+        token: str,
+        timeout: float = DEFAULT_TIMEOUT,
+        budget: float | None = None,
+    ) -> None:
         if not url.startswith(("http://", "https://")):
             msg = f"unsupported MCP url: {url}"
             raise McpError(msg)
         self.url = url
         self._token = token
         self._timeout = timeout
+        self._deadline = None if budget is None else time.monotonic() + budget
         self._session: str | None = None
         self._ready = False
         self._next_id = 0
 
     @classmethod
     def from_env(
-        cls, env: Mapping[str, str], token_file: Path, timeout: float = DEFAULT_TIMEOUT
+        cls,
+        env: Mapping[str, str],
+        token_file: Path,
+        timeout: float = DEFAULT_TIMEOUT,
+        budget: float | None = None,
     ) -> McpClient:
         """Build from ``TODO_MCP_URL`` and the token (env or file)."""
         url = env.get("TODO_MCP_URL") or DEFAULT_URL
-        return cls(url, load_token(env, token_file), timeout)
+        return cls(url, load_token(env, token_file), timeout, budget)
 
     def __enter__(self) -> Self:
         return self
@@ -119,12 +131,18 @@ class McpClient:
         }
         if self._session:
             headers["Mcp-Session-Id"] = self._session
+        timeout = self._timeout
+        if self._deadline is not None:
+            timeout = min(timeout, self._deadline - time.monotonic())
+            if timeout <= 0:
+                msg = "time budget exhausted"
+                raise McpUnavailable(msg)
         data = json.dumps(payload).encode() if payload is not None else None
         request = urllib.request.Request(
             self.url, data=data, headers=headers, method=method
         )
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as reply:
+            with urllib.request.urlopen(request, timeout=timeout) as reply:
                 body = reply.read().decode("utf-8", "replace")
                 return reply.headers.get("Content-Type", ""), body, reply.headers
         except urllib.error.HTTPError as err:

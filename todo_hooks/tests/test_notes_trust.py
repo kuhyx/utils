@@ -102,7 +102,7 @@ def test_paths_default_and_env_overrides(tmp_path: Path) -> None:
     capped.parent.mkdir(parents=True)
     capped.write_text("#!/bin/sh\n")
     base = Paths.default({}, tmp_path)
-    assert base.token_file == tmp_path / ".config/todo-mcp/client-token"
+    assert base.token_file == tmp_path / ".config/todo-mcp-client/token"
     assert base.trust_file == tmp_path / ".config/todo-hooks/trusted-checks"
     assert base.report_file == tmp_path / ".local/state/todo-drift/report.txt"
     assert base.src_root == tmp_path / "src"
