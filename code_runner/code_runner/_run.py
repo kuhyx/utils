@@ -8,7 +8,7 @@ from pathlib import Path
 import stat
 import tempfile
 
-from code_runner._compare import matches
+from code_runner._compare import TooDeepError, matches, too_deep
 from code_runner._languages import Language, get_language
 from code_runner._model import MAX_CAPTURE, CaseResult, Example, Limits
 from code_runner._sandbox import BoxResult, execute
@@ -16,6 +16,9 @@ from code_runner._starter import Entry, parse_starter
 
 Box = Callable[[list[str], Path, Limits, int, tuple[str, ...]], BoxResult]
 _OUT_OF_MEMORY = ("out of memory", "allocation failed")
+_MAX_ERROR = 200
+# Everything hostile JSON can raise on the host: deep nesting, huge numbers.
+_HOSTILE = (ValueError, TypeError, RecursionError, MemoryError, OverflowError)
 
 
 def _positional(example: Example, entry: Entry) -> list[object]:
@@ -41,9 +44,11 @@ def _read_result(scratch: Path) -> dict[str, object] | None:
         raw = handle.read(MAX_CAPTURE * 16)
     try:
         payload = json.loads(raw)
-    except ValueError:
+    except _HOSTILE:  # ValueError, or RecursionError on "[" * 200000
         return None
-    return payload if isinstance(payload, dict) and "ok" in payload else None
+    if not isinstance(payload, dict) or "ok" not in payload:
+        return None
+    return None if too_deep(payload) else payload
 
 
 def _crash(box: BoxResult) -> str:
@@ -53,17 +58,25 @@ def _crash(box: BoxResult) -> str:
     return f"Crashed (exit {box.returncode})"
 
 
+def _took(ms: object, fallback: float) -> float:
+    if isinstance(ms, bool) or not isinstance(ms, int | float):
+        return fallback
+    try:
+        return float(ms)
+    except OverflowError:  # an int too big for a float
+        return fallback
+
+
 def _outcome(scratch: Path, box: BoxResult) -> tuple[object, str | None, float]:
     if box.timed_out:
         return None, "TimeLimitExceeded", box.elapsed_ms
     payload = _read_result(scratch)
     if payload is None:
         return None, _crash(box), box.elapsed_ms
-    ms = payload.get("ms")
-    took = float(ms) if isinstance(ms, int | float) else box.elapsed_ms
+    took = _took(payload.get("ms"), box.elapsed_ms)
     if payload["ok"] is True:
         return payload.get("value"), None, took
-    return None, str(payload.get("error", "Error")), took
+    return None, str(payload.get("error", "Error"))[:_MAX_ERROR], took
 
 
 @dataclass(frozen=True)
@@ -95,7 +108,12 @@ def _case(job: _Job, example: Example) -> CaseResult:
             language.ro_binds(job.binary),
         )
         actual, error, ms = _outcome(scratch, done)
-    ok = error is None and matches(example.expected, actual, example.order)
+    ok = False
+    if error is None:
+        try:
+            ok = matches(example.expected, actual, example.order)
+        except (TooDeepError, RecursionError, MemoryError) as exc:
+            actual, error = None, f"InvalidResult: {type(exc).__name__}"
     return CaseResult(
         example.n, example.args, example.expected, actual, ok, done.stdout, error, ms
     )

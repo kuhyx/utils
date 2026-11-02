@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "code_runner"
-version = "0.1.0"
+version = "0.1.1"
 description = "Run a learner solution (Python, JavaScript, TypeScript) against a problem's examples in a bubblewrap sandbox"
 requires-python = ">=3.14"
 # Stdlib only on purpose: the tutor server imports it from the system python.

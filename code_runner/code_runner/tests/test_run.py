@@ -205,3 +205,23 @@ def test_unsupported_language_and_empty_examples() -> None:
     with pytest.raises(RunnerError, match="language"):
         run("cobol", "", "", [])
     assert run("python3", "def f(a): pass\n", "def f(a):\n", []) == []
+
+
+@needs_sandbox
+def test_json_bomb_result_costs_that_example_only() -> None:
+    code = (
+        "import os\n"
+        "def f(a):\n"
+        "    if a:\n"
+        "        open('/work/result.json', 'w').write('[' * 200000)\n"
+        "        os._exit(0)\n"
+        "    return 1\n"
+    )
+    out = run(
+        "python3",
+        code,
+        "def f(a):\n",
+        [Example(1, {"a": 1}, 1), Example(2, {"a": 0}, 1)],
+    )
+    assert (out[0].ok, out[0].error) == (False, "Crashed (exit 0)")
+    assert out[1].ok is True

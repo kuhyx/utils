@@ -99,6 +99,49 @@ def test_result_file_variants() -> None:
     assert named.error == "KeyError: x"
 
 
+def test_hostile_result_files_cost_one_example_not_the_run() -> None:
+    hostile = {
+        "bomb": "[" * 200_000,
+        "deep": '{"ok": true, "value": ' + "[" * 5000 + "]" * 5000 + "}",
+        "huge_ms": '{"ok": true, "value": 1, "ms": 1' + "0" * 400 + "}",
+        "bool_ms": '{"ok": true, "value": 1, "ms": true}',
+        "long_error": '{"ok": false, "error": "' + "x" * 5000 + '"}',
+    }
+    results = {
+        name: _run(_fake(_box(), {"result.json": text}))
+        for name, text in hostile.items()
+    }
+    assert results["bomb"].error == "Crashed (exit 0)"
+    assert results["deep"].error == "Crashed (exit 0)"
+    assert (results["huge_ms"].ok, results["huge_ms"].ms) == (True, 7.0)
+    assert results["bool_ms"].ms == 7.0
+    assert len(results["long_error"].error) == 200
+
+
+def test_too_deep_expected_or_actual_is_that_examples_error() -> None:
+    deep: object = 1
+    for _ in range(100):
+        deep = [deep]
+    files = {"result.json": '{"ok": true, "value": 1}'}
+    cases = [Example(1, {"a": 1}, deep), EXAMPLE]
+    results = run("python3", "", STARTER, cases, box=_fake(_box(), files))
+    assert (results[0].ok, results[0].actual) == (False, None)
+    assert results[0].error == "InvalidResult: TooDeepError"
+    assert results[1].ok is True  # the run went on
+
+
+def test_recursion_in_compare_is_that_examples_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*args: object) -> bool:
+        raise RecursionError
+
+    monkeypatch.setattr("code_runner._run.matches", boom)
+    files = {"result.json": '{"ok": true, "value": 1}'}
+    result = _run(_fake(_box(), files))
+    assert result.error == "InvalidResult: RecursionError"
+
+
 def test_unreadable_result_files_are_a_crash(tmp_path: Path) -> None:
     secret = tmp_path / "secret"
     secret.write_text('{"ok": true, "value": "stolen"}')

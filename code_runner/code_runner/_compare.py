@@ -6,6 +6,24 @@ import json
 import math
 
 TOLERANCE = 1e-5  # LeetCode accepts floating answers within 1e-5
+MAX_DEPTH = 64  # real answers nest a handful of levels; deeper is hostile
+
+
+class TooDeepError(ValueError):
+    """A compared value nests deeper than ``MAX_DEPTH``."""
+
+
+def too_deep(value: object, limit: int = MAX_DEPTH) -> bool:
+    """Whether ``value`` nests lists/dicts deeper than ``limit`` (iterative)."""
+    stack: list[tuple[object, int]] = [(value, 0)]
+    while stack:
+        node, depth = stack.pop()
+        if isinstance(node, list | dict):
+            if depth >= limit:
+                return True
+            children = node if isinstance(node, list) else node.values()
+            stack.extend((child, depth + 1) for child in children)
+    return False
 
 
 def _as_number(value: object) -> float | None:
@@ -55,7 +73,12 @@ def matches(expected: object, actual: object, order: str) -> bool:
 
     Raises:
         ValueError: ``order`` is none of those.
+        TooDeepError: a value nests deeper than ``MAX_DEPTH`` (the recursive
+            walks below would blow the stack).
     """
+    if too_deep(expected) or too_deep(actual):
+        msg = f"value nested deeper than {MAX_DEPTH} levels"
+        raise TooDeepError(msg)
     if order == "exact":
         return _equal(expected, actual)
     if order == "any":

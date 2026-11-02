@@ -1,6 +1,6 @@
 import pytest
 
-from code_runner._compare import matches
+from code_runner._compare import MAX_DEPTH, TooDeepError, matches, too_deep
 
 
 @pytest.mark.parametrize(
@@ -40,3 +40,26 @@ def test_matches(expected: object, actual: object, order: str, *, want: bool) ->
 def test_unknown_order_is_refused() -> None:
     with pytest.raises(ValueError, match="order"):
         matches(1, 1, "sideways")
+
+
+def _nest(depth: int) -> object:
+    value: object = 1
+    for _ in range(depth):
+        value = [value]
+    return value
+
+
+@pytest.mark.parametrize("order", ["exact", "any", "deep"])
+def test_deep_nesting_is_refused_not_recursed(order: str) -> None:
+    deep = _nest(100_000)  # would raise RecursionError in the recursive walks
+    with pytest.raises(TooDeepError):
+        matches(deep, deep, order)
+    with pytest.raises(TooDeepError):
+        matches(1, deep, order)
+
+
+def test_nesting_up_to_the_limit_still_compares() -> None:
+    assert matches(_nest(MAX_DEPTH), _nest(MAX_DEPTH), "deep") is True
+    assert too_deep(_nest(MAX_DEPTH + 1)) is True
+    assert too_deep({"a": [{"b": _nest(MAX_DEPTH)}]}) is True
+    assert too_deep({"a": [{"b": 1}]}) is False
