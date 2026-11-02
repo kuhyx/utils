@@ -8,7 +8,7 @@ import json
 from typing import TYPE_CHECKING
 
 import focus_project as fp
-from focus_project import minutes
+from focus_project import _clock, minutes
 from focus_project._paths import activity_path
 
 if TYPE_CHECKING:
@@ -200,3 +200,46 @@ def test_non_timer_kinds_from_timer_source_ignored() -> None:
     project()
     events(("timer", "heartbeat", at(9)))
     assert minutes.minutes_for(D1) == 0
+
+
+def _timer_run(start: float, checkins: int) -> None:
+    events(
+        ("timer", "start", start),
+        *(("timer", "checkin", start + i * 420) for i in range(1, checkins + 1)),
+        ("timer", "stop", start + checkins * 420 + 60),
+    )
+
+
+def test_events_ahead_of_the_clock_earn_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A phone clock 3 h fast must not pay before the work happens."""
+    project()
+    _timer_run(at(11), 17)  # 119 min of "work", all after the real 08:00
+    monkeypatch.setattr(_clock, "now", lambda: at(8))
+    assert minutes.minutes_for(D1) == 0
+
+
+def test_an_interval_straddling_now_counts_only_up_to_now(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project()
+    _timer_run(at(11), 17)
+    monkeypatch.setattr(_clock, "now", lambda: at(11, 30))
+    assert minutes.minutes_for(D1) == 30
+    monkeypatch.setattr(_clock, "now", lambda: at(12, 0))
+    assert minutes.minutes_for(D1) == 60
+
+
+def test_a_heartbeat_ahead_of_now_is_clipped(monkeypatch: pytest.MonkeyPatch) -> None:
+    project()
+    events(("tutor", "heartbeat", at(12, 2)))  # vouches for 11:57..12:02
+    monkeypatch.setattr(_clock, "now", lambda: at(12, 0))
+    assert minutes.minutes_for(D1) == 3
+
+
+def test_an_explicit_now_overrides_the_clock() -> None:
+    project()
+    _timer_run(at(11), 17)
+    assert minutes.minutes_for(D1, now=at(11, 10)) == 10
+    assert minutes.minutes_for(D1) == 120  # the pinned 2030 clock: all past

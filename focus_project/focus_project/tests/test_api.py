@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import json
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -11,6 +11,7 @@ from unittest import mock
 import pytest
 
 import focus_project as fp
+from focus_project import _clock
 from focus_project._errors import RegistryError
 
 if TYPE_CHECKING:
@@ -86,6 +87,24 @@ def test_overlap_rejected_and_adjacent_ok() -> None:
     assert len(fp.list_projects()) == 2
 
 
+@pytest.fixture
+def _on_d1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The clock reads D1 noon: ``end_project`` days are judged against it."""
+    noon = datetime(D1.year, D1.month, D1.day, 12).astimezone().timestamp()
+    monkeypatch.setattr(_clock, "now", lambda: noon)
+
+
+@pytest.mark.usefixtures("_on_d1")
+def test_end_project_rejects_a_past_day() -> None:
+    """Ending yesterday would erase yesterday's shortfall and lift the lock."""
+    _make("late", start=D1 - timedelta(days=3), end=D4)
+    with pytest.raises(ValueError, match="past"):
+        fp.end_project("late", D1 - timedelta(days=1))
+    assert fp.list_projects()[0].ended_on is None
+    assert fp.end_project("late", D1).ended_on == D1  # today is allowed
+
+
+@pytest.mark.usefixtures("_on_d1")
 def test_end_early_frees_later_days() -> None:
     _make()
     ended = fp.end_project("hr", D1 + timedelta(days=1))
@@ -96,6 +115,7 @@ def test_end_early_frees_later_days() -> None:
     _make("again", start=D1 + timedelta(days=2), end=D4)
 
 
+@pytest.mark.usefixtures("_on_d1")
 def test_end_project_errors() -> None:
     _make()
     with pytest.raises(KeyError):

@@ -4,14 +4,16 @@
 from __future__ import annotations
 
 from datetime import date
+import importlib
 import json
 from pathlib import Path  # noqa: TC003
 import threading
+import time
 
 import pytest
 
 import focus_project as fp
-from focus_project import minutes
+from focus_project import _clock, minutes
 from focus_project._paths import data_dir
 
 D1 = date(2026, 11, 2)
@@ -54,7 +56,10 @@ def test_record_activity_line(data: Path) -> None:
     }
 
 
-def test_record_activity_defaults_now_and_project(data: Path) -> None:
+def test_record_activity_defaults_now_and_project(
+    data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(_clock, "now", time.time)  # the real clock, once
     today = date.today()  # noqa: DTZ011
     fp.create_project(
         "now",
@@ -145,3 +150,21 @@ def test_status_inactive() -> None:
 
 def test_minutes_for_exported() -> None:
     assert fp.minutes_for(D1) == 0
+
+
+def test_a_timestamp_far_ahead_is_rejected(
+    data: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(_clock, "now", lambda: 10_000.0)
+    with pytest.raises(ValueError, match="ahead"):
+        fp.record_activity("timer", "start", ts=10_000.0 + 3 * 3600)
+    assert not (data / "activity.jsonl").exists()
+    fp.record_activity("timer", "start", ts=10_000.0 + 120)  # small skew is kept
+    fp.record_activity("timer", "stop", ts=9_000.0)
+    assert len((data / "activity.jsonl").read_text().splitlines()) == 2
+
+
+def test_the_real_clock_seam_reads_wall_time() -> None:
+    importlib.reload(_clock)  # undo the autouse pin on the module attribute
+    assert abs(_clock.now() - time.time()) < 5
+    assert _clock.today() == date.today()  # noqa: DTZ011

@@ -108,12 +108,29 @@ def test_ledger_without_entries_array_is_an_error() -> None:
 
 
 def test_broken_registry_fails_loudly(monkeypatch: pytest.MonkeyPatch) -> None:
-    def boom(_day: date) -> None:
+    def boom(*_day: date) -> None:
         msg = "corrupt"
         raise fp.RegistryError(msg)
 
-    monkeypatch.setattr("focus_project._api.active", boom)
+    monkeypatch.setattr("focus_project._api.list_projects", boom)
     assert harvest.harvest(now=at(9, 31)) == 1
+
+
+def test_a_day_that_fails_does_not_stop_the_others(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project()
+    beats(at(9, 30))
+    real = harvest.harvest_day
+
+    def flaky(day: date, now: float) -> int:
+        if day == D1:
+            msg = "disk"
+            raise OSError(msg)
+        return real(day, now)
+
+    monkeypatch.setattr(harvest, "harvest_day", flaky)
+    assert harvest.harvest(now=at(9, 31, day=D1 + timedelta(days=1))) == 1
 
 
 def test_empty_key_file_counts_as_unreadable(tmp_path: Path) -> None:
@@ -179,3 +196,9 @@ def test_main_exits_with_status(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit) as info:
         harvest.main()
     assert info.value.code == 7
+
+
+def test_harvest_day_without_a_project_pays_nothing() -> None:
+    beats(at(9, 30))
+    assert harvest.harvest_day(D1, at(9, 31)) == 0
+    assert not ledger.ledger_path().exists()

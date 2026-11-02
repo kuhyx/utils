@@ -113,7 +113,7 @@ def test_ended_and_finished_projects_refused() -> None:
     _make()
     with pytest.raises(ValueError, match="over"):
         fp.update_project("hr", today=D4 + DAY, name="late")
-    fp.end_project("hr", D1)
+    fp.end_project("hr", date(2031, 1, 1))
     with pytest.raises(ValueError, match="ended"):
         fp.update_project("hr", today=D1, name="x")
 

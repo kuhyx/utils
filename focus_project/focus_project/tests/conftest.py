@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from focus_project import _clock
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -23,6 +25,15 @@ def _redirect_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("FOCUS_PROJECT_LEETCODE_LEDGER", str(tmp_path / "lc.json"))
     monkeypatch.setenv("KUHYTRACK_ENV", str(tmp_path / "no-kuhytrack-env"))
     monkeypatch.setenv("FOCUS_PROJECT_KEY", str(tmp_path / "hmac.key"))
+
+
+@pytest.fixture(autouse=True)
+def _far_future_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin "now" to 2030 so fixture days of 2026 are past, never in the future.
+
+    Tests about the clock itself set ``_clock.now`` explicitly.
+    """
+    monkeypatch.setattr(_clock, "now", lambda: 1_893_456_000.0)
 
 
 @pytest.fixture

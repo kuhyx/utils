@@ -9,7 +9,7 @@ import logging
 import re
 import time
 
-from focus_project import _store
+from focus_project import _clock, _store
 from focus_project._errors import RegistryError
 from focus_project._model import GATES, Project, normalize_gate
 
@@ -108,7 +108,11 @@ def create_project(  # noqa: PLR0913
 
 
 def end_project(project_id: str, day: date) -> Project:
-    """End early: ``day`` becomes the last active day (clamped to ``end``)."""
+    """End early: ``day`` becomes the last active day (clamped to ``end``).
+
+    ``day`` must be today or later: ending a past day would retroactively
+    erase that day's shortfall (and the lock it causes).
+    """
     with _store.locked():
         existing = _store.read_all()
         for i, project in enumerate(existing):
@@ -119,6 +123,9 @@ def end_project(project_id: str, day: date) -> Project:
                 raise ValueError(msg)
             if day < project.start:
                 msg = f"cannot end {project_id!r} before its start {project.start}"
+                raise ValueError(msg)
+            if day < _clock.today():
+                msg = f"cannot end {project_id!r} in the past ({day})"
                 raise ValueError(msg)
             ended = replace(project, ended_on=min(day, project.end))
             existing[i] = ended
