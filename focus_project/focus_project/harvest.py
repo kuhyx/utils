@@ -7,6 +7,9 @@ one-minute ``.timer``). Harvests every project day of the last
 after the fact) is paid once a run sees it; ``credit_to`` is idempotent, so
 settled days cost one read and write nothing. Failure modes, by path:
 
+Overtime past a day's target banks for the next day (``carry``): that day's
+carry row pays it from the day's start, own-work rows pay the rest.
+
 * a source that errors: logged, contributes 0, the run continues (fail closed);
 * an unreadable registry, signing key or ledger: logged, exit status 1, so
   the unit shows ``failed`` instead of silently crediting nothing.
@@ -18,9 +21,8 @@ from datetime import date, timedelta
 import logging
 import sys
 
-from focus_project import _api, _clock, ledger
+from focus_project import _api, _clock, carry, ledger
 from focus_project._errors import RegistryError
-from focus_project.minutes import minutes_for
 
 BACKFILL_DAYS = 31  # bounds the per-run cost; the relay accepts events <= 48 h old
 _LOG = logging.getLogger("focus_project.harvest")
@@ -43,11 +45,18 @@ def harvest_day(day: date, now: float) -> int:
     project = _api.active(day)
     if project is None:
         return 0
-    total = minutes_for(day, now=now)
-    added = ledger.credit_to(project, day, total, now=now)
+    daily = project.daily_on(day)
+    bank = carry.balance(day, now)
+    added = ledger.credit_to(project, day, bank.paid_bank(daily), now=now, carry=True)
+    added += ledger.credit_to(project, day, bank.paid_own(daily), now=now)
     if added:
         _LOG.info(
-            "credited %d min to %s on %s (total %d)", added, project.id, day, total
+            "credited %d min to %s on %s (total %d, %d from the bank)",
+            added,
+            project.id,
+            day,
+            bank.counted(daily),
+            bank.paid_bank(daily),
         )
     return added
 

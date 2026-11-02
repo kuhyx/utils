@@ -93,10 +93,19 @@ def _write_rows(path: Path, rows: list[Any]) -> None:
     Path(handle.name).replace(path)
 
 
-def paid_minutes(rows: list[Any], key: bytes, project_id: str, day: date) -> int:
+def paid_minutes(
+    rows: list[Any],
+    key: bytes,
+    project_id: str,
+    day: date,
+    *,
+    carry: bool | None = None,
+) -> int:
     """Minutes already paid for ``project_id`` on ``day`` by verified rows.
 
-    A repeated ``entry_id`` pays once, at its smallest count.
+    ``carry`` picks one class (True: banked-overtime rows, False: own-work
+    rows); None sums both. A repeated ``entry_id`` pays once, at its smallest
+    count.
     """
     by_id: dict[str, int] = {}
     for row in rows:
@@ -112,6 +121,7 @@ def paid_minutes(rows: list[Any], key: bytes, project_id: str, day: date) -> int
             or not isinstance(minutes, int)
             or isinstance(minutes, bool)
             or minutes < 1
+            or (carry is not None and bool(detail.get("carry")) != carry)
             or not earned_time.verified(row, key)
         ):
             continue
@@ -121,13 +131,31 @@ def paid_minutes(rows: list[Any], key: bytes, project_id: str, day: date) -> int
 
 
 def build_row(  # noqa: PLR0913
-    project_id: str, day: date, total: int, minutes: int, key: bytes, *, now: float
+    project_id: str,
+    day: date,
+    total: int,
+    minutes: int,
+    key: bytes,
+    *,
+    now: float,
+    carry: bool = False,
+    first_carry: bool = True,
 ) -> dict[str, Any]:
-    """The signed row paying ``minutes`` that bring the day's total to ``total``."""
+    """The signed row paying ``minutes`` that bring the day's total to ``total``.
+
+    A ``carry`` row pays banked overtime: ``<project>-<YYYYMMDD>-carry``, or
+    ``-carry-m<total>`` when it tops up an earlier carry row (late data for
+    the day before grew the bank).
+    """
     ended = min(now, day_bounds(day)[1] - 1)
+    stem = f"{project_id}-{day:%Y%m%d}"
+    if not carry:
+        entry_id = f"{stem}-m{total}"
+    else:
+        entry_id = f"{stem}-carry" if first_carry else f"{stem}-carry-m{total}"
     row: dict[str, Any] = {
         "kind": CREDIT,
-        "entry_id": f"{project_id}-{day:%Y%m%d}-m{total}",
+        "entry_id": entry_id,
         "day": day.isoformat(),
         "created_at": float(now),
         "detail": {
@@ -135,6 +163,7 @@ def build_row(  # noqa: PLR0913
             "minutes": int(minutes),
             "total": int(total),
             "ended_at": float(ended),
+            **({"carry": True} if carry else {}),
         },
     }
     row["hmac"] = str(earned_time.entry_signature(row, key))
@@ -142,9 +171,17 @@ def build_row(  # noqa: PLR0913
 
 
 def credit_to(
-    project: Project, day: date, total: int, *, now: float | None = None
+    project: Project,
+    day: date,
+    total: int,
+    *,
+    now: float | None = None,
+    carry: bool = False,
 ) -> int:
     """Pay the day up to ``total`` cumulative minutes; return minutes added.
+
+    ``carry`` pays the banked-overtime class and counts only its own rows;
+    the default pays (and counts) own work.
 
     Idempotent: nothing is written when the ledger already pays ``total`` or
     more. Raises LedgerError (unreadable ledger, unreadable key, unverifiable
@@ -159,11 +196,18 @@ def credit_to(
     with path.with_suffix(".lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         rows = read_rows(path)
-        paid = paid_minutes(rows, key, project.id, day)
+        paid = paid_minutes(rows, key, project.id, day, carry=carry)
         if total <= paid:
             return 0
         row = build_row(
-            project.id, day, total, total - paid, key, now=now or time.time()
+            project.id,
+            day,
+            total,
+            total - paid,
+            key,
+            now=now or time.time(),
+            carry=carry,
+            first_carry=paid == 0,
         )
         if any(
             isinstance(r, dict) and r.get("entry_id") == row["entry_id"] for r in rows
@@ -172,7 +216,7 @@ def credit_to(
             raise LedgerError(msg)
         _write_rows(path, [*rows, row])
         stored = read_rows(path)
-    if paid_minutes(stored, key, project.id, day) != total:
+    if paid_minutes(stored, key, project.id, day, carry=carry) != total:
         msg = f"row {row['entry_id']} not found verified on read-back"
         raise LedgerError(msg)
     return total - paid

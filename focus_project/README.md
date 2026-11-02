@@ -19,5 +19,10 @@ the clock earns only once the clock reaches it); `record_activity` rejects a `ts
 more than 120 s ahead (ValueError). `end_project(id, day)` rejects a past `day`
 (ValueError); today or later is fine. The harvester pays every project day of the
 last 31 days, so late-synced events for older days are credited (idempotent).
+Overtime carries over: own minutes past a day's target bank (max 60) and pay on the
+next project day; the bank never crosses the project's end. `minutes_for(day)` is the
+capped pay figure, `status(day)["minutes"]` the real count (121/120) with `carried_in`,
+`carry_out`, `own_minutes`, `counted_minutes`. Carry ledger rows: `<project>-<YYYYMMDD>-carry`
+(`detail.carry`), never over `daily_minutes` together with own rows.
 Open the work: `python3 -m focus_project.open [--no-site]` (tutor focus screen, `work_url`).
 Install: `./install.sh` (stdlib only, editable user install for `/usr/bin/python3`).

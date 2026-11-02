@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 import importlib
 import json
 from pathlib import Path  # noqa: TC003
@@ -13,10 +13,14 @@ import time
 import pytest
 
 import focus_project as fp
-from focus_project import _clock, minutes
+from focus_project import _clock
 from focus_project._paths import data_dir
 
 D1 = date(2026, 11, 2)
+
+
+def _at(hour: int, minute: int) -> float:
+    return datetime(2026, 11, 2, hour, minute).astimezone().timestamp()
 
 
 def _project() -> None:
@@ -115,15 +119,20 @@ def test_record_activity_concurrent_appends(data: Path) -> None:
     assert all(json.loads(x)["source"] == "tutor" for x in lines)
 
 
-def test_status_active_uses_minutes_module(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_active_reports_the_worked_minutes() -> None:
     _project()
-    assert fp.status(D1)["minutes"] == 0  # the stub
-    monkeypatch.setattr(minutes, "minutes_for", lambda _day: 45)
+    assert fp.status(D1)["minutes"] == 0
+    for k in range(1, 10):  # nine heartbeats, five minutes each
+        fp.record_activity("tutor", "heartbeat", ts=_at(8, 5 * k))
     st = fp.status(D1)
     assert st == {
         "project": "hr",
         "name": "HackerRank prep",
         "minutes": 45,
+        "own_minutes": 45,
+        "counted_minutes": 45,
+        "carried_in": 0,
+        "carry_out": 0,
         "daily_minutes": 120,
         "unlock_minutes": 30,
         "ends": "2026-11-05",
@@ -141,6 +150,10 @@ def test_status_inactive() -> None:
         "project",
         "name",
         "minutes",
+        "own_minutes",
+        "counted_minutes",
+        "carried_in",
+        "carry_out",
         "daily_minutes",
         "unlock_minutes",
         "ends",
