@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sql_drills"
-version = "0.2.0"
+version = "0.2.1"
 description = "SQL drills (MySQL, PostgreSQL): sandboxed grading, LeetCode statement examples"
 requires-python = ">=3.14"
 # Stdlib only on purpose: the tutor server imports it from the system python.
@@ -144,7 +144,10 @@ generated-members = [
 exclude_dirs = ["tests", ".venv"]
 
 [tool.pytest.ini_options]
-markers = ["docker: needs a live sql-drills MySQL or PostgreSQL container (skipped when it is down)"]
+markers = [
+    "docker: needs a live sql-drills MySQL or PostgreSQL container (skipped when it is down)",
+    "network: fetches a real LeetCode statement at runtime (skipped when unavailable)",
+]
 testpaths = ["sql_drills/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]

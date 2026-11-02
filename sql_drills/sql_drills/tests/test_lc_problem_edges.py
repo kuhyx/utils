@@ -143,7 +143,7 @@ Output: 3
 
 
 def test_order_detection_ignores_schema_blocks_and_any_order() -> None:
-    base = "Return the result table in **any order**.\nExample 1:\n"
+    base = "Rows may come back in **any order**.\nExample 1:\n"
     sorted_by = "Return the result sorted by id.\nExample 1:\n"
     in_block = "```\nthe table is ordered by id\n```\n" + base
     assert not lp.is_ordered(base)

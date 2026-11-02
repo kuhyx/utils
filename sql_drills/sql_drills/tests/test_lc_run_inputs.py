@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 import sql_drills as sd
-from sql_drills.tests.stubs import GOOD_ROWS, MONTHS, done, install, statement
+from sql_drills.tests.stubs import GOOD_ROWS, MONTHS, done, install
+from sql_drills.tests.synthetic import PIVOT
 
 if TYPE_CHECKING:
     from sql_drills._dialect import Dialect
@@ -64,8 +65,8 @@ def test_statement_without_examples_raises(monkeypatch: pytest.MonkeyPatch) -> N
 @pytest.mark.parametrize(
     "arg",
     [
-        "reformat-department-table",
-        "https://leetcode.com/problems/reformat-department-table/description/",
+        "pivot-shipments",
+        "https://leetcode.com/problems/pivot-shipments/description/",
     ],
 )
 def test_slug_and_url_are_fetched(monkeypatch: pytest.MonkeyPatch, arg: str) -> None:
@@ -73,9 +74,9 @@ def test_slug_and_url_are_fetched(monkeypatch: pytest.MonkeyPatch, arg: str) -> 
 
     def fetch(slug: str, dialect: str) -> str:
         asked.append((slug, dialect))
-        return statement("reformat-department-table")
+        return PIVOT
 
     install(monkeypatch, done(["id", *MONTHS], GOOD_ROWS))
     (res,) = sd.run_problem(arg, "x", "postgresql", fetch=fetch)
     assert res.match
-    assert asked == [("reformat-department-table", "postgresql")]
+    assert asked == [("pivot-shipments", "postgresql")]

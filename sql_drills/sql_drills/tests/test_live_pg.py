@@ -6,43 +6,18 @@ touch the MySQL container's data, and only use their own ``drill_*`` databases.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 import sql_drills as sd
 from sql_drills import _engine, _pg_engine, _pg_sandbox
+from sql_drills.tests.synthetic import ORDERS, ORDERS_SQL, PIVOT, PIVOT_SQL
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sql_drills._dialect import Dialect
-
-STATEMENTS = Path(__file__).parent / "statements"
-MONTHS = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-]
-_PIVOT_COLS = ", ".join(
-    f"SUM(CASE WHEN month = '{m}' THEN revenue END) AS {m}_Revenue" for m in MONTHS
-)
-PIVOT = f"SELECT id, {_PIVOT_COLS} FROM Department GROUP BY id"
-PIVOT_JAN_QUOTED = PIVOT.replace("month = 'Jan'", 'month = "Jan"')
-MONTHLY = {
-    "mysql": "DATE_FORMAT(trans_date, '%Y-%m')",
-    "postgresql": "TO_CHAR(trans_date, 'YYYY-MM')",
-}
 
 
 def _up(check: Callable[[], bool]) -> bool:
@@ -60,56 +35,48 @@ pytestmark = [
 ]
 
 
-def _text(slug: str) -> str:
-    return (STATEMENTS / f"{slug}.txt").read_text()
-
-
-def _monthly(dialect: Dialect) -> str:
-    return (
-        f"SELECT {MONTHLY[dialect]} AS month, country, COUNT(*), "
-        "SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END), SUM(amount), "
-        "SUM(CASE WHEN state = 'approved' THEN amount ELSE 0 END) "
-        f"FROM Transactions GROUP BY {MONTHLY[dialect]}, country"
-    )
-
-
 def _roles_and_databases() -> tuple[set[str], set[str]]:
     dbs = _pg_engine.run_sql("SELECT datname FROM pg_database", header=False)
     roles = _pg_engine.run_sql("SELECT rolname FROM pg_roles", header=False)
     return set(dbs.stdout.split()), set(roles.stdout.split())
 
 
-def test_reformat_department_table_passes_in_postgres() -> None:
-    (res,) = sd.run_problem(_text("reformat-department-table"), PIVOT, "postgresql")
+def test_pivot_passes_in_postgres() -> None:
+    (res,) = sd.run_problem(PIVOT, PIVOT_SQL, "postgresql")
     assert res.ok, res.error
     assert res.match, res.cell_diff
     assert len(res.columns) == 13
 
 
 def test_double_quoted_month_fails_in_postgres_but_passes_in_mysql() -> None:
-    statement = _text("reformat-department-table")
-    (pg,) = sd.run_problem(statement, PIVOT_JAN_QUOTED, "postgresql")
+    quoted = PIVOT_SQL.replace("month = 'Jan'", 'month = "Jan"')
+    (pg,) = sd.run_problem(PIVOT, quoted, "postgresql")
     assert not pg.ok
     assert 'column "Jan" does not exist' in (pg.error or "")
     if not _up(_engine.is_ready):
         pytest.skip("mysql container is down")
-    (my,) = sd.run_problem(statement, PIVOT_JAN_QUOTED, "mysql")
+    (my,) = sd.run_problem(PIVOT, quoted, "mysql")
     assert my.match
 
 
 @pytest.mark.parametrize("dialect", ["postgresql", "mysql"])
-def test_monthly_transactions_passes_in_both_dialects(dialect: Dialect) -> None:
+def test_orders_pass_in_both_dialects(dialect: Dialect) -> None:
     if dialect == "mysql" and not _up(_engine.is_ready):
         pytest.skip("mysql container is down")
-    (res,) = sd.run_problem(_text("monthly-transactions-i"), _monthly(dialect), dialect)
+    month = ORDERS_SQL[dialect]
+    sql = (
+        f"SELECT {month}, region, COUNT(*), "
+        "SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END), SUM(total), "
+        "SUM(CASE WHEN status = 'shipped' THEN total ELSE 0 END) "
+        f"FROM Orders GROUP BY {month}, region"
+    )
+    (res,) = sd.run_problem(ORDERS, sql, dialect)
     assert res.ok, res.error
     assert res.match, (res.cell_diff, res.rows)
 
 
 def test_wrong_answer_reports_cells() -> None:
-    (res,) = sd.run_problem(
-        _text("monthly-transactions-i"), "SELECT 1, 2, 3, 4, 5, 6", "postgresql"
-    )
+    (res,) = sd.run_problem(ORDERS, "SELECT 1, 2, 3, 4, 5, 6", "postgresql")
     assert res.ok
     assert not res.match
     assert res.cell_diff
@@ -117,9 +84,7 @@ def test_wrong_answer_reports_cells() -> None:
 
 def test_runs_are_isolated_and_leave_nothing_behind() -> None:
     before = _roles_and_databases()
-    sd.run_problem(
-        _text("monthly-transactions-i"), "DELETE FROM Transactions", "postgresql"
-    )
+    sd.run_problem(ORDERS, "DELETE FROM Orders", "postgresql")
     assert _roles_and_databases() == before
 
 

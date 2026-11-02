@@ -3,40 +3,19 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sql_drills import _dialect
 from sql_drills._sandbox import Executed
+from sql_drills.tests import synthetic
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     import pytest
 
-STATEMENTS = Path(__file__).parent / "statements"
-MONTHS = [
-    f"{m}_Revenue"
-    for m in [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ]
-]
-GOOD_ROWS = [
-    ["1", "8000", "7000", "6000", *["NULL"] * 9],
-    ["2", "9000", *["NULL"] * 11],
-    ["3", "NULL", "10000", *["NULL"] * 10],
-]
+MONTHS = [f"{m}_Weight" for m in synthetic.MONTHS]
+GOOD_ROWS = synthetic.PIVOT_GOOD_ROWS
 
 
 class StubBox:
@@ -72,7 +51,3 @@ def install(
 
 def done(columns: list[str], rows: list[list[str]]) -> Executed:
     return Executed(ok=True, error=None, code=None, rows=rows, columns=columns)
-
-
-def statement(slug: str) -> str:
-    return (STATEMENTS / f"{slug}.txt").read_text()

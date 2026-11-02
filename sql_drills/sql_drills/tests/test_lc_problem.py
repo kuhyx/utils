@@ -1,50 +1,43 @@
-"""Statement text to a runnable spec, on real fetched LeetCode statements."""
+"""Statement text to a runnable spec, on synthetic LeetCode-layout statements."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from sql_drills import _lc_problem as lp
-
-STATEMENTS = Path(__file__).parent / "statements"
-
-
-def _statement(slug: str) -> str:
-    return (STATEMENTS / f"{slug}.txt").read_text()
+from sql_drills.tests.synthetic import ORDERS, PIVOT
 
 
-def test_reformat_department_table_example() -> None:
-    problem = lp.parse_problem(_statement("reformat-department-table"))
-    assert problem.schemas["Department"] == [
+def test_pivot_example() -> None:
+    problem = lp.parse_problem(PIVOT)
+    assert problem.schemas["Shipments"] == [
         ("id", "int"),
-        ("revenue", "int"),
+        ("weight", "int"),
         ("month", "varchar"),
     ]
     assert not problem.ordered
     (example,) = problem.examples
-    dept = example.inputs["Department"]
-    assert dept.columns == ["id", "revenue", "month"]
-    assert dept.rows[0] == ["1", "8000", "Jan"]
+    dept = example.inputs["Shipments"]
+    assert dept.columns == ["id", "weight", "month"]
+    assert dept.rows[0] == ["1", "400", "Jan"]
     assert len(dept.rows) == 5
-    assert example.expected.columns[:2] == ["id", "Jan_Revenue"]
+    assert example.expected.columns[:2] == ["id", "Jan_Weight"]
     assert "..." in example.expected.columns
-    assert example.expected.rows[1] == ["2", "9000", "null", "null", "...", "null"]
+    assert example.expected.rows[1] == ["2", "900", "null", "null", "...", "null"]
 
 
-def test_monthly_transactions_example_and_ddl() -> None:
-    problem = lp.parse_problem(_statement("monthly-transactions-i"))
+def test_orders_example_and_ddl() -> None:
+    problem = lp.parse_problem(ORDERS)
     (example,) = problem.examples
     assert example.expected.columns[0] == "month"
     assert len(example.expected.rows) == 3
     my = lp.schema_sql(problem, example, "mysql")
-    assert "CREATE TABLE `Transactions`" in my
-    assert "`state` VARCHAR(255)" in my
-    assert "`trans_date` DATE" in my
+    assert "CREATE TABLE `Orders`" in my
+    assert "`status` VARCHAR(255)" in my
+    assert "`placed_on` DATE" in my
     assert "(121, " not in my  # values are quoted literals
-    assert "('121', 'US', 'approved', '1000', '2018-12-18')" in my
+    assert "('121', 'North', 'shipped', '1000', '2018-12-18')" in my
     pg = lp.schema_sql(problem, example, "postgresql")
-    assert 'CREATE TABLE "transactions"' in pg
-    assert '"trans_date" DATE' in pg
+    assert 'CREATE TABLE "orders"' in pg
+    assert '"placed_on" DATE' in pg
 
 
 def test_schema_nulls_and_quotes() -> None:
