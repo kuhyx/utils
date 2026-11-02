@@ -31,6 +31,8 @@ on a started project holds from TOMORROW (a `history` row ends today with the ol
 gates removed and edits to a project that has not started hold from today.
 `apply_update(...).effective_from` says which. `end` cannot be before today, so an edit never
 uncovers today. A NEW project starting today may replace gates and set any targets: it is a
-new obligation, not a reduction (`daily_minutes=1` there still pays a full day per minute).
+new obligation, not a reduction (but see the floor).
+Floor (0.7.1, coordinator decision for kuhy): `daily_minutes >= 30 x replaced gates` (min 30; `book` = `reading`),
+enforced on create and update (`daily_floor(replaces)`), so a day cannot be made cheap.
 Open the work: `python3 -m focus_project.open [--no-site]` (tutor focus screen, `work_url`).
 Install: `./install.sh` (stdlib only, editable user install for `/usr/bin/python3`).

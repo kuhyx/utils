@@ -17,6 +17,8 @@ from focus_project._model import GATES, Project, normalize_gate
 _LOG = logging.getLogger(__name__)
 _ID = re.compile(r"[a-z0-9][a-z0-9-]*")
 MAX_WORK_URL = 2000
+# A project must ask real work: the focus earner pays per minute of ``daily``.
+MIN_DAILY_PER_GATE = 30
 
 
 def list_projects() -> list[Project]:
@@ -64,6 +66,11 @@ def _validate_work_url(url: str) -> None:
         raise ValueError(msg)
 
 
+def daily_floor(replaces: tuple[str, ...]) -> int:
+    """The least ``daily_minutes`` a project replacing these gates may ask."""
+    return MIN_DAILY_PER_GATE * max(1, len(replaces))
+
+
 def _validate(project: Project) -> None:
     _validate_work_url(project.work_url)
     if not _ID.fullmatch(project.id):
@@ -78,8 +85,12 @@ def _validate(project: Project) -> None:
     if not project.replaces or not set(project.replaces) <= GATES:
         msg = f"replaces must be a non-empty subset of gates {sorted(GATES)}"
         raise ValueError(msg)
-    if project.daily_minutes <= 0:
-        msg = "daily_minutes must be positive"
+    floor = daily_floor(project.replaces)
+    if project.daily_minutes < floor:
+        msg = (
+            f"daily_minutes must be at least {floor} "
+            f"({MIN_DAILY_PER_GATE} per replaced gate)"
+        )
         raise ValueError(msg)
     if not 0 <= project.unlock_minutes <= project.daily_minutes:
         msg = "unlock_minutes must be within 0..daily_minutes"

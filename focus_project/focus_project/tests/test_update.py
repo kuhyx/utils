@@ -78,8 +78,13 @@ def test_unknown_id_and_field() -> None:
         ({"replaces": ["workout"]}, "gate"),
         ({"replaces": []}, "replace"),
         ({"daily_minutes": 0}, "daily_minutes"),
+        ({"daily_minutes": 59}, "at least 60"),
+        (
+            {"daily_minutes": 89, "replaces": ["leetcode", "reading", "tutor"]},
+            "at least 90",
+        ),
         ({"unlock_minutes": 121}, "unlock_minutes"),
-        ({"daily_minutes": 20}, "unlock_minutes"),
+        ({"daily_minutes": 60, "unlock_minutes": 61}, "unlock_minutes"),
     ],
 )
 def test_update_validation(kw: dict[str, object], match: str) -> None:
@@ -126,22 +131,22 @@ def test_end_in_the_past_refused() -> None:
 
 def test_daily_cut_applies_from_tomorrow(data: Path) -> None:
     _make()
-    fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=60, unlock_minutes=10)
+    fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=100, unlock_minutes=10)
     p = fp.list_projects()[0]
-    assert (p.daily_minutes, p.unlock_minutes) == (60, 10)
+    assert (p.daily_minutes, p.unlock_minutes) == (100, 10)
     assert p.daily_on(D1 + DAY) == 120
     assert p.daily_on(D1 + 2 * DAY) == 120  # today keeps its targets
     assert p.unlock_on(D1 + 2 * DAY) == 30
-    assert p.daily_on(D4) == 60
+    assert p.daily_on(D4) == 100
     assert p.unlock_on(D4) == 10
     # a deeper cut the same day keeps the one preserved row, a later day adds one
-    fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=90)
+    fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=80)
     assert len(fp.list_projects()[0].history) == 1
-    fp.update_project("hr", today=D4, daily_minutes=45, unlock_minutes=5)
+    fp.update_project("hr", today=D4, daily_minutes=65, unlock_minutes=5)
     p = fp.list_projects()[0]
     assert [h.until for h in p.history] == [D1 + 2 * DAY, D4]
-    assert p.daily_on(D4) == 90
-    assert p.daily_on(D4 + DAY) == 45
+    assert p.daily_on(D4) == 80
+    assert p.daily_on(D4 + DAY) == 65
     raw = json.loads((data / "projects.json").read_text())["projects"][0]
     assert raw["history"][0] == {
         "until": "2026-11-04",
@@ -153,15 +158,15 @@ def test_daily_cut_applies_from_tomorrow(data: Path) -> None:
 
 def test_future_project_daily_change_keeps_no_history() -> None:
     _make()
-    fp.update_project("hr", today=D1 - DAY, daily_minutes=60, unlock_minutes=10)
+    fp.update_project("hr", today=D1 - DAY, daily_minutes=100, unlock_minutes=10)
     p = fp.list_projects()[0]
     assert p.history == ()
-    assert p.daily_on(D1) == 60
+    assert p.daily_on(D1) == 100
     # on the first day a cut waits for tomorrow, like any started project
-    fp.update_project("hr", today=D1, daily_minutes=50)
+    fp.update_project("hr", today=D1, daily_minutes=70)
     p = fp.list_projects()[0]
-    assert p.daily_on(D1) == 60
-    assert p.daily_on(D1 + DAY) == 50
+    assert p.daily_on(D1) == 100
+    assert p.daily_on(D1 + DAY) == 70
 
 
 def test_same_value_edit_adds_no_history() -> None:
@@ -172,11 +177,11 @@ def test_same_value_edit_adds_no_history() -> None:
 
 def test_status_and_minutes_use_the_day_values(tmp_path: Path) -> None:
     _make()
-    fp.update_project("hr", today=D1 + DAY, daily_minutes=60, unlock_minutes=10)
+    fp.update_project("hr", today=D1 + DAY, daily_minutes=100, unlock_minutes=10)
     assert fp.status(D1)["daily_minutes"] == 120
     assert fp.status(D1)["unlock_minutes"] == 30
     assert fp.status(D1 + DAY)["daily_minutes"] == 120
-    assert fp.status(D1 + 2 * DAY)["daily_minutes"] == 60
+    assert fp.status(D1 + 2 * DAY)["daily_minutes"] == 100
 
 
 def test_work_url_is_editable_kept_and_clearable() -> None:

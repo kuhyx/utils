@@ -130,13 +130,12 @@ def test_overlaps_never_double_count() -> None:
 
 
 def test_capped_at_daily_minutes() -> None:
-    project(daily=10)
+    project(daily=30)
     events(
-        ("timer", "start", at(9)),
-        ("timer", "stop", at(9, 8)),
+        *(("tutor", "heartbeat", at(9, 5 * k)) for k in range(1, 9)),
         ("tutor", "heartbeat", at(12)),
     )
-    assert minutes.minutes_for(D1) == 10
+    assert minutes.minutes_for(D1) == 30
 
 
 def test_other_day_and_other_project_events_ignored() -> None:

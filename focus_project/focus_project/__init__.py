@@ -17,6 +17,7 @@ from __future__ import annotations
 from focus_project._api import (
     active,
     create_project,
+    daily_floor,
     end_project,
     list_projects,
     stands_down,
@@ -36,6 +37,7 @@ __all__ = [
     "active",
     "apply_update",
     "create_project",
+    "daily_floor",
     "end_project",
     "list_projects",
     "minutes_for",

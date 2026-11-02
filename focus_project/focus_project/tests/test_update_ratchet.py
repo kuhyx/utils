@@ -47,16 +47,16 @@ def test_red_team_unlock_zero_waits_for_tomorrow() -> None:
     assert fp.status(TODAY)["unlock_minutes"] == 30
 
 
-def test_one_minute_day_does_not_change_today() -> None:
+def test_cut_to_the_floor_does_not_change_today() -> None:
     _make()
     fp.record_activity("tutor", "heartbeat", ts=_noon(TODAY), project="p")
     before = fp.status(TODAY)
-    fp.update_project("p", today=TODAY, daily_minutes=1, unlock_minutes=0)
+    fp.update_project("p", today=TODAY, daily_minutes=30, unlock_minutes=0)
     after = fp.status(TODAY)
     assert after == before
     assert after["daily_minutes"] == 120
     assert fp.minutes_for(TODAY) == before["counted_minutes"]
-    assert fp.status(TOMORROW)["daily_minutes"] == 1
+    assert fp.status(TOMORROW)["daily_minutes"] == 30
 
 
 def test_raises_apply_today() -> None:
@@ -114,15 +114,15 @@ def test_pending_cut_then_second_edits_the_same_day() -> None:
 
 def test_not_yet_started_project_is_a_new_obligation() -> None:
     _make(start=TOMORROW)
-    got = fp.apply_update("p", today=TODAY, daily_minutes=10, unlock_minutes=0)
+    got = fp.apply_update("p", today=TODAY, daily_minutes=30, unlock_minutes=0)
     assert got.effective_from == TODAY
     assert fp.list_projects()[0].history == ()
-    assert _limits(TOMORROW)[:2] == (10, 0)
+    assert _limits(TOMORROW)[:2] == (30, 0)
 
 
 def test_project_starting_today_defers_a_cut() -> None:
     _make(start=TODAY)
-    got = fp.apply_update("p", today=TODAY, daily_minutes=1, unlock_minutes=0)
+    got = fp.apply_update("p", today=TODAY, daily_minutes=30, unlock_minutes=0)
     assert got.effective_from == TOMORROW
     assert _limits(TODAY)[:2] == (120, 30)
 
@@ -143,3 +143,46 @@ def test_legacy_history_row_without_replaces_round_trips() -> None:
     assert "replaces" not in row.to_dict()
     with_r = fp.Limits(YESTERDAY, 5, 1, ("tutor",))
     assert fp.Limits.from_dict(with_r.to_dict()) == with_r
+
+
+@pytest.mark.parametrize(
+    ("gates", "daily", "ok"),
+    [
+        (["leetcode"], 29, False),
+        (["leetcode"], 30, True),
+        (["leetcode", "reading"], 59, False),
+        (["leetcode", "reading", "tutor"], 89, False),
+        (["leetcode", "reading", "tutor"], 90, True),
+        (["leetcode", "book"], 60, True),  # book = reading: still two gates
+        (["leetcode", "book", "reading"], 60, True),  # one gate named twice
+    ],
+)
+def test_daily_floor_is_30_per_replaced_gate(
+    gates: list[str], daily: int, *, ok: bool
+) -> None:
+    def make() -> fp.Project:
+        return fp.create_project(
+            "f",
+            name="F",
+            start=TODAY,
+            end=END,
+            replaces=gates,
+            daily_minutes=daily,
+            unlock_minutes=0,
+        )
+
+    if ok:
+        assert make().daily_minutes == daily
+    else:
+        with pytest.raises(ValueError, match="at least"):
+            make()
+
+
+def test_edit_cannot_cut_below_the_floor_or_add_a_gate_it_cannot_pay() -> None:
+    _make(replaces=["leetcode", "reading", "tutor"])
+    for bad in ({"daily_minutes": 89}, {"daily_minutes": 1, "unlock_minutes": 0}):
+        with pytest.raises(ValueError, match="at least 90"):
+            fp.update_project("p", today=TODAY, **bad)
+    assert fp.update_project("p", today=TODAY, daily_minutes=90).daily_minutes == 90
+    assert fp.daily_floor(("a", "b")) == 60
+    assert fp.daily_floor(()) == 30
