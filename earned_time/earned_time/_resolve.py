@@ -25,6 +25,7 @@ from datetime import UTC, date, datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
+from earned_time._focus import FocusEarner
 from earned_time._ladder import on_ladder, shutdown_ceiling_for
 from earned_time._leisure import base_minutes, ceiling_minutes, is_leisure
 from earned_time._maturity import confirmed_start, penalty_start
@@ -43,6 +44,16 @@ Answer = int | bool | None
 
 def _today() -> date:
     return datetime.now(tz=UTC).astimezone().date()
+
+
+def _gaming_cut(item: Earner) -> int:
+    """What a penalty in force takes off the gaming base: all ``item`` can pay.
+
+    A focus earner cuts what the gates it replaced paid; it pays more (0.21.0).
+    """
+    if isinstance(item, FocusEarner):
+        return item.cut_gaming_minutes
+    return item.max_gaming_minutes
 
 
 def _penalised(
@@ -117,7 +128,7 @@ def _base(
     penalised = [e for e in registry if _penalised(e, target, first_credits)]
     return Base(
         gaming_minutes=base_minutes(leisure=on)
-        - sum(e.max_gaming_minutes for e in penalised),
+        - sum(_gaming_cut(e) for e in penalised),
         shutdown_minutes=_shutdown_floor(target, registry, penalised),
     )
 

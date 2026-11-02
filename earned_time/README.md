@@ -189,12 +189,12 @@ How far to trust a gate is computed from its ledger, never listed by name:
 `workout_match` counts a `runnerup_tcx` row by `completed_at`, a `rest_day` row
 on its `day` only if `detail.declared_at` predates that day (else logged, no).
 
-## The focus project (0.19.0, cut 180 since 0.20.0)
+## The focus project (0.19.0, cut 180 since 0.20.0, pays 240 since 0.21.0)
 
 While `focus_project.active(day)` returns a project, `earners_for` drops the
 gates it `replaces` (`book` = `reading`) and adds one counted `focus` earner
-(`max_units` = the day's `daily_on`) paying what they paid (shutdown by their rungs,
-gaming by `max_gaming_minutes`: 60+60+60 over 120 min = 1.5/min):
+(`max_units` = the day's `daily_on`). Shutdown pays their rungs (180/120 min); gaming
+their `max_gaming_minutes` + pure bonuses again (240/120 min = 2/min; full day = 8 h):
 `floor(summed minutes * pay / daily_minutes)`, never per row. The penalty runs
 from the start day, cutting all of it, 180 with LeetCode's formerly free hour (0.20.0); maturity never delays it. Ledger `~/.local/share/focus_project/ledger.json`:
 signed `credit` rows, `entry_id` `<project>-<YYYYMMDD>-m<n>`, `detail.minutes` (positive int),

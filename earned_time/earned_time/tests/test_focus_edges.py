@@ -70,8 +70,8 @@ def test_a_target_edit_never_reprices_past_days(
     activate(monkeypatch, project(daily_on=edited, daily_minutes=60))
     before = earners_for(DAY)[-1]
     after = earners_for(DAY + timedelta(days=1))[-1]
-    assert (before.max_units, before.gaming_for(60)) == (120, 90)
-    assert (after.max_units, after.gaming_for(60)) == (60, 180)
+    assert (before.max_units, before.gaming_for(60)) == (120, 120)
+    assert (after.max_units, after.gaming_for(60)) == (60, 240)
     assert (before.shutdown_for(60, DAY), after.shutdown_for(30, DAY)) == (90, 90)
 
 

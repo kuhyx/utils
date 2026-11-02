@@ -22,7 +22,7 @@ from earned_time import (
 )
 from earned_time._focus import focus_earner
 from earned_time.tests._focus_fakes import DAY, START, activate, focus, project, row
-from earned_time.tests._maturity_rows import ledger_file
+from earned_time.tests._maturity_rows import ledger_file, signed
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -61,20 +61,24 @@ def test_a_project_that_changes_nothing_leaves_the_registry(
     assert earners_for(DAY) is TUTOR_EARNERS
 
 
-def test_a_full_day_pays_what_the_replaced_gates_paid(
+def test_a_full_day_pays_the_cut_plus_the_free_leetcode_hour(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """kuhy 2026-11-02 (0.21.0): 2 gaming minutes per focus minute, 240 a day."""
     item = focus(monkeypatch)
     assert item.max_units == 120
-    assert (item.gaming_for(120), item.shutdown_for(120, DAY)) == (180, 180)
-    assert (item.gaming_for(999), item.shutdown_for(999, DAY)) == (180, 180)
-    assert (item.max_gaming_minutes, item.gaming_for(-5)) == (180, 0)
+    assert (item.gaming_for(120), item.shutdown_for(120, DAY)) == (240, 180)
+    assert (item.gaming_for(999), item.shutdown_for(999, DAY)) == (240, 180)
+    assert (item.max_gaming_minutes, item.gaming_for(-5)) == (240, 0)
+    assert item.cut_gaming_minutes == 180
 
 
 def test_pay_is_floored_on_the_summed_minutes(monkeypatch: pytest.MonkeyPatch) -> None:
     item = focus(monkeypatch)
-    assert [item.gaming_for(n) for n in (1, 2, 3, 7)] == [1, 3, 4, 10]
+    assert [item.gaming_for(n) for n in (1, 2, 3, 7)] == [2, 4, 6, 14]
     assert [item.shutdown_for(n, DAY) for n in (1, 2, 3, 7)] == [1, 3, 4, 10]
+    odd = focus(monkeypatch, daily_minutes=90)
+    assert [odd.gaming_for(n) for n in (1, 2, 90)] == [2, 5, 240]
 
 
 def test_many_small_rows_pay_what_one_row_pays(
@@ -86,7 +90,21 @@ def test_many_small_rows_pay_what_one_row_pays(
     one.write_text(ledger_file(tmp_path, [row(7, 7)]).read_text(encoding="utf-8"))
     units = credit_units(item, many, key_file, DAY)
     assert units == credit_units(item, one, key_file, DAY) == 7
-    assert item.gaming_for(units or 0) == 10
+    assert item.gaming_for(units or 0) == 14
+
+
+def test_carry_rows_pay_like_own_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, key_file: Path
+) -> None:
+    """focus_project 0.6.0 banks overtime as ``<project>-<YYYYMMDD>-carry`` rows."""
+    item = focus(monkeypatch)
+    carry = row(30, 0, carry=True)
+    carry["entry_id"] = f"hr-{DAY:%Y%m%d}-carry"
+    top_up = row(5, 0, carry=True)
+    top_up["entry_id"] = f"hr-{DAY:%Y%m%d}-carry-m35"
+    rows = [signed(carry), signed(top_up), row(85, 85)]
+    ledger = ledger_file(tmp_path, rows)
+    assert credit_units(item, ledger, key_file, DAY) == 120
 
 
 def test_resolve_prices_base_terms_and_ceiling(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -95,26 +113,25 @@ def test_resolve_prices_base_terms_and_ceiling(monkeypatch: pytest.MonkeyPatch) 
     assert nothing.base.gaming_minutes == 300 - 180
     assert nothing.base.shutdown_minutes == 18 * 60
     half = resolve({"workout": 0, "focus": 60}, DAY, leisure=False)
-    assert half.gaming_minutes == 120 + 90
+    assert half.gaming_minutes == 120 + 120
     assert half.shutdown_minutes == 18 * 60 + 90
     full = resolve({"workout": 1, "focus": 120}, DAY, leisure=False)
     assert full.shutdown_minutes == 23 * 60
+    assert full.gaming_minutes == 300 - 180 + 240 + 120 == 8 * 60
 
 
 def test_a_full_project_day_pays_what_the_replaced_gates_paid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Shutdown matches the old full day; gaming loses LeetCode's free hour."""
+    """A full project day equals the old full day, LeetCode's free hour too."""
     activate(monkeypatch, project())
     done = {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 60, "focus": 120}
     old = resolve(done, DAY, TUTOR_EARNERS, leisure=False)
     new = resolve(done, DAY, leisure=False)
     assert new.shutdown_minutes == old.shutdown_minutes
-    # kuhy 2026-11-02: LeetCode's bonus hour was free on top of the base; the
-    # project day cuts it and pays it back, so the full day nets 60 less.
-    assert new.gaming_minutes == old.gaming_minutes - 60
-    unsolved = resolve({**done, "leetcode": 0}, DAY, TUTOR_EARNERS, leisure=False)
-    assert new.gaming_minutes == unsolved.gaming_minutes
+    # kuhy 2026-11-02 (0.21.0): the day cuts 180 but pays 240, so a full day
+    # is the old full day (8 h); only an idle day is worse.
+    assert new.gaming_minutes == old.gaming_minutes == 8 * 60
 
 
 def test_an_idle_project_day_also_cuts_the_free_leetcode_hour(
@@ -166,4 +183,5 @@ def test_the_path_unit_watches_the_focus_ledger() -> None:
 
 def test_focus_pays_only_replaced_gates_that_exist() -> None:
     item = focus_earner(project(), (earned_time.LEETCODE,), DAY)
-    assert (item.gaming_minutes, item.shutdown_minutes) == (60, 60)
+    assert (item.gaming_minutes, item.shutdown_minutes) == (120, 60)
+    assert item.cut_gaming_minutes == 60

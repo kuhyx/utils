@@ -31,8 +31,12 @@ _warned: set[str] = set()
 class FocusEarner(Earner):
     """Counted; ``gaming_minutes``/``shutdown_minutes`` pay a FULL day.
 
-    The gaming base cut is all of it, LeetCode's free hour too (kuhy 2026-11-02).
+    ``cut_gaming_minutes``: the gaming base cut, all the replaced gates paid,
+    LeetCode's free hour too (0.20.0). The full-day gaming pay adds that free
+    hour once more, so a full day matches the old one (kuhy 2026-11-02, 0.21.0).
     """
+
+    cut_gaming_minutes: int = 0
 
     def gaming_for(self, units: int) -> int:
         """Gaming minutes of ``units`` focused minutes, floored."""
@@ -66,11 +70,18 @@ def daily_on(project: Any, day: date) -> int:  # noqa: ANN401
 
 
 def focus_earner(project: Any, dropped: tuple[Earner, ...], day: date) -> Earner:  # noqa: ANN401
-    """The ``focus`` earner paying what ``dropped`` paid, over ``project``."""
+    """The ``focus`` earner paying what ``dropped`` paid, over ``project``.
+
+    Gaming: the cut is every dropped gate's full pay; a full day pays that plus
+    the pure bonuses (no ``penalty_from``) again: 180 + 60 = 240 at 120 min.
+    """
+    cut = sum(e.max_gaming_minutes for e in dropped)
+    free = tuple(e for e in dropped if e.penalty_from is None)
     return FocusEarner(
         name="focus",
         label="Focus",
-        gaming_minutes=sum(e.max_gaming_minutes for e in dropped),
+        gaming_minutes=cut + sum(e.max_gaming_minutes for e in free),
+        cut_gaming_minutes=cut,
         shutdown_minutes=sum(
             shutdown_units_minutes(e, e.max_units or 1, day) for e in dropped
         ),
