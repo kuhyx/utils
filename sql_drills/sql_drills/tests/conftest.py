@@ -14,9 +14,17 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture(autouse=True)
-def _redirect_data(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Generated drills never land in the real ``~/.local/share/sql_drills``."""
+def _redirect_data(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, request: pytest.FixtureRequest
+) -> None:
+    """Generated drills never land in the real ``~/.local/share/sql_drills``.
+
+    The root-password file is redirected too, except for the ``docker`` live
+    tests: they talk to the real container, which only knows the real password.
+    """
     monkeypatch.setenv("SQL_DRILLS_DATA", str(tmp_path / "data"))
+    if request.node.get_closest_marker("docker") is None:
+        monkeypatch.setenv("SQL_DRILLS_CONFIG", str(tmp_path / "config"))
 
 
 @dataclass

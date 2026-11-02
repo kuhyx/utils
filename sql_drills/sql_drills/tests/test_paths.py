@@ -31,3 +31,13 @@ def test_empty_env_falls_back(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -
 
 def test_builtin_dir_ships_fixtures() -> None:
     assert (_paths.builtin_dir() / "01_pivot_sum" / "meta.json").is_file()
+
+
+def test_config_dir_env_and_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("SQL_DRILLS_CONFIG", str(tmp_path / "c"))
+    assert _paths.config_dir() == tmp_path / "c"
+    monkeypatch.setenv("SQL_DRILLS_CONFIG", "")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert _paths.config_dir() == tmp_path / ".config" / "sql_drills"

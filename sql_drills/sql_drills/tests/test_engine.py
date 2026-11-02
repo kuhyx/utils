@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sql_drills import _engine
+from sql_drills import _engine, _secret
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -59,8 +59,8 @@ def test_is_ready_follows_ping_exit_code() -> None:
 
 
 def test_creates_container_on_shared_network_when_it_exists() -> None:
-    # inspect(missing), network inspect(ok), run, ping.
-    with _run(_cp(1), _cp(0), _cp(0, "id"), _cp(0)) as run:
+    # inspect(missing), network inspect(ok), run, ping, root login check.
+    with _run(_cp(1), _cp(0), _cp(0, "id"), _cp(0), _cp(0)) as run:
         _engine.ensure_running(timeout=5, sleep=_no_sleep)
     argv = run.call_args_list[2].args[0]
     assert argv[:3] == ["docker", "run", "-d"]
@@ -70,23 +70,60 @@ def test_creates_container_on_shared_network_when_it_exists() -> None:
     assert argv[argv.index("--network-alias") + 1] == _engine.NETWORK_ALIAS
 
 
+def test_new_container_gets_a_random_root_password_not_via_argv() -> None:
+    with _run(_cp(1), _cp(1), _cp(0, "id"), _cp(0), _cp(0)) as run:
+        _engine.ensure_running(timeout=5, sleep=_no_sleep)
+    argv = run.call_args_list[2].args[0]
+    password = run.call_args_list[2].kwargs["env"]["MYSQL_ROOT_PASSWORD"]
+    assert len(password) >= 24
+    assert "MYSQL_ALLOW_EMPTY_PASSWORD=yes" not in argv
+    assert not any(password in part for part in argv)
+    assert "MYSQL_ROOT_PASSWORD" in argv
+
+
 def test_creates_container_plain_when_network_absent() -> None:
-    with _run(_cp(1), _cp(1), _cp(0, "id"), _cp(0)) as run:
+    with _run(_cp(1), _cp(1), _cp(0, "id"), _cp(0), _cp(0)) as run:
         _engine.ensure_running(timeout=5, sleep=_no_sleep)
     assert "--network" not in run.call_args_list[2].args[0]
 
 
 def test_resumes_exited_container() -> None:
-    with _run(_cp(0, "exited\n"), _cp(0), _cp(0)) as run:
+    with _run(_cp(0, "exited\n"), _cp(0), _cp(0), _cp(0)) as run:
         _engine.ensure_running(timeout=5, sleep=_no_sleep)
     assert run.call_args_list[1].args[0][:2] == ["docker", "start"]
 
 
 def test_running_container_is_never_recreated() -> None:
-    with _run(_cp(0, "running\n"), _cp(0)) as run:
+    with _run(_cp(0, "running\n"), _cp(0), _cp(0)) as run:
         _engine.ensure_running(timeout=5, sleep=_no_sleep)
     verbs = [c.args[0][1] for c in run.call_args_list]
-    assert verbs == ["inspect", "exec"]
+    assert verbs == ["inspect", "exec", "exec"]
+
+
+def test_legacy_passwordless_root_gets_the_password_live() -> None:
+    # inspect, ping, root login refused, passwordless ALTER USER works.
+    denied = _cp(1, "", "ERROR 1045 (28000): Access denied")
+    with _run(_cp(0, "running\n"), _cp(0), denied, _cp(0)) as run:
+        _engine.ensure_running(timeout=5, sleep=_no_sleep)
+    alter = run.call_args_list[3]
+    password = _secret.root_password()
+    assert "env" not in alter.kwargs or alter.kwargs["env"] is None
+    assert (
+        f"ALTER USER IF EXISTS 'root'@'localhost' IDENTIFIED BY '{password}'"
+        in (alter.kwargs["input"])
+    )
+    assert "'root'@'%'" in alter.kwargs["input"]
+    assert not any(password in part for part in alter.args[0])
+    assert "-p" not in alter.args[0]
+
+
+def test_root_rejecting_our_password_is_a_clear_error() -> None:
+    denied = _cp(1, "", "ERROR 1045 (28000): Access denied")
+    with (
+        _run(_cp(0, "running\n"), _cp(0), denied, denied),
+        pytest.raises(_engine.EngineError, match="not passwordless"),
+    ):
+        _engine.ensure_running(timeout=5, sleep=_no_sleep)
 
 
 def test_create_failure_is_reported() -> None:
@@ -110,16 +147,36 @@ def test_stop_removes_container() -> None:
     assert run.call_args.args[0] == ["docker", "rm", "-f", _engine.CONTAINER]
 
 
-def test_run_sql_defaults_to_root_and_no_headers() -> None:
+def test_run_sql_defaults_to_root_with_password_from_env_only() -> None:
     with _run(_cp(0, "1\n", "")) as run:
         res = _engine.run_sql("SELECT 1;", database="d1")
     argv = run.call_args.args[0]
-    assert argv[:4] == ["docker", "exec", "-i", _engine.CONTAINER]
+    assert argv[:6] == ["docker", "exec", "-i", "-e", "MYSQL_PWD", _engine.CONTAINER]
     assert "-uroot" in argv
+    assert "-u" not in argv
+    password = _secret.root_password()
+    assert run.call_args.kwargs["env"]["MYSQL_PWD"] == password
+    assert not any(password in part for part in argv)
     assert "-N" in argv
     assert argv[-1] == "d1"
     assert run.call_args.kwargs["input"] == "SELECT 1;"
     assert (res.returncode, res.stdout) == (0, "1\n")
+
+
+def test_every_run_is_binary_mode_so_client_commands_cannot_run() -> None:
+    with _run(_cp(0), _cp(0)) as run:
+        _engine.run_sql("SELECT 1;")
+        _engine.run_sql("SELECT 1;", user="u_x")
+    assert all("--binary-mode" in c.args[0] for c in run.call_args_list)
+
+
+def test_learner_run_is_unprivileged_and_never_sees_the_password() -> None:
+    with _run(_cp(0)) as run:
+        _engine.run_sql("SELECT 1;", user="u_x")
+    argv = run.call_args.args[0]
+    assert argv[:6] == ["docker", "exec", "-i", "-u", "65534", _engine.CONTAINER]
+    assert "MYSQL_PWD" not in argv
+    assert run.call_args.kwargs["env"] is None
 
 
 def test_run_sql_headers_user_and_no_database() -> None:

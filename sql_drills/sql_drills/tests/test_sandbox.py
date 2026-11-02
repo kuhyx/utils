@@ -189,3 +189,38 @@ def test_query_error_has_no_columns(fake_mysql: FakeMysql) -> None:
         done = box.query("nope")
     assert not done.ok
     assert done.columns == []
+
+
+RED_TEAM = [
+    "\\! id",
+    "-- harmless comment\n\\! id",
+    "SELECT 1;\n\\! mysql -uroot -e 'show databases'",
+    "﻿\\! id",
+    "  \t\\system id",
+    "SELECT 1;\r\\! id",
+    "/* c */\n\n   \\. /etc/passwd",
+]
+
+
+@pytest.mark.parametrize("payload", RED_TEAM)
+def test_meta_commands_are_refused_before_reaching_the_client(
+    fake_mysql: FakeMysql, payload: str
+) -> None:
+    with _sandbox.sandbox("") as box:
+        before = len(fake_mysql.calls)
+        done = box.query(payload)
+        also = box.execute(payload)
+    assert not done.ok
+    assert done.error == "mysql client commands (backslash) are not allowed"
+    assert not also.ok
+    assert all(payload not in str(c["sql"]) for c in fake_mysql.calls[before:]), (
+        "refused SQL must never be sent"
+    )
+
+
+@pytest.mark.parametrize(
+    "sql",
+    ["SELECT 1;", "SELECT 'a\\\\b';", "SELECT 1 -- \\! id", "SELECT 'x\\n';"],
+)
+def test_backslash_inside_a_line_is_ordinary_sql(sql: str) -> None:
+    assert not _sandbox.has_meta_command(sql)

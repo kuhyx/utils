@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 SNAPSHOT_ROWS = 200
 _MAX_EXECUTION_MS = 20000
+_NO_META = "mysql client commands (backslash) are not allowed"
+_META = re.compile(r"(?:^|\r)[\s\ufeff]*\\", re.MULTILINE)
 _CODE = re.compile(r"ERROR (\d+)")
 _COLUMNS_SQL = (
     "SELECT table_name, column_name FROM information_schema.columns "
@@ -43,12 +45,24 @@ def _outcome(res: _engine.SqlResult) -> Executed:
     return Executed(ok=True, error=None, code=None, rows=parse_rows(res.stdout))
 
 
+def has_meta_command(sql: str) -> bool:
+    r"""True if any line starts with a backslash (after a BOM or whitespace).
+
+    The client's ``\!`` runs a shell. ``--binary-mode`` already turns every
+    such command into an error; refusing here too keeps a stray one from ever
+    reaching the client, whatever precedes it (comments, other statements).
+    """
+    return _META.search(sql) is not None
+
+
 @dataclass(frozen=True)
 class Sandbox:
     db: str
     user: str
 
     def _run(self, sql: str, *, headers: bool) -> _engine.SqlResult:
+        if has_meta_command(sql):
+            return _engine.SqlResult(1, "", _NO_META)
         limit = f"SET SESSION max_execution_time={_MAX_EXECUTION_MS}; "
         return _engine.run_sql(limit + sql, self.db, self.user, headers=headers)
 

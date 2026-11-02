@@ -98,6 +98,64 @@ def test_user_sql_cannot_see_or_drop_other_databases() -> None:
         _engine.run_sql("DROP DATABASE IF EXISTS drill_canary_guard;")
 
 
+_ATTACKS = [
+    "\\! id",
+    "-- c\n\\! mysql -uroot -N -e 'show databases'",
+    "SELECT 1;\n\\! id",
+    "\ufeff\\! id",
+    "SELECT 1 -- \\! id",
+    "SELECT 1; \\! id",
+    "SELECT 1 \\! id",
+    "source /etc/passwd",
+]
+
+
+@pytest.mark.parametrize("attack", _ATTACKS)
+def test_client_commands_never_reach_a_shell(attack: str) -> None:
+    """Red-team: ``\\!`` used to run a root shell inside the container."""
+    drill = sd.get_drill("01_pivot_sum")
+    with _sandbox.sandbox(drill.schema_sql) as box:
+        done = box.query(attack)
+        # Even bypassing the text guard, the client itself must refuse.
+        raw = _engine.run_sql(attack, box.db, box.user)
+    assert "uid=" not in str(done.rows) + str(done.error)
+    assert "uid=" not in raw.stdout
+    assert "theory" not in raw.stdout
+
+
+def test_client_runs_without_a_shell_escape_or_root_os_user() -> None:
+    drill = sd.get_drill("01_pivot_sum")
+    with _sandbox.sandbox(drill.schema_sql) as box:
+        raw = _engine.run_sql("\\! id", box.db, box.user)
+    assert raw.returncode != 0
+    assert "Unknown command" in raw.stderr
+    # The unprivileged OS user is what ``run_sql`` execs as.
+    ident = _engine.docker("exec", "-u", "65534", _engine.CONTAINER, "id", "-u")
+    assert ident.stdout.strip() == "65534"
+
+
+def test_learner_cannot_see_theory_or_other_drill_databases() -> None:
+    drill = sd.get_drill("01_pivot_sum")
+    with _sandbox.sandbox(drill.schema_sql) as box, _sandbox.sandbox("") as other:
+        seen = {r[0] for r in box.execute("SHOW DATABASES;").rows}
+        assert seen <= {box.db, "information_schema", "performance_schema"}
+        assert "theory" not in seen
+        assert other.db not in seen
+        assert not box.execute("SELECT * FROM theory.anything;").ok
+        assert not box.execute("SELECT * FROM mysql.user;").ok
+
+
+def test_root_is_passwordless_no_more() -> None:
+    """Root without the engine's password is refused, locally and over TCP."""
+    for host in ("-hlocalhost", "-h127.0.0.1"):
+        res = _engine.docker(
+            "exec", _engine.CONTAINER, "mysql", "-uroot", host, "-N", "-e", "SELECT 1"
+        )
+        assert res.returncode != 0
+        assert "Access denied" in res.stderr
+    assert _engine.run_sql("SELECT 1;").stdout.strip() == "1"
+
+
 def test_ensure_running_does_not_recreate_a_running_container() -> None:
     before = _container_id()
     sd.ensure_running()
