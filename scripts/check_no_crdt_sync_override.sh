@@ -4,7 +4,8 @@
 # Fail if a pubspec still overrides a git-dependency utils package with a
 # local path.
 #
-# The apps depend on packages in this repo (crdt_sync, sync_settings_ui) as
+# The apps depend on packages in this repo (crdt_sync, sync_settings_ui,
+# google_account_token) as
 # a *git dependency pinned to a tag*, so what CI builds is whatever that tag
 # points at. A `dependency_overrides:` entry pointing at a local checkout is
 # invaluable while developing an unreleased library change -- and
@@ -16,7 +17,8 @@
 #
 # Usage: check_no_crdt_sync_override.sh [-p package_name] [pubspec.yaml ...]
 #   -p package_name  Check this package instead of the default set. May be
-#                     repeated. Default: crdt_sync sync_settings_ui.
+#                     repeated. Default: crdt_sync sync_settings_ui
+#                     google_account_token.
 #   With no pubspec.yaml arguments, checks ./pubspec.yaml.
 # ============================================================================
 
@@ -24,7 +26,7 @@ set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_NAME
-DEFAULT_PACKAGES=(crdt_sync sync_settings_ui)
+DEFAULT_PACKAGES=(crdt_sync sync_settings_ui google_account_token)
 
 usage() {
     echo "Usage: $SCRIPT_NAME [-p package_name ...] [pubspec.yaml ...]"
