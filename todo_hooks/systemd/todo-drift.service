@@ -1,0 +1,9 @@
+[Unit]
+Description=Todo drift sweep: open notes whose done_check already passes
+
+[Service]
+Type=oneshot
+ExecStart=%h/src/utils/scripts/todo_hooks.sh sweep
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=30min

@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = todo_hooks
+omit =
+    todo_hooks/tests/*
+
+[report]
+fail_under = 100
+show_missing = true
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    \.\.\.

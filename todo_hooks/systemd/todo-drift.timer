@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly todo drift sweep
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,27 @@
+# Hooks other repos consume with `repo: https://github.com/kuhyx/utils`.
+# All three are post-* stages, so each clone must install them (see
+# todo_hooks/README.md). They never fail a git operation: the work has
+# already happened, so server/gh trouble prints one warning and exits 0.
+- id: todo-closer
+  name: close Todo trailer tasks
+  entry: scripts/todo_hooks.sh closer
+  language: script
+  stages: [post-commit]
+  always_run: true
+  pass_filenames: false
+
+- id: todo-import-pr-merge
+  name: import PR Todo sections (pull)
+  entry: scripts/todo_hooks.sh import-pr post-merge
+  language: script
+  stages: [post-merge]
+  always_run: true
+  pass_filenames: false
+
+- id: todo-import-pr-rewrite
+  name: import PR Todo sections (pull --rebase)
+  entry: scripts/todo_hooks.sh import-pr post-rewrite
+  language: script
+  stages: [post-rewrite]
+  always_run: true
+  pass_filenames: false
