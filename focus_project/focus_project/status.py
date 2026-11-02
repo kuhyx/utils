@@ -26,8 +26,8 @@ def status(day: date) -> dict[str, Any]:
         "project": project.id,
         "name": project.name,
         "minutes": minutes.minutes_for(day),
-        "daily_minutes": project.daily_minutes,
-        "unlock_minutes": project.unlock_minutes,
+        "daily_minutes": project.daily_on(day),
+        "unlock_minutes": project.unlock_on(day),
         "ends": project.last_day.isoformat(),
         "replaces": list(project.replaces),
     }

@@ -39,4 +39,4 @@ def minutes_for(day: date) -> int:
     if project is None:
         return 0
     seconds = union_seconds(sources.collect(day, project))
-    return min(int(seconds // 60), project.daily_minutes)
+    return min(int(seconds // 60), project.daily_on(day))
