@@ -156,7 +156,7 @@ PALETTE: tuple[Token, ...] = (
 )
 
 # Tokens a source legitimately defines that are not colours in the palette --
-# structural/typographic values checked by the scale check, not the hex check.
+# structural/typographic values checked by structural_check.py, not the hex check.
 NON_COLOUR_CSS = re.compile(
     r"^--(radius|space|text|tracking|font|measure|shadow)-|^--(font-sans|font-mono|measure)$"
 )

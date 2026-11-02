@@ -31,3 +31,8 @@ jobs:
 
       - name: Categorical ramp still passes its constraints
         run: python3 unified-design-system/scripts/ramp_check.py
+
+      # Spacing, radius, type, shadow and motion: palette_check.py parses
+      # hex only, so these scales were unguarded until structural_check.py.
+      - name: Structural scales agree across all token sources
+        run: python3 unified-design-system/scripts/structural_check.py
