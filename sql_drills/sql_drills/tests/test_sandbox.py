@@ -165,3 +165,27 @@ def test_tables_row_error_is_engine_error(fake_mysql: FakeMysql) -> None:
         pytest.raises(_engine.EngineError, match="customers"),
     ):
         box.tables()
+
+
+def test_query_returns_rows_and_columns(fake_mysql: FakeMysql) -> None:
+    fake_mysql.say("SELECT 1", stdout="1\tNULL\n", header="a\tb")
+    with _sandbox.sandbox("") as box:
+        done = box.query("SELECT 1;")
+    assert done.ok
+    assert done.rows == [["1", "NULL"]]
+    assert done.columns == ["a", "b"]
+
+
+def test_query_without_rows_skips_the_header_run(fake_mysql: FakeMysql) -> None:
+    with _sandbox.sandbox("") as box:
+        done = box.query("SELECT 1 WHERE 0;")
+    assert (done.ok, done.rows, done.columns) == (True, [], [])
+    assert [c["headers"] for c in fake_mysql.calls].count(True) == 0
+
+
+def test_query_error_has_no_columns(fake_mysql: FakeMysql) -> None:
+    fake_mysql.say("nope", stderr="ERROR 1054 (42S22): bad", rc=1)
+    with _sandbox.sandbox("") as box:
+        done = box.query("nope")
+    assert not done.ok
+    assert done.columns == []

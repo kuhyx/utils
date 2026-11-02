@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from sql_drills import _sandbox, _store
+from typing import TYPE_CHECKING
+
+from sql_drills import _dialect, _sandbox, _store
+from sql_drills._lcnorm import compare_results
 from sql_drills._model import DrillKindError, PredResult, RunResult
 from sql_drills._normalize import Rows, clean_grid, compare
+
+if TYPE_CHECKING:
+    from sql_drills._dialect import Dialect
 
 
 def _actual(done: _sandbox.Executed, rec: _store.Record) -> Rows:
@@ -15,8 +21,30 @@ def _actual(done: _sandbox.Executed, rec: _store.Record) -> Rows:
     return []
 
 
-def run(drill_id: str, sql: str) -> RunResult:
+def _run_postgres(rec: _store.Record, sql: str) -> RunResult:
+    """The drill's MySQL-made expected rows, judged value-wise on PostgreSQL."""
+    schema = _dialect.to_postgres(rec.text("schema.sql"))
+    with _dialect.sandbox_for("postgresql")(schema) as box:
+        done = box.query(sql)
+    expected = rec.expected_rows()
+    cmp = compare_results(expected, done.rows, "postgresql", ordered=True)
+    return RunResult(
+        ok=done.ok,
+        error=done.error,
+        columns=done.columns,
+        rows=done.rows,
+        expected_rows=expected,
+        match=done.ok and cmp.match,
+        cell_diff=cmp.cell_diff,
+        extra_rows=cmp.extra_rows,
+        missing_rows=cmp.missing_rows,
+    )
+
+
+def run(drill_id: str, sql: str, dialect: Dialect = "mysql") -> RunResult:
     rec = _store.find(drill_id)
+    if _dialect.check(dialect) == "postgresql":
+        return _run_postgres(rec, sql)
     with _sandbox.sandbox(rec.text("schema.sql")) as box:
         done = box.execute(sql)
         shown = done.ok and bool(done.rows)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import re
 import secrets
 from typing import TYPE_CHECKING
@@ -30,6 +30,7 @@ class Executed:
     error: str | None
     code: int | None
     rows: Rows
+    columns: list[str] = field(default_factory=list)
 
 
 def _outcome(res: _engine.SqlResult) -> Executed:
@@ -53,6 +54,13 @@ class Sandbox:
 
     def execute(self, sql: str) -> Executed:
         return _outcome(self._run(sql, headers=False))
+
+    def query(self, sql: str) -> Executed:
+        done = self.execute(sql)
+        if not (done.ok and done.rows):
+            return done
+        columns = self.columns_of(sql, len(done.rows))
+        return Executed(ok=True, error=None, code=None, rows=done.rows, columns=columns)
 
     def columns_of(self, sql: str, row_count: int) -> list[str]:
         """Column names of ``sql``'s output; a name may itself span lines."""

@@ -65,6 +65,7 @@ class RunResult:
     cell_diff: list[CellDiff] = field(default_factory=list)
     extra_rows: list[list[str]] = field(default_factory=list)
     missing_rows: list[list[str]] = field(default_factory=list)
+    note: str | None = None  # e.g. the statement's output elides columns
 
 
 @dataclass(frozen=True)

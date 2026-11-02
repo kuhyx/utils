@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from sql_drills import _engine
+from sql_drills import _engine, _pg_engine
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -76,4 +76,38 @@ def fake_mysql(monkeypatch: pytest.MonkeyPatch) -> FakeMysql:
     """Replace the engine's ``run_sql`` with a scripted fake (no Docker)."""
     fake = FakeMysql()
     monkeypatch.setattr(_engine, "run_sql", fake)
+    return fake
+
+
+@dataclass
+class FakePsql:
+    """Stands in for ``_pg_engine.run_sql``; answers by substring of any command."""
+
+    replies: dict[str, _engine.SqlResult] = field(default_factory=dict)
+    calls: list[dict[str, Any]] = field(default_factory=list)
+
+    def say(self, needle: str, stdout: str = "", stderr: str = "", rc: int = 0) -> None:
+        self.replies[needle] = _engine.SqlResult(rc, stdout, stderr)
+
+    def __call__(
+        self,
+        *commands: str,
+        database: str = "postgres",
+        user: str = "postgres",
+        header: bool = False,
+        timeout: float = 30.0,
+    ) -> _engine.SqlResult:
+        self.calls.append(
+            {"commands": commands, "database": database, "user": user, "header": header}
+        )
+        for needle, reply in self.replies.items():
+            if any(needle in c for c in commands):
+                return reply
+        return _engine.SqlResult(0, "", "")
+
+
+@pytest.fixture
+def fake_pg(monkeypatch: pytest.MonkeyPatch) -> FakePsql:
+    fake = FakePsql()
+    monkeypatch.setattr(_pg_engine, "run_sql", fake)
     return fake

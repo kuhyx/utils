@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -10,7 +10,8 @@ import sql_drills as sd
 from sql_drills import _engine, _paths
 
 if TYPE_CHECKING:
-    from sql_drills.tests.conftest import FakeMysql
+    from sql_drills._dialect import Dialect
+    from sql_drills.tests.conftest import FakeMysql, FakePsql
 
 _PIVOT = "01_pivot_sum"
 _PIVOT_ROWS = [
@@ -149,3 +150,34 @@ def test_error_word_is_only_special_on_error_drills() -> None:
 def test_prediction_on_write_drill_is_refused() -> None:
     with pytest.raises(sd.DrillKindError, match="write"):
         sd.check_prediction(_PIVOT, [["x"]])
+
+
+def test_run_rejects_unknown_dialect() -> None:
+    with pytest.raises(sd.DialectError):
+        sd.run(_PIVOT, "x", dialect=cast("Dialect", "oracle"))
+
+
+def test_run_on_postgres_translates_schema_and_compares_leetcode_style(
+    fake_pg: FakePsql,
+) -> None:
+    fake_pg.say("my query", stdout="region,Q1\nEast,0.0\n")
+    res = sd.run("01_pivot_sum", "my query", dialect="postgresql")
+    assert res.ok
+    assert res.columns == ["region", "Q1"]
+    assert res.rows == [["East", "0.0"]]
+    assert not res.match
+    assert res.cell_diff
+    assert "`" not in str(fake_pg.calls[1]["commands"])
+
+
+def test_run_on_postgres_reports_the_engine_error_text(fake_pg: FakePsql) -> None:
+    fake_pg.say("bad", stderr="ERROR:  nope", rc=3)
+    res = sd.run("01_pivot_sum", "bad", dialect="postgresql")
+    assert (res.ok, res.match, res.error) == (False, False, "ERROR:  nope")
+    assert res.rows == []
+
+
+def test_run_on_postgres_matches_equal_numbers(fake_pg: FakePsql) -> None:
+    rows = "".join(",".join(r) + "\n" for r in _PIVOT_ROWS)
+    fake_pg.say("my query", stdout="region,q1,q2,q3,q4\n" + rows.replace("0,", "0.00,"))
+    assert sd.run(_PIVOT, "my query", dialect="postgresql").match

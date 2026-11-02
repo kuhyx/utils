@@ -52,6 +52,9 @@ def _docker(
         raise EngineError(msg) from exc
 
 
+docker = _docker  # public alias for sibling engine modules
+
+
 def container_state() -> str:
     res = _docker("inspect", "-f", "{{.State.Status}}", CONTAINER)
     return res.stdout.strip() if res.returncode == 0 else "missing"
@@ -77,32 +80,60 @@ def _create() -> subprocess.CompletedProcess[str]:
     )  # fmt: skip
 
 
+def wait_ready(
+    ready: Callable[[], bool],
+    label: str,
+    timeout: float,
+    sleep: Callable[[float], None],
+    clock: Callable[[], float],
+) -> None:
+    """Poll ``ready`` until true or ``timeout`` seconds; say how to resume."""
+    deadline = clock() + timeout
+    while not ready():
+        if clock() >= deadline:
+            msg = f"{label} not ready after {timeout:.0f}s; rerun to keep waiting"
+            raise EngineError(msg)
+        sleep(1.0)
+
+
+def start_or_create(
+    container: str, create: Callable[[], subprocess.CompletedProcess[str]]
+) -> None:
+    """Make ``container`` run: create it if missing, start it if stopped."""
+    found = _docker("inspect", "-f", "{{.State.Status}}", container)
+    state = found.stdout.strip() if found.returncode == 0 else "missing"
+    if state == "running":
+        return
+    res = create() if state == "missing" else _docker("start", container)
+    if res.returncode != 0:
+        msg = f"could not start container: {res.stderr.strip()}"
+        raise EngineError(msg)
+
+
 def ensure_running(
     timeout: float = READY_TIMEOUT,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> None:
     """Create or resume the container if needed, wait (bounded) for MySQL."""
-    state = container_state()
-    if state == "missing":
-        res = _create()
-    elif state != "running":
-        res = _docker("start", CONTAINER)
-    else:
-        res = subprocess.CompletedProcess([], 0, "", "")
-    if res.returncode != 0:
-        msg = f"could not start container: {res.stderr.strip()}"
-        raise EngineError(msg)
-    deadline = clock() + timeout
-    while not is_ready():
-        if clock() >= deadline:
-            msg = f"MySQL not ready after {timeout:.0f}s; rerun to keep waiting"
-            raise EngineError(msg)
-        sleep(1.0)
+    start_or_create(CONTAINER, _create)
+    wait_ready(is_ready, "MySQL", timeout, sleep, clock)
 
 
 def stop() -> None:
     _docker("rm", "-f", CONTAINER)
+
+
+def exec_query(argv: list[str], stdin: str | None, timeout: float) -> SqlResult:
+    """``docker <argv>`` as a query: a timeout becomes a clear EngineError."""
+    try:
+        res = _docker(*argv, stdin=stdin, timeout=timeout)
+    except EngineError as exc:
+        if "timed out" in str(exc):
+            msg = f"query timed out after {timeout:.0f}s"
+            raise EngineError(msg) from exc
+        raise
+    return SqlResult(res.returncode, res.stdout, res.stderr)
 
 
 def run_sql(
@@ -119,11 +150,4 @@ def run_sql(
         argv.append("-N")
     if database:
         argv.append(database)
-    try:
-        res = _docker(*argv, stdin=sql, timeout=timeout)
-    except EngineError as exc:
-        if "timed out" in str(exc):
-            msg = f"query timed out after {timeout:.0f}s"
-            raise EngineError(msg) from exc
-        raise
-    return SqlResult(res.returncode, res.stdout, res.stderr)
+    return exec_query(argv, sql, timeout)

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sql_drills"
-version = "0.1.0"
-description = "MySQL SQL drills: sandboxed grading engine with exact-match cell diff"
+version = "0.2.0"
+description = "SQL drills (MySQL, PostgreSQL): sandboxed grading, LeetCode statement examples"
 requires-python = ">=3.14"
 # Stdlib only on purpose: the tutor server imports it from the system python.
 dependencies = []
@@ -45,8 +45,8 @@ unfixable = []
 "scripts/*.py" = ["INP001"]
 # Table names come from information_schema of a throwaway database.
 "**/_sandbox.py" = ["S608"]
-"**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
-"**/test_*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+"**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "S608", "SLF001"]
+"**/test_*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "S608", "SLF001"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -144,7 +144,7 @@ generated-members = [
 exclude_dirs = ["tests", ".venv"]
 
 [tool.pytest.ini_options]
-markers = ["docker: needs the live sql-drills MySQL container (skipped when it is down)"]
+markers = ["docker: needs a live sql-drills MySQL or PostgreSQL container (skipped when it is down)"]
 testpaths = ["sql_drills/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
