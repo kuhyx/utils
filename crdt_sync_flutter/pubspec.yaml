@@ -4,7 +4,7 @@ description: >-
   persisted per-install device id, and a one-call bootstrap. Removes the
   ~150 lines of firebase_backend.dart every consuming app was copying.
 publish_to: 'none'
-version: 0.3.5
+version: 0.4.0
 
 environment:
   sdk: ^3.12.2
@@ -23,10 +23,15 @@ dependencies:
   # consuming apps can test their own sync wiring without rebuilding it.
   flutter_test:
     sdk: flutter
-  # The one-tap Google plugin. Android/iOS/web only -- there is no Linux
-  # implementation -- so desktop reaches Google through the loopback flow in
+  # The one-tap Google ID token on Android: AccountManager chooser, no Google
+  # client library in the APK. Android only -- web has no token source and
+  # desktop reaches Google through the loopback flow in
   # google_desktop_sign_in.dart instead. See google_platform.dart.
-  google_sign_in: 7.2.0
+  google_account_token:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: google_account_token-v0.1.0
+      path: google_account_token
   http: 1.6.0
   shared_preferences: 2.5.6
   # Opens the system browser for the desktop loopback sign-in.

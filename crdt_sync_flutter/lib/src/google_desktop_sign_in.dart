@@ -1,11 +1,11 @@
 /// One-tap Google sign-in for desktop, via the OAuth loopback flow.
 ///
-/// `google_sign_in` ships android, ios and web implementations only -- there
-/// is no `google_sign_in_linux` -- so a real GTK build cannot use the plugin
-/// at all. The installed-app flow replaces it: bind a loopback socket, open
-/// the system browser at Google's consent screen, catch the redirect, and
-/// exchange the code for an id_token with PKCE. The token is the same shape
-/// the plugin returns, so `signInWithGoogle` cannot tell the two apart.
+/// The Android plugin (`google_account_token`) wraps AccountManager, which
+/// does not exist on Linux, so a real GTK build cannot use it at all. The
+/// installed-app flow replaces it: bind a loopback socket, open the system
+/// browser at Google's consent screen, catch the redirect, and exchange the
+/// code for an id_token with PKCE. The token is the same shape the plugin
+/// returns, so `signInWithGoogle` cannot tell the two apart.
 ///
 /// Everything decision-shaped lives in `google_pkce.dart` and is covered.
 /// This file is the I/O: a socket, a browser, one POST.
@@ -66,8 +66,12 @@ Future<bool> _launchInBrowser(Uri url) =>
 /// [clientId] must be a **Desktop**-type OAuth client. The Web client id used
 /// for the Android flow will be rejected here, and a Desktop client is the
 /// only type permitted to redirect to loopback.
+///
+/// [clientSecret] is that client's secret; Google's token endpoint rejects a
+/// Desktop exchange without it. See `tokenExchangeBody`.
 Future<String?> googleDesktopIdToken({
   required String clientId,
+  String clientSecret = '',
   ServerBinder binder = _bindLoopback,
   BrowserLauncher launcher = _launchInBrowser,
   http.Client? httpClient,
@@ -83,11 +87,7 @@ Future<String?> googleDesktopIdToken({
   final client = httpClient ?? http.Client();
   try {
     final opened = await launcher(
-      buildAuthUrl(
-        clientId: clientId,
-        redirectPort: port,
-        pkce: pair,
-      ),
+      buildAuthUrl(clientId: clientId, redirectPort: port, pkce: pair),
     );
     // No browser means no redirect will ever arrive: fail now rather than
     // holding the socket open for the full timeout.
@@ -99,6 +99,7 @@ Future<String?> googleDesktopIdToken({
     return await _exchange(
       client: client,
       clientId: clientId,
+      clientSecret: clientSecret,
       code: code,
       port: port,
       verifier: pair.verifier,
@@ -136,6 +137,7 @@ Future<String?> _awaitRedirect(
 Future<String?> _exchange({
   required http.Client client,
   required String clientId,
+  required String clientSecret,
   required String code,
   required int port,
   required String verifier,
@@ -144,6 +146,7 @@ Future<String?> _exchange({
     Uri.parse(kGoogleTokenEndpoint),
     body: tokenExchangeBody(
       clientId: clientId,
+      clientSecret: clientSecret,
       code: code,
       redirectPort: port,
       verifier: verifier,

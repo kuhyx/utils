@@ -1,15 +1,18 @@
 /// Whether the programmatic Google sign-in flow exists on this platform.
 ///
-/// The io half. `google_sign_in` ships federated implementations for android,
-/// ios and web only -- there is no `google_sign_in_linux` -- so a real GTK
-/// desktop build (lyricanki has one) answers false here and reaches Google
-/// through the loopback flow instead.
+/// The io half. The flow is the `google_account_token` plugin, which wraps the
+/// framework AccountManager and therefore exists on Android only. Every other
+/// `dart:io` platform (Linux, Windows, macOS) reaches Google through the
+/// loopback flow instead.
 library;
 
-import 'dart:io';
+import 'package:google_account_token/google_account_token.dart';
 
-/// True on the platforms shipping the programmatic plugin flow.
-bool get googleSignInSupported => Platform.isAndroid || Platform.isIOS;
+/// True where the one-tap AccountManager flow exists: Android.
+///
+/// Asks the plugin rather than `Platform.isAndroid` so the two can never
+/// disagree about where a token can be produced.
+bool get googleSignInSupported => googleAccountTokenSupported;
 
 /// Whether the loopback sign-in flow can run: it needs a bindable socket and
 /// a system browser, which every `dart:io` platform has.

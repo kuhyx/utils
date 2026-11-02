@@ -136,13 +136,21 @@ RedirectResult parseRedirect(Uri uri, {required String expectedState}) {
 }
 
 /// Form body for exchanging [code] at [kGoogleTokenEndpoint].
+///
+/// [clientSecret] is the Desktop client's secret. Google issues Desktop
+/// clients one and rejects the exchange without it even with PKCE, but
+/// documents it as non-confidential for installed apps: it ships in the
+/// binary, injected at build time and never committed. Left out of the body
+/// when empty, so a caller that has none behaves exactly as before.
 Map<String, String> tokenExchangeBody({
   required String clientId,
   required String code,
   required int redirectPort,
   required String verifier,
+  String clientSecret = '',
 }) => <String, String>{
   'client_id': clientId,
+  if (clientSecret.isNotEmpty) 'client_secret': clientSecret,
   'code': code,
   'code_verifier': verifier,
   'grant_type': 'authorization_code',

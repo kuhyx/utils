@@ -8,7 +8,7 @@ bootstrap, so a new app reaches "syncing" without writing any of it.
 
 `crdt_sync` is pure Dart on purpose — it runs from command-line tools and from
 `wake_alarm`'s headless systemd job, so it cannot depend on
-`flutter_secure_storage` or `google_sign_in`. It takes closures instead.
+`flutter_secure_storage` or the Android Google plugin. It takes closures instead.
 
 Every Flutter app then wrote the same ~390 lines to supply those closures
 (`firebase_backend.dart` + `google_sign_in_backend.dart` + `google_platform*`),
@@ -110,6 +110,11 @@ const kServerClientId = '845446124781-...apps.googleusercontent.com';
 /// to loopback.
 const kDesktopClientId = '845446124781-...apps.googleusercontent.com';
 
+/// That Desktop client's secret. Google rejects the token exchange without
+/// it, but treats it as non-confidential for installed apps: inject it at
+/// build time (`--dart-define`), never commit it. '' sends none.
+const kDesktopClientSecret = String.fromEnvironment('DESKTOP_CLIENT_SECRET');
+
 SyncSettingsScreen(
   accountLoader: () => loadAccount(),
   accountSaver: saveAccount,
@@ -121,6 +126,7 @@ SyncSettingsScreen(
     tokenFetcher: () => googleAnyIdToken(
       serverClientId: kServerClientId,
       desktopClientId: kDesktopClientId,
+      desktopClientSecret: kDesktopClientSecret,
     ),
   ),
   googleAvailable: googleAnySignInSupported(
@@ -132,13 +138,13 @@ SyncSettingsScreen(
 
 ### One tap on every platform
 
-`google_sign_in` ships **android, ios and web** implementations only — there
-is no `google_sign_in_linux` — so a real GTK desktop build cannot use the
-plugin at all. This package covers both halves and picks between them:
+[`google_account_token`](../google_account_token) wraps Android's AccountManager
+(no Google client library in the APK), so a real GTK desktop build cannot use
+it. This package covers both halves and picks between them:
 
 | Platform | Flow | Entry point |
 |---|---|---|
-| Android / iOS | `google_sign_in` plugin, OS account picker | `googleIdToken` |
+| Android | `google_account_token` plugin, OS account chooser | `googleIdToken` |
 | Linux / Windows / macOS | OAuth **loopback** + PKCE, system browser | `googleDesktopIdToken` |
 | Web | none (GIS renders its own button) | falls back to password |
 

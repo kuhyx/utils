@@ -142,6 +142,29 @@ void main() {
     expect(body['redirect_uri'], 'http://127.0.0.1:9');
   });
 
+  test('tokenExchangeBody omits client_secret when none is configured', () {
+    final body = tokenExchangeBody(
+      clientId: 'cid',
+      code: 'c',
+      redirectPort: 9,
+      verifier: 'v',
+    );
+    expect(body.containsKey('client_secret'), isFalse);
+  });
+
+  test('tokenExchangeBody sends the Desktop client_secret when given', () {
+    // Google issues Desktop clients a secret and rejects the exchange
+    // without it, even with PKCE.
+    final body = tokenExchangeBody(
+      clientId: 'cid',
+      clientSecret: 'the-secret',
+      code: 'c',
+      redirectPort: 9,
+      verifier: 'v',
+    );
+    expect(body['client_secret'], 'the-secret');
+  });
+
   group('idTokenFromResponse', () {
     test('reads the id_token', () {
       expect(idTokenFromResponse('{"id_token":"tok"}'), 'tok');

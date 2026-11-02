@@ -23,9 +23,9 @@ BrowserLauncher _respondingLauncher(
   final state = url.queryParameters['state']!;
   unawaited(
     http.get(
-      Uri.parse('http://127.0.0.1:$port/').replace(
-        queryParameters: params(state),
-      ),
+      Uri.parse(
+        'http://127.0.0.1:$port/',
+      ).replace(queryParameters: params(state)),
     ),
   );
   return true;
@@ -52,6 +52,22 @@ void main() {
     expect(token, 'the-token');
     expect(sentBody['code'], 'auth-code');
     expect(sentBody['code_verifier'], 'v');
+  });
+
+  test('sends the configured client_secret in the exchange', () async {
+    late Map<String, String> sentBody;
+    final client = MockClient((request) async {
+      sentBody = Uri.splitQueryString(request.body);
+      return http.Response('{"id_token":"t"}', 200);
+    });
+    await googleDesktopIdToken(
+      clientId: 'desktop-cid',
+      clientSecret: 'shh',
+      binder: _bind,
+      launcher: _respondingLauncher((state) => {'code': 'c', 'state': state}),
+      httpClient: client,
+    );
+    expect(sentBody['client_secret'], 'shh');
   });
 
   test('returns null when the user denies consent', () async {
@@ -99,9 +115,7 @@ void main() {
     final token = await googleDesktopIdToken(
       clientId: 'cid',
       binder: _bind,
-      launcher: _respondingLauncher(
-        (state) => {'code': 'c', 'state': state},
-      ),
+      launcher: _respondingLauncher((state) => {'code': 'c', 'state': state}),
       httpClient: MockClient(
         (_) async => http.Response('{"error":"invalid_grant"}', 400),
       ),

@@ -1,8 +1,8 @@
 /// Picks the right Google sign-in flow for the platform.
 ///
-/// Two flows exist because one is not enough: `google_sign_in` ships android,
-/// ios and web implementations only -- there is no `google_sign_in_linux` --
-/// so a real GTK desktop build reaches Google through the OAuth loopback flow
+/// Two flows exist because one is not enough: the `google_account_token`
+/// plugin wraps Android's AccountManager, which has no desktop counterpart, so
+/// a real GTK desktop build reaches Google through the OAuth loopback flow
 /// instead. Both yield a Google ID token of the same shape, so
 /// `signInWithGoogle` cannot tell them apart.
 ///
@@ -48,7 +48,7 @@ bool desktopSignInSupported(String desktopClientId) =>
 /// worth testing, and returning it lets the suite assert the routing on a
 /// host that can run neither flow for real.
 enum GoogleFlow {
-  /// The `google_sign_in` plugin: Android and iOS.
+  /// The `google_account_token` plugin: Android.
   plugin,
 
   /// OAuth loopback in the system browser: Linux, Windows, macOS.
@@ -72,9 +72,13 @@ GoogleFlow googleFlowFor({
 ///
 /// Null when neither is available or the user backs out -- the caller falls
 /// back to the password path either way.
+///
+/// [desktopClientSecret] is the Desktop client's secret (see
+/// `googleDesktopIdToken`); '' sends none.
 Future<String?> googleAnyIdToken({
   required String serverClientId,
   required String desktopClientId,
+  String desktopClientSecret = '',
 }) async {
   switch (googleFlowFor(
     serverClientId: serverClientId,
@@ -87,7 +91,10 @@ Future<String?> googleAnyIdToken({
     case GoogleFlow.plugin:
       return await googleIdToken(serverClientId: serverClientId);
     case GoogleFlow.desktop:
-      return await googleDesktopIdToken(clientId: desktopClientId);
+      return await googleDesktopIdToken(
+        clientId: desktopClientId,
+        clientSecret: desktopClientSecret,
+      );
     // coverage:ignore-end
     case GoogleFlow.none:
       return null;

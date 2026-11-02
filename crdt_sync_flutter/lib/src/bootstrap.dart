@@ -84,9 +84,9 @@ Future<FirebaseRestClient?> openSync(
 /// Signs in with Google alone, for a device with no account stored yet.
 ///
 /// The one-tap path: [openSync] needs an account to know which email to use,
-/// but a fresh install has none. [tokenFetcher] is the app's `google_sign_in`
-/// call -- a closure because that plugin is Android/iOS/web only and this
-/// package must keep working on Linux desktop.
+/// but a fresh install has none. [tokenFetcher] is the app's Google token
+/// source -- a closure because the Android plugin does not exist elsewhere and
+/// this package must keep working on Linux desktop.
 ///
 /// Returns null when the user dismisses the picker; throws
 /// [FirebaseAuthError] when Google succeeds but resolves to the wrong uid,
@@ -171,8 +171,5 @@ Future<FirebaseRestClient?> _clientFromStoredSession(
     store: keystoreCredentialStore(storage: storage),
   );
   if (!await auth.hasSession()) return null;
-  return FirebaseRestClient(
-    databaseUrl: app.project.databaseUrl,
-    auth: auth,
-  );
+  return FirebaseRestClient(databaseUrl: app.project.databaseUrl, auth: auth);
 }
