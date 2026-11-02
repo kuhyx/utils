@@ -11,9 +11,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from leetcode_coach import cluster_cli, leetcode_repl, local_session, progress
+from leetcode_coach import (
+    cluster_cli,
+    guard_bridge,
+    leetcode_repl,
+    local_session,
+    progress,
+)
 from leetcode_coach.tests.test_progress import log, solve
-from leetcode_guard import _leetcode, _live_solved
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -171,43 +176,36 @@ def test_retest_of_an_unsolved_problem_is_refused(
 
 
 def test_live_check_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
-    def boom() -> object:
+    def boom(_slugs: list[str]) -> frozenset[str]:
         raise OSError
 
-    monkeypatch.setattr(cluster_cli, "build_client", boom)
+    monkeypatch.setattr(guard_bridge, "solved_slugs", boom)
+    assert cluster_cli.accepted_on_leetcode("missing-number") is False
+
+
+def test_live_check_without_leetcode_guard_serves_the_problem(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def absent(_slugs: list[str]) -> frozenset[str]:
+        raise guard_bridge.GuardUnavailableError
+
+    monkeypatch.setattr(guard_bridge, "solved_slugs", absent)
     assert cluster_cli.accepted_on_leetcode("missing-number") is False
 
 
 def test_live_check_reports_an_accepted_problem(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    seen: list[object] = []
+    seen: list[list[str]] = []
 
-    class Client:
-        post = "post"
+    def solved(slugs: list[str]) -> frozenset[str]:
+        seen.append(slugs)
+        return frozenset({"missing-number"}) & frozenset(slugs)
 
-    def check(post: object, slugs: list[str]) -> _live_solved.LiveSolved:
-        seen.extend([post, *slugs])
-        return _live_solved.LiveSolved(solved=frozenset({"missing-number"}))
-
-    monkeypatch.setattr(cluster_cli, "build_client", Client)
-    monkeypatch.setattr(cluster_cli, "check_solved", check)
+    monkeypatch.setattr(guard_bridge, "solved_slugs", solved)
     assert cluster_cli.accepted_on_leetcode("missing-number") is True
     assert cluster_cli.accepted_on_leetcode("two-sum") is False
-    assert seen[:2] == ["post", "missing-number"]
-
-
-def test_a_silent_live_check_serves_the_problem(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    def silent(_q: str, _v: dict[str, object]) -> _leetcode.GraphQLResult:
-        return _leetcode.GraphQLResult(data=None, transport_error="offline")
-
-    class Client:
-        post = staticmethod(silent)
-
-    monkeypatch.setattr(cluster_cli, "build_client", Client)
-    assert cluster_cli.accepted_on_leetcode("missing-number") is False
+    assert seen[0] == ["missing-number"]
 
 
 def test_both_retests_done_means_nothing_more(

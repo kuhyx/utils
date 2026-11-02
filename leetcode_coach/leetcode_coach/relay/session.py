@@ -95,6 +95,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
             "started": self.started,
             "ended": self.ended,
             "end_reason": self.end_reason,
+            "kind": "sql" if self.gate.sql() else "algorithm",
         }
 
 

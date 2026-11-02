@@ -2,9 +2,9 @@
 
 The relay runs in-process with its real threads (coverage sees it), on port
 0, with the 3 s pace and the minute between probes injected away. The
-LeetCode guard's data dir is redirected into the test's tmp dir and seeded
-(`guard_digest`), so "byte-identical afterwards" is checked without racing
-the live harvester on the developer's real files.
+LeetCode guard's default data dir sits under a redirected HOME and is seeded
+(`guard_digest`), so "byte-identical afterwards" is checked on files the live
+harvester cannot touch.
 """
 
 from __future__ import annotations
@@ -18,15 +18,15 @@ from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
 from leetcode_coach.relay.app import Relay
 from leetcode_coach.relay.coach import Deps
 from leetcode_coach.relay.probe import AcceptedProbe
 from leetcode_coach.tests._relay_statements import MISSING_NUMBER
-from leetcode_guard import _constants
-from leetcode_guard._submissions import AcSubmission, ProbeStatus, SolveProbe
 
 if TYPE_CHECKING:
-    import pytest
+    from collections.abc import Sequence
 
 FAKE_CLAUDE = Path(__file__).with_name("_fake_claude.py")
 DEV = "3f2a7c1e-9b4d-4e6f-8a1b-2c3d4e5f6a7b"
@@ -57,28 +57,41 @@ def calls(root: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in lines]
 
 
+@dataclass(frozen=True)
+class FakeSubmission:
+    """One accepted submission, as the probe reports it."""
+
+    title_slug: str
+    timestamp: int
+
+
+@dataclass(frozen=True)
+class FakeSolve:
+    """Guard's ``SolveProbe``, structurally."""
+
+    usable: bool
+    submissions: Sequence[FakeSubmission]
+    reason: str
+
+
 @dataclass
 class FakeProbe:
-    """``fetch_recent_ac`` as a switch: unusable, nothing, or an Accepted."""
+    """``recent_accepted`` as a switch: unusable, nothing, or an Accepted."""
 
     status: str = "nothing"
     timestamp_s: int = 0
     calls: int = 0
 
-    def __call__(self) -> SolveProbe:
+    def __call__(self) -> FakeSolve:
         self.calls += 1
         if self.status == "unusable":
-            return SolveProbe(ProbeStatus.UNVERIFIABLE, (), "session expired")
+            return FakeSolve(False, (), "session expired")
         rows = (
-            (
-                AcSubmission(
-                    "1", "Missing Number", "missing-number", self.timestamp_s, "js"
-                ),
-            )
+            (FakeSubmission("missing-number", self.timestamp_s),)
             if self.status == "accepted"
             else ()
         )
-        return SolveProbe(ProbeStatus.OK, rows, "ok")
+        return FakeSolve(True, rows, "ok")
 
 
 @dataclass
@@ -170,10 +183,32 @@ def wait_for(check: Any, timeout: float = 5.0) -> Any:
     raise AssertionError(msg)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A throwaway HOME, so the guard's default data dir is the test's own."""
+    home = tmp_path / "home"
+    guard_dir_of(home).mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+
+
+def guard_dir_of(home: Path) -> Path:
+    """Where leetcode-guard keeps its data under `home`."""
+    return home / ".local" / "share" / "leetcode-guard"
+
+
+def guard_dir() -> Path:
+    """The (redirected) guard data dir; refuses to name the real one."""
+    root = guard_dir_of(Path.home())
+    if "pytest-of-" not in str(root):
+        msg = f"{root} is not a pytest tmp dir: refusing to touch guard data"
+        raise RuntimeError(msg)
+    return root
+
+
 def guard_digest() -> str:
     """A hash of every file under the (redirected) guard data dir."""
     digest = hashlib.sha256()
-    root = Path(_constants.DATA_DIR)
+    root = guard_dir()
     for path in sorted(root.rglob("*")):
         digest.update(str(path.relative_to(root)).encode())
         if path.is_file():
@@ -183,7 +218,7 @@ def guard_digest() -> str:
 
 def seed_guard() -> None:
     """Put a ledger and caches where the guard would read them."""
-    root = Path(_constants.DATA_DIR)
+    root = guard_dir()
     (root / "ledger.json").write_text(
         '{"entries": [{"k": "credit:1"}]}', encoding="utf-8"
     )

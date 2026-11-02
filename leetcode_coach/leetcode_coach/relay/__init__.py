@@ -6,6 +6,6 @@ both feed one paced serial lane (``lane``) into the session backend
 (``coach``), which grades the five steps and runs the coaching chat.
 
 Nothing here can reach the gate's ledger, credits or unlocks: the only
-``leetcode_guard`` modules in the import closure are the read-only
-submission probe and its client (``test_relay_boundary.py``).
+``leetcode_guard`` modules reachable are the read-only ones `guard_bridge`
+names, imported on demand (``test_guard_boundary.py``).
 """

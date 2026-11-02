@@ -35,6 +35,7 @@ CODE = "function missingNumber(nums) {\n  return 0;\n}"
         ("is it XOR?", False),
         ("I think (not sure) it is about pairs", False),
         ("req: a = b", False),
+        ("shape: one row per id (a = b)", False),
         ("is it x ^ y?", None),
         ("a = b", None),
         ("what does f(3) give", None),

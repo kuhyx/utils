@@ -17,11 +17,11 @@ from typing import TYPE_CHECKING, Any
 
 from leetcode_coach import answer_key, session_log
 from leetcode_coach.tests import _relay_support as rs
-from leetcode_guard import _coach_log
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+ACCEPTED_STEP = 4
 OPENER = "Let's start. What limit binds here?\n<!-- rung:H0 -->"
 HINT = "What happens to a value combined with itself?\n<!-- rung:H1 -->"
 CODE = (
@@ -165,18 +165,18 @@ def run_flow(rig: rs.Rig, ends: Ends) -> None:
     events = session_log.read(log)
     assert [e["event"] for e in events].count("grade") == 10
     assert all(e.get("sid") == sid for e in events if e["event"] in {"grade", "chat"})
-    problem = _coach_log.read_session(log)
-    assert problem is not None
-    assert problem.max_rung == "H1"
-    assert problem.accepted is True
-    assert problem.grades is not None
-    assert {k: v["grade"] for k, v in problem.grades.items()} == {
+    rungs = [e["rung"] for e in events if e["event"] == "rung"]
+    assert max(rungs) == "H1"
+    last = {e["step"]: e for e in events if e["event"] == "grade"}
+    assert {e["grade"] for n, e in last.items() if n == ACCEPTED_STEP} == {"pass"}
+    names = {1: "constraint", 2: "requirements", 3: "toolbox", 5: "postmortem"}
+    assert {names[n]: last[n]["grade"] for n in names} == {
         "constraint": "fail",
         "requirements": "pass",
         "toolbox": "pass",
         "postmortem": "pass",
     }
-    assert problem.grades["constraint"]["forced"] is True
+    assert last[1]["forced"] is True
     coach_calls = [c for c in rs.calls(rig.extra["claude"]) if c["kind"] == "coach"]
     assert all(c["log"] == str(log) for c in coach_calls)
     key = answer_key.load_answers()["missing-number"]

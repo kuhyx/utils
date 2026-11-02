@@ -1,0 +1,241 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leetcode-coach"
+version = "0.1.0"
+description = "The /leetcode coach as a library: phase gate, leak and stop gates, session log, grading, cards, relay"
+requires-python = ">=3.14"
+# Everything below loads lazily (rtdb, make_cards, relay.__main__): importing
+# phase, leak, toolbox, progress or session_log needs the stdlib only.
+# leetcode_guard is NOT a dependency (guard_bridge imports it on demand, so the
+# package never pulls the gate's ledger code into a tutor server).
+dependencies = [
+    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.9.2#subdirectory=crdt-sync",
+    "genanki==0.13.1",
+    "requests==2.34.2",
+]
+
+[tool.setuptools.packages.find]
+include = ["leetcode_coach*"]
+
+[tool.setuptools.package-data]
+# The skill body and the launcher are read/executed from the package dir.
+leetcode_coach = ["SKILL.md", "leetcode", "*.json", "py.typed"]
+
+[tool.ruff]
+target-version = "py314"
+include = ["*.py", "**/*.py"]
+# leetcode_coach/hook_shims holds the <=3-line files installed into
+# ~/.claude/hooks: a docstring, an import and a one-line guarded exec. Three
+# lines cannot satisfy ruff ALL (or the formatter, which would split the exec
+# into five), and the shims carry no logic -- test_stop_gate.py runs the real
+# one end to end. force-exclude makes the exclusion hold for the explicit file
+# lists pre-commit passes.
+exclude = [".git", ".venv", "__pycache__", "build", "dist", ".eggs", "leetcode_coach/hook_shims"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "CPY001",
+    "D203",
+    "D213",
+    "COM812",
+    "ISC001",
+    "S603",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = [
+    "ANN", "ARG", "D", "DTZ011", "E501", "FBT",
+    "PLC0415", "PLR0913", "PLR2004", "PTH", "RUF003", "S101", "S104", "S105",
+    "SLF001",
+]
+"**/test_*.py" = [
+    "ANN", "ARG", "D", "DTZ011", "E501", "FBT",
+    "PLC0415", "PLR0913", "PLR2004", "PTH", "RUF003", "S101", "S104", "S105",
+    "SLF001",
+]
+# Every one of these modules is a command line or a hook whose printed text IS
+# its interface: the REPL session, the offline session, the card builder's
+# table, the statement fetcher, the eval verdict table, `leetcode report`'s
+# rows, and the Stop hook's one JSON decision line. T201 is auto-fixable under
+# --unsafe-fixes, so without these entries the fixer deletes those prints and
+# still exits 0. Their tests assert on stdout.
+"leetcode_coach/leetcode_repl.py" = ["T201"]
+"leetcode_coach/local_session.py" = ["T201"]
+"leetcode_coach/make_cards.py" = ["T201"]
+"leetcode_coach/fetch_problem.py" = ["S310", "T201"]
+"leetcode_coach/eval_local.py" = ["T201"]
+"leetcode_coach/stop_gate.py" = ["T201"]
+"leetcode_coach/cluster_cli.py" = ["T201"]
+"leetcode_coach/toolbox_cards.py" = ["T201"]
+"leetcode_coach/report.py" = ["T201"]
+# S310 (urlopen scheme audit): all three open a fixed literal URL --
+# AnkiConnect on 127.0.0.1, LeetCode's https GraphQL endpoint, and Ollama on
+# localhost, where http_json additionally refuses any URL off OLLAMA_URL. They
+# stay on stdlib urllib on purpose: fetch_problem runs by path with no install.
+# ANN401: AnkiConnect's `result` is untyped JSON whose shape depends on the
+# action, so `_call` returns Any and each caller indexes what its action sends.
+"leetcode_coach/anki_connect.py" = ["ANN401", "S310"]
+# The coach relay's lane, assembly, phone link and feedback check take one
+# keyword argument per independently injectable seam (clock, pace, timings,
+# what the feedback may not say): the E2E tests run the real threads at test
+# speed through exactly these arguments.
+"leetcode_coach/relay/lane.py" = ["PLR0913"]
+"leetcode_coach/relay/app.py" = ["PLR0913"]
+"leetcode_coach/relay/phone.py" = ["PLR0913"]
+"leetcode_coach/relay/graders.py" = ["PLR0913"]
+"leetcode_coach/local_backend.py" = ["S310"]
+"leetcode_coach/guard_bridge.py" = ["D101", "D102", "D103"]
+"leetcode_coach/shape.py" = ["D103"]
+"leetcode_coach/gate_notes.py" = ["D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+known-first-party = ["leetcode_coach"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "double"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+disallow_any_unimported = true
+disallow_any_explicit = false
+disallow_any_generics = true
+disallow_subclassing_any = true
+strict_equality = true
+extra_checks = true
+ignore_missing_imports = true
+show_error_codes = true
+color_output = true
+exclude = [".venv/", "leetcode_coach/hook_shims/"]
+
+[tool.pylint.main]
+# The subproject root on the path, so pylint resolves the package's own
+# imports the same way pytest does instead of reporting import-error.
+init-hook = "import sys; sys.path.insert(0, 'leetcode_coach')"
+analyse-fallback-blocks = true
+persistent = true
+jobs = 0
+py-version = "3.14"
+ignore = [".venv", "__pycache__"]
+# Tests are linted by ruff (same exemptions as above); `ignore-paths`, not
+# `ignore`, because pre-commit hands pylint explicit file paths.
+# hook_shims: see the ruff exclude above.
+ignore-paths = ["^(.*/)?tests/.*$", "^(.*/)?hook_shims/.*$"]
+ignore-patterns = [".*\\.pyi$"]
+
+[tool.pylint.basic]
+# snake_case, plus the ``do_<METHOD>`` names http.server dispatches on.
+method-rgx = "([^\\W\\dA-Z][^\\WA-Z]{2,}|_[^\\WA-Z]*|__[^\\W\\dA-Z][^\\WA-Z]+__|do_[A-Z]+)$"
+
+[tool.pylint.messages_control]
+enable = "all"
+disable = [
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "use-implicit-booleaness-not-comparison",
+    "use-implicit-booleaness-not-comparison-to-string",
+    "use-implicit-booleaness-not-comparison-to-zero",
+]
+
+[tool.pylint.design]
+min-public-methods = 0
+max-module-lines = 1000
+max-attributes = 10
+
+[tool.pylint.typecheck]
+generated-members = [
+    ".*\\.assert_called_once_with",
+    ".*\\.assert_called_once",
+    ".*\\.assert_called",
+    ".*\\.assert_not_called",
+    ".*\\.assert_any_call",
+    ".*\\.call_args",
+    ".*\\.call_args_list",
+    ".*\\.call_count",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["leetcode_coach/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=leetcode_coach",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=lcov",
+]
+filterwarnings = [
+    # "error" is the point: a warning in this package is a bug. The
+    # DeprecationWarning exemption: urllib3/requests emit them from inside the
+    # dependency.
+    "error",
+    "ignore::DeprecationWarning",
+    "default::pytest.PytestUnraisableExceptionWarning",
+]
+
+[tool.coverage.run]
+source = ["leetcode_coach"]
+branch = true
+omit = [
+    # Exec'd into a fresh interpreter, so coverage cannot see them; the stop
+    # gate's shim is run end to end by test_stop_gate.py instead.
+    "*/hook_shims/*",
+    "*/__pycache__/*",
+    "*/tests/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "raise AssertionError",
+    "if TYPE_CHECKING:",
+    'if __name__ == "__main__":',
+]
+partial_branches = ["pragma: no branch"]

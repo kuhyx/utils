@@ -13,6 +13,7 @@ import pytest
 
 from leetcode_coach import (
     claude_cli,
+    gate_notes,
     local_backend,
     phase,
     req_check,
@@ -130,7 +131,7 @@ def test_screen_judges_only_the_current_session(tmp_path: Path) -> None:
 def test_property_line_is_public() -> None:
     box = toolbox.load_safe()
     prop = next(iter(box.properties))
-    assert phase.property_line(prop, box).startswith(prop)
+    assert gate_notes.property_line(prop, box).startswith(prop)
 
 
 def test_ask_merges_the_extra_env(

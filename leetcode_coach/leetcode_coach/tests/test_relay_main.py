@@ -9,15 +9,16 @@ from typing import TYPE_CHECKING, Any
 
 import crdt_sync
 
+from leetcode_coach import guard_bridge
 from leetcode_coach.relay import __main__ as entry
 from leetcode_coach.relay import app as app_mod
 from leetcode_coach.relay import config
 from leetcode_coach.relay.rtdb import Rtdb
 from leetcode_coach.tests import _relay_support as rs
 from leetcode_coach.tests._fake_rtdb import FakeRtdb
-from leetcode_guard import _snapshot_auth
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     import pytest
@@ -27,23 +28,15 @@ def test_make_rtdb_signs_in_as_its_own_app(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv(config.RTDB_ENV, "")
     seen: list[str] = []
 
-    class Auth:
-        @staticmethod
-        def id_token() -> str:
-            return "live"
-
-    class Client:
-        auth = Auth()
-
-    def connect(app: str, *, timeout_seconds: float) -> Client:
+    def phone_id_token(app: str, *, timeout_seconds: float) -> Callable[[], str]:
         seen.append(app)
         assert timeout_seconds == 15
-        return Client()
+        return lambda: "live"
 
     class Config:
         database_url = "https://db.example"
 
-    monkeypatch.setattr(_snapshot_auth, "connect", connect)
+    monkeypatch.setattr(guard_bridge, "phone_id_token", phone_id_token)
     monkeypatch.setattr(crdt_sync.FirebaseConfig, "load", lambda _path: Config())
     rtdb = entry.make_rtdb()
     assert seen == ["leetcode_coach_relay"]

@@ -27,9 +27,7 @@ import logging
 import os
 import sys
 
-from leetcode_coach import how_to, progress
-from leetcode_guard._live_solved import check_solved
-from leetcode_guard._settings import build_client
+from leetcode_coach import guard_bridge, how_to, progress
 
 _logger = logging.getLogger(__name__)
 
@@ -53,11 +51,11 @@ Start = Callable[[list[str]], int]
 def accepted_on_leetcode(slug: str) -> bool:
     """Whether LeetCode confirms an Accepted submission; False if it cannot say."""
     try:
-        evidence = check_solved(build_client().post, [slug])
+        solved = guard_bridge.solved_slugs([slug])
     except Exception:  # pylint: disable=broad-exception-caught
         _logger.exception("live solved-check for %s raised; serving it", slug)
         return False
-    return slug in evidence.solved
+    return slug in solved
 
 
 def _due() -> int:

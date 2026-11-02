@@ -14,14 +14,14 @@ part that names no entry ("merge") means only the combined entry counts.
 * fail: nothing right was picked.
 
 Feedback is the properties the uncovered key entries need that no pick has,
-as property names (`phase.property_line`), never an entry name.
+as property names (`gate_notes.property_line`), never an entry name.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
-from leetcode_coach import phase
+from leetcode_coach import gate_notes
 
 if TYPE_CHECKING:
     from leetcode_coach.answer_key import Answer
@@ -94,7 +94,9 @@ def _feedback(
         for prop in () if entry is None else entry.properties:
             if prop not in have and prop not in need:
                 need.append(prop)
-    lines = [f"- {phase.property_line(p, box)}" for p in need if p in box.properties]
+    lines = [
+        f"- {gate_notes.property_line(p, box)}" for p in need if p in box.properties
+    ]
     if lines:
         head = "The operation you need also has these properties, which no pick has:"
         text = "\n".join([head, *lines])

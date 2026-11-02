@@ -1,4 +1,4 @@
-"""Tests for the coach's JSONL session log (contract read by leetcode_guard)."""
+"""Tests for the coach's JSONL session log (contract read by leetcode_guard._coach_log)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from leetcode_coach import progress, session_log
-from leetcode_guard import _coach_log
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -82,21 +81,3 @@ def test_read_tolerates_a_missing_file_and_torn_lines(
     assert "not JSON" in caplog.text
     assert session_log.has_code(path)
     assert not session_log.has_code(tmp_path / "other.jsonl")
-
-
-def test_the_status_reader_understands_what_is_written(tmp_path: Path) -> None:
-    path = tmp_path / "2026-10-23-missing-number.jsonl"
-    session_log.append(path, "req", text="req: x", cluster="bit-cancellation")
-    session_log.append(path, "req_check", verdict="incomplete", missing=["p"])
-    session_log.append(path, "code", req_incomplete=True)
-    session_log.append(path, "rung", rung="H2")
-    problem = _coach_log.read_session(path)
-    assert problem == _coach_log.CoachProblem(
-        slug="missing-number",
-        cluster="bit-cancellation",
-        req_before_code=True,
-        max_rung="H2",
-        revealed=False,
-        req_check="incomplete",
-        day="2026-10-23",
-    )

@@ -1,7 +1,7 @@
 """Step 4: has LeetCode seen an Accepted for this problem since it started?
 
-The harvester's own read-only probe (``fetch_recent_ac`` with the client
-``_settings.build_client`` builds), at most once a minute: LeetCode answers
+The harvester's own read-only probe (leetcode-guard's ``fetch_recent_ac``,
+reached through `guard_bridge`), at most once a minute: LeetCode answers
 a rate limit exactly like a dead session, so polling harder manufactures
 the failure. Three answers, never two: ``accepted``, ``not_yet``, and
 ``unknown`` when the probe is unusable -- "could not check" is never "not
@@ -15,11 +15,12 @@ import logging
 import time
 from typing import TYPE_CHECKING, Final
 
-from leetcode_guard._settings import build_client
-from leetcode_guard._submissions import SolveProbe, fetch_recent_ac
+from leetcode_coach import guard_bridge
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from leetcode_coach.guard_bridge import SolveProbe
 
 _logger: Final = logging.getLogger(__name__)
 
@@ -31,8 +32,7 @@ UNKNOWN: Final = "unknown"
 
 def live_probe() -> SolveProbe:
     """One read of kuhy's recent accepted submissions."""
-    client = build_client()
-    return fetch_recent_ac(client.post, client.username)
+    return guard_bridge.recent_accepted()
 
 
 class AcceptedProbe:

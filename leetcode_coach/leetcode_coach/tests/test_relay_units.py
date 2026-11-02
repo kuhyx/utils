@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from leetcode_coach import answer_key, leak, toolbox
+from leetcode_coach import answer_key, guard_bridge, leak, toolbox
 from leetcode_coach.relay import chat, config, probe, toolbox_grade, turns
+from leetcode_coach.tests import _relay_support as rs
 from leetcode_coach.tests._relay_direct import FakeAsk, make_coach, req, started
 from leetcode_coach.tests._relay_support import Clock, FakeProbe
 
@@ -90,18 +91,12 @@ def test_the_probe_is_three_valued_and_spaced(caplog: pytest.LogCaptureFixture) 
     assert "probe failed" in caplog.text
 
 
-def test_the_live_probe_uses_the_harvesters_client(
+def test_the_live_probe_reads_through_the_guard_bridge(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class Client:
-        post = staticmethod(lambda *_a: None)
-        username = "kuhy"
-
-    seen: list[str] = []
-    monkeypatch.setattr(probe, "build_client", Client)
-    monkeypatch.setattr(probe, "fetch_recent_ac", lambda _post, user: seen.append(user))
-    probe.live_probe()
-    assert seen == ["kuhy"]
+    answer = rs.FakeSolve(True, (), "ok")
+    monkeypatch.setattr(guard_bridge, "recent_accepted", lambda: answer)
+    assert probe.live_probe() is answer
 
 
 def test_ticks_that_must_do_nothing(

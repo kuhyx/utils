@@ -17,13 +17,15 @@ from leetcode_coach.relay.rtdb import Rtdb
 from leetcode_coach.tests import _relay_flow as flow
 from leetcode_coach.tests import _relay_support as rs
 from leetcode_coach.tests._fake_rtdb import FakeRtdb
-from leetcode_guard.tests._paths_fixture import _isolate_paths
+from leetcode_coach.tests._relay_support import _isolate_paths
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-__all__ = ["_isolate_paths"]  # the guard's paths, redirected for every test here
+__all__ = [
+    "_isolate_paths"
+]  # the guard's data dir, under a redirected HOME, for every test here
 
 
 @pytest.fixture

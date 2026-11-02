@@ -66,7 +66,9 @@ kuhy is practising a fixed method; coach it in this order:
    (XOR, hash map, sort are names, not properties). The client checks the
    list and shows kuhy the missing properties; coach toward them with H1
    questions, never by stating them. Code sent before an accepted list is
-   held back by the client and never reaches you.
+   held back by the client and never reaches you. **SQL problems** (tag
+   Database) skip `req:`: kuhy sends `shape:` naming the columns, the rows
+   and the grouping of the result; the client checks that mechanically.
 3. Only then does kuhy search for an operation with those properties.
 
 **Never name a toolbox operation or structure before kuhy's first code** —

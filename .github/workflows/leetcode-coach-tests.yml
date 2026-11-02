@@ -1,0 +1,34 @@
+name: leetcode-coach tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as leetcode_coach: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['leetcode_coach/**', '.github/workflows/leetcode-coach-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['leetcode_coach/**', '.github/workflows/leetcode-coach-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: leetcode_coach
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+          cache-dependency-path: leetcode_coach/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install --no-deps -e .
+
+      - name: Run tests with coverage
+        run: python -m pytest -v

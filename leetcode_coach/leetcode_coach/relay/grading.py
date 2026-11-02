@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final
 
-from leetcode_coach import leak, phase
+from leetcode_coach import gate_notes, leak, phase, shape
 from leetcode_coach.relay import cards, graders, steps, toolbox_grade, turns
 from leetcode_coach.relay.errors import CoachError
 from leetcode_coach.relay.session import grade_line
@@ -36,22 +36,34 @@ NAMES_A_TOOL: Final = (
 
 
 def _requirements(session: Session, answer: str, box: Toolbox) -> tuple[str, str, str]:
-    """Step 2 through the phase gate; a list that is code or names a tool fails."""
+    """Step 2 through the phase gate; a list that is code or names a tool fails.
+
+    A SQL problem's step 2 is the output shape (judged mechanically, `shape`).
+    """
     text = answer.strip()
-    words = phase.REQ_RE.sub("", text, count=1).strip()
+    sql = session.gate.sql()
+    prefix = shape.SHAPE_RE if sql and shape.SHAPE_RE.match(text) else phase.REQ_RE
+    words = prefix.sub("", text, count=1).strip()
     if phase.regex_verdict(words) is True:
         return "fail", READS_AS_CODE, "toolbox"
-    if leak.leaked_names(words, [], box):
+    if not sql and leak.leaked_names(words, [], box):
         return "fail", NAMES_A_TOOL, "toolbox"
-    session.gate.screen(text if phase.REQ_RE.match(text) else f"req: {text}")
+    session.gate.screen(text if prefix.match(text) else f"req: {text}")
     check = [e for e in session.events() if e.get("event") == "req_check"][-1]
     via = str(check.get("via") or "unverified")
     if check.get("verdict") == "pass":
         return "pass", "", via
     if check.get("verdict") == "unverified":
         return "pass", graders.UNVERIFIED, "unverified"
-    missing = [str(m) for m in check.get("missing", []) if m in box.properties]
-    lines = [f"- {phase.property_line(m, box)}" for m in missing]
+    missing = [str(m) for m in check.get("missing", [])]
+    if sql:
+        lines = [f"- {h}" for h in shape.hints(missing)]
+    else:
+        lines = [
+            f"- {gate_notes.property_line(m, box)}"
+            for m in missing
+            if m in box.properties
+        ]
     return "partial", "\n".join(["It does not yet say:", *lines]), via
 
 

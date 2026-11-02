@@ -25,11 +25,13 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from leetcode_coach import (
+    gate_notes,
     leak,
     local_prompt,
     local_session,
     req_check,
     session_log,
+    shape,
     toolbox,
 )
 
@@ -52,7 +54,7 @@ OPERATOR_RE = re.compile(
 
 def regex_verdict(block: str) -> bool | None:
     """True for clear code, False for clear prose, None when it cannot tell."""
-    if REQ_RE.match(block):
+    if REQ_RE.match(block) or shape.SHAPE_RE.match(block):
         return False
     if STRONG_RE.search(block):
         return True
@@ -113,31 +115,6 @@ def step2_attempts(events: list[dict[str, Any]]) -> int:
     return req_state(events).tries + fails
 
 
-def property_line(prop: str, box: toolbox.Toolbox) -> str:
-    """`prop: meaning`, or just `prop` when the meaning names an entry.
-
-    Some meanings illustrate with the operation itself (self-inverse:
-    "a ^ x ^ x = a"); shown to kuhy that is the answer, not a property.
-    """
-    meaning = box.properties[prop]
-    return prop if leak.leaked_names(meaning, [], box) else f"{prop}: {meaning}"
-
-
-def _req_note(result: req_check.Check, state: ReqState, box: toolbox.Toolbox) -> str:
-    if result.verdict == "pass":
-        return "[req list accepted -- code is open]"
-    if result.verdict == "unverified":
-        return "[req check unavailable -- continuing unverified, code is open]"
-    if state.forced:
-        missing = ", ".join(result.missing)
-        return f"[req list still incomplete ({missing}) -- code accepted anyway]"
-    props = "\n".join(f"  - {property_line(p, box)}" for p in result.missing)
-    return (
-        f"[req list incomplete -- it does not yet say these properties:\n{props}\n"
-        f" revise with req: ({state.tries} of {MAX_LISTS})]"
-    )
-
-
 @dataclass
 class PhaseGate:
     """One problem's gate: its log, toolbox and (lazily fetched) statement."""
@@ -185,7 +162,7 @@ class PhaseGate:
         if text.lower() == "reveal":
             session_log.append(self.log, "reveal")
             return block, ""
-        if REQ_RE.match(text):
+        if REQ_RE.match(text) or (shape.SHAPE_RE.match(text) and self.sql()):
             return self._req(block)
         verdict = regex_verdict(text) if is_code is None else is_code
         if verdict is None:
@@ -201,7 +178,10 @@ class PhaseGate:
 
     def _req(self, block: str) -> tuple[str, str]:
         session_log.append(self.log, "req", text=block.strip())
-        result = req_check.check(self.statement(), block, self.toolbox, self.ask)
+        if self.sql():
+            result = shape.check(block)
+        else:
+            result = req_check.check(self.statement(), block, self.toolbox, self.ask)
         session_log.append(
             self.log,
             "req_check",
@@ -213,24 +193,25 @@ class PhaseGate:
         tag = result.verdict
         if result.missing:
             tag += "; missing properties: " + ", ".join(result.missing)
-        return f"{block}\n\n[req check: {tag}]", _req_note(result, state, self.toolbox)
+        note = gate_notes.req_note(
+            result,
+            state.tries,
+            forced=state.forced,
+            limit=MAX_LISTS,
+            box=self.toolbox,
+        )
+        return f"{block}\n\n[req check: {tag}]", note
 
     def refusal_note(self) -> str:
         """The line a refused code block gets now (the relay's ``note``)."""
         return self._refusal(req_state(self.events()))
 
-    @staticmethod
-    def _refusal(state: ReqState) -> str:
-        if not state.tries:
-            return (
-                "[code held back: write the requirement list first -- one message "
-                "starting with req: that lists the properties the operation must "
-                "have, without naming an operation or structure]"
-            )
-        return (
-            "[code held back: the req list is still incomplete -- revise it "
-            f"with req: ({state.tries} of {MAX_LISTS} so far)]"
-        )
+    def sql(self) -> bool:
+        """Whether this is a SQL problem (an unfetched statement counts as not)."""
+        return shape.is_sql(self.statement())
+
+    def _refusal(self, state: ReqState) -> str:
+        return gate_notes.refusal(state.tries, MAX_LISTS, sql=self.sql())
 
     def after_reply(self, text: str) -> str:
         """Log the reply's rung marker and return the reply without it."""
