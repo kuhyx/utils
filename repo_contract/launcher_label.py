@@ -7,7 +7,8 @@ the launcher font is capped too (`label_widths.py`): FocusOwner, 10
 characters, was still cut. The same rules live
 in `~/src/testsAndMisc/python_pkg/app_icons/labels.py` (`label_problems`);
 the messages are mirrored here, not imported, because utils must not depend
-on another repo.
+on another repo. A desktop entry's `Name=` (rule 2) may hold single spaces
+between words (`words=True`); the phone launcher may not.
 
 The name is `<application android:label>` of the main manifest, plus the
 `android:label` of any activity (or alias) whose intent-filter holds MAIN +
@@ -38,27 +39,39 @@ from repo_contract.label_widths import MAX_WIDTH, label_width
 MAX_LENGTH = 10
 STRINGS = Path("android/app/src/main/res/values/strings.xml")
 _ASCII_LETTERS = re.compile(r"[A-Za-z]+")
+_ASCII_WORDS = re.compile(r"[A-Za-z]+( [A-Za-z]+)*")
 _STRING_REF = re.compile(r"@string/(\w+)")
 _PLACEHOLDER = re.compile(r"\$\{(\w+)\}")
 _UNRESOLVED = "cannot resolve the launcher name"
 
 
-def label_problems(name: str) -> list[str]:
-    """Every launcher-name rule `name` breaks (app_icons labels.py wording)."""
+def label_problems(name: str, *, words: bool = False) -> list[str]:
+    """Every launcher-name rule `name` breaks (app_icons labels.py wording).
+
+    `words=True` is for a desktop entry's `Name=` (rule 2), shown in a menu or
+    dmenu where "Sick days" reads better than "Sickdays": one space between
+    words is fine. The phone launcher (rule 1) never passes it.
+    """
     if not name:
         return ["label is empty"]
     problems: list[str] = []
-    letters_only = _ASCII_LETTERS.fullmatch(name) is not None
-    if not letters_only:
-        problems.append(
-            f"{name!r} must contain only ASCII letters (no spaces, _ or symbols)"
+    if words:
+        valid = _ASCII_WORDS.fullmatch(name) is not None
+        message = (
+            f"{name!r} must be ASCII letters, one space between words (no _ or symbols)"
         )
+    else:
+        valid = _ASCII_LETTERS.fullmatch(name) is not None
+        message = f"{name!r} must contain only ASCII letters (no spaces, _ or symbols)"
+    if not valid:
+        problems.append(message)
     if not name[0].isupper():
         problems.append(f"{name!r} must start with a capital letter")
     # The width table only knows ASCII letters; other names already failed.
-    if letters_only and label_width(name) > MAX_WIDTH:
+    letters = name.replace(" ", "")
+    if valid and label_width(letters) > MAX_WIDTH:
         problems.append(
-            f"{name!r} is {label_width(name)} wide in the launcher font; "
+            f"{name!r} is {label_width(letters)} wide in the launcher font; "
             f"at most {MAX_WIDTH} fit"
         )
     if len(name) > MAX_LENGTH:
