@@ -1,0 +1,4 @@
+Ann	10
+Bob	12
+Cid	NULL
+Dee	NULL

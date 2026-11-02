@@ -1,0 +1,4 @@
+Ida	ida@example.org	555-0103	Krakow
+Max	NULL	555-0102	Lodz
+Ola	ola@example.org	NULL	NULL
+Zed	zed@example.org	555-0101	Gdansk

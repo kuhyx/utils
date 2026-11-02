@@ -1,0 +1,70 @@
+{
+ "customers": {
+  "columns": [
+   "id",
+   "name",
+   "phone"
+  ],
+  "rows": [
+   [
+    "1",
+    "Alma",
+    "555-0101"
+   ],
+   [
+    "2",
+    "Boris",
+    "NULL"
+   ],
+   [
+    "3",
+    "Cleo",
+    "555-0103"
+   ],
+   [
+    "4",
+    "Dara",
+    "NULL"
+   ],
+   [
+    "5",
+    "Egon",
+    "555-0105"
+   ]
+  ]
+ },
+ "orders": {
+  "columns": [
+   "id",
+   "customer_id",
+   "status"
+  ],
+  "rows": [
+   [
+    "1",
+    "1",
+    "shipped"
+   ],
+   [
+    "2",
+    "3",
+    "cancelled"
+   ],
+   [
+    "3",
+    "3",
+    "cancelled"
+   ],
+   [
+    "4",
+    "5",
+    "pending"
+   ],
+   [
+    "5",
+    "1",
+    "cancelled"
+   ]
+  ]
+ }
+}

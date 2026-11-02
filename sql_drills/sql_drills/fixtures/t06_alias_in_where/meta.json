@@ -1,0 +1,1 @@
+{"kind": "predict", "topic": "basics", "error_code": 1054, "error_message": "ERROR 1054 (42S22) at line 1: Unknown column 'total' in 'where clause'"}

@@ -1,0 +1,56 @@
+{
+ "person_attrs": {
+  "columns": [
+   "person",
+   "attr",
+   "val"
+  ],
+  "rows": [
+   [
+    "Ida",
+    "city",
+    "Krakow"
+   ],
+   [
+    "Ida",
+    "email",
+    "ida@example.org"
+   ],
+   [
+    "Ida",
+    "phone",
+    "555-0103"
+   ],
+   [
+    "Max",
+    "city",
+    "Lodz"
+   ],
+   [
+    "Max",
+    "phone",
+    "555-0102"
+   ],
+   [
+    "Ola",
+    "email",
+    "ola@example.org"
+   ],
+   [
+    "Zed",
+    "city",
+    "Gdansk"
+   ],
+   [
+    "Zed",
+    "email",
+    "zed@example.org"
+   ],
+   [
+    "Zed",
+    "phone",
+    "555-0101"
+   ]
+  ]
+ }
+}
