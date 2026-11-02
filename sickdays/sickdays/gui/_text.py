@@ -18,6 +18,7 @@ from sickdays._constants import (
     LOCKER_ALARM,
     LOCKER_BOOK,
     LOCKER_DIET,
+    LOCKER_FOCUS,
     LOCKER_LEETCODE,
     LOCKER_WORKOUT,
 )
@@ -34,6 +35,7 @@ LOCKER_LABELS: Final = {
     LOCKER_BOOK: "Book",
     LOCKER_DIET: "Diet",
     LOCKER_ALARM: "Wake alarm",
+    LOCKER_FOCUS: "Focus",
 }
 
 SHEET_HELP: Final = (

@@ -68,10 +68,13 @@ LOCKER_DIET: Final = "diet"
 #: The phone ring, the PC fallback ring, the RTC self-wake and the
 #: missed-alarm penalty -- one switch, because they are one alarm.
 LOCKER_ALARM: Final = "alarm"
+#: The focus-project daily-minutes lock (focus-guard).
+LOCKER_FOCUS: Final = "focus"
 LOCKERS: Final = (
     LOCKER_WORKOUT,
     LOCKER_LEETCODE,
     LOCKER_BOOK,
     LOCKER_DIET,
     LOCKER_ALARM,
+    LOCKER_FOCUS,
 )

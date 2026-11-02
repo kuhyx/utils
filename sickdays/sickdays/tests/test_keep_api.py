@@ -200,3 +200,11 @@ def test_the_keep_edit_refusals() -> None:
     remove_sick_day(TOMORROW, now=TODAY)
     with pytest.raises(NotSickError):
         set_kept_lockers(TOMORROW, ["book"], now=TODAY)
+
+
+def test_focus_is_a_locker_a_sick_day_stands_down_unless_kept() -> None:
+    add_sick_day(TOMORROW, now=TODAY)
+    assert stands_down("focus", TOMORROW)
+    set_kept_lockers(TOMORROW, ["focus"], now=TODAY)
+    assert not stands_down("focus", TOMORROW)
+    assert stands_down("workout", TOMORROW)

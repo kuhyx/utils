@@ -26,6 +26,7 @@ def test_labels_match_the_phone() -> None:
         "Book",
         "Diet",
         "Wake alarm",
+        "Focus",
     ]
 
 
