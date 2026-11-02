@@ -4,89 +4,32 @@ REMOVE ME AFTER FINISH
 
 ## what
 
-Ten pylint hooks across six repos still pass at `--fail-under=8.0`, which
-permanently tolerates two points of lint debt and lets a score *regress* from
-9.9 to 8.1 without failing anything. Move every one to `10`, and fix what
-that surfaces. Five other sites already run at `10`, so this is adopting an
-existing standard, not inventing one.
+Two pylint hooks (`leetcode-guard`, `steam-backlog-enforcer`) still pass at
+`--fail-under=8.0`, which permanently tolerates two points of lint debt and
+lets a score *regress* from 9.9 to 8.1 without failing anything. Move both to
+`10`, and fix what that surfaces. Every other site already runs at `10`, so
+this is adopting an existing standard, not inventing one.
 
-## the ten sites, exact
+## what is left (updated 2026-11-02)
 
-Measured 2026-09-12. "Score now" is that package's current rating under its
-own config, tests included.
+Done and verified (`pre-commit run pylint --all-files`, exit 0, each at
+`--fail-under=10`): `control-panel`, `screen-locker` (both hooks),
+`testsAndMisc/meta`, `utils/crdt-sync`, `utils/freedays`, `utils/gatelock`,
+`utils/music_theory`.
 
-| Repo / package | Site | Score now |
-|---|---|---|
-| `control-panel` | `.pre-commit-config.yaml:159` | 8.53 |
-| `leetcode-guard` | `.pre-commit-config.yaml:112` | 8.71 |
-| `screen-locker` | `.pre-commit-config.yaml:121` | 9.85 |
-| `screen-locker` | `.pre-commit-config.yaml:140` | (2nd pylint hook) |
-| `steam-backlog-enforcer` | `.pre-commit-config.yaml:124` | 8.76 |
-| `testsAndMisc/meta` | `.pre-commit-config.yaml:194` | 8.77 |
-| `utils/crdt-sync` | `.pre-commit-config.yaml:111` | 9.59 |
-| `utils/freedays` | `.pre-commit-config.yaml:109` | 8.55 |
-| `utils/gatelock` | `.pre-commit-config.yaml:109` | 9.18 |
-| `utils/music_theory` | `.pre-commit-config.yaml:113` | 8.54 |
+Still at `--fail-under=8.0`:
 
-`screen-locker` has **two** pylint hooks; both need the bump or the second one
-silently keeps the old bar.
+| Repo | Site |
+|---|---|
+| `leetcode-guard` | `.pre-commit-config.yaml:126` |
+| `steam-backlog-enforcer` | `.pre-commit-config.yaml:126` (ignore its `.claude/worktrees/` copies) |
 
-Already at `10` — do not touch, these are the reference:
-`build-your-x`, `diet-guard`, `testsAndMisc` (root config),
-`wake-alarm`, `WUT_Computer_Science/.../translator/.pylintrc`.
-
-## why the scores look bad, and why that is misleading
-
-Every one of these configs runs `enable = "all"` with `disable = []` — the
-strictest pylint setting there is, including checks that are off by default.
-The raw findings are dominated by **test-file idioms**, not source defects.
-Measured on the four `utils` packages:
-
-```
-crdt-sync     54 protected-access, 50 redefined-outer-name, 18 duplicate-code
-freedays     100 missing-function-docstring, 14 implicit-booleaness
-gatelock     147 redefined-outer-name, 142 protected-access
-music_theory 112 missing-function-docstring, 14 missing-module-docstring
-```
-
-`redefined-outer-name` at that volume is pytest fixtures. `protected-access`
-is tests reaching into internals on purpose. Neither is a defect.
-
-**The repos already at 10 solved this and wrote down why.** From
-`wake-alarm/pyproject.toml`, verbatim:
-
-> `ignore = [".venv", "__pycache__", "tests"]` — "tests" is a basename match:
-> test suites intentionally use patterns (protected-access, magic-value
-> comparisons) that don't apply to source code, matching testsAndMisc's
-> pylint scope (tests are linted by ruff, not pylint there either).
-
-So the fleet standard is: **pylint grades source, ruff grades tests.** The ten
-sites above are the outliers that never adopted it. Their `ruff` config
-already carries the equivalent test exemptions
-(`"**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]`),
-so tests stay linted — by the tool that has the right rules for them.
-
-## what is actually left after adopting the fleet config
-
-Measured: `pylint --ignore=.venv,__pycache__,tests` plus wake-alarm's
-three-item `disable` list, run over source files only.
-
-| Package | Score | Remaining findings |
-|---|---|---|
-| `crdt-sync` | 9.93 | 5 wrong-import-position, 3 duplicate-code, 1 too-many-locals, 1 invalid-name |
-| `freedays` | 9.63 | 3 import-error, 1 broad-exception-caught |
-| `gatelock` | 9.88 | 6 missing-function-docstring, 4 wrong-import-position, 3 too-many-instance-attributes, 3 import-outside-toplevel, 2 broad-exception-caught, 1 each too-many-arguments / invalid-name / duplicate-code / disallowed-name / chained-comparison |
-| `music_theory` | 9.42 | 10 import-error |
-
-That is ~47 real findings across four packages, not the ~600 the raw run
-suggests. **`import-error` is almost certainly config, not code**: every repo
-already at 10 carries an `init-hook` the 8.0 repos lack —
-
-```toml
-init-hook = "import sys; sys.path.insert(0, '.')"
-```
-
-Try that first on `music_theory` and `freedays` before editing any import.
+Both live outside `utils`, so this file belongs to whichever session works
+those repos. The method is the fleet standard: pylint grades source, ruff
+grades tests. Copy the `[tool.pylint]` block (tests basename ignore,
+`init-hook = "import sys; sys.path.insert(0, '.')"`) from `wake-alarm` /
+`diet-guard`, bump to `10`, fix the residue in source. Read the `must`
+rules below first.
 
 ## must
 
@@ -110,15 +53,12 @@ Both commands, from `~`:
 
 ```bash
 # 1. no site left below 10 (cov-fail-under is coverage, not pylint)
-! grep -rn --include=.pre-commit-config.yaml --include=.pylintrc \
+! grep -rn --exclude-dir=worktrees --include=.pre-commit-config.yaml --include=.pylintrc \
     -E 'fail-under=(8|9)' ~/src ~/praca_magisterska 2>/dev/null \
   | grep -v cov-fail-under
 
-# 2. every one of the nine packages passes its own pylint hook
-for d in ~/src/control-panel ~/src/leetcode-guard ~/src/screen-locker \
-         ~/src/steam-backlog-enforcer ~/src/testsAndMisc/meta \
-         ~/src/utils/crdt-sync ~/src/utils/freedays \
-         ~/src/utils/gatelock ~/src/utils/music_theory; do
+# 2. both remaining packages pass its own pylint hook
+for d in ~/src/leetcode-guard ~/src/steam-backlog-enforcer; do
   (cd "$d" && pre-commit run pylint --all-files) || echo "FAIL $d"
 done
 ```
