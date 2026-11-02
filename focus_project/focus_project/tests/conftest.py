@@ -19,6 +19,10 @@ if TYPE_CHECKING:
 def _redirect_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Point the data directory at ``tmp_path`` before any test runs."""
     monkeypatch.setenv("FOCUS_PROJECT_DATA", str(tmp_path / "data"))
+    # Read-only evidence files and the signing key: never the real ones.
+    monkeypatch.setenv("FOCUS_PROJECT_LEETCODE_LEDGER", str(tmp_path / "lc.json"))
+    monkeypatch.setenv("FOCUS_PROJECT_KT_DB", str(tmp_path / "kt.db"))
+    monkeypatch.setenv("FOCUS_PROJECT_KEY", str(tmp_path / "hmac.key"))
 
 
 @pytest.fixture

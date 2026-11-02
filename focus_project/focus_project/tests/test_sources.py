@@ -9,13 +9,13 @@ import sys
 import types
 from typing import TYPE_CHECKING
 
-import pytest
-
 from focus_project import sources
 from focus_project._model import Project
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    import pytest
 
 DAY = date(2026, 11, 2)
 PROJECT = Project(
@@ -92,3 +92,17 @@ def test_missing_adapter_is_inactive_not_an_error(
     _fake(monkeypatch, "activity", _none)
     monkeypatch.setattr(sources, "ADAPTERS", ("activity", "nonexistent"))
     assert "nonexistent" not in sources.collect_by_source(DAY, PROJECT)
+
+
+def test_broken_adapter_import_contributes_zero(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def broken(name: str) -> None:
+        raise ImportError(name)
+
+    monkeypatch.setattr(sources.importlib, "import_module", broken)
+    with caplog.at_level(logging.ERROR):
+        result = sources.collect_by_source(DAY, PROJECT)
+    assert all(spans == [] for spans in result.values())
+    assert set(result) == set(sources.ADAPTERS)
+    assert "import failed" in caplog.text

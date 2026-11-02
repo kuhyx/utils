@@ -1,0 +1,10 @@
+[Unit]
+Description=focus_project: credit focus minutes to the signed ledger
+# The .path unit fires on every activity line; bursts must not trip the limit.
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+WorkingDirectory=/
+ExecStart=/usr/bin/python3 -m focus_project.harvest
+Nice=10

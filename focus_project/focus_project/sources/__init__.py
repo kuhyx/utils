@@ -63,14 +63,10 @@ def collect_by_source(day: date, project: Project) -> dict[str, list[Interval]]:
         module_name = f"{__name__}.{name}"
         try:
             module = importlib.import_module(module_name)
-        except ModuleNotFoundError as exc:
-            if exc.name == module_name:
+        except Exception as exc:  # noqa: BLE001 (a broken adapter must add 0)
+            if isinstance(exc, ModuleNotFoundError) and exc.name == module_name:
                 _LOG.info("source %s: not installed (inactive)", name)
                 continue
-            _LOG.exception("source %s: import failed, contributes 0", name)
-            found[name] = []
-            continue
-        except Exception:  # noqa: BLE001 (any broken adapter must contribute 0)
             _LOG.exception("source %s: import failed, contributes 0", name)
             found[name] = []
             continue

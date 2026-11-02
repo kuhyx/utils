@@ -1,0 +1,10 @@
+[Unit]
+Description=focus_project: harvest the moment activity or a LeetCode accept lands
+
+[Path]
+PathChanged=%h/.local/share/focus_project/activity.jsonl
+PathChanged=%h/.local/share/leetcode_guard/ledger.json
+Unit=focus-project-harvest.service
+
+[Install]
+WantedBy=default.target
