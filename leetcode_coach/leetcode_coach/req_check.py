@@ -19,6 +19,7 @@ why the answer is extracted and validated rather than parsed whole.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import inspect
 import json
 import logging
 from typing import TYPE_CHECKING, Any
@@ -63,6 +64,21 @@ CODE_SYSTEM = (
     'idea, even one that mentions a symbol). Reply with ONE JSON object: {"code": '
     'true} or {"code": false}.'
 )
+
+
+CHECK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "verdict": {"enum": ["pass", "incomplete"]},
+        "missing": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["verdict", "missing"],
+}
+CODE_SCHEMA = {
+    "type": "object",
+    "properties": {"code": {"type": "boolean"}},
+    "required": ["code"],
+}
 
 
 @dataclass(frozen=True)
@@ -115,21 +131,63 @@ def check_prompt(statement: str, req: str, box: Toolbox) -> str:
     )
 
 
+def _takes_schema(ask: Callable[..., Any]) -> bool:
+    """A structured ``(system, prompt, schema)`` model function, not the CLI's."""
+    try:
+        return "schema" in inspect.signature(ask).parameters
+    except TypeError, ValueError:
+        return False
+
+
+def _structured[T](
+    ask: Callable[..., dict[str, Any]],
+    system: str,
+    prompt: str,
+    schema: dict[str, Any],
+    validate: Callable[[dict[str, Any] | None], T | None],
+) -> T | None:
+    try:
+        return validate(ask(system, prompt, schema))
+    except Exception:  # pylint: disable=broad-exception-caught
+        logging.getLogger(__name__).exception("model function could not answer")
+        return None
+
+
+def _claude[T](
+    ask: Callable[..., dict[str, Any]] | None,
+    system: str,
+    prompt: str,
+    validate: Callable[[dict[str, Any] | None], T | None],
+) -> T | None:
+    asker = claude_cli.ask if ask is None else ask
+    reply = asker(
+        [*HAIKU_ARGS, "--system-prompt", system], prompt, timeout=HAIKU_TIMEOUT_S
+    )
+    if claude_cli.is_limit_hit(reply):
+        return None
+    return validate(extract_json(str(reply.get("result", ""))))
+
+
 def ask_models[T](
     system: str,
     prompt: str,
     validate: Callable[[dict[str, Any] | None], T | None],
     ask: Callable[..., dict[str, Any]] | None,
+    schema: dict[str, Any] | None = None,
 ) -> tuple[T, str] | None:
-    """Haiku, then Ollama; the first validated answer and who gave it."""
-    asker = claude_cli.ask if ask is None else ask
-    reply = asker(
-        [*HAIKU_ARGS, "--system-prompt", system], prompt, timeout=HAIKU_TIMEOUT_S
-    )
-    if not claude_cli.is_limit_hit(reply):
-        got = validate(extract_json(str(reply.get("result", ""))))
-        if got is not None:
-            return got, "haiku"
+    """The first validated answer and who gave it, then Ollama.
+
+    `ask` is the CLI-style ``(args, prompt, **kw)`` (default: haiku) or a
+    structured ``(system, prompt, schema) -> dict`` model function.
+    """
+    if ask is not None and _takes_schema(ask):
+        got = _structured(ask, system, prompt, schema or {"type": "object"}, validate)
+        via = "model"
+    else:
+        got = _claude(ask, system, prompt, validate)
+        via = "haiku"
+    if got is not None:
+        return got, via
     try:
         local = local_backend.chat(
             [
@@ -160,6 +218,7 @@ def check(
         check_prompt(statement, req, box),
         lambda obj: parse_verdict(obj, box.properties),
         ask,
+        CHECK_SCHEMA,
     )
     if got is None:
         return Check("unverified")
@@ -176,5 +235,5 @@ def looks_like_code(
     block: str, ask: Callable[..., dict[str, Any]] | None = None
 ) -> bool:
     """The model's call on a block the regex could not decide; prose if unsure."""
-    got = ask_models(CODE_SYSTEM, block, _code_flag, ask)
+    got = ask_models(CODE_SYSTEM, block, _code_flag, ask, CODE_SCHEMA)
     return False if got is None else got[0]

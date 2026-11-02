@@ -50,6 +50,10 @@ means paste it), `fetch_problem.render(q, lang) -> str` (markdown with
 - `gate.screen(block, *, is_code=None) -> (sent | None, note)`: `None` means
   refuse and show `note`; otherwise forward `sent` to the coach and show `note`
   if non-empty. Logs `req`, `req_check`, `code`, `reveal`.
+- `ask` (gate, `req_check.check`, `looks_like_code`, graders) is CLI-style `(args, prompt, **kw)`
+  (default: haiku, then Ollama) or a structured `(system, prompt, schema) -> dict`
+  model function such as the tutor's `ask_model` (answers are labelled `via: "model"`;
+  any raise falls through to Ollama, then fails open to `unverified`).
 - `gate.refusal_note()`, `gate.code_seen()`, `gate.events()`, `gate.sql()`,
   `gate.leaks(reply, user_texts) -> [names]` (bounce and regenerate),
   `gate.after_reply(text) -> text without the rung marker` (logs `rung`).

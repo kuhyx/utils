@@ -164,3 +164,73 @@ def test_model_code_classifier_fails_open_to_not_code(
 ) -> None:
     _ollama(monkeypatch, ollama)
     assert req_check.looks_like_code("x ^ y", _haiku(haiku_says)) is is_code
+
+
+class _Model:
+    """The tutor's ``ask_model(system, prompt, schema)``: a parsed dict, or a raise."""
+
+    def __init__(self, answer: dict[str, Any] | Exception) -> None:
+        self.answer = answer
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
+
+    def __call__(
+        self, system: str, prompt: str, schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append((system, prompt, schema))
+        if isinstance(self.answer, Exception):
+            raise self.answer
+        return self.answer
+
+
+def test_a_structured_model_function_answers_the_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent = _ollama(monkeypatch, "unused")
+    ask = _Model({"verdict": "incomplete", "missing": ["constant-space", "XOR"]})
+    got = req_check.check(STATEMENT, "req: loop", toolbox.load_safe(), ask)
+    assert got == req_check.Check("incomplete", ("constant-space",), "model")
+    system, prompt, schema = ask.calls[0]
+    assert system == req_check.CHECK_SYSTEM
+    assert "req: loop" in prompt
+    assert schema == req_check.CHECK_SCHEMA
+    assert sent == []
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [RuntimeError("model down"), {"verdict": "incomplete", "missing": ["XOR"]}, {}],
+)
+def test_ollama_steps_in_when_the_model_function_cannot_answer(
+    monkeypatch: pytest.MonkeyPatch, answer: dict[str, Any] | Exception
+) -> None:
+    _ollama(monkeypatch, '{"verdict": "pass", "missing": []}')
+    got = req_check.check(STATEMENT, "req: x", toolbox.load_safe(), _Model(answer))
+    assert got == req_check.Check("pass", (), "ollama")
+
+
+def test_a_structured_model_function_classifies_code() -> None:
+    ask = _Model({"code": True})
+    assert req_check.looks_like_code("x ^= i", ask) is True
+    assert ask.calls[0][2] == req_check.CODE_SCHEMA
+
+
+def test_a_model_function_with_no_schema_gets_a_bare_object_schema() -> None:
+    ask = _Model({"ok": 1})
+    got = req_check.ask_models("sys", "prompt", lambda obj: obj, ask)
+    assert got == ({"ok": 1}, "model")
+    assert ask.calls[0][2] == {"type": "object"}
+
+
+def test_a_callable_without_a_signature_is_the_cli_style(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _ollama(monkeypatch, "unused")
+    monkeypatch.setattr(req_check.inspect, "signature", _no_signature)
+    got = req_check.check(
+        STATEMENT, "req: x", toolbox.load_safe(), _haiku({"verdict": "pass"})
+    )
+    assert got.via == "haiku"
+
+
+def _no_signature(_fn: object) -> None:
+    raise ValueError

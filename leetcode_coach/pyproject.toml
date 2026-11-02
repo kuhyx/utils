@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "leetcode-coach"
-version = "0.1.0"
+version = "0.1.1"
 description = "The /leetcode coach as a library: phase gate, leak and stop gates, session log, grading, cards, relay"
 requires-python = ">=3.14"
 # Everything below loads lazily (rtdb, make_cards, relay.__main__): importing
