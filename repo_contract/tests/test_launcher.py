@@ -13,6 +13,11 @@ from .flutter_app import flutter_app, track
 from .pngkit import write_icon
 
 ICON = "assets/icon/icon_foreground.png"
+PUBSPEC_PLUGIN = (
+    "dependencies:\n  flutter:\n    sdk: flutter\n"
+    "flutter:\n  plugin:\n    platforms:\n      android:\n"
+    "        pluginClass: P\n"
+)
 DESKTOP = "[Desktop Entry]\nType=Application\nName={name}\nName[pl]=Zadania pl\n"
 
 
@@ -57,6 +62,15 @@ def test_not_flutter_or_no_android_skipped(repo: Path) -> None:
         "dev_dependencies:\n  flutter:\n    sdk: flutter\n",
     )
     write(repo, "dev_only/android/x", "")
+    track(repo)
+    assert launcher.flutter_apps(repo) == []
+
+
+def test_flutter_plugin_is_not_an_app(repo: Path) -> None:
+    """A plugin has an android/ dir but no launcher activity to check."""
+    body = PUBSPEC_PLUGIN
+    write(repo, "plug/pubspec.yaml", body)
+    write(repo, "plug/android/x", "")
     track(repo)
     assert launcher.flutter_apps(repo) == []
 

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Sick days
+Name=Sickdays
 Comment=Mark sick days and choose which lockers still apply
 Exec=sickdays gui
 Icon=face-sick

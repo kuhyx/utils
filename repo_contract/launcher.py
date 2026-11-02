@@ -1,7 +1,7 @@
 """Launcher rules for every Flutter app in a repo (kuhy, 2026-10-23).
 
 Applies to each tracked `pubspec.yaml` whose `dependencies:` include the
-Flutter SDK and that has an `android/` directory beside it, at the repo root
+Flutter SDK (and that is not a `flutter: plugin:`) and that has an `android/` directory beside it, at the repo root
 or nested (screen-locker's workout_app):
 
 1. the launcher name (`launcher_label.py`);
@@ -47,22 +47,36 @@ def _tracked(repo: Path, *patterns: str) -> list[PurePosixPath] | None:
     return [PurePosixPath(p) for p in done.stdout.split("\0") if p]
 
 
-def _needs_flutter(pubspec: Path) -> bool:
-    """Whether the top-level `dependencies:` block pulls in the Flutter SDK."""
+def _block(pubspec: Path, key: str) -> list[str]:
+    """Code lines (comments stripped) indented under top-level `key:`."""
     try:
         lines = pubspec.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
-        return False
-    inside = False
+        return []
+    inside, found = False, []
     for line in lines:
         code = line.split("#", 1)[0].rstrip()  # comments never end a block
         if not code.strip():
             continue
         if not code[0].isspace():
-            inside = code == "dependencies:"
-        elif inside and _SDK.match(code):
-            return True
-    return False
+            inside = code == f"{key}:"
+        elif inside:
+            found.append(code)
+    return found
+
+
+def _is_plugin(pubspec: Path) -> bool:
+    """Whether the top-level `flutter:` block declares a `plugin:`.
+
+    A plugin keeps an `android/` directory but ships no launcher activity, so
+    the app rules (label, variants, icon) have nothing to check in it.
+    """
+    return any(code.strip() == "plugin:" for code in _block(pubspec, "flutter"))
+
+
+def _needs_flutter(pubspec: Path) -> bool:
+    """Whether the top-level `dependencies:` block pulls in the Flutter SDK."""
+    return any(_SDK.match(code) for code in _block(pubspec, "dependencies"))
 
 
 def flutter_apps(repo: Path) -> list[Path]:
@@ -74,7 +88,12 @@ def flutter_apps(repo: Path) -> list[Path]:
         if PRUNE.intersection(rel.parts):
             continue
         app = repo / rel.parent
-        if (app / "android").is_dir() and _needs_flutter(app / "pubspec.yaml"):
+        pubspec = app / "pubspec.yaml"
+        if (
+            (app / "android").is_dir()
+            and _needs_flutter(pubspec)
+            and not _is_plugin(pubspec)
+        ):
             apps.append(app)
     return apps
 
