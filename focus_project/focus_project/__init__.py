@@ -23,7 +23,7 @@ from focus_project._api import (
 )
 from focus_project._errors import RegistryError
 from focus_project._model import Limits, Project
-from focus_project._update import update_project
+from focus_project._update import Update, apply_update, update_project
 from focus_project.activity import record_activity
 from focus_project.minutes import minutes_for
 from focus_project.status import status
@@ -32,7 +32,9 @@ __all__ = [
     "Limits",
     "Project",
     "RegistryError",
+    "Update",
     "active",
+    "apply_update",
     "create_project",
     "end_project",
     "list_projects",

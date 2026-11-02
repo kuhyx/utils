@@ -46,7 +46,7 @@ def stands_down(gate: str, day: date) -> bool:
             "focus_project registry unreadable, gate %s stays on: %s", gate, exc
         )
         return False
-    return project is not None and project.replaces_gate(gate)
+    return project is not None and project.replaces_gate(gate, day)
 
 
 def _validate_work_url(url: str) -> None:

@@ -25,22 +25,29 @@ class Limits:
     until: date
     daily_minutes: int
     unlock_minutes: int
+    # None = a row from before 0.7.0: the project's current gates apply.
+    replaces: tuple[str, ...] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """The history row in projects.json."""
-        return {
+        row: dict[str, Any] = {
             "until": self.until.isoformat(),
             "daily_minutes": self.daily_minutes,
             "unlock_minutes": self.unlock_minutes,
         }
+        if self.replaces is not None:
+            row["replaces"] = list(self.replaces)
+        return row
 
     @classmethod
     def from_dict(cls, row: Any) -> Limits:  # noqa: ANN401
         """Parse a history row (errors surface as RegistryError upstream)."""
+        gates = row.get("replaces")
         return cls(
             until=date.fromisoformat(row["until"]),
             daily_minutes=int(row["daily_minutes"]),
             unlock_minutes=int(row["unlock_minutes"]),
+            replaces=None if gates is None else tuple(gates),
         )
 
 
@@ -77,6 +84,11 @@ class Project:
         past = self._limits_on(day)
         return self.unlock_minutes if past is None else past.unlock_minutes
 
+    def replaces_on(self, day: date) -> tuple[str, ...]:
+        """The gates this project switched off on ``day``."""
+        past = self._limits_on(day)
+        return self.replaces if past is None or past.replaces is None else past.replaces
+
     @property
     def last_day(self) -> date:
         """The last active day: the early-end day if set, else ``end``."""
@@ -86,9 +98,9 @@ class Project:
         """Whether this project is active on ``day``."""
         return self.start <= day <= self.last_day
 
-    def replaces_gate(self, gate: str) -> bool:
-        """Whether this project switches ``gate`` off."""
-        return normalize_gate(gate) in self.replaces
+    def replaces_gate(self, gate: str, day: date) -> bool:
+        """Whether this project switches ``gate`` off on ``day``."""
+        return normalize_gate(gate) in self.replaces_on(day)
 
     def to_dict(self) -> dict[str, Any]:
         """The projects.json row."""

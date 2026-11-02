@@ -124,28 +124,30 @@ def test_end_in_the_past_refused() -> None:
         fp.update_project("hr", today=D1 + 2 * DAY, end=D1 + DAY)
 
 
-def test_daily_change_applies_from_today(data: Path) -> None:
+def test_daily_cut_applies_from_tomorrow(data: Path) -> None:
     _make()
     fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=60, unlock_minutes=10)
     p = fp.list_projects()[0]
     assert (p.daily_minutes, p.unlock_minutes) == (60, 10)
     assert p.daily_on(D1 + DAY) == 120
-    assert p.unlock_on(D1 + DAY) == 30
-    assert p.daily_on(D1 + 2 * DAY) == 60
+    assert p.daily_on(D1 + 2 * DAY) == 120  # today keeps its targets
+    assert p.unlock_on(D1 + 2 * DAY) == 30
+    assert p.daily_on(D4) == 60
     assert p.unlock_on(D4) == 10
-    # a second edit the same day keeps the preserved past, a later day adds a row
+    # a deeper cut the same day keeps the one preserved row, a later day adds one
     fp.update_project("hr", today=D1 + 2 * DAY, daily_minutes=90)
     assert len(fp.list_projects()[0].history) == 1
     fp.update_project("hr", today=D4, daily_minutes=45, unlock_minutes=5)
     p = fp.list_projects()[0]
-    assert [h.until for h in p.history] == [D1 + DAY, D4 - DAY]
-    assert p.daily_on(D1 + 2 * DAY) == 90
-    assert p.daily_on(D4) == 45
+    assert [h.until for h in p.history] == [D1 + 2 * DAY, D4]
+    assert p.daily_on(D4) == 90
+    assert p.daily_on(D4 + DAY) == 45
     raw = json.loads((data / "projects.json").read_text())["projects"][0]
     assert raw["history"][0] == {
-        "until": "2026-11-03",
+        "until": "2026-11-04",
         "daily_minutes": 120,
         "unlock_minutes": 30,
+        "replaces": ["leetcode", "reading"],
     }
 
 
@@ -155,8 +157,11 @@ def test_future_project_daily_change_keeps_no_history() -> None:
     p = fp.list_projects()[0]
     assert p.history == ()
     assert p.daily_on(D1) == 60
-    fp.update_project("hr", today=D1, daily_minutes=50)  # first day: nothing past
-    assert fp.list_projects()[0].history == ()
+    # on the first day a cut waits for tomorrow, like any started project
+    fp.update_project("hr", today=D1, daily_minutes=50)
+    p = fp.list_projects()[0]
+    assert p.daily_on(D1) == 60
+    assert p.daily_on(D1 + DAY) == 50
 
 
 def test_same_value_edit_adds_no_history() -> None:
@@ -170,7 +175,8 @@ def test_status_and_minutes_use_the_day_values(tmp_path: Path) -> None:
     fp.update_project("hr", today=D1 + DAY, daily_minutes=60, unlock_minutes=10)
     assert fp.status(D1)["daily_minutes"] == 120
     assert fp.status(D1)["unlock_minutes"] == 30
-    assert fp.status(D1 + DAY)["daily_minutes"] == 60
+    assert fp.status(D1 + DAY)["daily_minutes"] == 120
+    assert fp.status(D1 + 2 * DAY)["daily_minutes"] == 60
 
 
 def test_work_url_is_editable_kept_and_clearable() -> None:
