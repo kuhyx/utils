@@ -98,6 +98,7 @@ def test_no_flutter_app_no_rules(repo: Path) -> None:
 def test_desktop_names_checked(repo: Path) -> None:
     flutter_app(repo)
     write(repo, "linux/good.desktop", DESKTOP.format(name="Todo"))
+    write(repo, "linux/spaced.desktop", DESKTOP.format(name="Sick days"))
     write(repo, "linux/bad.desktop", DESKTOP.format(name="todo app"))
     write(
         repo,
@@ -108,10 +109,6 @@ def test_desktop_names_checked(repo: Path) -> None:
     track(repo)
     write(repo, "linux/untracked.desktop", DESKTOP.format(name="bad name"))
     assert launcher.problems(repo) == [
-        (
-            "launcher: linux/bad.desktop: Name='todo app' must contain only ASCII"
-            " letters (no spaces, _ or symbols)"
-        ),
         "launcher: linux/bad.desktop: Name='todo app' must start with a capital letter",
         "launcher: linux/none.desktop: no Name= in [Desktop Entry]",
     ]

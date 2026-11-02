@@ -177,3 +177,45 @@ def test_manifest_without_application(tmp_path: Path) -> None:
     assert ll.problems(app) == [
         f"{MAIN}: <application> has no android:label; cannot resolve the launcher name"
     ]
+
+
+WORDS_RULE = "must be ASCII letters, one space between words (no _ or symbols)"
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Sick days", []),
+        ("Todo", []),
+        ("sick days", ["'sick days' must start with a capital letter"]),
+        (
+            "Sick  days",
+            [f"'Sick  days' {WORDS_RULE}"],
+        ),
+        (
+            "Sick days ",
+            [f"'Sick days ' {WORDS_RULE}"],
+        ),
+        (
+            "Sick_days",
+            [f"'Sick_days' {WORDS_RULE}"],
+        ),
+        (
+            "Focus owner x",
+            [
+                "'Focus owner x' is 607 wide in the launcher font; at most 522 fit",
+                "'Focus owner x' has 13 characters; at most 10 fit",
+            ],
+        ),
+    ],
+)
+def test_desktop_names_may_have_spaces_between_words(
+    name: str, expected: list[str]
+) -> None:
+    assert ll.label_problems(name, words=True) == expected
+
+
+def test_the_phone_label_still_refuses_a_space() -> None:
+    assert ll.label_problems("Sick days") == [
+        "'Sick days' must contain only ASCII letters (no spaces, _ or symbols)"
+    ]

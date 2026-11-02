@@ -122,7 +122,10 @@ def desktop_problems(repo: Path) -> list[str]:
         if not names:
             out.append(f"{rel}: no Name= in [Desktop Entry]")
         for name in names:
-            out += [f"{rel}: Name={p}" for p in launcher_label.label_problems(name)]
+            out += [
+                f"{rel}: Name={p}"
+                for p in launcher_label.label_problems(name, words=True)
+            ]
     return out
 
 
