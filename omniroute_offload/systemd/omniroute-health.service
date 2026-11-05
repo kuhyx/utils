@@ -1,0 +1,8 @@
+[Unit]
+Description=OmniRoute gateway health check and auto-fix
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/omniroute-gateway health
+TimeoutStartSec=15min

@@ -1,0 +1,10 @@
+[Unit]
+Description=OmniRoute weekly backup and update
+
+[Timer]
+# The PC is off at night; Persistent catches a missed slot at the next boot.
+OnCalendar=Sun 12:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

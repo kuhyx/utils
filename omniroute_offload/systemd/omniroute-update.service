@@ -1,0 +1,8 @@
+[Unit]
+Description=OmniRoute data backup and image update with rollback
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/omniroute-gateway update
+TimeoutStartSec=45min

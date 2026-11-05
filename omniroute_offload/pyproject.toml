@@ -13,6 +13,7 @@ dependencies = []
 free-llm = "omniroute_offload._cli:main"
 free-llm-read-hook = "omniroute_offload._hook:main"
 free-llm-check-dir = "omniroute_offload._privacy:check_dir_main"
+omniroute-gateway = "omniroute_offload.gateway:main"
 
 [tool.setuptools.packages.find]
 include = ["omniroute_offload*"]
@@ -62,7 +63,7 @@ omit = ["*/__pycache__/*", "*/tests/*"]
 [tool.coverage.report]
 fail_under = 100
 show_missing = true
-exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":']
+exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":', "if TYPE_CHECKING:"]
 
 [tool.pylint.main]
 # The repo root on the path, so pylint resolves the package's own imports the
