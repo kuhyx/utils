@@ -1,0 +1,105 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omniroute_offload"
+version = "0.1.0"
+description = "Offload easy LLM work to free models behind the local OmniRoute gateway"
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+free-llm = "omniroute_offload._cli:main"
+free-llm-read-hook = "omniroute_offload._hook:main"
+free-llm-check-dir = "omniroute_offload._privacy:check_dir_main"
+
+[tool.setuptools.packages.find]
+include = ["omniroute_offload*"]
+
+[tool.setuptools.package-data]
+omniroute_offload = ["py.typed"]
+
+[tool.ruff]
+target-version = "py314"
+include = ["*.py", "**/*.py"]
+exclude = [".git", ".venv", "__pycache__", "build", "dist", ".eggs"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D203", "D213", "COM812", "ISC001", "S603", "S607", "T201",
+    # No per-file copyright headers in this monorepo; /tmp is an allowed source, not a temp file.
+    "CPY001", "S108",
+    # urlopen only ever gets the fixed local gateway URL.
+    "S310",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["ANN401", "ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+
+[tool.pytest.ini_options]
+testpaths = ["omniroute_offload/tests"]
+addopts = [
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=omniroute_offload",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=lcov",
+]
+filterwarnings = ["error", "ignore::DeprecationWarning", "ignore::pytest.PytestRemovedIn10Warning"]
+
+[tool.coverage.run]
+source = ["omniroute_offload"]
+branch = true
+omit = ["*/__pycache__/*", "*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":']
+
+[tool.pylint.main]
+# The repo root on the path, so pylint resolves the package's own imports the
+# same way pytest does instead of reporting import-error for them.
+init-hook = "import sys; sys.path.insert(0, 'omniroute_offload')"
+analyse-fallback-blocks = true
+persistent = true
+jobs = 0
+py-version = "3.14"
+ignore = [".venv", "__pycache__"]
+# Test suites intentionally use patterns (protected-access, fixture-arg
+# shadowing) that don't apply to source code; ruff's per-file-ignores carry
+# the equivalent exemptions, so tests stay linted -- by ruff. This is the same
+# source-only pylint scope wake-alarm / diet-guard / testsAndMisc use. It has
+# to be `ignore-paths`, not `ignore = ["tests"]`: `ignore` only matches the
+# basename of what pylint is *given*, and pre-commit hands it explicit file
+# paths, so a directory name in `ignore` never fires under the hook.
+ignore-paths = ["^(.*/)?tests/.*$"]
+ignore-patterns = [".*\\.pyi$"]
+
+[tool.pylint.messages_control]
+enable = "all"
+disable = []
+
+[tool.pylint.design]
+min-public-methods = 0
+max-module-lines = 1000
+max-attributes = 10
+
+[tool.pylint.typecheck]
+generated-members = [
+    ".*\\.assert_called_once_with",
+    ".*\\.assert_called_once",
+    ".*\\.assert_called",
+    ".*\\.assert_not_called",
+    ".*\\.assert_any_call",
+    ".*\\.call_args",
+    ".*\\.call_args_list",
+    ".*\\.call_count",
+]

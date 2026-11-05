@@ -1,0 +1,25 @@
+#!/bin/bash
+# Claude Code with your full ~/.claude setup, but every model (main, subagents,
+# background) is the free-best chain on the local OmniRoute gateway. Free providers log
+# prompts, so it refuses to start outside public repos unless --force.
+set -euo pipefail
+
+readonly GW="http://127.0.0.1:20128"
+readonly MODEL="${CLAUDE_FREE_MODEL:-free-best}"
+KEY="$(cat "${HOME}/.config/omniroute/api_key")"
+readonly KEY
+
+if [[ "${1:-}" == --force ]]; then
+  shift
+else
+  free-llm-check-dir . || { echo "claude-free: only public repos, /tmp, /var/log (or --force)" >&2; exit 2; }
+fi
+
+curl -fsS -m 3 -o /dev/null "${GW}/v1/models" -H "Authorization: Bearer ${KEY}" ||
+  { echo "claude-free: gateway down; run ~/src/omniroute-tetris-test/start.sh" >&2; exit 3; }
+
+export ANTHROPIC_BASE_URL="${GW}" ANTHROPIC_AUTH_TOKEN="${KEY}" ANTHROPIC_MODEL="${MODEL}" \
+  ANTHROPIC_SMALL_FAST_MODEL="${MODEL}" ANTHROPIC_DEFAULT_OPUS_MODEL="${MODEL}" \
+  ANTHROPIC_DEFAULT_SONNET_MODEL="${MODEL}" ANTHROPIC_DEFAULT_HAIKU_MODEL="${MODEL}" \
+  CLAUDE_CODE_SUBAGENT_MODEL="${MODEL}"
+exec claude --model "${MODEL}" "$@"
