@@ -14,7 +14,8 @@ cannot mint an unlocked day.
 
 The one wrinkle is a PC booted mid-morning: the file is missing or yesterday's
 until wake-alarm's ``Persistent=true`` timer catches up, which needs the
-network. The arming run waits for that, bounded; status paths never do.
+network. The arming run waits for that, bounded (180 s, covering wake-alarm's
+150 s in-process retry); status paths never do.
 
 The path and the retry budget are parameters, not module state, so each
 consumer's test suite keeps redirecting its own constant.
@@ -45,7 +46,10 @@ MORNING_SESSION_FILE: Final = (
 # Only inside this local window is a non-today file worth waiting for: the
 # refresher runs 05:00-11:00, so outside it "not today's" is simply the truth.
 MORNING_WINDOW: Final = ((5, 0), (11, 0))
-MORNING_RETRY_SECONDS: Final = 30.0
+# Covers wake-alarm's own in-process retry (150 s) plus a margin: on
+# 2026-11-07 DNS came up seconds after boot, the refresher's one try had
+# already failed, and a 30 s wait locked a morning that was being earned.
+MORNING_RETRY_SECONDS: Final = 180.0
 MORNING_POLL_SECONDS: Final = 5.0
 
 

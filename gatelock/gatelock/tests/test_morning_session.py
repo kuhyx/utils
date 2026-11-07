@@ -153,3 +153,12 @@ class TestBootRetry:
             is None
         )
         assert naps == []
+
+
+def test_the_arming_wait_outlasts_a_slow_boot_network() -> None:
+    """2026-11-07: DNS came up ~5 s after boot and the refresher's next try was
+    the 2-minute tick, so a 30 s wait locked kuhy mid-session. The budget must
+    cover the refresher's own 150 s in-process retry."""
+    from gatelock import morning_session
+
+    assert morning_session.MORNING_RETRY_SECONDS >= 180

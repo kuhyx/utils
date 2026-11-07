@@ -69,8 +69,14 @@ unchanged so existing signed history keeps verifying.
 signed `morning_session.json` (the wake-early carrot: no lock until the signed
 `exempt_until`, 11:00 for a morning completed in time). screen-locker,
 leetcode-guard and book-guard all call it; the policy itself stays in
-wake-alarm. Path and retry budget are arguments so each consumer's tests keep
-redirecting their own constant.
+wake-alarm. The arming run waits up to 180 s for a freshly booted PC's
+refresher (status paths never wait). Path and retry budget are arguments so
+each consumer's tests keep redirecting their own constant.
+
+`gatelock.corner_strip` is the top-right always-on-top status strip for a gate
+that is stood down but not done (`build_corner_strip`, `CornerStrip`,
+`StripContent`, `corner_rect`, `corner_geometry`). It never grabs input; its
+tick ends when the owner's `supply` returns `None`.
 
 `gatelock.night_lockdown.evening_lockdown_today` answers "has tonight's
 evening night-lockdown already happened?" from night-lockdown's
