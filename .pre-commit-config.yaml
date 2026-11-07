@@ -66,9 +66,14 @@ repos:
       # answer and passes with a loud banner; `--no-verify` is banned here, so
       # a hook that hard-failed on a flaky connection would leave no way to
       # commit at all. CI, always online, is the strict authority.
+      #
+      # Scoped to manifests this branch changed (vs merge-base with main), so
+      # `--all-files` asks "did THIS change leave a stale pin?" and not "is
+      # every project in the monorepo current?". CI `--all --strict` keeps
+      # the repo-wide answer. See scripts/dep_freshness_changed.sh.
       - id: dependency-freshness
         name: dependencies on newest stable
-        entry: bash scripts/check_dependency_freshness.sh
+        entry: bash scripts/dep_freshness_changed.sh
         language: system
         pass_filenames: true
         files: >-

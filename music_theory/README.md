@@ -70,6 +70,15 @@ and the signal is bit-crushed, hissed and low-passed. `degrade: 0` is byte-
 identical to the original, so "the ending is the opening, destroyed" is a
 one-flag transform on the same seed.
 
+## Render a score
+
+```
+python -m music_theory render --score examples/waltz.txt --out waltz.wav
+```
+
+Named voices, noise drums, `meter`, A/B sections. Format: `score.py`
+docstring; examples: `examples/waltz.txt` (3/4), `examples/jig.txt` (6/8).
+
 ## Render sound effects
 
 `sfx` renders spellcode's spell and move sounds -- sfxr-style parameter
@@ -116,7 +125,7 @@ name, so a re-render is byte-identical. A sound is a few `sfx.Layer`s
 
 ```
 pip install -r requirements.txt
-python -m pytest            # 100 % branch coverage is enforced
+python -m pytest --cov=music_theory   # 100 % branch coverage is enforced
 pre-commit run --config music_theory/.pre-commit-config.yaml --all-files   # from ~/src/utils
 ```
 

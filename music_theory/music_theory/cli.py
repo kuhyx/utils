@@ -2,7 +2,8 @@
 """Command line: hear a section of the article, or render a recipe to a file.
 
 Subcommands: ``list``, ``explain <demo|all>``, ``demo <demo|all> --out DIR``
-``render --recipe recipe.json --out bed.wav [--manifest m.json]`` and
+``render (--recipe recipe.json | --score piece.txt) --out bed.wav
+[--manifest m.json]`` and
 ``sfx --out DIR [--sample-rate HZ] [--only NAME ...]``.
 """
 
@@ -14,10 +15,20 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING
 
-from music_theory import compose, demos, manifest, sfx, sfx_presets, sfx_render, wav
+from music_theory import (
+    compose,
+    demos,
+    manifest,
+    score,
+    sfx,
+    sfx_presets,
+    sfx_render,
+    wav,
+)
 
 if TYPE_CHECKING:
     from music_theory.demo_support import Demo
+    from music_theory.synth import Signal
 
 
 def _emit(line: str) -> None:
@@ -34,8 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
     demo = sub.add_parser("demo", help="render a demo to WAV and print its facts")
     demo.add_argument("name", help="demo name or 'all'")
     demo.add_argument("--out", type=Path, required=True, help="directory for the WAVs")
-    render = sub.add_parser("render", help="render a recipe JSON to a WAV")
-    render.add_argument("--recipe", type=Path, required=True, help="recipe JSON file")
+    render = sub.add_parser("render", help="render a recipe JSON or a score to a WAV")
+    source = render.add_mutually_exclusive_group(required=True)
+    source.add_argument("--recipe", type=Path, help="recipe JSON file")
+    source.add_argument("--score", type=Path, help="plain-text score file")
     render.add_argument("--out", type=Path, required=True, help="WAV to write")
     render.add_argument("--manifest", type=Path, help="manifest JSON to update")
     render.add_argument(
@@ -91,7 +104,27 @@ def cmd_render(
     recipe = compose.Recipe.from_dict(data)
     if degrade is not None:
         recipe = compose.with_degrade(recipe, degrade)
-    signal = compose.compose(recipe)
+    return _write(compose.compose(recipe), recipe, out, manifest_path)
+
+
+def cmd_render_score(
+    score_path: Path, out: Path, manifest_path: Path | None, degrade: float | None
+) -> int:
+    """Render a score file to a WAV; a bad score writes nothing."""
+    if degrade is not None:
+        _emit("error: --degrade applies to --recipe only")
+        return 1
+    try:
+        piece = score.parse(score_path.read_text())
+    except score.ScoreError as error:
+        _emit(f"error: {score_path}: {error}")
+        return 1
+    return _write(compose.compose_score(piece), piece, out, manifest_path)
+
+
+def _write(
+    signal: Signal, recipe: manifest.Recordable, out: Path, manifest_path: Path | None
+) -> int:
     wav.write(out, signal, recipe.sample_rate)
     record = manifest.entry(recipe, out, signal)
     if manifest_path is not None:
@@ -130,4 +163,6 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_demo(args.name, args.out)
     if args.command == "sfx":
         return cmd_sfx(args.out, args.sample_rate, args.only)
+    if args.score is not None:
+        return cmd_render_score(args.score, args.out, args.manifest, args.degrade)
     return cmd_render(args.recipe, args.out, args.manifest, args.degrade)

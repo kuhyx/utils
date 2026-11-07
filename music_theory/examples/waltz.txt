@@ -1,0 +1,33 @@
+# Waltz in C major, 3/4: oom-pah-pah, bass on beat one, chord tones on two
+# and three. 120 bpm (11025 frames a beat at 22050 Hz, so sections join on
+# a whole frame). Form A B, 16 bars = 48 beats = 529200 frames.
+# Measured dominant frequency: 130.7 Hz = C3 (130.81 Hz), the bass's
+# most-sustained note (8 of 16 bars).
+title waltz
+meter 3/4
+tempo 120
+seed 20261106
+voice bass wave=triangle vel=0.9
+voice pah wave=triangle vel=0.3
+voice lead wave=sine vel=0.5
+voice drums noise vel=0.25
+
+section A bars=8
+bass: C3/3 | C3/3 | G2/3 | G2/3 | G2/3 | G2/3 | C3/3 | C3/3
+pah: -/1 E4/1 G4/1 | -/1 E4/1 G4/1 | -/1 B3/1 D4/1 | -/1 B3/1 D4/1
+pah: -/1 B3/1 F4/1 | -/1 B3/1 F4/1 | -/1 E4/1 G4/1 | -/1 E4/1 G4/1
+lead: E5/2 G5/1 | C6/3 | B5/2 A5/1 | G5/3
+lead: F5/2 G5/1 | D5/2 B4/1 | C5/2 E5/1 | C5/3
+drums: k . h . h . | k . h . h . | k . h . h . | k . h . h .
+drums: k . h . h . | k . h . h . | k . h . h . | k . s . s .
+
+section B bars=8
+bass: F2/3 | F2/3 | C3/3 | C3/3 | G2/3 | G2/3 | C3/3 | C3/3
+pah: -/1 A3/1 C4/1 | -/1 A3/1 C4/1 | -/1 E4/1 G4/1 | -/1 E4/1 G4/1
+pah: -/1 B3/1 F4/1 | -/1 B3/1 D4/1 | -/1 E4/1 G4/1 | -/1 E4/1 G4/1
+lead: A5/2 C6/1 | F5/3 | G5/2 E5/1 | C5/3
+lead: D5/1 F5/1 B5/1 | G5/3 | E5/2 D5/1 | C5/3
+drums: k . h . h . | k . h . h . | k . h . h . | k . h . h .
+drums: k . h . h . | k . h . h . | k . h . s . | k . s s s s
+
+play A B

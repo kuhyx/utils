@@ -1,0 +1,25 @@
+# Jig in G major, 6/8: two groups of three eighths a bar, felt in two.
+# 175 quarter bpm (dotted quarter ~117). Form A A B B, 16 bars = 48 beats
+# = 362879 frames (loop_frames floors 48 * 60/175 * 22050).
+# Measured dominant frequency: 97.2 Hz ~ G2 (98.00 Hz), the bass's tonic.
+title jig
+meter 6/8
+tempo 175
+seed 20261106
+voice bass wave=triangle vel=0.8
+voice lead wave=square vel=0.25
+voice drums noise vel=0.25
+
+section A bars=4
+bass: G2/1.5 D3/1.5 | C3/1.5 G2/1.5 | G2/1.5 D3/1.5 | D3/1.5 A2/1.5
+lead: G5/1 B5/0.5 D6/1 B5/0.5 | C6/1 E6/0.5 D6/1 B5/0.5
+lead: G5/0.5 A5/0.5 B5/0.5 A5/0.5 G5/0.5 E5/0.5 | D5/1 F#5/0.5 A5/1 F#5/0.5
+drums: k . h s . h | k . h s . h | k . h s . h | k . h s s s
+
+section B bars=4
+bass: C3/1.5 G2/1.5 | G2/1.5 D3/1.5 | D3/1.5 A2/1.5 | G2/3
+lead: E5/1 G5/0.5 C6/1 G5/0.5 | D5/1 G5/0.5 B5/1 G5/0.5
+lead: A5/0.5 B5/0.5 A5/0.5 F#5/0.5 E5/0.5 D5/0.5 | G5/1.5 G4/1.5
+drums: k . h s . h | k . h s . h | k . h s . h | k . . k . .
+
+play A A B B
