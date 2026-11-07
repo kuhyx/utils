@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from gatelock import _density
 from gatelock._config import LockConfig
 from gatelock.widgets import (
     DEFAULT_WRAP,
@@ -48,6 +49,18 @@ def _font_px(widget: tk.Misc) -> int:
     so callers can compare sizes the way a reader would.
     """
     return abs(int(tkfont.Font(font=widget.cget("font")).actual("size")))
+
+
+@pytest.fixture(autouse=True)
+def _full_size_type_scale() -> Iterator[None]:
+    """Pin the density to 1.0 so type-size comparisons ignore the display.
+
+    ``xvfb-run`` defaults to a 640x480 screen, which compacts the scale to 0.7
+    and clamps both the body and label roles to the same 11px floor -- so
+    "primary reads larger" and "caption is smaller" became 8 vs 8.
+    """
+    with _density.forced(1.0):
+        yield
 
 
 @pytest.fixture
