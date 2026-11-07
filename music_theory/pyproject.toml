@@ -121,7 +121,9 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "-ra",
-    "--cov=music_theory",
+    ## No --cov here: an addopts source would widen every narrowed run
+    ## (``--cov=music_theory.score``) back to the whole package. CI and the
+    ## pre-push hook pass --cov=music_theory explicitly.
     "--cov-branch",
     "--cov-report=term-missing",
     "--cov-report=lcov",

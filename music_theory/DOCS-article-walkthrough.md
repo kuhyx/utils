@@ -83,6 +83,9 @@ turns beats into seconds. Here that is `sequencer.NoteEvent` (pitch, start
 beat, length in beats) and `sequencer.beat_seconds`. No demo; the
 sequencer is what every later demo renders through.
 
+A hand-written score (`score.py`, `examples/`) spells notes out in text:
+3/4, 6/8 or any x/2, x/4, x/8 meter, named voices, noise drums, A/B sections.
+
 ## 11. The complete composition
 
 Pick a key and a progression, play the root as bass, the chord tones as an

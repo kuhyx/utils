@@ -11,11 +11,23 @@ bytes -- the property a game asset manifest needs.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields, replace
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from music_theory import degrade, pitch, progressions, scales, sequencer, synth
+from music_theory import (
+    degrade,
+    pitch,
+    progressions,
+    scales,
+    score_events,
+    sequencer,
+    synth,
+)
 from music_theory.pitch import SEMITONES_PER_OCTAVE
+
+if TYPE_CHECKING:
+    from music_theory import score
 
 ## Voice levels, chosen so the bass carries and the melody sits on top.
 BASS_VELOCITY = 0.9
@@ -226,6 +238,11 @@ def compose(recipe: Recipe) -> synth.Signal:
         signal, adjusted.degrade, adjusted.sample_rate, adjusted.seed
     )
     return synth.normalize(signal)
+
+
+def compose_score(piece: score.Score) -> synth.Signal:
+    """Render a written score to a loop-length signal, normalised like a recipe."""
+    return synth.normalize(score_events.render(piece))
 
 
 def with_degrade(recipe: Recipe, amount: float) -> Recipe:

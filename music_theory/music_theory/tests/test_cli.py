@@ -119,3 +119,54 @@ def test_sfx_rejects_unknown_preset(
     with pytest.raises(SystemExit):
         cli.main(["sfx", "--out", str(tmp_path), "--only", "frost_hit"])
     assert "invalid choice" in capsys.readouterr().err
+
+
+SCORE = "meter 3/4\ntempo 120\nvoice v\nsection A bars=2\nv: A4/3 | C5/3\n"
+
+
+def test_render_score_writes_wav_and_manifest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    score_path = tmp_path / "s.txt"
+    score_path.write_text(SCORE)
+    out = tmp_path / "s.wav"
+    man = tmp_path / "MANIFEST.json"
+    args = ["render", "--score", str(score_path), "--out", str(out)]
+    assert cli.main([*args, "--manifest", str(man)]) == 0
+    entry = manifest.read(man)["s.wav"]
+    assert entry["frames"] == 66150
+    assert entry["recipe"] == {"format": "score", "title": "", "text": SCORE}
+    assert entry["sha256"] == wav.sha256(out)
+    assert "sha256" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("text", "extra", "message"),
+    [
+        (SCORE.replace("A4/3", "A4/5"), [], "line 5: voice v bar 1: expected 3"),
+        (SCORE, ["--degrade", "0.5"], "--degrade applies to --recipe only"),
+    ],
+)
+def test_render_score_errors_write_no_wav(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    text: str,
+    extra: list[str],
+    message: str,
+) -> None:
+    score_path = tmp_path / "s.txt"
+    score_path.write_text(text)
+    out = tmp_path / "s.wav"
+    args = ["render", "--score", str(score_path), "--out", str(out), *extra]
+    assert cli.main(args) == 1
+    assert not out.exists()
+    assert message in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("sources", [[], ["--recipe", "r.json", "--score", "s.txt"]])
+def test_render_needs_exactly_one_source(
+    sources: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["render", *sources, "--out", "x.wav"])
+    assert "--recipe" in capsys.readouterr().err

@@ -135,7 +135,7 @@ repos:
     hooks:
       - id: pytest-coverage
         name: pytest with coverage enforcement
-        entry: scripts/run_subproject_tests.sh music_theory
+        entry: scripts/run_subproject_tests.sh music_theory --cov=music_theory
         language: script
         types: [python]
         pass_filenames: false
