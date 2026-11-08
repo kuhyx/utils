@@ -11,7 +11,7 @@ dependencies:
   data_transfer_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: data_transfer_flutter-v0.2.0
+      ref: data_transfer_flutter-v0.2.1
       path: data_transfer_flutter
 ```
 
