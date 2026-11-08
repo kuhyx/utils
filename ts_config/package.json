@@ -9,7 +9,7 @@
     "node": ">=24",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
+  "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3",
   "files": [
     "eslint",
     "tsconfig.base.json",
@@ -39,34 +39,34 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@eslint-react/eslint-plugin": "5.28.4",
+    "@eslint-react/eslint-plugin": "5.28.8",
     "@eslint/js": "10.0.1",
-    "@vitest/eslint-plugin": "1.6.27",
+    "@vitest/eslint-plugin": "1.6.28",
     "eslint-import-resolver-typescript": "4.4.5",
-    "eslint-plugin-boundaries": "7.2.1",
+    "eslint-plugin-boundaries": "7.4.2",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-perfectionist": "5.13.0",
-    "eslint-plugin-playwright": "2.12.1",
+    "eslint-plugin-playwright": "2.12.2",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.7",
-    "eslint-plugin-react-you-might-not-need-an-effect": "1.0.2",
+    "eslint-plugin-react-you-might-not-need-an-effect": "1.1.0",
     "eslint-plugin-sonarjs": "4.2.2",
-    "eslint-plugin-unicorn": "78.0.0",
-    "globals": "17.13.0"
+    "eslint-plugin-unicorn": "79.0.0",
+    "globals": "17.14.0"
   },
   "peerDependencies": {
-    "eslint": ">=10",
+    "eslint": "10.14.0",
     "typescript": ">=6",
-    "typescript-eslint": ">=8.70.0"
+    "typescript-eslint": "8.72.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.0",
     "@types/react": "19.3.0",
-    "@vitest/coverage-v8": "5.0.5",
-    "eslint": "10.13.0",
+    "@vitest/coverage-v8": "5.1.0",
+    "eslint": "10.14.0",
     "react": "19.3.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.0",
-    "vitest": "5.0.5"
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
   }
 }
