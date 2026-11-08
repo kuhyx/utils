@@ -112,8 +112,10 @@ repos:
       - id: pylint
         args:
           - --rcfile=leetcode_coach/pyproject.toml
-          - --fail-under=8.0
-          - --jobs=4
+          - --fail-under=10
+          # --jobs=1: pylint's parallel mode pickles its state with dill,
+          # which crashes on Python 3.15 (no code.co_lnotab).
+          - --jobs=1
           - leetcode_coach/leetcode_coach
         # Whole package, never the staged subset: a score over an arbitrary
         # handful of files is an arbitrary number. Kept in step with

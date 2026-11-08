@@ -8,9 +8,17 @@ mechanically (no model, nothing to fail open), and the verdict rides the same
 from __future__ import annotations
 
 import re
-from typing import Final
+from typing import Final, NamedTuple
 
 from leetcode_coach import req_check
+
+
+class Facet(NamedTuple):
+    """One part of an output shape: how to spot it, and what to ask for."""
+
+    pattern: re.Pattern[str]
+    hint: str
+
 
 VIA: Final = "shape"
 SHAPE_RE: Final = re.compile(r"^\s*shape\s*:", re.IGNORECASE)
@@ -20,15 +28,15 @@ SQL_LANGS: Final = frozenset(
 LANGUAGES_RE: Final = re.compile(r"^Languages available:(.*)$", re.MULTILINE)
 TAGS_RE: Final = re.compile(r"^Tags:(.*)$", re.MULTILINE)
 FACETS: Final = {
-    "columns": (
+    "columns": Facet(
         re.compile(r"\b(?:columns?|fields?|headers?|named)\b", re.IGNORECASE),
         "which columns come back, named how",
     ),
-    "rows": (
+    "rows": Facet(
         re.compile(r"\b(?:rows?|records?|per)\b", re.IGNORECASE),
         "what one row stands for (one row per ...)",
     ),
-    "grouping": (
+    "grouping": Facet(
         re.compile(
             r"\b(?:group\w*|aggregat\w*|distinct|unique|per|sum|count|ungrouped)\b",
             re.IGNORECASE,
@@ -49,7 +57,9 @@ def is_sql(statement: str) -> bool:
 
 
 def missing_facets(text: str) -> tuple[str, ...]:
-    return tuple(name for name, (found, _) in FACETS.items() if not found.search(text))
+    return tuple(
+        name for name, facet in FACETS.items() if not facet.pattern.search(text)
+    )
 
 
 def check(text: str) -> req_check.Check:
@@ -58,4 +68,4 @@ def check(text: str) -> req_check.Check:
 
 
 def hints(missing: tuple[str, ...] | list[str]) -> list[str]:
-    return [f"{name}: {FACETS[name][1]}" for name in missing if name in FACETS]
+    return [f"{name}: {FACETS[name].hint}" for name in missing if name in FACETS]

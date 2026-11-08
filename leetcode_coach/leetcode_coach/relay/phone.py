@@ -15,6 +15,7 @@ write is logged and retried in order; the relay never exits over it.
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 import json
 import logging
@@ -54,6 +55,14 @@ def _pairs(event: sse.Event) -> list[tuple[list[str], object]]:
     return [(base, event.data)]
 
 
+@dataclasses.dataclass
+class _ChatMirror:
+    """Which session's chat RTDB holds, and the line keys already sent."""
+
+    sid: str | None = None
+    sent: set[str] = dataclasses.field(default_factory=set)
+
+
 class PhoneLink:
     """Mirrors the relay into RTDB and feeds RTDB requests to the lane."""
 
@@ -78,15 +87,14 @@ class PhoneLink:
         self._rescan_every = rescan_s
         self.outbox = Outbox()
         self._mirror_lock = threading.Lock()
-        self._chat_sid: str | None = None
-        self._sent: set[str] = set()
+        self._chat = _ChatMirror()
 
     def attach(self) -> None:
         """Listen to the lane and the backend; then mirror everything once."""
         self.lane.on_result.append(self.on_result)
         self.lane.on_busy.append(lambda _busy: self.beat())
         self.coach.listeners.append(self.on_state)
-        self._chat_sid = None
+        self._chat.sid = None
         self.on_state(self.coach.state(), self.coach.session)
 
     def beat(self) -> None:
@@ -111,18 +119,18 @@ class PhoneLink:
         text = json.dumps(state, ensure_ascii=False)
         with self._mirror_lock:
             sid = None if session is None else session.sid
-            if sid != self._chat_sid:
+            if sid != self._chat.sid:
                 self.outbox.put(
                     "chat reset", functools.partial(self.rtdb.delete, "chat")
                 )
-                self._chat_sid, self._sent = sid, set()
+                self._chat = _ChatMirror(sid)
             lines = {} if session is None else dict(session.chat)
             new: dict[str, object] = {
-                k: v for k, v in lines.items() if k not in self._sent
+                k: v for k, v in lines.items() if k not in self._chat.sent
             }
             if new:
                 self.outbox.put("chat", functools.partial(self.rtdb.patch, "chat", new))
-                self._sent |= set(new)
+                self._chat.sent |= set(new)
             put = functools.partial(self.rtdb.put, "state", text)
             self.outbox.put("state", put, latest="state")
             self.beat()
