@@ -45,11 +45,13 @@ describe("rendering", () => {
 
   it("positions the thumbs and the fill from lo and hi", () => {
     const { element } = mount({ hi: "70", lo: "20" });
-    expect(thumb(element, "lo").style.left).toBe(`${String((2 / 9) * 100)}%`);
-    expect(thumb(element, "hi").style.left).toBe(`${String((7 / 9) * 100)}%`);
-    expect(element.querySelector<HTMLElement>(".slider-fill")?.style.left).toBe(
-      `${String((2 / 9) * 100)}%`,
-    );
+    // jsdom 31 rounds serialized style numbers to 4 decimals, so compare numerically.
+    const percent = (value: string): number => Number(value.replace("%", ""));
+    expect(percent(thumb(element, "lo").style.left)).toBeCloseTo((2 / 9) * 100, 3);
+    expect(percent(thumb(element, "hi").style.left)).toBeCloseTo((7 / 9) * 100, 3);
+    expect(
+      percent(element.querySelector<HTMLElement>(".slider-fill")?.style.left ?? ""),
+    ).toBeCloseTo((2 / 9) * 100, 3);
   });
 
   it("reports lo and hi as the distribution bounds when unconstrained", () => {
