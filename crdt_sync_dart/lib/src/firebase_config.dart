@@ -20,6 +20,7 @@ import 'firebase_credentials.dart';
 import 'firebase_client.dart';
 import 'mirror_store.dart';
 import 'remote_store.dart';
+import 'sync_namespace.dart';
 
 /// The shared config is missing a field, or still holds a scaffold placeholder.
 class ConfigException implements Exception {
@@ -121,6 +122,8 @@ Future<FirebaseRestClient> firebaseClientFor({
   String? expectedUid,
   http.Client? httpClient,
 }) async {
+  // Before any sign-in: a bad SYNC_NAMESPACE must stop the app at startup.
+  checkSyncNamespace(syncNamespace);
   final auth = FirebaseTokenProvider(
     apiKey: config.apiKey,
     store: store,

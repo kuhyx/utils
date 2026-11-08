@@ -118,6 +118,16 @@ The public/private split is not cosmetic: every repo in this fleet is public.
 APK — the security rules, not secrecy, protect the data. The account email and
 password identify *a person* and are entered once per device.
 
+### Sandbox namespace for test builds
+
+`--dart-define=SYNC_NAMESPACE=sandbox/slot3` moves every RTDB read and write
+under `/sandbox/slot3/...`, so a test build never touches real data. Sign-in
+is unchanged (the real account). Empty, the default, keeps the exact current
+paths. Only `^sandbox/[a-z0-9_-]+$` is accepted; anything else throws
+`ConfigException` at startup (`firebaseClientFor` / `FirebaseRestClient`), never
+falling back to production paths. The shipped rules (root-level uid pin) already
+allow these paths.
+
 ### `password: ''` is legal
 
 The Google one-tap path and the seeded-session path both store an empty

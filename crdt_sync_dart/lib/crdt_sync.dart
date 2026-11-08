@@ -20,4 +20,5 @@ export 'src/remote_store.dart';
 export 'src/secure_credential_store.dart';
 export 'src/store.dart';
 export 'src/sync.dart';
+export 'src/sync_namespace.dart';
 export 'src/sync_state.dart';

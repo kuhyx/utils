@@ -19,6 +19,7 @@ import 'firebase_auth_rest.dart';
 import 'firebase_errors.dart';
 import 'firebase_keys.dart';
 import 'remote_store.dart';
+import 'sync_namespace.dart';
 
 const _httpUnauthorized = 401;
 const _httpForbidden = 403;
@@ -33,12 +34,21 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
     required String databaseUrl,
     required this.auth,
     http.Client? httpClient,
+    String namespace = syncNamespace,
   }) : _databaseUrl = databaseUrl.endsWith('/')
            ? databaseUrl.substring(0, databaseUrl.length - 1)
            : databaseUrl,
+       _prefix = _prefixFor(checkSyncNamespace(namespace)),
        _http = httpClient ?? http.Client();
 
   final String _databaseUrl;
+
+  /// `<namespace>/` or empty: put in front of every RTDB path. Every request
+  /// goes through [_uri], so this is the single choke point.
+  final String _prefix;
+
+  static String _prefixFor(String namespace) =>
+      namespace.isEmpty ? '' : '$namespace/';
 
   /// Mints the ID token every request carries. Public so a settings screen
   /// can drive `signIn` / `signOut` through the same instance the client uses.
@@ -47,8 +57,12 @@ class FirebaseRestClient implements RemoteStore, BulkMapReader {
 
   Future<Uri> _uri(String path, {Map<String, String> query = const {}}) async {
     final encoded = encodePath(path);
+    // A bare namespace (the root probe) must not leave a trailing slash.
+    final full = encoded.isEmpty && _prefix.isNotEmpty
+        ? _prefix.substring(0, _prefix.length - 1)
+        : '$_prefix$encoded';
     return Uri.parse(
-      '$_databaseUrl/$encoded.json',
+      '$_databaseUrl/$full.json',
     ).replace(queryParameters: {'auth': await auth.idToken(), ...query});
   }
 
