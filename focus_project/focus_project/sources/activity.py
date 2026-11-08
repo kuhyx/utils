@@ -8,6 +8,11 @@ starts a fresh one. Time after the last check-in is not credited until the
 next event vouches for it. Every other source (tutor, sql_drills, ...) is a
 heartbeat covering the five minutes before it. Only events recorded for
 ``project`` count.
+
+0.8.0: a ``tutor`` ``heartbeat`` (a graded check-in card) is also a beat of
+the open segment, like a ``checkin``: within :data:`MAX_GAP_S` of the last
+beat it extends the segment; later it ends the segment at that last beat. It
+never opens a segment. Other heartbeat sources never chain the timer.
 """
 
 from __future__ import annotations
@@ -55,24 +60,34 @@ def read_events(project_id: str) -> list[dict[str, Any]]:
 
 
 def timer_intervals(events: list[dict[str, Any]]) -> list[Interval]:
-    """Credited spans of the ``timer`` events (already time-ordered)."""
+    """Credited spans of the ``timer`` events and tutor beats (time-ordered)."""
     spans: list[Interval] = []
-    last: float | None = None  # the last event of the open segment
+    last: float | None = None  # the last beat of the open segment
     for event in events:
         ts = float(event["ts"])
         kind = event.get("kind")
-        if kind not in {"start", "checkin", "stop"}:
+        beat = _is_beat(event)
+        if not beat and kind not in {"start", "checkin", "stop"}:
             continue
+        on_time = False
         if last is not None and ts - last <= MAX_GAP_S:
             spans.append((last, ts))
-        last = None if kind == "stop" else ts
+            on_time = True
+        # A beat never opens a segment; a stop closes it; start/checkin open it.
+        keep = on_time if beat else kind != "stop"
+        last = ts if keep else None
     return spans
+
+
+def _is_beat(event: dict[str, Any]) -> bool:
+    """A tutor heartbeat: it chains the timer segment (0.8.0)."""
+    return event.get("source") == "tutor" and event.get("kind") == "heartbeat"
 
 
 def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
     """Timer segments plus heartbeats of ``project`` (the registry clips)."""
     events = read_events(project.id)
-    timer = [e for e in events if e.get("source") == "timer"]
+    timer = [e for e in events if e.get("source") == "timer" or _is_beat(e)]
     beats = [e for e in events if e.get("source") != "timer"]
     return [
         *timer_intervals(timer),

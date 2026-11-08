@@ -16,7 +16,9 @@ Data: `$FOCUS_PROJECT_DATA` or `~/.local/share/focus_project/` (`projects.json`,
 `activity.jsonl`). `minutes.py` is owned by the minutes/harvester agent.
 Time rules: `minutes_for` clips every interval at "now" (an event stamped ahead of
 the clock earns only once the clock reaches it); `record_activity` rejects a `ts`
-more than 120 s ahead (ValueError). `end_project(id, day)` rejects a past `day`
+more than 120 s ahead (ValueError). Timer segments (`start` -> `checkin` ... -> `stop`)
+lapse after a 600 s gap; a `tutor`/`heartbeat` is a beat too (0.8.0: a graded check-in card
+extends the open segment, never opens one). `end_project(id, day)` rejects a past `day`
 (ValueError); today or later is fine. The harvester pays every project day of the
 last 31 days, so late-synced events for older days are credited (idempotent).
 Overtime carries over: own minutes past a day's target bank (max 60) and pay on the
