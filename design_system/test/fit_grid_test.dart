@@ -126,6 +126,30 @@ void main() {
     expect(find.text('item $perPage').hitTestable(), findsNothing);
   });
 
+  testWidgets('more than 12 pages: "n / N" counter instead of dots', (
+    tester,
+  ) async {
+    await _pump(tester, count: 30);
+    final perPage = _onScreen(tester);
+    final count = perPage * 13;
+    await _pump(tester, count: count);
+    expect(_dot, findsNothing);
+    final counter = find.byKey(const ValueKey('fit-grid-page-counter'));
+    expect(tester.widget<Text>(counter).data, '1 / 13');
+    await tester.fling(find.byType(PageView), const Offset(-250, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(counter).data, '2 / 13');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('exactly 12 pages still shows dots', (tester) async {
+    await _pump(tester, count: 30);
+    final perPage = _onScreen(tester);
+    await _pump(tester, count: perPage * 12);
+    expect(_dot, findsNWidgets(12));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('swiping left shows the next page and moves the dot', (
     tester,
   ) async {

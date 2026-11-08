@@ -8,9 +8,10 @@ import 'package:flutter/material.dart';
 ///
 /// Rows per page come from the height the parent gives it; the overflow moves
 /// to further pages in a horizontal [PageView], marked by dots once there is
-/// more than one. [itemBuilder] gets the global item index and must fill the
-/// cell it is given: a square of up to column width plus [labelHeight], the
-/// rows stretching to use up the leftover height.
+/// more than one (a "n / N" counter past 12 pages). [itemBuilder] gets the
+/// global item index and must fill the cell it is given: a square of up to
+/// column width plus [labelHeight], the rows stretching to use up the
+/// leftover height.
 class FitGrid extends StatefulWidget {
   /// Creates the grid.
   const FitGrid({
@@ -53,6 +54,10 @@ class FitGrid extends StatefulWidget {
 
 const double _dotSize = AppSpacing.sm;
 const double _dotsHeight = AppSpacing.md + AppSpacing.xs;
+
+// Above this many pages a row of dots outgrows a phone width, so the
+// indicator becomes a "n / N" counter instead.
+const int _maxDots = 12;
 
 class _FitGridState extends State<FitGrid> {
   final _controller = PageController();
@@ -159,22 +164,35 @@ class _Dots extends StatelessWidget {
     return ExcludeSemantics(
       child: SizedBox(
         height: _dotsHeight,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < count; i++)
-              Container(
-                key: ValueKey<String>('fit-grid-dot-$i'),
-                width: _dotSize,
-                height: _dotSize,
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i == current ? scheme.primary : scheme.outlineVariant,
+        child: count > _maxDots
+            ? Center(
+                child: Text(
+                  '${current + 1} / $count',
+                  key: const ValueKey<String>('fit-grid-page-counter'),
+                  style: Theme.of(context).textTheme.labelSmall,
+                  textScaler: TextScaler.noScaling,
                 ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < count; i++)
+                    Container(
+                      key: ValueKey<String>('fit-grid-dot-$i'),
+                      width: _dotSize,
+                      height: _dotSize,
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i == current
+                            ? scheme.primary
+                            : scheme.outlineVariant,
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
       ),
     );
   }
