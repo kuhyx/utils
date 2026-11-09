@@ -91,6 +91,8 @@ NPM_ACCEPT: Final = "application/vnd.npm.install-v1+json"
 # --- Cache ------------------------------------------------------------------
 
 CACHE_PATH_ENV: Final = "DEP_FRESHNESS_CACHE"
+# Seconds; overrides every ecosystem TTL (a repo that wants a once-a-day gate).
+TTL_ENV: Final = "DEP_FRESHNESS_TTL_SECONDS"
 DEFAULT_CACHE_DIR: Final = "~/.cache/dep-freshness"
 CACHE_FILE: Final = "registry.json"
 TTL_SECONDS: Final = 6 * 3600

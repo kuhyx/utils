@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from dep_freshness._tables import TTL_SECONDS
 from dep_freshness.cache import Cache, Entry, ttl_for
 from dep_freshness.models import Dep
 from dep_freshness.registries import http
@@ -139,3 +140,16 @@ def _offline(*_args):
 
 def _explode(*_args):
     raise RuntimeError("boom")
+
+
+def test_ttl_env_overrides_the_registry_ttl(monkeypatch) -> None:
+    """A repo can stretch the refresh window (once-a-day pre-push gates)."""
+    monkeypatch.setenv("DEP_FRESHNESS_TTL_SECONDS", "86400")
+    assert ttl_for("npm") == 86400
+    assert ttl_for("gittag") == 86400
+
+
+def test_ttl_env_garbage_falls_back_to_the_default(monkeypatch) -> None:
+    """A malformed value must never break a commit hook."""
+    monkeypatch.setenv("DEP_FRESHNESS_TTL_SECONDS", "soon")
+    assert ttl_for("npm") == TTL_SECONDS

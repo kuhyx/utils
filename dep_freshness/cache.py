@@ -21,6 +21,7 @@ from dep_freshness._tables import (
     DEFAULT_CACHE_DIR,
     GITCOMMIT,
     GITTAG,
+    TTL_ENV,
     TTL_GITTAG_SECONDS,
     TTL_SECONDS,
 )
@@ -33,7 +34,14 @@ def cache_dir() -> Path:
 
 
 def ttl_for(ecosystem: str) -> int:
-    """Git refs move rarely and cost a subprocess, so they cache longer."""
+    """Git refs move rarely and cost a subprocess, so they cache longer.
+
+    `DEP_FRESHNESS_TTL_SECONDS` overrides both; garbage is ignored, because a
+    typo in an env var must not break a commit hook.
+    """
+    override = os.environ.get(TTL_ENV, "")
+    if override.isdigit() and int(override) > 0:
+        return int(override)
     return TTL_GITTAG_SECONDS if ecosystem in (GITTAG, GITCOMMIT) else TTL_SECONDS
 
 
