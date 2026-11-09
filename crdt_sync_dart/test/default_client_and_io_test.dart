@@ -128,5 +128,32 @@ void main() {
       await store.write('{"hello":"world"}');
       expect(await store.read(), '{"hello":"world"}');
     });
+
+    test('50 overlapping writes all succeed and the last issued wins',
+        () async {
+      // Regression: every call shared one `<file>.<pid>.tmp`, so the first
+      // rename moved it away and a later rename threw PathNotFoundException.
+      final store = FileLogPersistence(File('${dir.path}/log.json'));
+      await Future.wait([
+        for (var i = 0; i < 50; i++) store.write('{"n":$i}'),
+      ]);
+      expect(await store.read(), '{"n":49}');
+      expect(dir.listSync().map((e) => e.uri.pathSegments.last),
+          ['log.json']);
+    });
+
+    test('a failed write rejects its caller but does not block later writes',
+        () async {
+      final target = File('${dir.path}/log.json');
+      // A directory at the target path makes the rename fail.
+      Directory(target.path).createSync();
+      final store = FileLogPersistence(target);
+      await expectLater(
+          store.write('{"n":0}'), throwsA(isA<FileSystemException>()));
+
+      Directory(target.path).deleteSync();
+      await store.write('{"n":1}');
+      expect(await store.read(), '{"n":1}');
+    });
   });
 }
