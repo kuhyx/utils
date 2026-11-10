@@ -1,29 +1,33 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""The month grid: Monday-first, one button per day, prev/next month arrows.
+"""The month grid: Monday-first, one button per day, prev/next month chevrons.
 
 The phone's ``DayCalendar``/``DayCell``: a sick day is filled ``cat-2``, a
 sick day that keeps a locker carries a dot, Tue-Thu are shaded, and past
 days keep their mark but faded and inert. Today stays clickable -- a sick
 day can be marked or cleared for today. Deciding what a click *means* stays
-with the window; this only reports the date.
+with the window; this only reports the date. No words: the month reads
+``2026-11`` and the weekday row is dots, with rings on Saturday and Sunday.
 """
 
 from __future__ import annotations
 
 import tkinter as tk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from sickdays._day import to_iso
-from sickdays.gui import _text
+from sickdays.gui import _dates
 from sickdays.gui import _tokens as tok
 from sickdays.gui import _widgets as ui
+from sickdays.gui._controls import IconButton, IconSlot
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from datetime import date
 
-_PREV = "\N{SINGLE LEFT-POINTING ANGLE QUOTATION MARK}"
-_NEXT = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
+#: The weekday marks over the grid, in px.
+_MARK_PX: Final = 10
+#: The keep-a-locker dot inside a sick day's cell, in px.
+_DOT_PX: Final = 8
 
 
 def _cell_colours(*, sick: bool, past: bool, workday: bool) -> tuple[str, str]:
@@ -56,7 +60,7 @@ class MonthCalendar(tk.Frame):
         self._is_sick = is_sick
         self._has_dot = has_dot
         self._on_day = on_day
-        self._first, self._last = _text.month_bounds(today)
+        self._first, self._last = _dates.month_bounds(today)
         self.month = today.replace(day=1)
         self._header = tk.Frame(self, name="header", bg=self.cget("bg"))
         self._header.pack(fill="x")
@@ -66,7 +70,7 @@ class MonthCalendar(tk.Frame):
 
     def step(self, months: int) -> None:
         """Move ``months`` months (within the phone's range) and redraw."""
-        target = _text.shift_month(self.month, months)
+        target = _dates.shift_month(self.month, months)
         if self._first <= target <= self._last:
             self.month = target
             self.redraw()
@@ -77,11 +81,12 @@ class MonthCalendar(tk.Frame):
             for child in frame.winfo_children():
                 child.destroy()
         self._draw_header()
-        for column, initial in enumerate(_text.WEEKDAY_INITIALS):
-            ui.label(self._grid, initial, "caption", fg=tok.MUTED_ON_DARK).grid(
-                row=0, column=column
+        for column in range(7):
+            mark = "ring" if _dates.is_weekend_column(column) else "dot"
+            IconSlot(self._grid, size=_MARK_PX).show(mark, tok.MUTED_ON_DARK).grid(
+                row=0, column=column, pady=(0, tok.XS)
             )
-        for row, week in enumerate(_text.month_weeks(self.month), start=1):
+        for row, week in enumerate(_dates.month_weeks(self.month), start=1):
             for column, day in enumerate(week):
                 if day is not None:
                     self._cell(day).grid(
@@ -89,20 +94,20 @@ class MonthCalendar(tk.Frame):
                     )
 
     def _draw_header(self) -> None:
-        back = ui.button(self._header, _PREV, lambda: self.step(-1), name="prev")
-        forward = ui.button(self._header, _NEXT, lambda: self.step(1), name="next")
-        back.configure(state="normal" if self.month > self._first else "disabled")
-        forward.configure(state="normal" if self.month < self._last else "disabled")
+        back = IconButton(self._header, "prev", lambda: self.step(-1), name="prev")
+        forward = IconButton(self._header, "next", lambda: self.step(1), name="next")
+        back.set_enabled(self.month > self._first)
+        forward.set_enabled(self.month < self._last)
         back.pack(side="left")
         forward.pack(side="right")
-        ui.label(self._header, _text.month_title(self.month), "subtitle").pack(
+        ui.label(self._header, _dates.month_title(self.month), "subtitle").pack(
             side="top", pady=tok.XS
         )
 
     def _cell(self, day: date) -> tk.Button:
         sick = self._is_sick(day)
         past = day < self._today
-        fill, text = _cell_colours(sick=sick, past=past, workday=_text.is_workday(day))
+        fill, text = _cell_colours(sick=sick, past=past, workday=_dates.is_workday(day))
         cell = tk.Button(
             self._grid,
             name=f"day-{to_iso(day)}",
@@ -124,7 +129,6 @@ class MonthCalendar(tk.Frame):
             cursor="arrow" if past else "hand2",
         )
         if sick and self._has_dot(day):
-            dot = tk.Label(cell, name="dot", text="●", fg=text, bg=fill)
-            dot.configure(font=tok.font(ui.family(self), "caption"), padx=0, pady=0)
-            dot.place(relx=1.0, x=-2, y=0, anchor="ne")
+            dot = IconSlot(cell, name="dot", size=_DOT_PX).show("dot", text)
+            dot.place(relx=1.0, x=-2, y=2, anchor="ne")
         return cell

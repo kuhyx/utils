@@ -10,8 +10,9 @@ from typing import TYPE_CHECKING
 from sickdays._api import add_sick_day
 from sickdays._day import to_iso, today
 from sickdays._model import SickDay
-from sickdays.gui import KeepPanel, SickDaysApp, _text, _window
+from sickdays.gui import KeepPanel, SickDaysApp, _dates, _window
 from sickdays.gui import _tokens as tok
+from sickdays.gui._controls import IconButton, IconSlot
 
 if TYPE_CHECKING:
     import pytest
@@ -19,13 +20,19 @@ if TYPE_CHECKING:
 FUTURE = today() + timedelta(days=3)
 
 
-def _texts(widget: tk.Misc) -> list[str]:
-    found: list[str] = []
-    for child in widget.winfo_children():
-        if isinstance(child, tk.Label):
-            found.append(str(child.cget("text")))
-        found.extend(_texts(child))
-    return found
+def _upcoming(app: SickDaysApp) -> dict[str, list[str]]:
+    """Each listed day's ISO date -> the locker icons it keeps."""
+    rows = app.calendar.master.nametowidget("upcoming").winfo_children()
+    listed: dict[str, list[str]] = {}
+    for row in rows:
+        icons = [
+            str(slot.icon)
+            for slot in row.winfo_children()
+            if isinstance(slot, IconSlot)
+        ]
+        (date_label,) = [c for c in row.winfo_children() if isinstance(c, tk.Label)]
+        listed[str(date_label.cget("text"))] = icons
+    return listed
 
 
 def _cell(app: SickDaysApp, day: date) -> tk.Button:
@@ -40,14 +47,17 @@ def _panel(app: SickDaysApp) -> KeepPanel:
     return panel
 
 
-def test_an_empty_pool_says_none_ahead(tk_root: tk.Tk) -> None:
+def test_an_empty_pool_lists_nothing_ahead(tk_root: tk.Tk) -> None:
     app = SickDaysApp(tk_root)
     assert tk_root.title() == "Sick days"
-    assert _text.NONE_AHEAD in _texts(tk_root)
+    assert _upcoming(app) == {}
+    assert app.status.icon is None
     assert app.host.winfo_children() == []
 
 
 def test_mark_a_day_from_the_calendar(tk_root: tk.Tk) -> None:
+    later = FUTURE + timedelta(days=1)
+    add_sick_day(later)
     app = SickDaysApp(tk_root)
     app.calendar.month = FUTURE.replace(day=1)
     app.calendar.redraw()
@@ -58,10 +68,8 @@ def test_mark_a_day_from_the_calendar(tk_root: tk.Tk) -> None:
     assert panel.sync_thread is not None
     panel.sync_thread.join(timeout=5)
     assert app.host.winfo_children() == []
-    assert app.status.cget("text") == _window.saved_message(
-        SickDay(FUTURE, is_sick=True, keep=frozenset({"leetcode"})), FUTURE
-    )
-    assert "Kept: LeetCode" in _texts(tk_root)
+    assert app.status.icon == "check"
+    assert _upcoming(app) == {to_iso(FUTURE): ["leetcode"], to_iso(later): []}
     cell = _cell(app, FUTURE)
     assert str(cell.cget("bg")).upper() == tok.SICK
     assert cell.nametowidget("dot").winfo_exists()
@@ -78,13 +86,12 @@ def test_a_free_day_is_refused_before_the_panel_opens(
     tk_root: tk.Tk, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
-        "sickdays.gui._text.free_day_predicate", lambda: lambda _d: True
+        "sickdays.gui._dates.free_day_predicate", lambda: lambda _d: True
     )
     app = SickDaysApp(tk_root)
     app.select(FUTURE)
     assert app.host.winfo_children() == []
-    assert str(app.status.cget("text")).endswith("release it in Free days first.")
-    assert str(app.status.cget("fg")).upper() == tok.DANGER
+    assert app.status.icon == "no_entry"
 
 
 def test_a_sick_day_on_a_free_day_still_opens(
@@ -92,7 +99,7 @@ def test_a_sick_day_on_a_free_day_still_opens(
 ) -> None:
     add_sick_day(FUTURE)
     monkeypatch.setattr(
-        "sickdays.gui._text.free_day_predicate", lambda: lambda _d: True
+        "sickdays.gui._dates.free_day_predicate", lambda: lambda _d: True
     )
     app = SickDaysApp(tk_root)
     app.select(FUTURE)
@@ -102,19 +109,31 @@ def test_a_sick_day_on_a_free_day_still_opens(
 def test_the_list_shows_upcoming_days_with_kept_lockers(tk_root: tk.Tk) -> None:
     add_sick_day(FUTURE, keep=["alarm", "workout"])
     add_sick_day(FUTURE + timedelta(days=1))
-    texts = _texts(SickDaysApp(tk_root).calendar.master)
-    assert _text.day_label(FUTURE) in texts
-    assert "Kept: Workout lock, Wake alarm" in texts
-    assert _text.NONE_AHEAD not in texts
+    past = today() - timedelta(days=1)
+    add_sick_day(past, now=past)
+    assert _upcoming(SickDaysApp(tk_root)) == {
+        to_iso(FUTURE): ["workout", "alarm"],
+        to_iso(FUTURE + timedelta(days=1)): [],
+    }
 
 
-def test_saved_message_wording() -> None:
-    sick = SickDay(FUTURE, is_sick=True)
-    label = _text.day_label(FUTURE)
-    assert _window.saved_message(None, FUTURE) == f"{label}: nothing changed"
-    assert _window.saved_message(sick, FUTURE).endswith("every locker stands down")
-    cleared = SickDay(FUTURE, is_sick=False)
-    assert _window.saved_message(cleared, FUTURE) == f"{label} is a normal day again"
+def test_saved_icon() -> None:
+    assert _window.saved_icon(None) is None
+    assert _window.saved_icon(SickDay(FUTURE, is_sick=True)) == "check"
+    assert _window.saved_icon(SickDay(FUTURE, is_sick=False)) == "check"
+
+
+def test_the_month_reads_as_numerals_with_weekday_marks(tk_root: tk.Tk) -> None:
+    app = SickDaysApp(tk_root)
+    title = app.calendar.nametowidget("header").winfo_children()[-1]
+    assert isinstance(title, tk.Label)
+    assert title.cget("text") == _dates.month_title(today().replace(day=1))
+    marks = [
+        child.icon
+        for child in app.calendar.nametowidget("days").winfo_children()
+        if isinstance(child, IconSlot)
+    ]
+    assert marks == ["dot"] * 5 + ["ring"] * 2
 
 
 def test_past_days_are_inert_and_faded(tk_root: tk.Tk) -> None:
@@ -128,7 +147,7 @@ def test_past_days_are_inert_and_faded(tk_root: tk.Tk) -> None:
 
 def test_month_arrows_stop_at_the_phones_range(tk_root: tk.Tk) -> None:
     app = SickDaysApp(tk_root)
-    first, last = _text.month_bounds(today())
+    first, last = _dates.month_bounds(today())
     for _ in range(30):
         app.calendar.step(1)
     assert app.calendar.month == last
@@ -136,6 +155,8 @@ def test_month_arrows_stop_at_the_phones_range(tk_root: tk.Tk) -> None:
         app.calendar.step(-1)
     assert app.calendar.month == first
     back = app.calendar.nametowidget("header.prev")
+    assert isinstance(back, IconButton)
+    assert back.icon == "prev"
     assert str(back.cget("state")) == "disabled"
 
 

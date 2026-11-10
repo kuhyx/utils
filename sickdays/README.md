@@ -70,22 +70,35 @@ refused (past day, already sick, not sick, a free day, sync unavailable),
 ## The picker window (0.3.0)
 
 `sickdays gui` (or the "Sick days" launcher): the phone's Sick days screen on
-Tk -- calendar, a five-switch panel per day, the days ahead. Past days are
+Tk -- calendar, a six-switch panel per day, the days ahead. Past days are
 inert; a free day is refused; each write starts `sync_quietly()` on a
 non-daemon thread. `WM_CLASS "sickdays", "Sickdays"`; `Escape` closes. Embed
 just the panel (`import sickdays` never imports tkinter):
+
+No words inside the window (textgate): dates are ISO numerals (`2026-11`,
+`2026-11-27`), each locker is a drawn pictogram (dumbbell = workout, `</>` =
+LeetCode, open book, apple = diet, alarm clock, target = focus), switches are
+knob-right-on-accent / knob-left-on-dark, buttons are check (mark / save),
+red bin (clear) and cross (cancel). A refusal is an icon in the status slot:
+padlock (past), no-entry (free day), warning (cannot check, or a refused
+write; the detail goes to the log), hourglass (a sync is still running).
+Icons are Canvas geometry, not font glyphs: the venv's Tk uses core X fonts,
+where non-ASCII glyphs render as nothing. The title bar keeps "Sick days"
+(an app's name, textgate settled decision 4). The guard is
+`tests/test_gui_no_words.py`: no letter on any widget, in any state.
 
 ```python
 from sickdays.gui import KeepPanel   # a plain tk.Frame: no root, grab or wm_* call
 KeepPanel(parent, day, *, on_saved, on_cancel=None, paths=None).pack()
 ```
 
-Normal day: five switches, all off (off = stands down), "Mark sick"; sick
-day: its switches, "Save", "Clear sick day". Past/free/uncheckable days show
-why and offer no write; a refusal (or a click mid-sync) shows in the panel.
+Normal day: six switches, all off (off = stands down), `actions.mark`; sick
+day: its switches, `actions.save`, `actions.clear`. Past/free/uncheckable
+days show their icon and offer no write; a refusal (or a click mid-sync)
+shows in the panel's `status` slot, named by `panel.reason`.
 `on_saved(SickDay | None)` fires after the write and sync start: the entry on
-Mark sick / a changed Save (`is_sick=True`) or Clear (`is_sick=False`), `None`
-on an unchanged Save (nothing written). The panel never destroys itself.
+mark / a changed save (`is_sick=True`) or clear (`is_sick=False`), `None`
+on an unchanged save (nothing written). The panel never destroys itself.
 
 ## API
 

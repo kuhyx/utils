@@ -61,7 +61,7 @@ def _redirect_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     for module in _MODULES:
         monkeypatch.setattr(f"{module}.resolve_paths", _resolve)
     monkeypatch.setattr("sickdays._api.free_day_predicate", lambda: _never_free)
-    monkeypatch.setattr("sickdays.gui._text.free_day_predicate", lambda: _never_free)
+    monkeypatch.setattr("sickdays.gui._dates.free_day_predicate", lambda: _never_free)
     monkeypatch.setattr("sickdays.gui._panel.sync_quietly", _no_sync)
 
 

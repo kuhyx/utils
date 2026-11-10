@@ -120,6 +120,9 @@ disable = []
 min-public-methods = 0
 max-module-lines = 1000
 max-attributes = 10
+# A tk.Canvas subclass (gui/_controls.py) has 9 ancestors by construction:
+# Canvas mixes in XView and YView on top of Widget's chain.
+max-parents = 9
 
 [tool.pylint.typecheck]
 generated-members = [
