@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+import json
 from typing import TYPE_CHECKING
 
 import focus_project as fp
+from focus_project._paths import activity_path
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -50,3 +52,14 @@ def shot(tmp_path: Path, name: str = "rules.png") -> Path:
 def states(project: fp.Project, now: datetime) -> dict[str, str]:
     """Milestone id -> state."""
     return {m.id: m.state for m in fp.milestones(project, now)}
+
+
+def session(start: datetime, minutes: int, *, step: int = 5, pid: str = "iv") -> None:
+    """A timer session start -> check-in every ``step`` min -> stop."""
+    activity_path().parent.mkdir(parents=True, exist_ok=True)
+    with activity_path().open("a", encoding="utf-8") as handle:
+        for offset in range(0, minutes + 1, step):
+            kind = "start" if offset == 0 else "checkin"
+            when = start + timedelta(minutes=offset)
+            row = {"ts": when.timestamp(), "source": "timer", "kind": kind}
+            handle.write(json.dumps({**row, "project": pid, "dev": "pc"}) + "\n")

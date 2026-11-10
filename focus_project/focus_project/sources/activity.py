@@ -84,6 +84,24 @@ def _is_beat(event: dict[str, Any]) -> bool:
     return event.get("source") == "tutor" and event.get("kind") == "heartbeat"
 
 
+def sessions(project_id: str) -> list[Interval]:
+    """Contiguous focus sessions of ``project_id``, time-ordered, as (start, end).
+
+    Built from the same timer/tutor-beat segments (and so the same
+    :data:`MAX_GAP_S` rule) that credit minutes; spans that touch are one
+    session, which ends at its last beat.
+    """
+    events = read_events(project_id)
+    timer = [e for e in events if e.get("source") == "timer" or _is_beat(e)]
+    merged: list[Interval] = []
+    for lo, hi in timer_intervals(timer):
+        if merged and lo <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(hi, merged[-1][1]))
+        else:
+            merged.append((lo, hi))
+    return merged
+
+
 def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
     """Timer segments plus heartbeats of ``project`` (the registry clips)."""
     events = read_events(project.id)

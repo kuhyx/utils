@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from focus_project import _api, _interview, evidence
 from focus_project._errors import RegistryError
 from focus_project._kind import INTERVIEW
+from focus_project.sources import activity
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
 _LOG = logging.getLogger(__name__)
 State = Literal["pending", "done", "missed", "late_done", "unknown"]
 PHONE_LEAD = timedelta(hours=12)
+MOCK_SESSION_S = 90 * 60
 _RED = frozenset({"missed", "unknown"})
 
 
@@ -134,6 +136,21 @@ def _by_evidence(kind: str) -> Callable[[str, Rows, Project], Completion]:
     return judge
 
 
+def _mock(mid: str, rows: Rows, project: Project) -> Completion:
+    """Done at the first score row that follows a >= 90 min focus session.
+
+    The session (contiguous beats, :func:`activity.sessions`) must END at or
+    before the score row; a score with no such session completes nothing.
+    """
+    ends = [hi for lo, hi in activity.sessions(project.id) if hi - lo >= MOCK_SESSION_S]
+    for row in rows:
+        if (row.milestone, row.kind) == (mid, "score") and any(
+            end <= row.ms / 1000 for end in ends
+        ):
+            return row.at, False
+    return None, False
+
+
 def _trip_ask(mid: str, rows: Rows, project: Project) -> Completion:
     """Done at the answer row; an answer with no row was given at creation."""
     if date.fromisoformat(mid.partition(":")[2]) not in dict(project.weekend_answers):
@@ -164,7 +181,7 @@ def _phone(mid: str, rows: Rows, _project: Project) -> Completion:
 
 _JUDGES = {
     "rules": _by_evidence("file"),
-    "mock": _by_evidence("score"),
+    "mock": _mock,
     "trip_ask": _trip_ask,
     "slot": _slot,
     "phone": _phone,

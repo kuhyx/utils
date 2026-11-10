@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import focus_project as fp
 from focus_project import evidence
-from focus_project.tests.helpers import SAT1, SAT2, at, make, shot, states
+from focus_project.tests.helpers import SAT1, SAT2, at, make, session, shot, states
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -97,6 +97,7 @@ def _clean(tmp_path: Path) -> None:
     fp.record_evidence("iv", "rules", "file", file=shot(tmp_path), now=at(10, 9))
     fp.answer_weekend("iv", SAT1, trip=False, now=at(11, 9))
     fp.answer_weekend("iv", SAT2, trip=False, now=at(11, 9))
+    session(at(24, 7), 90)
     fp.record_evidence("iv", "mock", "score", 70, now=at(24, 9))
 
 
@@ -145,13 +146,6 @@ def test_on_time_is_done_at_the_boundary(tmp_path: Path) -> None:
     p = fp.list_projects()[0]
     assert states(p, at(11, 8))["rules"] == "done"
     assert states(p, at(10, 23, 59))["rules"] == "done"
-
-
-def test_mock_needs_a_score(tmp_path: Path) -> None:
-    p = make()
-    assert states(p, at(26, 8))["mock"] == "missed"
-    fp.record_evidence("iv", "mock", "score", 64, now=at(26, 8))
-    assert states(fp.list_projects()[0], at(26, 9))["mock"] == "late_done"
 
 
 def test_slot_needs_entry_and_confirm_tap() -> None:
