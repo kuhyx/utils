@@ -4,13 +4,13 @@ description: >-
   Flutter apps: system Save-as on Android/iOS (never cloud-only), a save
   dialog on desktop, a download on web, plus a versioned export envelope.
 publish_to: 'none'
-version: 0.2.1
+version: 0.2.2
 
 environment:
   sdk: ^3.12.2
 
 dependencies:
-  file_picker: 13.3.2
+  file_picker: 13.3.3
   file_selector: 1.1.0
   flutter:
     sdk: flutter
