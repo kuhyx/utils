@@ -14,8 +14,8 @@
 # (google_sign_in_web, google_sign_in_platform_interface and their transitive
 # google_identity_services_web) are allowed while google_sign_in_android is
 # absent: kartka's web build uses them for the GIS button and they never
-# reach an APK. APK mode greps the built dex for the GMS auth classes, the
-# ground truth when a dependency arrives some other way.
+# reach an APK. APK mode looks for the GMS auth library marker files in the
+# built APK, the ground truth when a dependency arrives some other way.
 #
 # Usage: check_no_gms_signin.sh [pubspec.lock | dir ...]
 #        check_no_gms_signin.sh --apk app.apk
@@ -35,7 +35,19 @@ readonly WEB_ONLY=(google_sign_in_web google_sign_in_platform_interface
 # Anchored so com.google.gms:google-services (Firebase) and
 # play-services-auth-api-phone do not trip it.
 readonly GRADLE_PATTERN='com\.google\.android\.gms:play-services-(auth|identity-credentials)([^-[:alnum:]]|$)|com\.google\.android\.libraries\.identity\.googleid|androidx\.credentials:credentials-play-services-auth|name[[:space:]]*=[[:space:]]*"(play-services-auth|play-services-identity-credentials|credentials-play-services-auth|googleid)"'
-readonly DEX_PATTERN='Lcom/google/android/(gms/auth|libraries/identity/googleid)/'
+# APK mode: library marker files AGP copies to the APK root (or META-INF),
+# one per linked artifact. Dex strings are not used: play-services-base and
+# -basement reference GoogleSignInAccount without linking play-services-auth.
+# play-services-fido (passkeys) is deliberately allowed.
+readonly APK_MARKERS=(
+    googleid.properties
+    play-services-auth.properties
+    play-services-auth-base.properties
+    play-services-auth-api-phone.properties
+    play-services-auth-blockstore.properties
+    play-services-identity-credentials.properties
+    META-INF/androidx.credentials_credentials-play-services-auth.version
+)
 readonly PRUNE=(-name build -o -name .dart_tool -o -name .git -o -name .gradle -o -name .claude
     -o -name node_modules)
 
@@ -122,17 +134,18 @@ check_lock() {
 }
 
 check_apk() {
-    local apk="$1" dex count
+    local apk="$1" entries found=()
+    local marker
     [[ -f "$apk" ]] || { echo "Error: no such APK: $apk" >&2; exit 2; }
-    count="$(for dex in $(unzip -Z1 "$apk" 'classes*.dex'); do
-        unzip -p "$apk" "$dex"
-    done | strings | grep -cE "$DEX_PATTERN" || true)"
-    if [[ "$count" -gt 0 ]]; then
-        echo "Error: $apk has $count GMS sign-in class references" >&2
-        echo "       (Lcom/google/android/gms/auth or .../identity/googleid)." >&2
-        fix_hint
-        return 1
-    fi
+    entries="$(unzip -Z1 "$apk")"
+    for marker in "${APK_MARKERS[@]}"; do
+        grep -qxF -- "$marker" <<<"$entries" && found+=("$marker")
+    done
+    [[ "${#found[@]}" -eq 0 ]] && return 0
+    echo "Error: $apk bundles Google's non-free sign-in libraries:" >&2
+    printf '         %s\n' "${found[@]}" >&2
+    fix_hint
+    return 1
 }
 
 # Expands the arguments into pubspec.lock paths, NUL-separated.

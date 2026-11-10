@@ -136,23 +136,60 @@ def test_missing_explicit_file_is_a_usage_error(tmp_path: Path) -> None:
     assert _run(tmp_path / "nope.lock").returncode == 2
 
 
-def _apk(path: Path, dex: bytes) -> Path:
+CREDENTIALS_MARKER = "META-INF/androidx.credentials_credentials-play-services-auth.version"
+DEX_REF = b"\x00Lcom/google/android/gms/auth/api/signin/GoogleSignInAccount;\x00" * 2
+
+
+def _apk(path: Path, dex: bytes = b"", markers: tuple[str, ...] = ()) -> Path:
+    """Fake APK: dex strings plus library marker files AGP copies in."""
     with zipfile.ZipFile(path, "w") as apk:
         apk.writestr("AndroidManifest.xml", b"\x03\x00")
         apk.writestr("classes.dex", b"dex\n035\x00" + dex)
         apk.writestr("classes2.dex", b"dex\n035\x00Lkotlin/Unit;\x00")
+        for name in markers:
+            apk.writestr(name, b"version=1")
     return path
 
 
-def test_apk_with_gms_auth_classes_fails(tmp_path: Path) -> None:
-    dex = b"\x00Lcom/google/android/gms/auth/api/signin/GoogleSignIn;\x00" * 2
-    proc = _run("--apk", _apk(tmp_path / "bad.apk", dex))
-    assert proc.returncode == 1
-    assert "2" in proc.stderr
-    assert "google_account_token" in proc.stderr
-
-
-def test_apk_without_gms_auth_classes_passes(tmp_path: Path) -> None:
-    dex = b"\x00Lcom/google/android/gms/common/api/Status;\x00"
-    proc = _run("--apk", _apk(tmp_path / "good.apk", dex))
+def test_apk_with_only_dex_references_passes(tmp_path: Path) -> None:
+    """play-services-base references GoogleSignInAccount without linking auth."""
+    markers = (
+        "play-services-base.properties",
+        "play-services-basement.properties",
+        "play-services-tasks.properties",
+        "play-services-fido.properties",
+    )
+    proc = _run("--apk", _apk(tmp_path / "ok.apk", DEX_REF, markers))
     assert proc.returncode == 0, proc.stderr
+
+
+def test_apk_without_markers_passes(tmp_path: Path) -> None:
+    assert _run("--apk", _apk(tmp_path / "clean.apk")).returncode == 0
+
+
+def test_apk_banned_markers_fail_and_are_named(tmp_path: Path) -> None:
+    banned = (
+        "play-services-auth.properties",
+        "googleid.properties",
+        "play-services-auth-base.properties",
+        "play-services-auth-api-phone.properties",
+        "play-services-auth-blockstore.properties",
+        "play-services-identity-credentials.properties",
+        CREDENTIALS_MARKER,
+    )
+    for marker in banned:
+        apk = _apk(tmp_path / "bad.apk", DEX_REF, ("play-services-base.properties", marker))
+        proc = _run("--apk", apk)
+        assert proc.returncode == 1, marker
+        assert marker in proc.stderr
+        assert "google_account_token" in proc.stderr
+
+
+def test_apk_nested_marker_name_is_not_a_root_marker(tmp_path: Path) -> None:
+    """Only APK-root files count; a same-named file in a subdir is not AGP's."""
+    apk = _apk(tmp_path / "nested.apk", markers=("assets/play-services-auth.properties",))
+    assert _run("--apk", apk).returncode == 0
+
+
+def test_apk_missing_file_is_a_usage_error(tmp_path: Path) -> None:
+    assert _run("--apk", tmp_path / "nope.apk").returncode == 2
