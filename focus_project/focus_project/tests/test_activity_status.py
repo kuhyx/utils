@@ -137,6 +137,7 @@ def test_status_active_reports_the_worked_minutes() -> None:
         "unlock_minutes": 30,
         "ends": "2026-11-05",
         "replaces": ["leetcode"],
+        "unbacked_minutes": 0,
         "milestones": [],
         "missed": False,
     }
@@ -160,6 +161,7 @@ def test_status_inactive() -> None:
         "unlock_minutes",
         "ends",
         "replaces",
+        "unbacked_minutes",
         "milestones",
         "missed",
     }

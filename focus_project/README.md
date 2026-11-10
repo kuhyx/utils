@@ -36,6 +36,10 @@ uncovers today. A NEW project starting today may replace gates and set any targe
 new obligation, not a reduction (but see the floor).
 Floor (0.7.1, coordinator decision for kuhy): `daily_minutes >= 30 x replaced gates` (min 30; `book` = `reading`),
 enforced on create and update (`daily_floor(replaces)`), so a day cannot be made cheap.
+Backed timer (0.10.0, days from `BACKING_FROM` = 2026-11-08): a timer span earns only if a
+same-project `tutor`/`sql_drills`/`leetcode` beat (or accepted submission) is in it, 5 min
+before it, or bridges it (beats <= 20 min apart). `unbacked_minutes_for(day)` /
+`status()["unbacked_minutes"]` show the rest. A beat backs only the spans it touches (the tutor chain makes a graded card back the whole stretch). Known gap: any coach turn backs.
 Open the work: `python3 -m focus_project.open [--no-site]` (tutor focus screen, `work_url`).
 Install: `./install.sh` (stdlib only, editable user install for `/usr/bin/python3`).
 

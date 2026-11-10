@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from focus_project import _api, _milestones, carry, evidence
+from focus_project import _api, _milestones, carry, evidence, minutes
 
 if TYPE_CHECKING:
     from datetime import date
@@ -36,7 +36,8 @@ def status(day: date) -> dict[str, Any]:
 
     ``minutes`` is what was really worked plus what the day took from the
     bank, so it may exceed ``daily_minutes`` (121/120); ``counted_minutes``
-    is the capped figure that pays.
+    is the capped figure that pays. ``unbacked_minutes`` is timer time the
+    anti-cheat gate refused (shown as "not counted", never paid).
     """
     project = _api.active(day)
     if project is None:
@@ -52,6 +53,7 @@ def status(day: date) -> dict[str, Any]:
             "unlock_minutes": None,
             "ends": None,
             "replaces": [],
+            "unbacked_minutes": 0,
             "milestones": [],
             "missed": False,
         }
@@ -72,6 +74,7 @@ def status(day: date) -> dict[str, Any]:
         "unlock_minutes": project.unlock_on(day),
         "ends": project.last_day.isoformat(),
         "replaces": list(project.replaces_on(day)),
+        "unbacked_minutes": minutes.unbacked_minutes_for(day),
         # Interview projects: [{id, due ISO, state}] and whether any is red.
         "milestones": rows,
         "missed": missed,

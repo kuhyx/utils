@@ -31,10 +31,12 @@ from focus_project._update import Update, apply_update, update_project
 from focus_project.activity import record_activity
 from focus_project.checks import register_source, run_checks
 from focus_project.evidence import Evidence
-from focus_project.minutes import minutes_for
+from focus_project.minutes import minutes_for, unbacked_minutes_for
+from focus_project.sources.activity import BACKING_FROM
 from focus_project.status import status
 
 __all__ = [
+    "BACKING_FROM",
     "Evidence",
     "Limits",
     "Milestone",
@@ -59,5 +61,6 @@ __all__ = [
     "run_checks",
     "stands_down",
     "status",
+    "unbacked_minutes_for",
     "update_project",
 ]

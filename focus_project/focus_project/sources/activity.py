@@ -13,23 +13,36 @@ heartbeat covering the five minutes before it. Only events recorded for
 the open segment, like a ``checkin``: within :data:`MAX_GAP_S` of the last
 beat it extends the segment; later it ends the segment at that last beat. It
 never opens a segment. Other heartbeat sources never chain the timer.
+
+0.10.0 anti-cheat (days from :data:`BACKING_FROM`): a timer span earns only
+if real activity of the same project backs it, whole span or nothing. A
+backing event is a ``tutor``/``sql_drills``/``leetcode`` heartbeat or an
+accepted LeetCode submission (leetcode projects only); ``browser`` never
+backs. A span ``(a, b)`` is backed if a backing event lies in
+``[a - 300, b]``, or between two consecutive backing events at most
+:data:`BRIDGE_S` apart. Check-ins alone earn 0. Earlier days keep the old
+rule (every span counts), so paid days never change.
 """
 
 from __future__ import annotations
 
+from datetime import date
+import importlib
+from itertools import pairwise
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from focus_project._paths import activity_path
-from focus_project.sources import Interval, heartbeat_interval
+from focus_project.sources import HEARTBEAT_WINDOW_S, Interval, heartbeat_interval
 
 if TYPE_CHECKING:
-    from datetime import date
-
     from focus_project._model import Project
 
 MAX_GAP_S = 600.0
+BACKING_FROM: Final = date(2026, 11, 8)
+BACKING_SOURCES: Final = frozenset({"tutor", "sql_drills", "leetcode"})
+BRIDGE_S: Final = 1200.0
 _LOG = logging.getLogger(__name__)
 
 
@@ -102,12 +115,50 @@ def sessions(project_id: str) -> list[Interval]:
     return merged
 
 
-def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
-    """Timer segments plus heartbeats of ``project`` (the registry clips)."""
+def backing_times(events: list[dict[str, Any]], project: Project) -> list[float]:
+    """Sorted times of the events that may back a timer span.
+
+    The LeetCode ledger is read in its own guard: if it fails, only the
+    submissions are lost, never the heartbeats (fail closed, narrow).
+    """
+    times = [float(e["ts"]) for e in events if e.get("source") in BACKING_SOURCES]
+    try:
+        # Imported lazily: it pulls in earned_time, and the timer must keep
+        # working (heartbeat backing only) where that is not installed.
+        leetcode = importlib.import_module("focus_project.sources.leetcode")
+        times += leetcode.submission_times(project)
+    except Exception:  # noqa: BLE001 (lose the submissions, keep the beats)
+        _LOG.exception("leetcode backing unavailable, heartbeats only")
+    return sorted(times)
+
+
+def is_backed(span: Interval, times: list[float]) -> bool:
+    """Whether a backing event lies in or just before ``span``, or bridges it."""
+    lo, hi = span
+    if any(lo - HEARTBEAT_WINDOW_S <= t <= hi for t in times):
+        return True
+    return any(a <= lo and hi <= b and b - a <= BRIDGE_S for a, b in pairwise(times))
+
+
+def split_timer(
+    day: date, project: Project, events: list[dict[str, Any]] | None = None
+) -> tuple[list[Interval], list[Interval]]:
+    """``(backed, unbacked)`` timer spans of ``project``, judged for ``day``."""
+    found = read_events(project.id) if events is None else events
+    chain = [e for e in found if e.get("source") == "timer" or _is_beat(e)]
+    spans = timer_intervals(chain)
+    if day < BACKING_FROM:
+        return spans, []
+    times = backing_times(found, project)
+    backed = [s for s in spans if is_backed(s, times)]
+    return backed, [s for s in spans if s not in backed]
+
+
+def intervals(day: date, project: Project) -> list[Interval]:
+    """Backed timer segments plus heartbeats of ``project`` (the registry clips)."""
     events = read_events(project.id)
-    timer = [e for e in events if e.get("source") == "timer" or _is_beat(e)]
     beats = [e for e in events if e.get("source") != "timer"]
     return [
-        *timer_intervals(timer),
+        *split_timer(day, project, events)[0],
         *(heartbeat_interval(float(e["ts"])) for e in beats),
     ]

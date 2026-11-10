@@ -14,6 +14,8 @@ import pytest
 import focus_project as fp
 from focus_project import minutes, sources
 from focus_project.sources import leetcode
+from focus_project.tests.test_backing import DAY, proj, rows
+from focus_project.tests.test_backing import at as day_at
 from focus_project.tests.test_minutes import D1, at, project
 
 KEY = b"k" * 32
@@ -127,3 +129,29 @@ def test_read_only_replay_of_real_ledger(monkeypatch: pytest.MonkeyPatch) -> Non
     assert got
     assert all(b - a == sources.HEARTBEAT_WINDOW_S for a, b in got)
     assert REAL.stat().st_mtime_ns == before
+
+
+def test_accepted_submission_backs_a_timer_span(tmp_path: Path) -> None:
+    """0.10.0: an accepted submission backs timer time on a backed day."""
+    proj()
+    rows(("timer", "start", day_at(9)), ("timer", "stop", day_at(9, 10)))
+    assert minutes.unbacked_minutes_for(DAY) == 10
+    write(tmp_path, ac_row(day_at(9, 10)))
+    assert minutes.unbacked_minutes_for(DAY) == 0
+    assert minutes.minutes_for(DAY) == 10
+
+
+def test_unreadable_ledger_leaves_heartbeat_backing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(_project: object) -> list[float]:
+        raise OSError
+
+    monkeypatch.setattr(leetcode, "submission_times", boom)
+    proj()
+    rows(
+        ("timer", "start", day_at(9)),
+        ("timer", "stop", day_at(9, 10)),
+        ("tutor", "heartbeat", day_at(9, 10)),
+    )
+    assert minutes.unbacked_minutes_for(DAY) == 0

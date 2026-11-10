@@ -199,6 +199,7 @@ their `max_gaming_minutes` + pure bonuses again (240/120 min = 2/min; full day =
 from the start day, cutting all of it, 180 with LeetCode's formerly free hour (0.20.0); maturity never delays it. Ledger `~/.local/share/focus_project/ledger.json`:
 signed `credit` rows, `entry_id` `<project>-<YYYYMMDD>-m<n>`, `detail.minutes` (positive int),
 `detail.ended_at` (else `day`). `focus_project` unusable = no project (logged).
+Unbacked timer time pays 0 from 2026-11-08 (focus_project 0.10.0).
 
 ## Adding a gate
 

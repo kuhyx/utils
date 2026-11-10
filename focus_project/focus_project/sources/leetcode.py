@@ -55,8 +55,8 @@ def _submitted_at(row: object, key: bytes) -> float | None:
         return None
 
 
-def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
-    """One heartbeat per accepted submission (the registry clips to the day)."""
+def submission_times(project: Project) -> list[float]:
+    """Times of verified accepted submissions; [] for a non-leetcode project."""
     if not any("leetcode" in pattern.lower() for pattern in project.site_patterns):
         return []
     key = ledger.read_key()
@@ -64,4 +64,9 @@ def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
         _LOG.warning("leetcode source: no signing key, contributes 0")
         return []
     stamps = (_submitted_at(row, key) for row in ledger.read_rows(ledger_file()))
-    return [heartbeat_interval(ts) for ts in stamps if ts is not None]
+    return [ts for ts in stamps if ts is not None]
+
+
+def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
+    """One heartbeat per accepted submission (the registry clips to the day)."""
+    return [heartbeat_interval(ts) for ts in submission_times(project)]
