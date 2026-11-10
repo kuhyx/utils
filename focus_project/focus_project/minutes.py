@@ -9,7 +9,7 @@ clipped at "now", so an event stamped ahead of the clock (a fast phone clock)
 earns only once the real clock reaches it. An unreadable registry reads as 0
 (logged): fail closed.
 
-Unbacked minutes (0.8.0): timer time the anti-cheat gate refused
+Unbacked minutes (0.10.0): timer time the anti-cheat gate refused
 (:mod:`focus_project.sources.activity`) and no other source covers, on the
 local day up to "now"; carry and the cap play no part. Shown, never paid.
 """
