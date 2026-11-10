@@ -42,7 +42,6 @@
     "testsAndMisc/docs/shell-split-verification.md": "DOCS-shell-split-verification.md",
     "testsAndMisc/linux_configuration/docs/SUMMARY.md": "DOCS-pacman-security-layers.md",
     "utils/gatelock/docs/scrollable-viewport.md": "DOCS-scrollable-viewport.md",
-    "utils/dopamine-ux/00-INDEX.md": "DOCS-dopamine-ux-index.md",
     "digital-wellbeing/llm-notes/units-and-tasks.md": "DOCS-shutdown-units-reference.md",
     "digital-wellbeing/README_COMPULSIVE_BLOCK_LLM.md": "DOCS-compulsive-block-reference.md",
     "digital-wellbeing/README_MIDNIGHT_SHUTDOWN_LLM.md": "DOCS-midnight-shutdown-reference.md",

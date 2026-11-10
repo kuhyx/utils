@@ -132,10 +132,7 @@ def rewrite(text: str, old: Path, new: Path) -> str:
 
 
 #: The remaining files are plain reference docs, renamed mechanically to
-#: DOCS-<existing-slug>.md. The one exception is the dopamine-ux programme:
-#: 00-INDEX records 8 of its 9 parts as "not started", so those parts are
-#: outstanding work and become TODO, not DOCS. The index itself is a record.
-AUTO_TASK_PREFIXES = ("utils/dopamine-ux/0",)
+#: DOCS-<existing-slug>.md.
 
 
 def slugify(stem: str) -> str:
@@ -150,8 +147,6 @@ def auto_name(rel: str) -> tuple[str, str]:
     # A misspelled README is a README, not a doc needing a new namespace.
     if stem.lower() == "readme":
         return "README.md", "record"
-    if rel.startswith(AUTO_TASK_PREFIXES) and "INDEX" not in stem:
-        return f"TODO-{slugify(stem)}.md", "task"
     return f"DOCS-{slugify(stem)}.md", "record"
 
 

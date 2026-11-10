@@ -90,12 +90,6 @@ def test_auto_name_fixes_readme_casing() -> None:
     assert auto_name("x/Readme.md") == ("README.md", "record")
 
 
-def test_dopamine_ux_parts_are_tasks_but_index_is_not() -> None:
-    """00-INDEX records the programme; 01-09 are its unstarted parts."""
-    assert auto_name("utils/dopamine-ux/03-diet-guard.md")[1] == "task"
-    assert auto_name("utils/dopamine-ux/00-INDEX.md")[1] == "record"
-
-
 def test_classified_paths_do_not_overlap() -> None:
     """A file cannot be both a task and a record."""
     assert not set(classify.TASKS) & set(classify.RECORDS)
