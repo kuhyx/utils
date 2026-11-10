@@ -30,3 +30,18 @@ def activity_path() -> Path:
 def lock_path() -> Path:
     """The registry's writer lock."""
     return data_dir() / "projects.lock"
+
+
+def evidence_dir() -> Path:
+    """Interview-prep evidence: one jsonl per project plus copied files."""
+    return data_dir() / "evidence"
+
+
+def evidence_path(project_id: str) -> Path:
+    """The append-only evidence rows of one project."""
+    return evidence_dir() / f"{project_id}.jsonl"
+
+
+def evidence_files_dir(project_id: str) -> Path:
+    """Where evidence files (screenshots) of one project are copied."""
+    return evidence_dir() / project_id

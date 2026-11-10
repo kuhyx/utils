@@ -38,3 +38,12 @@ Floor (0.7.1, coordinator decision for kuhy): `daily_minutes >= 30 x replaced ga
 enforced on create and update (`daily_floor(replaces)`), so a day cannot be made cheap.
 Open the work: `python3 -m focus_project.open [--no-site]` (tutor focus screen, `work_url`).
 Install: `./install.sh` (stdlib only, editable user install for `/usr/bin/python3`).
+
+Interview prep (`kind="interview"`, 0.9): `create_project(..., kind="interview", test_at=, invite_url=, trips=, weekend_answers=)`;
+`end` must be the test day. Budget: 30 min weekdays / 120 Sat-Sun (`daily_on`), exempt from `daily_floor`, unlock clamped.
+Milestones are generated, never stored: `milestones(project, now)` -> `rules`, `trip_ask:<sat>`, `phone:<trip start>`, `mock`, `slot`
+with states pending/done/missed/late_done/unknown. `owed_lock(now)` = earliest overdue uncompleted one (never on test day; wire it
+after focus-guard's sick/free-day stand-down). `status(day)` gains `milestones` and `missed`.
+Evidence is append-only (`evidence/<id>.jsonl` + copied files): `record_evidence(id, milestone, kind, value, file=, now=)`
+(`file`, `tap`, `score`, `slot`, `slot_confirm`, tutor's `phone_check`). `add_trip` / `answer_weekend` only get stricter (ValueError).
+`run_checks(id)` runs the `phone` source (reads the latest `phone_check` row) and latches changes; `register_source` swaps it.

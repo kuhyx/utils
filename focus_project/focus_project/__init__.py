@@ -23,25 +23,40 @@ from focus_project._api import (
     stands_down,
 )
 from focus_project._errors import RegistryError
+from focus_project._milestones import Milestone, milestones, owed_lock
 from focus_project._model import Limits, Project
+from focus_project._mutate import add_trip, answer_weekend, record_evidence
+from focus_project._trips import Trip
 from focus_project._update import Update, apply_update, update_project
 from focus_project.activity import record_activity
+from focus_project.checks import register_source, run_checks
+from focus_project.evidence import Evidence
 from focus_project.minutes import minutes_for
 from focus_project.status import status
 
 __all__ = [
+    "Evidence",
     "Limits",
+    "Milestone",
     "Project",
     "RegistryError",
+    "Trip",
     "Update",
     "active",
+    "add_trip",
+    "answer_weekend",
     "apply_update",
     "create_project",
     "daily_floor",
     "end_project",
     "list_projects",
+    "milestones",
     "minutes_for",
+    "owed_lock",
     "record_activity",
+    "record_evidence",
+    "register_source",
+    "run_checks",
     "stands_down",
     "status",
     "update_project",

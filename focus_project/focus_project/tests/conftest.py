@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from focus_project import _clock
+from focus_project import _clock, _paths, checks
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -40,3 +40,16 @@ def _far_future_clock(monkeypatch: pytest.MonkeyPatch) -> None:
 def data(tmp_path: Path) -> Path:
     """The redirected data directory (may not exist yet)."""
     return tmp_path / "data"
+
+
+@pytest.fixture(autouse=True)
+def _interview_isolation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, _redirect_state: None
+) -> None:
+    """Evidence lives under the redirected data dir; sources are a private copy.
+
+    Fails closed (R3): if the path seam ever resolves outside ``tmp_path`` the
+    test errors before it can write a production evidence row.
+    """
+    assert _paths.evidence_dir().is_relative_to(tmp_path)
+    monkeypatch.setattr(checks, "SOURCES", dict(checks.SOURCES))

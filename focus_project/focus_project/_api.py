@@ -4,19 +4,24 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date  # noqa: TC003
 import logging
 import re
 import time
-from urllib.parse import urlsplit
+from typing import TYPE_CHECKING
 
-from focus_project import _clock, _store
+from focus_project import _clock, _interview, _store
 from focus_project._errors import RegistryError
+from focus_project._kind import FOCUS
 from focus_project._model import GATES, Project, normalize_gate
+
+if TYPE_CHECKING:
+    from datetime import date, datetime
+
+    from focus_project._trips import Trip
 
 _LOG = logging.getLogger(__name__)
 _ID = re.compile(r"[a-z0-9][a-z0-9-]*")
-MAX_WORK_URL = 2000
+MAX_WORK_URL = _interview.MAX_URL
 # A project must ask real work: the focus earner pays per minute of ``daily``.
 MIN_DAILY_PER_GATE = 30
 
@@ -53,17 +58,7 @@ def stands_down(gate: str, day: date) -> bool:
 
 def _validate_work_url(url: str) -> None:
     """Empty, or a plain http(s) URL with a host: it goes to ``xdg-open``."""
-    if not url:
-        return
-    parts = urlsplit(url) if url.isprintable() and " " not in url else None
-    if (
-        parts is None
-        or len(url) > MAX_WORK_URL
-        or parts.scheme not in {"http", "https"}
-        or not parts.netloc
-    ):
-        msg = "work_url must be an http(s) URL without spaces (or empty)"
-        raise ValueError(msg)
+    _interview.check_http_url(url, "work_url")
 
 
 def daily_floor(replaces: tuple[str, ...]) -> int:
@@ -85,8 +80,9 @@ def _validate(project: Project) -> None:
     if not project.replaces or not set(project.replaces) <= GATES:
         msg = f"replaces must be a non-empty subset of gates {sorted(GATES)}"
         raise ValueError(msg)
+    _interview.validate(project)
     floor = daily_floor(project.replaces)
-    if project.daily_minutes < floor:
+    if project.kind == FOCUS and project.daily_minutes < floor:
         msg = (
             f"daily_minutes must be at least {floor} "
             f"({MIN_DAILY_PER_GATE} per replaced gate)"
@@ -109,8 +105,19 @@ def create_project(  # noqa: PLR0913
     subjects: list[str] | None = None,
     site_patterns: list[str] | None = None,
     work_url: str = "",
+    kind: str = FOCUS,
+    test_at: datetime | None = None,
+    invite_url: str = "",
+    trips: list[Trip] | None = None,
+    weekend_answers: dict[date, bool] | None = None,
 ) -> Project:
-    """Add a project; ValueError on bad input, a duplicate id or an overlap."""
+    """Add a project; ValueError on bad input, a duplicate id or an overlap.
+
+    ``kind="interview"`` takes ``test_at`` (naive local; its date must be
+    ``end``), ``invite_url``, ``trips`` and ``weekend_answers``; an interview
+    is exempt from :func:`daily_floor` and runs the 30/120 budget.
+    """
+    created_ms = time.time_ns() // 1_000_000
     project = Project(
         id=project_id,
         name=name,
@@ -122,7 +129,15 @@ def create_project(  # noqa: PLR0913
         subjects=tuple(subjects or ()),
         site_patterns=tuple(site_patterns or ()),
         work_url=work_url,
-        created_ms=time.time_ns() // 1_000_000,
+        created_ms=created_ms,
+        kind=kind,
+        test_at=test_at,
+        invite_url=invite_url,
+        trips=tuple(
+            t if t.entered_ms else replace(t, entered_ms=created_ms)
+            for t in trips or ()
+        ),
+        weekend_answers=tuple(sorted((weekend_answers or {}).items())),
     )
     _validate(project)
     with _store.locked():
