@@ -1,0 +1,12 @@
+# Added under `repos: - repo: local: hooks:` by install_repo_contract_gate.sh
+# for any repo with a pubspec.yaml beside an android/ dir (a Flutter app).
+      # No Google non-free sign-in: google_sign_in links play-services-auth /
+      # googleid into the APK; apps use utils/google_account_token instead.
+      # always_run rather than `files:`: a poisoned pubspec.lock can arrive by
+      # pull or merge, and a staged-only trigger would never look again.
+      - id: no-gms-signin
+        name: no google_sign_in / GMS auth (use google_account_token)
+        entry: scripts/check_no_gms_signin.sh .
+        language: system
+        pass_filenames: false
+        always_run: true

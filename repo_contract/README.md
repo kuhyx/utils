@@ -93,6 +93,14 @@ web-relevant file is staged (`web.DEFAULT_FILES`, overridable with
 degrades to a pass, and the gate defers to that workflow when run inside
 another GitHub Actions job.
 
+## Flutter apps: no Google non-free sign-in
+
+A repo with a `pubspec.yaml` beside an `android/` dir (root or one level
+down) also gets `scripts/check_no_gms_signin.sh` (a shim) and the always-run
+`no-gms-signin` hook (`install_gms.py`). The shared gate fails on
+google_sign_in / play-services-auth / googleid in pubspec.lock or gradle, or
+in a built APK with `--apk`; apps use `google_account_token` instead.
+
 ## Flutter apps: the launcher rules
 
 Decided by kuhy 2026-10-23 (`launcher.py`). They apply to every tracked

@@ -25,6 +25,7 @@ from dep_freshness.install import NO_WORKFLOW_MARKER
 from repo_contract import bootstrap
 from repo_contract.check import violations
 from repo_contract.infer import propose
+from repo_contract.install_gms import install_gms, plan_gms
 from repo_contract.install_web import install_web, plan_web
 from repo_contract.precommit import PRECOMMIT, needs_hook, write_hook
 from repo_contract.stacks import detect_stacks
@@ -64,6 +65,7 @@ def plan(repo: Path) -> list[str]:
 
     A website (detected or declared in repo-contract.toml) also gets the
     AgentReady gate: config, shim, workflow and hook (see install_web.py).
+    A Flutter Android app also gets the no-GMS-sign-in gate (install_gms.py).
     """
     todo = []
     if _needs_shim(repo):
@@ -72,7 +74,7 @@ def plan(repo: Path) -> list[str]:
         todo.append(str(WORKFLOW))
     if needs_hook(repo, HOOK_ID):
         todo.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
-    return todo + plan_web(repo)
+    return todo + plan_web(repo) + plan_gms(repo)
 
 
 def install(repo: Path) -> list[str]:
@@ -92,7 +94,7 @@ def install(repo: Path) -> list[str]:
     if needs_hook(repo, HOOK_ID):
         write_hook(repo, _template("pre-commit-snippet.yaml"))
         done.append(f"{PRECOMMIT} ({HOOK_ID} hook)")
-    return done + install_web(repo)
+    return done + install_web(repo) + install_gms(repo)
 
 
 def bootstrap_commands(repo: Path) -> list[str]:
