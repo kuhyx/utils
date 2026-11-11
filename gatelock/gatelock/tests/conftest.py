@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from gatelock._arbiter import Arbiter
 from gatelock._config import LockConfig
 from gatelock._outputs import Output, OutputRect, OutputScan
 from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
@@ -78,6 +79,12 @@ def _hermetic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None
         patch("gatelock._randr.RandrBackend.create", return_value=None),
         patch("gatelock._outputs.scan_xrandr", return_value=DEFAULT_OUTPUTS),
         patch("gatelock._detect._RandrEventSource.start", return_value=False),
+        # A lock that yields to a prompt asks X what is on screen; no test may
+        # reach the developer's display for that.
+        patch("gatelock._prompts_x.load_xlib", return_value=None),
+        patch("gatelock._grabprobe.load_xlib", return_value=None),
+        # The startup grace is real time; the queue tests pass it explicitly.
+        patch("gatelock._queue.STARTUP_GRACE_SECONDS", 0.0),
         patch("gatelock._vt.shutil.which", return_value="/usr/bin/setxkbmap"),
         patch("gatelock._vt.subprocess.run"),
     ):
@@ -162,3 +169,39 @@ def build_loop(
 def loop(mock_root: MagicMock) -> tuple[RecoveryLoop, MagicMock, SurfaceSet]:
     """A recovery loop in hard mode, the configuration most tests want."""
     return build_loop(mock_root, LockConfig(mode="hard"))
+
+
+_MADE: list[Arbiter] = []
+
+
+def make_arbiter(
+    runtime: Path, app: str, rank: int, *, grab: str = "global", vt: bool = True
+) -> Arbiter:
+    """A published arbiter in ``runtime``; released after the test."""
+    arbiter = Arbiter(app, rank, grab=grab, disable_vt=vt, runtime_dir=runtime)
+    arbiter.publish()
+    _MADE.append(arbiter)
+    return arbiter
+
+
+@pytest.fixture(autouse=True)
+def _release_arbiters() -> Generator[None]:
+    """Close every claim file a test opened."""
+    yield
+    while _MADE:
+        _MADE.pop().release()
+
+
+@pytest.fixture
+def armed(
+    mock_root: MagicMock, tmp_path: Path
+) -> Generator[tuple[LockWindow, Arbiter]]:
+    """A mid-rank (150) hard lock that is armed, holds the screen, and checks."""
+    arbiter = make_arbiter(tmp_path, "leetcode_guard", 150)
+    arbiter.acquire_holder()
+    config = LockConfig(mode="hard", app_name="leetcode_guard", rank=150)
+    window = LockWindow(mock_root, config, MagicMock(), arbiter=arbiter)
+    window.setup()
+    window.grab_input()
+    yield window, arbiter
+    window.close()

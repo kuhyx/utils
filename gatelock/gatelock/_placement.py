@@ -6,8 +6,9 @@ windows. This half owns the geometry questions -- is the window mapped, is it
 still exactly on its output -- and the re-assertion pass that answers "no" by
 correcting it.
 
-Everything here only ever *adds* visibility. Nothing in this module can hide
-or unmap a surface; that asymmetry is what makes the recovery loop monotonic.
+Everything the recovery loop reaches here only ever *adds* visibility; that
+asymmetry is what makes it monotonic. The one hider, :func:`set_visible`, is
+reached only by :mod:`gatelock._stepback`.
 """
 
 from __future__ import annotations
@@ -55,7 +56,9 @@ def geometry_matches(surface: _Surface) -> bool:
     )
 
 
-def enforce_one(surface: _Surface, *, overrideredirect: bool) -> bool:
+def enforce_one(
+    surface: _Surface, *, overrideredirect: bool, lift: bool = True
+) -> bool:
     """Re-assert one surface's placement and stacking.
 
     Args:
@@ -63,6 +66,9 @@ def enforce_one(surface: _Surface, *, overrideredirect: bool) -> bool:
         overrideredirect: Whether the lock runs WM-unmanaged, in which case
             the flag is re-set -- it can be dropped across an unmap/map cycle,
             and a managed lock window would be moved by the WM.
+        lift: Whether to raise the window. False only while a system prompt
+            is being yielded to (:mod:`gatelock._prompts`); placement and
+            mapping are corrected either way.
 
     Returns:
         True if anything needed correcting.
@@ -77,8 +83,30 @@ def enforce_one(surface: _Surface, *, overrideredirect: bool) -> bool:
         changed = True
     if overrideredirect:
         window.overrideredirect(boolean=True)
-    window.lift()
+    if lift:
+        window.lift()
     return changed
+
+
+def set_visible(
+    surfaces: Mapping[str, _Surface], *, visible: bool, overrideredirect: bool
+) -> None:
+    """Hide or show every surface. Only a stepping-back lock ever hides.
+
+    Showing restores the creation order (override-redirect while still
+    unmapped, geometry, then map and raise) rather than ``enforce_one``'s
+    map-first order, so a surface cannot come back window-manager-managed.
+    """
+    for surface in surfaces.values():
+        window = surface.window
+        if not visible:
+            window.withdraw()
+            continue
+        if overrideredirect:
+            window.overrideredirect(boolean=True)
+        set_geometry(window, surface.info.rect)
+        window.deiconify()
+        window.lift()
 
 
 def blind_outputs(
@@ -105,13 +133,14 @@ def blind_outputs(
 
 
 def enforce_all(
-    surfaces: Mapping[str, _Surface], *, overrideredirect: bool
+    surfaces: Mapping[str, _Surface], *, overrideredirect: bool, lift: bool = True
 ) -> tuple[str, ...]:
     """Re-assert every surface's placement and stacking.
 
     Args:
         surfaces: The live surfaces, keyed by output name.
         overrideredirect: Whether the lock runs WM-unmanaged.
+        lift: Whether to raise the surfaces; see :func:`enforce_one`.
 
     Returns:
         The names of the outputs whose surfaces needed correcting, sorted.
@@ -119,7 +148,7 @@ def enforce_all(
     corrected = [
         surface.info.output_name
         for surface in surfaces.values()
-        if enforce_one(surface, overrideredirect=overrideredirect)
+        if enforce_one(surface, overrideredirect=overrideredirect, lift=lift)
     ]
     return tuple(sorted(corrected))
 

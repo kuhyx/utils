@@ -31,3 +31,22 @@ def load_xlib(*names: str) -> tuple[ModuleType, ...] | None:
         return tuple(importlib.import_module(name) for name in names)
     except ImportError:
         return None
+
+
+def xlib_failures(xerror: ModuleType) -> tuple[type[BaseException], ...]:
+    """Every exception a python-xlib connection or request can raise.
+
+    Args:
+        xerror: The loaded ``Xlib.error`` module.
+
+    Returns:
+        A tuple usable in an ``except`` clause.
+    """
+    return (
+        OSError,
+        ValueError,
+        xerror.DisplayError,
+        xerror.XauthError,
+        xerror.ConnectionClosedError,
+        xerror.XError,
+    )

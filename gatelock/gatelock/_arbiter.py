@@ -222,14 +222,19 @@ class Arbiter:
             return self._claim
         return read_claim_if_held(path)
 
+    def drop_holder(self) -> None:
+        """Drop only the holder lock; the claim stays (see ``_stepback``)."""
+        if self._holder_handle is not None:
+            self._holder_handle.close()
+            self._holder_handle = None
+
     def release(self) -> None:
         """Drop the holder lock and this app's claim.
 
-        Must run on every exit path. ``flock`` covers a killed process for
-        free, but a *cleanly* exiting app has to release explicitly -- the
-        morning routine runs the alarm and then the workout locker as
-        sequential subprocesses, and a lingering claim would make the workout
-        locker stand down against an app that had already finished.
+        Must run on every clean exit path (``flock`` covers a killed process):
+        the morning routine runs the alarm and then the workout locker as
+        sequential subprocesses, and a lingering claim would make the second
+        stand down against an app that had already finished.
         """
         for handle in (self._holder_handle, self._claim_handle):
             if handle is not None:

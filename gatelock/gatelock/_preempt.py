@@ -22,8 +22,22 @@ if TYPE_CHECKING:
     from gatelock._arbiter import Arbiter
     from gatelock._claims import Claim
     from gatelock._config import LockConfig
+    from gatelock._prompts import PromptYield
 
 _logger = logging.getLogger(__name__)
+
+
+def _foreign_holder(arbiter: Arbiter | None) -> Claim | None:
+    """The gatelock app holding the screen, unless that app is this process.
+
+    ``Arbiter.describe_holder`` answers "who owns the holder file", and when
+    this process wrote it that is our own claim. Reporting it as the grab's
+    holder made the lock blame itself (2026-11-11) and hid the real holder.
+    """
+    holder = arbiter.describe_holder() if arbiter else None
+    if holder is None or arbiter is None:
+        return None
+    return None if holder.instance_id == arbiter.claim.instance_id else holder
 
 
 def log_grab_blocked(
@@ -32,12 +46,15 @@ def log_grab_blocked(
     arbiter: Arbiter | None,
     config: LockConfig,
     preempted_pids: set[int],
+    prompt_yield: PromptYield | None = None,
 ) -> None:
     """Say who is actually holding the grab, rather than guessing.
 
     v0.1.1 always blamed "a fullscreen game". On 2026-07-25 the holder was
     the other locker, and that guess sent the diagnosis in the wrong
-    direction for the length of the outage.
+    direction for the length of the outage. On 2026-11-11 the lock blamed
+    *itself* (its own holder file) while the holder was the GNOME Keyring
+    prompt, so a holder that is this process counts as "no gatelock holder".
 
     A holder that outranks us is left alone entirely -- retrying is the
     correct behavior there, matching :func:`gatelock.wait_for_turn`'s own
@@ -46,24 +63,36 @@ def log_grab_blocked(
     as long as it takes to finish on its own (diet_guard held the grab for
     ~3 minutes against a higher-ranked screen_locker on 2026-08-21).
 
+    X cannot say which client holds a grab, so credential prompts seen on
+    screen are named as *present*, not as the verdict.
+
     Args:
         attempt: 1-based attempt counter, reported in the log line.
         arbiter: This app's arbiter, or None when arbitration is disabled.
         config: The window's configuration, consulted for the preempt opt-in.
         preempted_pids: Pids already signalled; mutated by the preempt path.
+        prompt_yield: The grab-block policy; supplies Tk's error text for the
+            failed grab and the system prompts seen on screen.
     """
-    holder = arbiter.describe_holder() if arbiter else None
+    reason = prompt_yield.last_reason if prompt_yield else ""
+    prompts = prompt_yield.prompt_names if prompt_yield else ()
+    cause = f" ({reason})" if reason else ""
+    holder = _foreign_holder(arbiter)
     if holder is None:
         _logger.warning(
-            "global grab still blocked after %d attempts; no gatelock app "
-            "holds it -- likely another X client (e.g. a fullscreen game)",
+            "global grab still blocked after %d attempts%s; no other gatelock "
+            "app holds it -- a non-gatelock X client does (e.g. a fullscreen "
+            "game or a credential prompt)%s",
             attempt,
+            cause,
+            f"; system prompt on screen: {', '.join(prompts)}" if prompts else "",
         )
         return
     _logger.warning(
-        "global grab still blocked after %d attempts; held by gatelock app "
+        "global grab still blocked after %d attempts%s; held by gatelock app "
         "%r (rank %d, pid %d) since %s",
         attempt,
+        cause,
         holder.app,
         holder.rank,
         holder.pid,

@@ -97,6 +97,25 @@ A claim from a pre-0.11 writer has no key and reads as `grab != "none"`. Root
 has no `XDG_RUNTIME_DIR`, so a root reader passes the user's dir
 (`/run/user/1000/gatelock/claims`).
 
+`LockWindow` yields to a system credential prompt that holds the X grab. If the
+global grab stays unobtainable for more than 2 s AND a mapped window whose
+WM_CLASS is in `gatelock._prompt_names.SYSTEM_PROMPT_CLASSES` (`gcr-prompter`,
+`pinentry*`, polkit agents, ssh-askpass variants) is on screen, that prompt's
+top-level window is raised above the lock and the lock's periodic re-raise
+stops covering it while it stays mapped. The lock stays mapped, VT switching
+stays disabled and the grab keeps being retried; once the grab is taken the lock
+is back on top. Any other grab holder (a fullscreen game) never gets this.
+`scripts/verify_prompt_yield.py` proves it on a private Xvfb (never `:0`).
+
+Lockers that start together do not fight. `wait_for_turn` waits
+`STARTUP_GRACE_SECONDS` (1.5 s) after `publish()` before its first check, so
+simultaneous starters see each other. An armed lock also steps back (`_stepback`)
+when a strictly higher-ranked, live claim that locks at least as firmly appears
+later: it hides, releases the grab and its holder lock (the claim stays, so
+lower ranks keep queueing), waits windowless, and re-arms fully once nothing
+outranks it. `scripts/verify_all_lockers.py` checks this with five real
+processes on a private Xvfb.
+
 ## Development
 
 ```bash

@@ -64,3 +64,17 @@ class TestStaticInvariant:
         assert "self._sink.put" in loop_body
         for forbidden in ("geometry(", "deiconify(", "lift(", "grab_"):
             assert forbidden not in loop_body
+
+    def test_stepback_is_the_only_release_path(self) -> None:
+        """Only the step-back module may release the grab.
+
+        It triggers on a strictly stronger, live, at-least-as-firm claim and
+        nowhere else; any other module growing a release call is a bypass.
+        """
+        callers = {
+            path.name
+            for path in SOURCE_ROOT.glob("*.py")
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+            if isinstance(node, ast.Attribute) and node.attr == "grab_release"
+        }
+        assert callers == {"_stepback.py"}

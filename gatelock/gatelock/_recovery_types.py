@@ -8,8 +8,10 @@ against a report without pulling in the machinery that builds one.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol
+
+from gatelock._prompts import PromptYield
 
 if TYPE_CHECKING:
     from gatelock._config import LockConfig
@@ -60,3 +62,5 @@ class RecoveryCollaborators:
     hooks: LockWindowHooks
     on_grab_held: GrabHeldListener = ignore_grab_held
     """Told each tick whether the grab is really ours (``Claim.grab_held``)."""
+    prompt_yield: PromptYield = field(default_factory=PromptYield)
+    """Times a blocked grab and raises a system prompt over the lock."""

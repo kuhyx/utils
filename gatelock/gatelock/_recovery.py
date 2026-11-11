@@ -41,6 +41,7 @@ import logging
 import tkinter as tk
 
 from gatelock._grabwatch import GrabWatch
+from gatelock._recovery_grab import reassert_grab
 from gatelock._recovery_types import RecoveryCollaborators, RecoveryReport
 from gatelock._vt import disable_vt_switching
 
@@ -62,6 +63,11 @@ class RecoveryLoop:
         self._drain_job: str | None = None
         self._verify_job: str | None = None
         self._grab = GrabWatch(root)
+
+    @property
+    def running(self) -> bool:
+        """Whether the loop is enforcing (False once stopped, e.g. study mode)."""
+        return self._running
 
     @property
     def ticks(self) -> int:
@@ -146,13 +152,17 @@ class RecoveryLoop:
             )
             return RecoveryReport(scan_ok=False, source=scan.source)
 
+        # Read BEFORE enforce: while a system prompt is being yielded to, the
+        # tick must not lift the lock over it. The prompt is re-raised LAST.
+        yielding = self._parts.prompt_yield.yielding
         self._parts.surfaces.update_backdrop()
         delta = self._parts.surfaces.apply(scan)
-        corrected = self._parts.surfaces.enforce()
+        corrected = self._parts.surfaces.enforce(lift=not yielding)
         grab_reasserted = self._reassert_grab()
         vt_reasserted = self._reassert_vt()
         if delta.created:
             self._reassert_focus()
+        self._parts.prompt_yield.settle()
 
         if delta.unverified:
             _logger.error(
@@ -188,20 +198,9 @@ class RecoveryLoop:
     def _reassert_grab(self) -> bool:
         """Re-take the global grab if we lost it. Never releases one.
 
-        Returns:
-            True if the grab had to be re-taken.
+        Delegates to :func:`gatelock._recovery_grab.reassert_grab`.
         """
-        if self._parts.config.resolved_grab() != "global":
-            return False
-        held = self.holds_grab()
-        reasserted = False
-        if not held:
-            with contextlib.suppress(tk.TclError):
-                self._root.grab_set_global()
-                _logger.warning("global grab had been lost; re-acquired it")
-                reasserted = held = True
-        self._parts.on_grab_held(held=held)
-        return reasserted
+        return reassert_grab(self._root, self._parts, self._grab)
 
     def holds_grab(self) -> bool:
         """Whether the grab is held by a window this application owns.

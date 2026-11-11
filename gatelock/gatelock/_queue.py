@@ -30,6 +30,12 @@ from typing import TYPE_CHECKING, Final
 _logger: Final = logging.getLogger(__name__)
 
 QUEUE_POLL_SECONDS: Final = 2.0
+# After publishing, wait this long before the FIRST turn check, so lockers that
+# start together see each other's claims. Without it a weaker locker whose
+# check ran before a stronger one had published armed alone, and the stronger
+# then armed on top: two windows, the weaker holding the grab, the visible one
+# unclickable. Read at call time (tests set it to 0).
+STARTUP_GRACE_SECONDS: Final = 1.5
 QUEUE_DEADLINE_SECONDS: Final = 6 * 60 * 60
 # How often to re-state a still-blocked wait at WARNING. A long wait used
 # to produce exactly one INFO line at the moment it started and nothing
@@ -206,6 +212,8 @@ def wait_for_turn(
 
     started = clock()
     wait = _Wait(arbiter, on_state, started)
+    if STARTUP_GRACE_SECONDS > 0:
+        time_source.sleep(STARTUP_GRACE_SECONDS)
 
     while True:
         blockers = stronger_claims(arbiter)

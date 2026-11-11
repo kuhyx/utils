@@ -31,7 +31,9 @@ from typing import TYPE_CHECKING
 from gatelock import _arming, _preempt
 from gatelock._detect import OutputChangeDetector
 from gatelock._outputs import OutputEnumerator
+from gatelock._prompts import PromptYield
 from gatelock._recovery import RecoveryCollaborators, RecoveryLoop
+from gatelock._stepback import StepBack
 from gatelock._surfaces import SurfaceSet
 from gatelock._vt import restore_vt_switching
 
@@ -80,6 +82,7 @@ class LockWindow:
         self._closed = False
         self._focus_notified = False
         self._preempted_pids: set[int] = set()
+        prompt_yield = PromptYield()
         surfaces = SurfaceSet(root, config, hooks)
         enumerator = OutputEnumerator(root)
         detector = OutputChangeDetector(root)
@@ -92,6 +95,7 @@ class LockWindow:
                 detector=detector,
                 hooks=hooks,
                 on_grab_held=self.report_grab_held,
+                prompt_yield=prompt_yield,
             ),
         )
         # The arming bundle is also where the window reaches its
@@ -105,7 +109,9 @@ class LockWindow:
             notify_focus_ready=self._notify_focus_ready,
             log_grab_blocked=self._log_grab_blocked,
             notify_grab_held=lambda: self.report_grab_held(held=True),
+            prompt_yield=prompt_yield,
         )
+        self._stepback = StepBack(root, self._arming, arbiter, self.grab_input)
 
     @property
     def surfaces(self) -> SurfaceSet:
@@ -140,24 +146,16 @@ class LockWindow:
     # -- window mechanics -----------------------------------------------------
 
     def setup(self) -> None:
-        """Configure the backdrop and build a surface on every live output.
-
-        Delegates to :func:`gatelock._arming.setup`.
-        """
+        """Build the backdrop and a surface per live output (``_arming.setup``)."""
         self._vt_disabled = _arming.setup(self.root, self._arming)
 
     def grab_input(self) -> None:
-        """Take the configured grab, then start watching for output changes.
-
-        Delegates to :func:`gatelock._arming.grab_input`.
-        """
+        """Take the configured grab, then watch outputs (``_arming.grab_input``)."""
         _arming.grab_input(self.root, self._arming)
+        self._stepback.start()
 
     def _acquire_global_grab(self, *, attempt: int) -> None:
-        """Acquire the global grab, retrying per ``grab_retry_ms``.
-
-        Delegates to :func:`gatelock._arming.acquire_global_grab`.
-        """
+        """Acquire the global grab, retrying (``_arming.acquire_global_grab``)."""
         _arming.acquire_global_grab(self.root, self._arming, attempt=attempt)
 
     def _log_grab_blocked(self, attempt: int) -> None:
@@ -171,6 +169,7 @@ class LockWindow:
             arbiter=self._arbiter,
             config=self._config,
             preempted_pids=self._preempted_pids,
+            prompt_yield=self._arming.prompt_yield,
         )
 
     def _notify_focus_ready(self) -> None:
@@ -228,6 +227,7 @@ class LockWindow:
         if self._closed:
             return
         self._closed = True
+        self._stepback.stop()
         self._arming.recovery.stop()
         self._arming.detector.stop()
         self._hooks.on_close()

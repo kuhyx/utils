@@ -27,10 +27,8 @@ recording, because each rules out an approach that looks reasonable:
    afterwards and the placement is ignored.
 3. **A window-manager-managed toplevel cannot be placed per-output** -- i3
    rewrites the geometry wholesale. Per-output placement *requires*
-   override-redirect, so ``attributes(fullscreen=True)`` is gone from the lock
-   path entirely: it is an EWMH request that an override-redirect window is
-   invisible to, and where it does apply it targets one monitor or the whole
-   bounding box. Neither is what per-output locking needs.
+   override-redirect, so ``attributes(fullscreen=True)`` is gone: an EWMH
+   request an override-redirect window never sees.
 """
 
 from __future__ import annotations
@@ -45,6 +43,7 @@ from gatelock._placement import (
     enforce_all,
     needs_backdrop_root,
     set_geometry,
+    set_visible,
 )
 from gatelock._surface_types import (
     SurfaceBuilder,
@@ -54,9 +53,7 @@ from gatelock._surface_types import (
 from gatelock._surfaces_focus import focus_surface, preferred_focus_index
 from gatelock._textmirror import TextMirror, mirror_text_widgets
 
-# Names this module re-exports after the 250-line split. Listed explicitly so
-# the autofixer cannot prune an import that exists *for* its re-export -- it
-# stripped mirror_text_widgets once, and `gatelock` itself stopped importing.
+# Re-exports after the 250-line split; listed so the autofixer keeps them.
 __all__ = [
     "SurfaceBuilder",
     "SurfaceDelta",
@@ -161,27 +158,36 @@ class SurfaceSet:
         )
 
     def verify(self, *, live_names: frozenset[str] | None = None) -> tuple[str, ...]:
-        """Return live outputs that are NOT currently showing a lock.
-
-        This is the alarm for the original defect: an output the user can see,
-        with no lock on it, means the escape UI is somewhere they cannot reach.
-        """
+        """Return live outputs that are NOT currently showing a lock."""
         names = live_names if live_names is not None else self.names()
         return blind_outputs(self._surfaces, names)
 
-    def enforce(self) -> tuple[str, ...]:
+    def enforce(self, *, lift: bool = True) -> tuple[str, ...]:
         """Re-assert every surface's placement and stacking.
 
-        Only ever *adds* visibility: remaps what became unmapped, corrects
-        drifted geometry, and raises. Nothing here can hide a surface.
+        Only adds visibility: remaps, corrects drifted geometry, raises.
+
+        Args:
+            lift: False while a system prompt is yielded to (no raise).
         """
         return enforce_all(
             self._surfaces,
             overrideredirect=self._config.resolved_overrideredirect(),
+            lift=lift,
+        )
+
+    def set_visible(self, *, visible: bool) -> None:
+        """Hide or show every surface; only ``_stepback`` hides."""
+        set_visible(
+            self._surfaces,
+            visible=visible,
+            overrideredirect=self._config.resolved_overrideredirect(),
         )
 
     def raise_all(self) -> None:
-        """Lift every surface above whatever else is on screen."""
+        """Lift the backdrop and every surface above whatever else is on screen."""
+        if needs_backdrop_root(self._config):
+            self._root.lift()
         for surface in self._surfaces.values():
             surface.window.lift()
 

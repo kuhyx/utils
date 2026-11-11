@@ -22,11 +22,12 @@ Nothing here reaches back into the window, so the arming sequence can be read
 from __future__ import annotations
 
 import contextlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 import tkinter as tk
 from typing import TYPE_CHECKING
 
+from gatelock._prompts import PromptYield
 from gatelock._surfaces import needs_backdrop_root
 from gatelock._vt import disable_vt_switching
 
@@ -70,6 +71,8 @@ class ArmingCollaborators:
             still blocked, to name the holder and stand a weaker one down.
         notify_grab_held: Called once a grab call has actually succeeded, so
             the claim's ``grab_held`` turns true only then.
+        prompt_yield: Times the blocked grab (shared with the recovery loop) and
+            decides whether a system credential prompt gets raised over us.
     """
 
     config: LockConfig
@@ -80,6 +83,7 @@ class ArmingCollaborators:
     notify_focus_ready: Callable[[], None]
     log_grab_blocked: Callable[[int], None]
     notify_grab_held: Callable[[], None] = _no_grab_listener
+    prompt_yield: PromptYield = field(default_factory=PromptYield)
 
 
 def setup(root: tk.Tk, collab: ArmingCollaborators) -> bool:
@@ -167,14 +171,16 @@ def acquire_global_grab(
     """
     retry_ms = collab.config.grab.retry_ms
     try:
+        collab.prompt_yield.check_grab()
         root.grab_set_global()
-    except tk.TclError:
+    except tk.TclError as exc:
         if retry_ms == 0:
-            _logger.warning("Global grab failed, falling back to local grab")
+            _logger.warning("Global grab failed (%s), falling back to local grab", exc)
             with contextlib.suppress(tk.TclError):
                 root.grab_set()
                 collab.notify_grab_held()
             return
+        collab.prompt_yield.grab_blocked(str(exc))
         effective_retry_ms = retry_ms or _DEFAULT_GRAB_RETRY_MS
         if not attempt % collab.config.grab.log_every:
             collab.log_grab_blocked(attempt)
@@ -183,6 +189,8 @@ def acquire_global_grab(
             lambda: acquire_global_grab(root, collab, attempt=attempt + 1),
         )
         return
+    if collab.prompt_yield.grab_held():
+        collab.surfaces.raise_all()
     collab.notify_grab_held()
     with contextlib.suppress(tk.TclError):
         root.focus_force()
