@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 import json
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from feedback_inbox._bundle import (
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
 
 LOG = logging.getLogger("feedback_inbox")
 MARKER = ".inbox-imported.json"
+# Marker format 2: the stored note was rewritten to our exact title and body.
+FORMAT = 2
 SETTLE_SECONDS = 2.0
 TITLE_CAP = 120
 MANUAL_PREFIX = "MANUAL WORK REQUIRED: "
@@ -68,6 +71,15 @@ class TaskDraft:
     due: str
 
 
+def _demote(entry: str) -> str:
+    """Turn ``## `` headings into ``### ``: no section may start a todo part.
+
+    The todo app splits a note into runnable parts at every ``## `` heading,
+    so the entry's own headings must not look like sections.
+    """
+    return re.sub(r"(?m)^##(?=\s)", "###", entry)
+
+
 def _first_line(note: str, fallback: str) -> str:
     first = next((x.strip() for x in note.splitlines() if x.strip()), "")
     if len(first) > TITLE_CAP:
@@ -89,21 +101,23 @@ def build_task(repo: str, stamp: str, entry: str, report: Report | None) -> Task
     lines = [f"Due: {due:%Y-%m-%d %H:%M}", ""]
     if report is None:
         lines += [CORRUPT_LINE, ""]
-    return TaskDraft(title, "\n".join([*lines, entry]), due.isoformat())
+    return TaskDraft(title, "\n".join([*lines, _demote(entry)]), due.isoformat())
 
 
-def _write_marker(
-    bundle: Path, draft: TaskDraft, task_id: str, *, merged: bool
-) -> None:
-    payload = {
-        "task_id": task_id,
-        "title": draft.title,
-        "due": draft.due,
-        "merged": merged,
-    }
+def _write_marker(bundle: Path, payload: dict[str, object]) -> None:
     tmp = bundle / f"{MARKER}.tmp"
     tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     tmp.replace(bundle / MARKER)
+
+
+def _read_marker(bundle: Path) -> dict[str, object] | None:
+    """The bundle's marker, or None when it is not a usable marker."""
+    try:
+        data = json.loads((bundle / MARKER).read_text(encoding="utf-8"))
+    except OSError, UnicodeDecodeError, json.JSONDecodeError:
+        return None
+    ok = isinstance(data, dict) and isinstance(data.get("task_id"), str)
+    return data if ok and isinstance(data.get("title"), str) else None
 
 
 @dataclass(frozen=True)
@@ -115,9 +129,9 @@ class Importer:
     settle: float = SETTLE_SECONDS
 
     def import_bundle(self, feedback_dir: Path, bundle: Path, now: float) -> Result:
-        """Import one bundle if it is complete and not yet imported."""
+        """Import one bundle if complete; repair the title of one already filed."""
         if (bundle / MARKER).exists():
-            return Result(bundle, Outcome.SKIPPED)
+            return self._repair(feedback_dir, bundle)
         report_path = bundle / "report.json"
         entry = find_entry(feedback_dir, bundle)
         if entry is None or not report_path.is_file():
@@ -126,13 +140,26 @@ class Importer:
             return Result(bundle, Outcome.PENDING, detail="report.json settling")
         repo = repo_name(feedback_dir)
         draft = build_task(repo, bundle.name, entry, read_report(report_path))
+        return self._file(bundle, f"{self.owner}/{repo}", draft)
+
+    def _file(self, bundle: Path, repo: str, draft: TaskDraft) -> Result:
+        """Create the task, write the marker, then fix the title."""
         try:
-            ref = self.client.add_task(f"{self.owner}/{repo}", draft.title, draft.body)
+            ref = self.client.add_task(repo, draft.title, draft.body)
         except TodoError as exc:
             return Result(bundle, Outcome.FAILED, detail=str(exc))
-        detail = "merged into an existing note" if ref.merged else ""
+        # Marker first: once the task exists a retry must never add a second.
+        # A merged task belongs to another note, which is not ours to rewrite.
+        payload: dict[str, object] = {
+            "task_id": ref.task_id,
+            "title": draft.title,
+            "due": draft.due,
+            "merged": ref.merged,
+        }
+        if ref.merged:
+            payload["format"] = FORMAT
         try:
-            _write_marker(bundle, draft, ref.task_id, merged=ref.merged)
+            _write_marker(bundle, payload)
         except OSError as exc:
             return Result(
                 bundle,
@@ -140,7 +167,39 @@ class Importer:
                 ref.task_id,
                 f"task {ref.task_id} filed but marker not written: {exc}",
             )
-        return Result(bundle, Outcome.IMPORTED, ref.task_id, detail)
+        if ref.merged:
+            return Result(
+                bundle, Outcome.IMPORTED, ref.task_id, "merged into an existing note"
+            )
+        return self._finish(bundle, payload, draft)
+
+    def _repair(self, feedback_dir: Path, bundle: Path) -> Result:
+        """Finish a filed task whose rewrite never completed (or predates it)."""
+        data = _read_marker(bundle)
+        if data is None or data.get("merged") or data.get("format") == FORMAT:
+            return Result(bundle, Outcome.SKIPPED)
+        entry = find_entry(feedback_dir, bundle)
+        if entry is None:
+            return Result(bundle, Outcome.PENDING, detail="entry missing for repair")
+        report = read_report(bundle / "report.json")
+        draft = build_task(repo_name(feedback_dir), bundle.name, entry, report)
+        return self._finish(bundle, data, draft)
+
+    def _finish(
+        self, bundle: Path, data: dict[str, object], draft: TaskDraft
+    ) -> Result:
+        """Rewrite the stored note to the exact title/body, then mark it done."""
+        task_id = str(data["task_id"])
+        try:
+            self.client.update_task(task_id, draft.title, draft.body)
+        except TodoError as exc:
+            return Result(bundle, Outcome.FAILED, task_id, f"update: {exc}")
+        marked = {**data, "title": draft.title, "due": draft.due, "format": FORMAT}
+        try:
+            _write_marker(bundle, marked)
+        except OSError as exc:
+            return Result(bundle, Outcome.FAILED, task_id, f"marker not written: {exc}")
+        return Result(bundle, Outcome.IMPORTED, task_id)
 
 
 @dataclass(frozen=True)

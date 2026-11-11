@@ -17,7 +17,13 @@ as a task in the todo app for `kuhyx/<repo>`.
   comes from the markdown entry.
 - Body: a `Due: <next day 10:00>` line, then the bundle's markdown entry (the
   prompt with absolute paths).
-- The task is its own note (`add_task` with `new_note`), so the title is exact.
+- The task is its own note (`add_task` with `new_note`). The server stores that as
+  `<repo> todos: <title>` plus a `## <title>` section, so right after adding, the inbox
+  rewrites it with `update_task` to the exact title and a section-free body (the entry's
+  own `##` headings become `###`). todoImplementer splits notes at `## ` headings, and a
+  title that does not start with `MANUAL WORK REQUIRED: ` would make a runnable part.
+  The marker records `format: 2` once the rewrite worked; a failed rewrite is retried on
+  the next sweep (never a second task), and markers without it are repaired the same way.
 - Closing the task cancels the feedback. "Act on feedback" in a Claude session
   means working every open `<repo> feedback:` task.
 

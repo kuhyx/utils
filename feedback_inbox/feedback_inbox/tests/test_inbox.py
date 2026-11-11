@@ -42,7 +42,7 @@ def test_complete_bundle_becomes_one_task(paths: Paths) -> None:
         title
         == MANUAL + "cleanup-plate feedback: I would like to see the painting IN FULL"
     )
-    assert body.startswith("Due: 2026-11-12 10:00\n\n## 2026-11-11T13:52:33")
+    assert body.startswith("Due: 2026-11-12 10:00\n\n### 2026-11-11T13:52:33")
     assert f"{bundle}/report.json" in body
     marker = json.loads((bundle / MARKER).read_text(encoding="utf-8"))
     assert marker["task_id"] == "id0001" + "0" * 28

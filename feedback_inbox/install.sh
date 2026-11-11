@@ -72,8 +72,9 @@ verify() {
     for unit in feedback-inbox.path feedback-inbox-sync.path feedback-inbox-sync.timer; do
         systemctl --user is-active --quiet "$unit" || fail "$unit is not active"
     done
-    log "ok: watching $(systemctl --user show feedback-inbox.path -p PathChanged \
-        | tr ';' '\n' | grep -c feedback) feedback folder(s)"
+    local folders
+    folders="$(systemctl --user show feedback-inbox.path -p Paths | grep -c '/feedback (PathChanged)' || true)"
+    log "ok: watching ${folders} feedback folder(s)"
 }
 
 main() {

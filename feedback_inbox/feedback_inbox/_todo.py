@@ -37,6 +37,10 @@ class TodoClient(Protocol):
         """Create one task in its own note and return its id."""
         raise NotImplementedError
 
+    def update_task(self, task_id: str, title: str, body: str) -> None:
+        """Replace the task's stored title and body with exactly these."""
+        raise NotImplementedError
+
 
 class McpTodoClient:
     """Streamable-HTTP MCP client: initialize, then one ``add_task`` call."""
@@ -47,21 +51,37 @@ class McpTodoClient:
         self._token_file = token_file
 
     def add_task(self, repo: str, title: str, body: str) -> TaskRef:
-        """Create a task with its own note (exact title) via ``add_task``."""
+        """Create a task with its own note via ``add_task``.
+
+        The server stores a ``new_note`` title as ``<name> todos: <title>``;
+        :meth:`update_task` restores the exact title (and drops the
+        ``## <title>`` section the server adds) afterwards.
+        """
+        arguments = {"repo": repo, "title": title, "body": body, "new_note": True}
+        said = self._call("add_task", arguments)
+        found = _REPLY.match(said)
+        if not found:
+            msg = f"add_task refused: {said[:120]}"
+            raise TodoError(msg)
+        return TaskRef(task_id=found.group(2), merged=found.group(1) != "added")
+
+    def update_task(self, task_id: str, title: str, body: str) -> None:
+        """Rewrite via ``update_task``: exact title, and body with no sections."""
+        said = self._call("update_task", {"id": task_id, "title": title, "body": body})
+        if not said.startswith("updated"):
+            msg = f"update_task refused: {said[:120]}"
+            raise TodoError(msg)
+
+    def _call(self, tool: str, arguments: dict[str, object]) -> str:
         token = self._token()
         session = self._initialize(token)
-        arguments = {"repo": repo, "title": title, "body": body, "new_note": True}
-        reply = self._post(
-            token,
-            {
-                "jsonrpc": "2.0",
-                "id": 2,
-                "method": "tools/call",
-                "params": {"name": "add_task", "arguments": arguments},
-            },
-            session,
-        )[1]
-        return _task_ref(reply)
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": tool, "arguments": arguments},
+        }
+        return _tool_text(self._post(token, payload, session)[1])
 
     def _token(self) -> str:
         try:
@@ -126,7 +146,8 @@ class McpTodoClient:
             raise TodoError(msg) from exc
 
 
-def _task_ref(body: str) -> TaskRef:
+def _tool_text(body: str) -> str:
+    """The text a tool call answered; an MCP-level error becomes TodoError."""
     text = body.strip()
     if not text.startswith("{"):
         lines = [x[5:].strip() for x in text.splitlines() if x.startswith("data:")]
@@ -138,8 +159,7 @@ def _task_ref(body: str) -> TaskRef:
     except (ValueError, KeyError, IndexError, TypeError) as exc:
         msg = f"unparsable MCP reply: {body[:80]!r}"
         raise TodoError(msg) from exc
-    found = _REPLY.match(said)
-    if failed or not found:
-        msg = f"add_task refused: {said[:120]}"
+    if failed:
+        msg = f"tool refused: {said[:120]}"
         raise TodoError(msg)
-    return TaskRef(task_id=found.group(2), merged=found.group(1) != "added")
+    return said

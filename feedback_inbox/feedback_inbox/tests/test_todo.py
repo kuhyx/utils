@@ -182,3 +182,19 @@ def test_garbage_json(server: str, tmp_path: Path) -> None:
         httpd.shutdown()
         httpd.server_close()
         thread.join()
+
+
+def test_update_task_replaces_title_and_body(server: str, tmp_path: Path) -> None:
+    _Handler.tool_text = f"updated {FULL_ID}\nline"
+    _client(server, tmp_path).update_task(FULL_ID, "MANUAL WORK REQUIRED: x", "b")
+    call = _Handler.seen[2]["params"]
+    assert call == {
+        "name": "update_task",
+        "arguments": {"id": FULL_ID, "title": "MANUAL WORK REQUIRED: x", "body": "b"},
+    }
+
+
+def test_update_task_refused(server: str, tmp_path: Path) -> None:
+    _Handler.tool_text = "no such task"
+    with pytest.raises(TodoError, match="no such task"):
+        _client(server, tmp_path).update_task(FULL_ID, "t", "b")

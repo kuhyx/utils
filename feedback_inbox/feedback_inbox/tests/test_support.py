@@ -66,17 +66,30 @@ def make_bundle(
 
 @dataclass
 class FakeTodo:
-    """Records add_task calls; optionally fails or reports a merge."""
+    """A todo server stand-in that stores notes the way the real one does."""
 
     calls: list[tuple[str, str, str]] = field(default_factory=list)
+    stored: dict[str, str] = field(default_factory=dict)
     fail: bool = False
+    fail_update: bool = False
     merged: bool = False
+    updated: list[str] = field(default_factory=list)
 
     def add_task(self, repo: str, title: str, body: str) -> TaskRef:
         if self.fail:
             msg = "todo down"
             raise TodoError(msg)
         self.calls.append((repo, title, body))
-        return TaskRef(
-            task_id=f"id{len(self.calls):04d}" + "0" * 28, merged=self.merged
-        )
+        task_id = f"id{len(self.calls):04d}" + "0" * 28
+        # A new_note task: title "<name> todos: <title>", then a "## <title>"
+        # section holding the body.
+        name = repo.rsplit("/", maxsplit=1)[-1]
+        self.stored[task_id] = f"{name} todos: {title}\n\n## {title}\n{body}"
+        return TaskRef(task_id=task_id, merged=self.merged)
+
+    def update_task(self, task_id: str, title: str, body: str) -> None:
+        if self.fail_update:
+            msg = "update refused"
+            raise TodoError(msg)
+        self.updated.append(task_id)
+        self.stored[task_id] = f"{title}\n\n{body}"
