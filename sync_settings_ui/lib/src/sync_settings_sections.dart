@@ -36,9 +36,9 @@ class _FirebaseSection extends StatelessWidget {
           const Icon(Icons.cloud_done, size: 20),
           const SizedBox(width: 8),
           Expanded(child: Text(emailController.text)),
-          TextButton(
+          IconButton(
             onPressed: busy ? null : onDisconnect,
-            child: const Text('Disconnect'),
+            icon: const Icon(Icons.link_off, semanticLabel: 'Disconnect'),
           ),
         ],
       );
@@ -49,10 +49,12 @@ class _FirebaseSection extends StatelessWidget {
         if (googleAvailable) ...[
           Align(
             alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
+            child: FilledButton(
               onPressed: busy ? null : onConnectGoogle,
-              icon: const Icon(Icons.account_circle),
-              label: const Text('Sign in with Google'),
+              child: const Icon(
+                Icons.account_circle,
+                semanticLabel: 'Sign in with Google',
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -61,24 +63,35 @@ class _FirebaseSection extends StatelessWidget {
           // is not the "control that can never succeed" trap -- that one
           // looks live and reports a fake cancellation. This one says why,
           // which beats a screen that silently offers less on one platform.
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.account_circle),
-              label: const Text('Sign in with Google'),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            googleUnavailableReason!,
-            style: Theme.of(context).textTheme.bodySmall,
+          // The why is a block glyph beside it, the reason spoken only.
+          Row(
+            children: [
+              const FilledButton(
+                onPressed: null,
+                child: Icon(
+                  Icons.account_circle,
+                  semanticLabel: 'Sign in with Google',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.block,
+                color: Theme.of(context).colorScheme.error,
+                semanticLabel: googleUnavailableReason,
+              ),
+            ],
           ),
           const SizedBox(height: 12),
         ],
         ExpansionTile(
           initiallyExpanded: !googleAvailable,
-          title: const Text('Use the account password instead'),
+          title: const Align(
+            alignment: Alignment.centerLeft,
+            child: Icon(
+              Icons.password,
+              semanticLabel: 'Use the account password instead',
+            ),
+          ),
           tilePadding: EdgeInsets.zero,
           childrenPadding: const EdgeInsets.only(bottom: 8),
           children: [
@@ -87,7 +100,10 @@ class _FirebaseSection extends StatelessWidget {
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Sync account email',
+                prefixIcon: Icon(
+                  Icons.alternate_email,
+                  semanticLabel: 'Sync account email',
+                ),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -97,17 +113,22 @@ class _FirebaseSection extends StatelessWidget {
               obscureText: true,
               autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Sync account password',
+                prefixIcon: Icon(
+                  Icons.lock_outline,
+                  semanticLabel: 'Sync account password',
+                ),
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
+              child: FilledButton(
                 onPressed: busy ? null : onConnectPassword,
-                icon: const Icon(Icons.cloud_done),
-                label: const Text('Connect Firebase'),
+                child: const Icon(
+                  Icons.cloud_done,
+                  semanticLabel: 'Connect Firebase',
+                ),
               ),
             ),
           ],
@@ -133,18 +154,19 @@ class _BackupSection extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton.icon(
+          child: OutlinedButton(
             onPressed: onExport,
-            icon: const Icon(Icons.upload),
-            label: Text('Export ${backup.label}'),
+            child: Icon(Icons.upload, semanticLabel: 'Export ${backup.label}'),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: OutlinedButton.icon(
+          child: OutlinedButton(
             onPressed: onImport,
-            icon: const Icon(Icons.download),
-            label: Text('Import ${backup.label}'),
+            child: Icon(
+              Icons.download,
+              semanticLabel: 'Import ${backup.label}',
+            ),
           ),
         ),
       ],

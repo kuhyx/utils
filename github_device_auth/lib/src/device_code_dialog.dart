@@ -64,47 +64,57 @@ class _DeviceCodeDialogState extends State<DeviceCodeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // Glyphs in place of app-written words (kuhy's textgate rule); each old
+    // sentence is the spoken label. The user code is GitHub's data, typed
+    // by the user, so it stays visible.
     return AlertDialog(
-      title: const Text('Authorize on GitHub'),
+      title: const Icon(Icons.key, semanticLabel: 'Authorize on GitHub'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Enter this code on GitHub:'),
-          const SizedBox(height: 8),
-          SelectableText(
-            widget.device.userCode,
-            style: Theme.of(context).textTheme.headlineSmall,
+          Row(
+            children: [
+              const Icon(
+                Icons.keyboard,
+                semanticLabel: 'Enter this code on GitHub:',
+              ),
+              const SizedBox(width: 12),
+              SelectableText(
+                widget.device.userCode,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          if (_error == null)
-            const Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Expanded(child: Text('Waiting for authorization…')),
-              ],
+          if (_error case final error?)
+            Icon(
+              Icons.error,
+              color: Theme.of(context).colorScheme.error,
+              semanticLabel: error,
             )
           else
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            Semantics(
+              label: 'Waiting for authorization…',
+              child: const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
         ],
       ),
       actions: [
-        TextButton(
+        IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          icon: const Icon(Icons.close, semanticLabel: 'Cancel'),
         ),
-        FilledButton.icon(
+        FilledButton(
           onPressed: _openPage,
-          icon: const Icon(Icons.open_in_new),
-          label: const Text('Open GitHub & copy code'),
+          child: const Icon(
+            Icons.open_in_new,
+            semanticLabel: 'Open GitHub & copy code',
+          ),
         ),
       ],
     );

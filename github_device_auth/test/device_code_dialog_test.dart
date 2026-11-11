@@ -67,6 +67,9 @@ Future<Object? Function()> _showDialog(
   );
   await tester.tap(find.text('open'));
   await tester.pump();
+  // Let the dialog fade in: a transparent route has no semantics yet, and
+  // the dialog's words are spoken labels now.
+  await tester.pump(const Duration(milliseconds: 300));
   return () => popped;
 }
 
@@ -74,9 +77,9 @@ void main() {
   testWidgets('shows the user code and a waiting state', (tester) async {
     await _showDialog(tester, _pendingAuth());
 
-    expect(find.text('Authorize on GitHub'), findsOneWidget);
+    expect(find.bySemanticsLabel('Authorize on GitHub'), findsOneWidget);
     expect(find.text('ABCD-1234'), findsOneWidget);
-    expect(find.text('Waiting for authorization…'), findsOneWidget);
+    expect(find.bySemanticsLabel('Waiting for authorization…'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
@@ -111,7 +114,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.textContaining('access_denied'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('access_denied')), findsOneWidget);
   });
 
   testWidgets('surfaces an Error, not just an Exception', (tester) async {
@@ -126,12 +129,12 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.textContaining('No host specified'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('No host specified')), findsOneWidget);
   });
 
   testWidgets('cancel pops without a token', (tester) async {
     final popped = await _showDialog(tester, _pendingAuth());
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.bySemanticsLabel('Cancel'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
@@ -161,7 +164,7 @@ void main() {
     );
 
     await _showDialog(tester, auth);
-    await tester.tap(find.text('Open GitHub & copy code'));
+    await tester.tap(find.bySemanticsLabel('Open GitHub & copy code'));
     await tester.pump();
 
     expect(copied, 'ABCD-1234');

@@ -35,10 +35,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign in with Google'));
+      await tester.tap(find.bySemanticsLabel('Sign in with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Google sign-in was cancelled.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Google sign-in was cancelled.'), findsOneWidget);
     });
 
     testWidgets(
@@ -60,11 +60,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Sign in with Google'));
+        await tester.tap(find.bySemanticsLabel('Sign in with Google'));
         await tester.pumpAndSettle();
 
         expect(
-          find.textContaining('did not save the session'),
+          spoken('did not save the session'),
           findsOneWidget,
         );
       },
@@ -89,10 +89,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign in with Google'));
+      await tester.tap(find.bySemanticsLabel('Sign in with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.text('wrong uid'), findsOneWidget);
+      expect(find.bySemanticsLabel('wrong uid'), findsOneWidget);
     });
 
     testWidgets('Google sign-in generic failure surfaces the error text', (
@@ -113,10 +113,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Sign in with Google'));
+      await tester.tap(find.bySemanticsLabel('Sign in with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Sign-in failed'), findsOneWidget);
+      expect(spoken('Sign-in failed'), findsOneWidget);
     });
 
     testWidgets(
@@ -138,7 +138,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Sign in with Google'), findsNothing);
+        expect(find.bySemanticsLabel('Sign in with Google'), findsNothing);
       },
     );
 
@@ -161,12 +161,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign in with Google'), findsOneWidget);
-      expect(find.text('Not available on this platform.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Sign in with Google'), findsOneWidget);
+      expect(find.bySemanticsLabel('Not available on this platform.'), findsOneWidget);
 
       // Disabled, so it cannot report a misleading "cancelled".
       final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Sign in with Google'),
+        find.widgetWithIcon(FilledButton, Icons.account_circle),
       );
       expect(button.onPressed, isNull);
     });
@@ -189,7 +189,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Sign in with Google'), findsNothing);
+      expect(find.bySemanticsLabel('Sign in with Google'), findsNothing);
     });
   });
 }
+
+/// A node whose spoken label contains [part] literally.
+Finder spoken(String part) =>
+    find.bySemanticsLabel(RegExp(RegExp.escape(part)));

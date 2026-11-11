@@ -38,15 +38,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export notes'));
+      await tester.tap(find.bySemanticsLabel('Export notes'));
       await tester.pumpAndSettle();
-      expect(find.text('Exported notes.'), findsNothing);
-      expect(find.textContaining('failed'), findsNothing);
+      expect(find.bySemanticsLabel('Exported notes.'), findsNothing);
+      expect(spoken('failed'), findsNothing);
 
-      await tester.tap(find.text('Import notes'));
+      await tester.tap(find.bySemanticsLabel('Import notes'));
       await tester.pumpAndSettle();
-      expect(find.text('Imported notes.'), findsNothing);
-      expect(find.textContaining('failed'), findsNothing);
+      expect(find.bySemanticsLabel('Imported notes.'), findsNothing);
+      expect(spoken('failed'), findsNothing);
     });
 
     testWidgets('omitted entirely when backup is null', (tester) async {
@@ -63,7 +63,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Backup'), findsNothing);
+      expect(find.bySemanticsLabel('Backup'), findsNothing);
     });
 
     testWidgets('export and import call the injected callbacks', (
@@ -89,16 +89,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Backup'), findsOneWidget);
-      await tester.tap(find.text('Export notes'));
+      expect(find.bySemanticsLabel('Backup'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Export notes'));
       await tester.pumpAndSettle();
       expect(exported, isTrue);
-      expect(find.text('Exported notes.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Exported notes.'), findsOneWidget);
 
-      await tester.tap(find.text('Import notes'));
+      await tester.tap(find.bySemanticsLabel('Import notes'));
       await tester.pumpAndSettle();
       expect(imported, isTrue);
-      expect(find.text('Imported notes.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Imported notes.'), findsOneWidget);
     });
 
     testWidgets('export failure reports the error', (tester) async {
@@ -120,9 +120,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export notes'));
+      await tester.tap(find.bySemanticsLabel('Export notes'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Export failed'), findsOneWidget);
+      expect(spoken('Export failed'), findsOneWidget);
     });
 
     testWidgets('import failure reports the error', (tester) async {
@@ -144,9 +144,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Import notes'));
+      await tester.tap(find.bySemanticsLabel('Import notes'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Import failed'), findsOneWidget);
+      expect(spoken('Import failed'), findsOneWidget);
     });
   });
 
@@ -173,3 +173,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }
+
+/// A node whose spoken label contains [part] literally.
+Finder spoken(String part) =>
+    find.bySemanticsLabel(RegExp(RegExp.escape(part)));

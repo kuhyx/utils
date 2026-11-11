@@ -52,7 +52,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('a@b.com'), findsOneWidget);
-      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.bySemanticsLabel('Disconnect'), findsOneWidget);
     });
 
     testWidgets('disconnect clears the account and shows status', (
@@ -73,12 +73,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Disconnect'));
+      await tester.tap(find.bySemanticsLabel('Disconnect'));
       await tester.pumpAndSettle();
 
       expect(cleared, isTrue);
-      expect(find.text('Firebase disconnected.'), findsOneWidget);
-      expect(find.text('Connect Firebase'), findsOneWidget);
+      expect(find.bySemanticsLabel('Firebase disconnected.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Connect Firebase'), findsOneWidget);
     });
 
     testWidgets('connect with password shows an error when empty', (
@@ -98,11 +98,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Google unavailable by default -> password form starts expanded.
-      await tester.tap(find.text('Connect Firebase'));
+      await tester.tap(find.bySemanticsLabel('Connect Firebase'));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Enter the sync account email and password.'),
+        find.bySemanticsLabel('Enter the sync account email and password.'),
         findsOneWidget,
       );
     });
@@ -124,17 +124,17 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Sync account email'),
+        find.widgetWithIcon(TextField, Icons.alternate_email),
         'a@b.com',
       );
       await tester.enterText(
-        find.widgetWithText(TextField, 'Sync account password'),
+        find.widgetWithIcon(TextField, Icons.lock_outline),
         'pw',
       );
-      await tester.tap(find.text('Connect Firebase'));
+      await tester.tap(find.bySemanticsLabel('Connect Firebase'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Connected to Firebase.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Connected to Firebase.'), findsOneWidget);
       expect(find.text('a@b.com'), findsOneWidget);
     });
 
@@ -153,17 +153,17 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Sync account email'),
+        find.widgetWithIcon(TextField, Icons.alternate_email),
         'a@b.com',
       );
       await tester.enterText(
-        find.widgetWithText(TextField, 'Sync account password'),
+        find.widgetWithIcon(TextField, Icons.lock_outline),
         'wrong',
       );
-      await tester.tap(find.text('Connect Firebase'));
+      await tester.tap(find.bySemanticsLabel('Connect Firebase'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Firebase rejected that account.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Firebase rejected that account.'), findsOneWidget);
     });
 
     testWidgets(
@@ -186,23 +186,23 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.enterText(
-          find.widgetWithText(TextField, 'Sync account email'),
+          find.widgetWithIcon(TextField, Icons.alternate_email),
           'a@b.com',
         );
         await tester.enterText(
-          find.widgetWithText(TextField, 'Sync account password'),
+          find.widgetWithIcon(TextField, Icons.lock_outline),
           'wrong',
         );
-        await tester.tap(find.text('Connect Firebase'));
+        await tester.tap(find.bySemanticsLabel('Connect Firebase'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Signing in to Firebase…'), findsNothing);
+        expect(find.bySemanticsLabel('Signing in to Firebase…'), findsNothing);
         expect(
-          find.text('Firebase rejected that account: bad creds'),
+          find.bySemanticsLabel('Firebase rejected that account: bad creds'),
           findsOneWidget,
         );
         final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, 'Connect Firebase'),
+          find.widgetWithIcon(FilledButton, Icons.cloud_done),
         );
         expect(button.onPressed, isNotNull);
       },
@@ -231,18 +231,18 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Sign in with Google'), findsOneWidget);
+        expect(find.bySemanticsLabel('Sign in with Google'), findsOneWidget);
         // The password form is collapsed behind its ExpansionTile when
         // Google is offered -- only the field labels prove that; the tile's
         // own title text is present either way.
         expect(
-          find.widgetWithText(TextField, 'Sync account email'),
+          find.widgetWithIcon(TextField, Icons.alternate_email),
           findsNothing,
         );
-        await tester.tap(find.text('Sign in with Google'));
+        await tester.tap(find.bySemanticsLabel('Sign in with Google'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Connected to Firebase.'), findsOneWidget);
+        expect(find.bySemanticsLabel('Connected to Firebase.'), findsOneWidget);
       },
     );
   });

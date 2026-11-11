@@ -6,6 +6,7 @@ import 'package:sync_settings_ui/src/backup_slot.dart';
 import 'package:sync_settings_ui/src/firebase_connect_result.dart';
 import 'package:sync_settings_ui/src/firebase_sync_controller.dart';
 
+part 'sync_settings_cues.dart';
 part 'sync_settings_sections.dart';
 part 'sync_settings_widget.dart';
 
@@ -25,7 +26,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   bool _loading = true;
   bool _firebaseConnected = false;
   bool _busy = false;
-  String? _status;
+  _Cue? _status;
 
   @override
   void initState() {
@@ -56,7 +57,12 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _status = 'Enter the sync account email and password.');
+      setState(
+        () => _status = const _Cue.error(
+          Icons.edit_off,
+          'Enter the sync account email and password.',
+        ),
+      );
       return;
     }
     setState(() => _busy = true);
@@ -64,7 +70,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       email: email,
       password: password,
       onProgress: (stage) {
-        if (mounted) setState(() => _status = stage);
+        if (mounted) setState(() => _status = _Cue(Icons.hourglass_top, stage));
       },
     );
     if (!mounted) return;
@@ -74,7 +80,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
   Future<void> _connectGoogle() async {
     setState(() {
       _busy = true;
-      _status = 'Signing in…';
+      _status = const _Cue(Icons.hourglass_top, 'Signing in…');
     });
     final result = await _firebase.connectWithGoogle();
     if (!mounted) return;
@@ -93,17 +99,35 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     setState(() {
       _busy = false;
       _firebaseConnected = result.outcome == FirebaseConnectOutcome.connected;
+      // One glyph per outcome; the sentence is spoken only.
       _status = switch (result.outcome) {
-        FirebaseConnectOutcome.connected => 'Connected to Firebase.',
-        FirebaseConnectOutcome.rejected => result.message != null
-            ? 'Firebase rejected that account: ${result.message}'
-            : 'Firebase rejected that account.',
-        FirebaseConnectOutcome.cancelled => 'Google sign-in was cancelled.',
-        FirebaseConnectOutcome.signedInButNotPersisted =>
+        FirebaseConnectOutcome.connected => const _Cue(
+          Icons.cloud_done,
+          'Connected to Firebase.',
+        ),
+        FirebaseConnectOutcome.rejected => _Cue.error(
+          Icons.lock,
+          result.message != null
+              ? 'Firebase rejected that account: ${result.message}'
+              : 'Firebase rejected that account.',
+        ),
+        FirebaseConnectOutcome.cancelled => const _Cue(
+          Icons.cancel_outlined,
+          'Google sign-in was cancelled.',
+        ),
+        FirebaseConnectOutcome.signedInButNotPersisted => const _Cue.error(
+          Icons.save_as_outlined,
           'Signed in, but this device did not save the session - it will '
-              'sync over GitHub after a restart. Try connecting again.',
-        FirebaseConnectOutcome.wrongAccount => result.message,
-        FirebaseConnectOutcome.failed => 'Sign-in failed: ${result.message}',
+          'sync over GitHub after a restart. Try connecting again.',
+        ),
+        FirebaseConnectOutcome.wrongAccount => _Cue.error(
+          Icons.no_accounts,
+          result.message ?? '',
+        ),
+        FirebaseConnectOutcome.failed => _Cue.error(
+          Icons.error,
+          'Sign-in failed: ${result.message}',
+        ),
       };
     });
   }
@@ -115,30 +139,35 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
     _passwordController.clear();
     setState(() {
       _firebaseConnected = false;
-      _status = 'Firebase disconnected.';
+      _status = const _Cue(Icons.link_off, 'Firebase disconnected.');
     });
   }
 
   Future<void> _exportBackup(BackupSlot backup) async {
     try {
       await backup.export();
-      if (mounted) setState(() => _status = 'Exported ${backup.label}.');
+      _show(_Cue(Icons.upload, 'Exported ${backup.label}.'));
     } on BackupCancelled {
-      if (mounted) setState(() => _status = null);
+      _show(null);
     } on Exception catch (error) {
-      if (mounted) setState(() => _status = 'Export failed: $error');
+      _show(_Cue.error(Icons.upload, 'Export failed: $error'));
     }
   }
 
   Future<void> _importBackup(BackupSlot backup) async {
     try {
       await backup.import();
-      if (mounted) setState(() => _status = 'Imported ${backup.label}.');
+      _show(_Cue(Icons.download, 'Imported ${backup.label}.'));
     } on BackupCancelled {
-      if (mounted) setState(() => _status = null);
+      _show(null);
     } on Exception catch (error) {
-      if (mounted) setState(() => _status = 'Import failed: $error');
+      _show(_Cue.error(Icons.download, 'Import failed: $error'));
     }
+  }
+
+  /// Shows [cue] as the latest result (null clears it), if still mounted.
+  void _show(_Cue? cue) {
+    if (mounted) setState(() => _status = cue);
   }
 
   @override
@@ -150,20 +179,23 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Glyphs in place of the title and section headings (kuhy's textgate
+    // rule: nothing he sees carries app-written words); the old words are
+    // the spoken labels.
+    const title = Icon(Icons.sync, semanticLabel: 'Sync settings');
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Sync settings')),
+        appBar: AppBar(title: title),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     final backup = widget.backup;
-    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Sync settings')),
+      appBar: AppBar(title: title),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Firebase sync', style: textTheme.titleMedium),
+          const _Heading(Icons.local_fire_department, 'Firebase sync'),
           const SizedBox(height: 8),
           _FirebaseSection(
             connected: _firebaseConnected,
@@ -180,7 +212,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 8),
-            Text('Backup', style: textTheme.titleMedium),
+            const _Heading(Icons.backup_outlined, 'Backup'),
             const SizedBox(height: 8),
             _BackupSection(
               backup: backup,
@@ -188,9 +220,9 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
               onImport: () => _importBackup(backup),
             ),
           ],
-          if (_status != null) ...[
+          if (_status case final status?) ...[
             const SizedBox(height: 16),
-            Text(_status!, style: textTheme.bodyMedium),
+            _CueView(status),
           ],
         ],
       ),
