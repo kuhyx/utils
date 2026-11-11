@@ -1,0 +1,12 @@
+[Unit]
+Description=feedback-inbox: fallback sweep for events the path units missed
+
+[Timer]
+# Events that land while a run is active are lost by .path units; this catches
+# them. No Persistent=: a missed sweep is harmless, the next one runs soon.
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=feedback-inbox-sync.service
+
+[Install]
+WantedBy=timers.target

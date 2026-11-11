@@ -1,0 +1,12 @@
+[Unit]
+Description=feedback-inbox: re-arm the watches for new games, then import
+Documentation=file:///home/kuhy/src/utils/feedback_inbox/README.md
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+WorkingDirectory=/
+ExecStart=%h/.local/share/feedback-inbox/venv/bin/feedback-inbox sync
+ExecStart=%h/.local/share/feedback-inbox/venv/bin/feedback-inbox run --wait 0
+Nice=10
+TimeoutStartSec=2min

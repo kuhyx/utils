@@ -1,0 +1,12 @@
+[Unit]
+Description=feedback-inbox: watch every game's feedback folder
+
+[Path]
+# systemd paths take no globs. The folders themselves are listed in the
+# generated drop-in feedback-inbox.path.d/dirs.conf (`feedback-inbox sync`);
+# this baseline is the token file, which exists once installed and never churns.
+PathChanged=%h/.config/feedback-inbox/token
+Unit=feedback-inbox.service
+
+[Install]
+WantedBy=default.target

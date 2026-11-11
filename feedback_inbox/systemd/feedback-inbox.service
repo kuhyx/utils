@@ -1,0 +1,15 @@
+[Unit]
+Description=feedback-inbox: turn new game feedback bundles into todo tasks
+Documentation=file:///home/kuhy/src/utils/feedback_inbox/README.md
+# The .path unit fires on every write in a feedback folder; bursts (a bundle is
+# written in pieces) must not trip the default start limit.
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+WorkingDirectory=/
+# Waits up to 15 s for a half-written bundle to finish before leaving it to the
+# timer. Exits non-zero when the todo server refuses, so the failure is visible.
+ExecStart=%h/.local/share/feedback-inbox/venv/bin/feedback-inbox run --wait 15
+Nice=10
+TimeoutStartSec=2min

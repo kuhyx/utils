@@ -1,0 +1,12 @@
+[Unit]
+Description=feedback-inbox: a game folder appeared or went away
+
+[Path]
+# ~/data fires when a *_binaries folder is created; the generated drop-in
+# feedback-inbox-sync.path.d/dirs.conf adds each existing *_binaries folder, so
+# a game's later `feedback/` subfolder is seen too.
+PathChanged=%h/data
+Unit=feedback-inbox-sync.service
+
+[Install]
+WantedBy=default.target
