@@ -66,7 +66,7 @@ Future<E2eState> openEncryptedStore({
     // The copy is retried next open; sync itself must not stop for it.
     log('e2e copy failed', level: 900, error: error, stackTrace: stackTrace);
   }
-  return openE2e(
+  return await openE2e(
     store: store,
     pathPrefix: layout.prefix,
     key: key,
