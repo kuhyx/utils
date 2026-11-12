@@ -6,7 +6,7 @@
 bandit[toml]==1.9.4
 codespell==2.4.3
 coverage==7.17.2
-crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.10.0#subdirectory=crdt-sync
+crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.0#subdirectory=crdt-sync
 genanki==0.13.1
 mypy==2.4.1
 pre-commit==4.7.0

@@ -125,7 +125,7 @@ repos:
           - pytest
           - requests
           - genanki
-          - crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.10.0#subdirectory=crdt-sync
+          - crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.0#subdirectory=crdt-sync
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
