@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import logging
 from typing import TYPE_CHECKING
 
+from crdt_sync._e2e_cipher import E2eDecryptError
 from crdt_sync._revisions import revision_of
 
 if TYPE_CHECKING:
@@ -90,9 +91,16 @@ def _pull_remote_logs(
             # skipped next tick.
             seen_revs[other_device_id] = remote_rev
             continue
-        text = ctx.client.get_file_text(
-            f"{ctx.path_prefix}/{other_device_id}/{ctx.filename}"
-        )
+        try:
+            text = ctx.client.get_file_text(
+                f"{ctx.path_prefix}/{other_device_id}/{ctx.filename}"
+            )
+        except E2eDecryptError:
+            _logger.warning(
+                "Undecryptable log from device %r (wrong key or newer app)",
+                other_device_id,
+            )
+            continue
         if text is None:
             continue
         try:

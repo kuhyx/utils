@@ -1,0 +1,10 @@
+{
+  "passphrase": "correct horse ✓",
+  "header": "{\"v\":1,\"kdf\":\"argon2id\",\"salt\":\"HGW+FZJe6hd71He22BrlUA==\",\"m\":64,\"t\":2,\"p\":1,\"check\":\"okKnATkNoZKvjSGfrgQGOjdRw5NORh2lC32zuBq7V6I=\"}",
+  "master_hex": "cad5afe8ddc6e21d2f39eb196de454db6b6d1f60629619ce8539f03a4bb0b086",
+  "revision_of_abc": "e7f845e1b0a7ea2b571fd3e3bdfb60641e650d63171bf73b6356c7909d2748c8",
+  "path": "vec/notes-e2e/phone/log.json",
+  "log": "{\"n1\":{\"id\":\"n1\",\"fields\":{\"title\":[\"buy milk\",\"1970-01-01T00:00:01.000Z-0000-node-a\"]},\"deleted\":false,\"deleted_hlc\":null},\"n2\":{\"id\":\"n2\",\"fields\":{\"title\":[\"zażółć\",\"1970-01-01T00:00:01.000Z-0000-node-a\"]},\"deleted\":false,\"deleted_hlc\":null}}",
+  "envelope": "{\"v\":1,\"r\":{\"n1\":{\"d\":false,\"dh\":null,\"h\":\"1970-01-01T00:00:01.000Z-0000-node-a\",\"p\":\"AR1zODx4TD67X3TGa0N7EV/V4FcZAaqc41jxZVtskFu3Pqb/pNlqm6db66rQUaMyNLtTPa4HMOJzZomBRyaSHjaPb4oNxgVPkMeIF5IbuI/GA30gR0sz/MSvYmfZ5wSnlBo1+fpH\"},\"n2\":{\"d\":false,\"dh\":null,\"h\":\"1970-01-01T00:00:01.000Z-0000-node-a\",\"p\":\"Aa0omlBGnmlsItzq7A21G0A1tqT8xMOJE0wgxcxJ1c3hVpRmNt4kq2IPNNGuW8v4A7fvs2FrnGX4A+NVtXPpu41ckKSShTqk8Ml6zTuxyrT85g50sgzbM7PKFczeEaS+ITWDj0N04u0=\"}}}",
+  "whole": "{\"v\":1,\"b\":\"AYdAwPehG84oHBRhRr5dP5VmleBGzQC1ryV5QHTCqBZE9ZsOZMMkJiP40+KzpnfIc2g=\"}"
+}
