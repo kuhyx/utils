@@ -155,9 +155,12 @@ Future<MigrationReport> copyToEncrypted({
       skipped.add(rel);
       continue;
     }
+    if (source.isEmpty) continue;
     final path = '${layout.prefix}/$rel';
     final existing = await dest.getFileText(path);
     final current = existing == null ? null : _parse(existing);
+    // Not a sync log (an app's own blob): never overwrite it.
+    if (existing != null && current == null) continue;
     final merged = mergeLogs(current ?? <String, Record>{}, source);
     if (current != null && _signature(merged) == _signature(current)) continue;
     await dest.putFileText(path, logToJson(merged), message: 'e2e copy');

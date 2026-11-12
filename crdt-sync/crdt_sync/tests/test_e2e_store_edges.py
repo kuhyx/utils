@@ -24,7 +24,9 @@ from crdt_sync._e2e_store import _blobs, _fingerprint
 from crdt_sync.tests.conftest import FakeStore, FakeStoreWithoutBulkRead
 
 if TYPE_CHECKING:
-    from crdt_sync import E2eKey
+    from collections.abc import Callable
+
+    from crdt_sync import E2eKey, Hlc
 
 PHRASE = "pw"
 CHEAP = Argon2Params(8, 1, 1)
@@ -163,3 +165,53 @@ def test_unreadable_header_locks_the_client() -> None:
     remote = FakeStore({LAYOUT.e2e_path: "not json"})
     with pytest.raises(E2eLockedError, match="not JSON"):
         open_encrypted_client(remote, OLD, passphrase=PHRASE, params=CHEAP)
+
+
+def test_copy_never_overwrites_non_log_and_skips_empty() -> None:
+    layout = E2eLayout.of("app/devices")
+    remote = FakeStore(
+        {
+            "app/devices/pc/current.json": "{}",
+            "app/devices-e2e/pc/current.json": '{"photos":["a"]}',
+            "app/devices/tab/current.json": "{}",
+        }
+    )
+    key = unlock_e2e(
+        remote,
+        path_prefix=layout.prefix,
+        passphrase="x" * 8,
+        params=Argon2Params(8, 1, 1),
+        e2e_path=layout.e2e_path,
+    )
+    assert copy_to_encrypted(remote, key, "app/devices", layout) == 0
+    assert remote.files["app/devices-e2e/pc/current.json"] == '{"photos":["a"]}'
+    assert "app/devices-e2e/tab/current.json" not in remote.files
+
+
+def test_copy_leaves_a_non_log_destination_alone(
+    make_hlc: Callable[..., Hlc],
+) -> None:
+    layout = E2eLayout.of("app/devices")
+    log = {
+        "n": {
+            "id": "n",
+            "fields": {"t": ["x", make_hlc(1).to_str()]},
+            "deleted": False,
+            "deleted_hlc": None,
+        }
+    }
+    remote = FakeStore(
+        {
+            "app/devices/pc/current.json": json.dumps(log),
+            "app/devices-e2e/pc/current.json": '{"photos":["a"]}',
+        }
+    )
+    key = unlock_e2e(
+        remote,
+        path_prefix=layout.prefix,
+        passphrase="x" * 8,
+        params=Argon2Params(8, 1, 1),
+        e2e_path=layout.e2e_path,
+    )
+    assert copy_to_encrypted(remote, key, "app/devices", layout) == 0
+    assert remote.files["app/devices-e2e/pc/current.json"] == '{"photos":["a"]}'

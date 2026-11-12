@@ -12,12 +12,19 @@ from dataclasses import dataclass
 import logging
 from typing import TYPE_CHECKING
 
+from crdt_sync._e2e_cache import (
+    read_cached_key,
+    read_copy_memo,
+    write_cached_key,
+    write_copy_memo,
+)
 from crdt_sync._e2e_cipher import E2eDecryptError, open_log_text, seal_log_text
 from crdt_sync._e2e_key import (
     Argon2Params,
     E2eHeaderError,
     E2eKey,
     E2eWrongPassphraseError,
+    key_matches,
     unlock_e2e,
 )
 from crdt_sync._log import merge_logs
@@ -25,6 +32,8 @@ from crdt_sync._store import dump_log, load_log
 from crdt_sync._sync import default_revs_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from crdt_sync._remote import RemoteStore
 
 _logger = logging.getLogger(__name__)
@@ -150,9 +159,16 @@ def copy_to_encrypted(
         except ValueError, KeyError, TypeError:
             _logger.warning("Unreadable old log %s/%s not copied", old_prefix, rel)
             continue
+        if not source:
+            continue
         path = f"{layout.prefix}/{rel}"
         existing = dest.get_file_text(path)
-        current = load_log(existing) if existing is not None else {}
+        try:
+            current = load_log(existing) if existing is not None else {}
+        except ValueError, KeyError, TypeError:
+            # Not a sync log (an app's own blob): never overwrite it.
+            _logger.warning("Non-log blob at %s left as is", path)
+            continue
         merged = merge_logs(current, source)
         if existing is not None and dump_log(merged) == dump_log(current):
             continue
@@ -177,34 +193,75 @@ def _fingerprint(store: RemoteStore, old_prefix: str) -> str:
     return ";".join(f"{k}={revs[k]}" for k in sorted(revs))
 
 
-def open_encrypted_client(
-    store: RemoteStore,
-    old_prefix: str,
-    *,
-    passphrase: str,
-    params: Argon2Params | None = None,
-) -> tuple[EncryptingStore, E2eLayout]:
-    """Unlock, copy the old prefix when it changed, and return the store.
+@dataclass(frozen=True)
+class _OpenRequest:
+    old_prefix: str
+    layout: E2eLayout
+    passphrase: str
+    params: Argon2Params | None
+    state_dir: Path | None
 
-    Raises:
-        E2eLockedError: No passphrase, a wrong one, or an unreadable header.
-    """
-    layout = E2eLayout.of(old_prefix)
-    if not passphrase:
+
+def _unlock(store: RemoteStore, req: _OpenRequest) -> E2eKey:
+    old_prefix, layout, state_dir = req.old_prefix, req.layout, req.state_dir
+    if state_dir is not None:
+        cached = read_cached_key(state_dir, old_prefix)
+        if cached is not None:
+            key = E2eKey.from_bytes(cached)
+            if key_matches(key, store, layout.e2e_path):
+                return key
+    if not req.passphrase:
         msg = "no crdt-sync passphrase on this device"
         raise E2eLockedError(msg)
     try:
         key = unlock_e2e(
             store,
             path_prefix=layout.prefix,
-            passphrase=passphrase,
-            params=params,
+            passphrase=req.passphrase,
+            params=req.params,
             e2e_path=layout.e2e_path,
         )
     except (E2eWrongPassphraseError, E2eHeaderError) as exc:
         raise E2eLockedError(str(exc) or type(exc).__name__) from exc
+    if state_dir is not None:
+        write_cached_key(state_dir, old_prefix, key.master)
+    return key
+
+
+def open_encrypted_client(
+    store: RemoteStore,
+    old_prefix: str,
+    *,
+    passphrase: str,
+    params: Argon2Params | None = None,
+    state_dir: Path | None = None,
+) -> tuple[EncryptingStore, E2eLayout]:
+    """Unlock, copy the old prefix when it changed, and return the store.
+
+    Args:
+        store: The outermost remote (above any mirror).
+        old_prefix: The app's former plaintext prefix.
+        passphrase: The shared crdt-sync password.
+        params: Argon2id cost for a header created now; tests lower it.
+        state_dir: Where a short-lived daemon keeps its derived key (0600)
+            and copy memo between runs; None keeps both in memory only.
+
+    Raises:
+        E2eLockedError: No passphrase, a wrong one, or an unreadable header.
+    """
+    layout = E2eLayout.of(old_prefix)
+    key = _unlock(
+        store, _OpenRequest(old_prefix, layout, passphrase, params, state_dir)
+    )
     fingerprint = _fingerprint(store, old_prefix)
-    if _copied.get(old_prefix) != fingerprint:
+    last = (
+        read_copy_memo(state_dir, old_prefix)
+        if state_dir is not None
+        else _copied.get(old_prefix)
+    )
+    if last != fingerprint:
         copy_to_encrypted(store, key, old_prefix, layout)
         _copied[old_prefix] = fingerprint
+        if state_dir is not None:
+            write_copy_memo(state_dir, old_prefix, fingerprint)
     return EncryptingStore(store, key, layout), layout

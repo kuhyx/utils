@@ -200,4 +200,22 @@ void main() {
       );
     });
   });
+
+  test('never overwrites a non-log blob and skips empty sources', () async {
+    final remote = MemoryRemote({
+      'app/notes/pc/current.json': '{}',
+      'app/notes-e2e/pc/current.json': '{"photos":["a"]}',
+      'app/notes/tab/current.json': '{}',
+    });
+    final key = await _key(remote, layout);
+    final report = await copyToEncrypted(
+      store: remote,
+      key: key,
+      fromPrefix: _old,
+      layout: layout,
+    );
+    expect(report.copied, 0);
+    expect(remote.files['app/notes-e2e/pc/current.json'], '{"photos":["a"]}');
+    expect(remote.files.containsKey('app/notes-e2e/tab/current.json'), isFalse);
+  });
 }
