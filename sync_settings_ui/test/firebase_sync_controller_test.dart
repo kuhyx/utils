@@ -42,22 +42,19 @@ void main() {
       },
     );
 
-    test(
-      'trusts the session probe over account presence -- a marker with no '
-      'live session must read as not connected',
-      () async {
-        final controller = FirebaseSyncController(
-          accountLoader: () async =>
-              const FirebaseAccount(email: 'stale@b.com', password: 'x'),
-          accountSaver: (_) async {},
-          accountClearer: () async {},
-          sessionProbe: () async => false,
-          firebaseFactory: () async => null,
-        );
-        final status = await controller.loadStatus();
-        expect(status.connected, isFalse);
-      },
-    );
+    test('trusts the session probe over account presence -- a marker with no '
+        'live session must read as not connected', () async {
+      final controller = FirebaseSyncController(
+        accountLoader: () async =>
+            const FirebaseAccount(email: 'stale@b.com', password: 'x'),
+        accountSaver: (_) async {},
+        accountClearer: () async {},
+        sessionProbe: () async => false,
+        firebaseFactory: () async => null,
+      );
+      final status = await controller.loadStatus();
+      expect(status.connected, isFalse);
+    });
   });
 
   group('connectWithPassword', () {
@@ -99,52 +96,46 @@ void main() {
       },
     );
 
-    test(
-      'clears the account and reports rejected with the error message when '
-      'firebaseFactory throws FirebaseAuthError -- reproduces the screen '
-      'getting stuck on "Signing in..." forever, since nothing here used '
-      'to catch this',
-      () async {
-        var cleared = false;
-        final controller = FirebaseSyncController(
-          accountLoader: () async => null,
-          accountSaver: (_) async {},
-          accountClearer: () async => cleared = true,
-          sessionProbe: () async => false,
-          firebaseFactory: () async => throw FirebaseAuthError('wrong password'),
-        );
-        final result = await controller.connectWithPassword(
-          email: 'a@b.com',
-          password: 'wrong',
-        );
-        expect(result.outcome, FirebaseConnectOutcome.rejected);
-        expect(result.message, 'wrong password');
-        expect(cleared, isTrue);
-      },
-    );
+    test('clears the account and reports rejected with the error message when '
+        'firebaseFactory throws FirebaseAuthError -- reproduces the screen '
+        'getting stuck on "Signing in..." forever, since nothing here used '
+        'to catch this', () async {
+      var cleared = false;
+      final controller = FirebaseSyncController(
+        accountLoader: () async => null,
+        accountSaver: (_) async {},
+        accountClearer: () async => cleared = true,
+        sessionProbe: () async => false,
+        firebaseFactory: () async => throw FirebaseAuthError('wrong password'),
+      );
+      final result = await controller.connectWithPassword(
+        email: 'a@b.com',
+        password: 'wrong',
+      );
+      expect(result.outcome, FirebaseConnectOutcome.rejected);
+      expect(result.message, 'wrong password');
+      expect(cleared, isTrue);
+    });
 
-    test(
-      'reports failed with the stringified error, and does not clear the '
-      'account, on any other failure -- a possibly-transient error is not '
-      'proof the credentials are wrong',
-      () async {
-        var cleared = false;
-        final controller = FirebaseSyncController(
-          accountLoader: () async => null,
-          accountSaver: (_) async {},
-          accountClearer: () async => cleared = true,
-          sessionProbe: () async => false,
-          firebaseFactory: () async => throw StateError('boom'),
-        );
-        final result = await controller.connectWithPassword(
-          email: 'a@b.com',
-          password: 'pw',
-        );
-        expect(result.outcome, FirebaseConnectOutcome.failed);
-        expect(result.message, contains('boom'));
-        expect(cleared, isFalse);
-      },
-    );
+    test('reports failed with the stringified error, and does not clear the '
+        'account, on any other failure -- a possibly-transient error is not '
+        'proof the credentials are wrong', () async {
+      var cleared = false;
+      final controller = FirebaseSyncController(
+        accountLoader: () async => null,
+        accountSaver: (_) async {},
+        accountClearer: () async => cleared = true,
+        sessionProbe: () async => false,
+        firebaseFactory: () async => throw StateError('boom'),
+      );
+      final result = await controller.connectWithPassword(
+        email: 'a@b.com',
+        password: 'pw',
+      );
+      expect(result.outcome, FirebaseConnectOutcome.failed);
+      expect(result.message, contains('boom'));
+      expect(cleared, isFalse);
+    });
 
     test('reports progress stages in order on success', () async {
       final stages = <String>[];

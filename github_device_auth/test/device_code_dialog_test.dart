@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:github_device_auth/github_device_auth.dart';
@@ -35,7 +35,8 @@ GitHubDeviceAuth _auth(
 /// An auth client that never gets past its first poll delay.
 GitHubDeviceAuth _pendingAuth() => _auth(
   MockClient(
-    (_) async => http.Response(jsonEncode({'error': 'authorization_pending'}), 200),
+    (_) async =>
+        http.Response(jsonEncode({'error': 'authorization_pending'}), 200),
   ),
   delay: _neverDelay,
 );

@@ -11,7 +11,7 @@ part of 'sync_settings_screen.dart';
 /// reached via a `ListTile` link to this one.
 class SyncSettingsScreen extends StatefulWidget {
   /// Creates a [SyncSettingsScreen].
-  const SyncSettingsScreen({
+  const new({
     required this.accountLoader,
     required this.accountSaver,
     required this.accountClearer,

@@ -21,7 +21,7 @@ class FirebaseSyncController {
   /// is optional because Google sign-in itself is optional per
   /// app/platform (see `googleAvailable` on `SyncSettingsScreen`) --
   /// [connectWithGoogle] must not be called when it is null.
-  FirebaseSyncController({
+  new({
     required this.accountLoader,
     required this.accountSaver,
     required this.accountClearer,

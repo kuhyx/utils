@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:crdt_sync/crdt_sync.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sync_settings_ui/sync_settings_ui.dart';
 
@@ -24,10 +24,7 @@ void main() {
   // lose the Firebase section from the tree entirely.
   setUp(() {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.platformDispatcher.views.first.physicalSize = const Size(
-      800,
-      2000,
-    );
+    binding.platformDispatcher.views.first.physicalSize = const Size(800, 2000);
     binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
     addTearDown(binding.platformDispatcher.views.first.resetPhysicalSize);
     addTearDown(binding.platformDispatcher.views.first.resetDevicePixelRatio);
@@ -163,7 +160,10 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Connect Firebase'));
       await tester.pumpAndSettle();
 
-      expect(find.bySemanticsLabel('Firebase rejected that account.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Firebase rejected that account.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -178,8 +178,7 @@ void main() {
               accountSaver: (_) async {},
               accountClearer: () async {},
               sessionProbe: () async => false,
-              firebaseFactory: () async =>
-                  throw FirebaseAuthError('bad creds'),
+              firebaseFactory: () async => throw FirebaseAuthError('bad creds'),
             ),
           ),
         );
@@ -208,42 +207,39 @@ void main() {
       },
     );
 
-    testWidgets(
-      'shows the Google button when googleAvailable, and connecting '
-      'succeeds',
-      (tester) async {
-        var sessionStored = false;
-        await tester.pumpWidget(
-          _wrap(
-            SyncSettingsScreen(
-              accountLoader: () async => null,
-              accountSaver: (_) async {},
-              accountClearer: () async {},
-              sessionProbe: () async => sessionStored,
-              firebaseFactory: () async => null,
-              googleFirebaseFactory: () async {
-                sessionStored = true;
-                return _fakeClient();
-              },
-              googleAvailable: true,
-            ),
+    testWidgets('shows the Google button when googleAvailable, and connecting '
+        'succeeds', (tester) async {
+      var sessionStored = false;
+      await tester.pumpWidget(
+        _wrap(
+          SyncSettingsScreen(
+            accountLoader: () async => null,
+            accountSaver: (_) async {},
+            accountClearer: () async {},
+            sessionProbe: () async => sessionStored,
+            firebaseFactory: () async => null,
+            googleFirebaseFactory: () async {
+              sessionStored = true;
+              return _fakeClient();
+            },
+            googleAvailable: true,
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.bySemanticsLabel('Sign in with Google'), findsOneWidget);
-        // The password form is collapsed behind its ExpansionTile when
-        // Google is offered -- only the field labels prove that; the tile's
-        // own title text is present either way.
-        expect(
-          find.widgetWithIcon(TextField, Icons.alternate_email),
-          findsNothing,
-        );
-        await tester.tap(find.bySemanticsLabel('Sign in with Google'));
-        await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Sign in with Google'), findsOneWidget);
+      // The password form is collapsed behind its ExpansionTile when
+      // Google is offered -- only the field labels prove that; the tile's
+      // own title text is present either way.
+      expect(
+        find.widgetWithIcon(TextField, Icons.alternate_email),
+        findsNothing,
+      );
+      await tester.tap(find.bySemanticsLabel('Sign in with Google'));
+      await tester.pumpAndSettle();
 
-        expect(find.bySemanticsLabel('Connected to Firebase.'), findsOneWidget);
-      },
-    );
+      expect(find.bySemanticsLabel('Connected to Firebase.'), findsOneWidget);
+    });
   });
 }

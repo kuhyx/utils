@@ -13,7 +13,7 @@ const githubTokenUrl = 'https://github.com/login/oauth/access_token';
 /// types on github.com and the URL to type it into.
 class DeviceCodeResponse {
   /// Creates a [DeviceCodeResponse] from its stored fields.
-  const DeviceCodeResponse({
+  const new({
     required this.deviceCode,
     required this.userCode,
     required this.verificationUri,
@@ -22,7 +22,7 @@ class DeviceCodeResponse {
   });
 
   /// Builds a [DeviceCodeResponse] from GitHub's device-code JSON response.
-  factory DeviceCodeResponse.fromJson(Map<String, dynamic> json) {
+  factory fromJson(Map<String, dynamic> json) {
     return DeviceCodeResponse(
       deviceCode: json['device_code'] as String,
       userCode: json['user_code'] as String,
@@ -51,7 +51,7 @@ class DeviceCodeResponse {
 /// Raised when the device-flow authorization fails or is declined.
 class DeviceAuthException implements Exception {
   /// Creates a [DeviceAuthException] from GitHub's [code] and [message].
-  DeviceAuthException(this.code, this.message);
+  new(this.code, this.message);
 
   /// GitHub error code, e.g. `access_denied`, `expired_token`.
   final String code;
@@ -75,7 +75,7 @@ class DeviceAuthException implements Exception {
 /// - POST https://github.com/login/oauth/access_token
 class GitHubDeviceAuth {
   /// Creates a [GitHubDeviceAuth] for the given OAuth App [clientId].
-  GitHubDeviceAuth({
+  new({
     required this.clientId,
     this.scope = 'repo',
     this.deviceCodeUrl = githubDeviceCodeUrl,

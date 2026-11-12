@@ -53,28 +53,22 @@ void main() {
       expect(result.email, 'g@b.com');
     });
 
-    test(
-      'reports signedInButNotPersisted with the stale account email when '
-      'the client came back non-null but no session actually stuck -- the '
-      'invariant this package exists to centralize',
-      () async {
-        final controller = FirebaseSyncController(
-          accountLoader: () async =>
-              const FirebaseAccount(email: 'stale@b.com', password: ''),
-          accountSaver: (_) async {},
-          accountClearer: () async {},
-          sessionProbe: () async => false,
-          firebaseFactory: () async => null,
-          googleFirebaseFactory: () async => _fakeClient(),
-        );
-        final result = await controller.connectWithGoogle();
-        expect(
-          result.outcome,
-          FirebaseConnectOutcome.signedInButNotPersisted,
-        );
-        expect(result.email, 'stale@b.com');
-      },
-    );
+    test('reports signedInButNotPersisted with the stale account email when '
+        'the client came back non-null but no session actually stuck -- the '
+        'invariant this package exists to centralize', () async {
+      final controller = FirebaseSyncController(
+        accountLoader: () async =>
+            const FirebaseAccount(email: 'stale@b.com', password: ''),
+        accountSaver: (_) async {},
+        accountClearer: () async {},
+        sessionProbe: () async => false,
+        firebaseFactory: () async => null,
+        googleFirebaseFactory: () async => _fakeClient(),
+      );
+      final result = await controller.connectWithGoogle();
+      expect(result.outcome, FirebaseConnectOutcome.signedInButNotPersisted);
+      expect(result.email, 'stale@b.com');
+    });
 
     test(
       'reports wrongAccount with the error message on FirebaseAuthError',

@@ -6,7 +6,7 @@ import 'package:data_transfer_flutter/data_transfer_flutter.dart';
 /// claiming success or showing an error.
 class BackupCancelled implements Exception {
   /// Creates the signal.
-  const BackupCancelled();
+  const new();
 }
 
 /// An injectable local export/import delegate for [SyncSettingsScreen]'s
@@ -22,11 +22,7 @@ class BackupCancelled implements Exception {
 class BackupSlot {
   /// Creates a [BackupSlot] labelled [label] (e.g. `'notes'`,
   /// `'inventory'`), backed by [export] and [import].
-  const BackupSlot({
-    required this.label,
-    required this.export,
-    required this.import,
-  });
+  const new({required this.label, required this.export, required this.import});
 
   /// A slot whose backup is a JSON file, using `data_transfer_flutter`.
   ///
@@ -35,7 +31,7 @@ class BackupSlot {
   /// lets the user pick a JSON file and hands the decoded object to
   /// [restore]. A dismissed dialog throws [BackupCancelled] (and a cancelled
   /// picker restores nothing).
-  factory BackupSlot.json({
+  factory json({
     required String label,
     required String fileName,
     required Future<Map<String, Object?>> Function() build,

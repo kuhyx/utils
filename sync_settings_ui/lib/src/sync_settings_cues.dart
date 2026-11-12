@@ -7,9 +7,9 @@ part of 'sync_settings_screen.dart';
 /// A result: a glyph, the old sentence (spoken only), and whether it is a
 /// failure. Colour is the second channel: danger hue for failures.
 class _Cue {
-  const _Cue(this.icon, this.spoken) : error = false;
+  const new(this.icon, this.spoken) : error = false;
 
-  const _Cue.error(this.icon, this.spoken) : error = true;
+  const new error(this.icon, this.spoken) : error = true;
 
   final IconData icon;
   final String spoken;
@@ -18,7 +18,7 @@ class _Cue {
 
 /// Paints a [_Cue] as a large glyph.
 class _CueView extends StatelessWidget {
-  const _CueView(this.cue);
+  const new(this.cue);
 
   final _Cue cue;
 
@@ -39,7 +39,7 @@ class _CueView extends StatelessWidget {
 
 /// A section heading as a glyph, spoken as [spoken].
 class _Heading extends StatelessWidget {
-  const _Heading(this.icon, this.spoken);
+  const new(this.icon, this.spoken);
 
   final IconData icon;
   final String spoken;

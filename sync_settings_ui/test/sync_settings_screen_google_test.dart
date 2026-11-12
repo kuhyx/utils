@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:crdt_sync/crdt_sync.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sync_settings_ui/sync_settings_ui.dart';
 
@@ -38,7 +38,10 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Sign in with Google'));
       await tester.pumpAndSettle();
 
-      expect(find.bySemanticsLabel('Google sign-in was cancelled.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Google sign-in was cancelled.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -63,10 +66,7 @@ void main() {
         await tester.tap(find.bySemanticsLabel('Sign in with Google'));
         await tester.pumpAndSettle();
 
-        expect(
-          spoken('did not save the session'),
-          findsOneWidget,
-        );
+        expect(spoken('did not save the session'), findsOneWidget);
       },
     );
 
@@ -119,28 +119,25 @@ void main() {
       expect(spoken('Sign-in failed'), findsOneWidget);
     });
 
-    testWidgets(
-      'hides the Google button when googleAvailable is true but no '
-      'googleFirebaseFactory is wired -- a visible button that can never '
-      'succeed must not render',
-      (tester) async {
-        await tester.pumpWidget(
-          _wrap(
-            SyncSettingsScreen(
-              accountLoader: () async => null,
-              accountSaver: (_) async {},
-              accountClearer: () async {},
-              sessionProbe: () async => false,
-              firebaseFactory: () async => null,
-              googleAvailable: true,
-            ),
+    testWidgets('hides the Google button when googleAvailable is true but no '
+        'googleFirebaseFactory is wired -- a visible button that can never '
+        'succeed must not render', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SyncSettingsScreen(
+            accountLoader: () async => null,
+            accountSaver: (_) async {},
+            accountClearer: () async {},
+            sessionProbe: () async => false,
+            firebaseFactory: () async => null,
+            googleAvailable: true,
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.bySemanticsLabel('Sign in with Google'), findsNothing);
-      },
-    );
+      expect(find.bySemanticsLabel('Sign in with Google'), findsNothing);
+    });
 
     testWidgets('a reason renders a disabled button that explains itself', (
       tester,
@@ -162,7 +159,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.bySemanticsLabel('Sign in with Google'), findsOneWidget);
-      expect(find.bySemanticsLabel('Not available on this platform.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Not available on this platform.'),
+        findsOneWidget,
+      );
 
       // Disabled, so it cannot report a misleading "cancelled".
       final button = tester.widget<FilledButton>(
@@ -171,9 +171,7 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
-    testWidgets('no reason keeps the button hidden, as before', (
-      tester,
-    ) async {
+    testWidgets('no reason keeps the button hidden, as before', (tester) async {
       await tester.pumpWidget(
         _wrap(
           SyncSettingsScreen(

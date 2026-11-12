@@ -4,9 +4,9 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:github_device_auth/src/device_auth.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Dialog shown during the device flow: displays the user code, opens the
@@ -14,11 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// null if cancelled / failed).
 class DeviceCodeDialog extends StatefulWidget {
   /// Creates the dialog for a pending device-flow grant.
-  const DeviceCodeDialog({
-    required this.device,
-    required this.auth,
-    super.key,
-  });
+  const new({required this.device, required this.auth, super.key});
 
   /// The pending grant: user code, verification URL, poll interval.
   final DeviceCodeResponse device;

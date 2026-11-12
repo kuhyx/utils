@@ -9,15 +9,13 @@ import 'package:http/testing.dart';
 /// exercises `slow_down` does not take 15 real seconds.
 Future<void> noDelay(Duration _) async {}
 
-GitHubDeviceAuth authWith(
-  MockClient client, {
-  String scope = 'repo',
-}) => GitHubDeviceAuth(
-  clientId: 'cid',
-  scope: scope,
-  httpClient: client,
-  delay: noDelay,
-);
+GitHubDeviceAuth authWith(MockClient client, {String scope = 'repo'}) =>
+    GitHubDeviceAuth(
+      clientId: 'cid',
+      scope: scope,
+      httpClient: client,
+      delay: noDelay,
+    );
 
 void main() {
   group('pollForToken', () {

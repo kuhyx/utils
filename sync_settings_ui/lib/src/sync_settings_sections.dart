@@ -6,7 +6,7 @@ part of 'sync_settings_screen.dart';
 /// a `part` rather than an import because both sections are
 /// library-private and could not be imported at all.
 class _FirebaseSection extends StatelessWidget {
-  const _FirebaseSection({
+  const new({
     required this.connected,
     required this.busy,
     required this.googleAvailable,
@@ -139,7 +139,7 @@ class _FirebaseSection extends StatelessWidget {
 }
 
 class _BackupSection extends StatelessWidget {
-  const _BackupSection({
+  const new({
     required this.backup,
     required this.onExport,
     required this.onImport,

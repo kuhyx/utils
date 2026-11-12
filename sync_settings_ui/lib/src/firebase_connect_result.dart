@@ -29,11 +29,7 @@ enum FirebaseConnectOutcome {
 /// [FirebaseSyncController.connectWithGoogle] call.
 class FirebaseConnectResult {
   /// Creates a [FirebaseConnectResult].
-  const FirebaseConnectResult({
-    required this.outcome,
-    this.email,
-    this.message,
-  });
+  const new({required this.outcome, this.email, this.message});
 
   /// What happened.
   final FirebaseConnectOutcome outcome;
