@@ -1,0 +1,9 @@
+{
+  "passphrase": "correct horse ✓",
+  "header": "{\"v\":1,\"kdf\":\"argon2id\",\"salt\":\"fGy9SnWSTwxKbS/sAluVjA==\",\"m\":64,\"t\":2,\"p\":1,\"check\":\"ekpcuZxZl+Ei6Y5yQp+cwdi4yR6ItJiYR7S3cd214ds=\"}",
+  "master_hex": "834f54fef4eb086e4201b918c938be179f91cf72e157e28d56dfe72bc46cbefd",
+  "path": "vec/notes-e2e/pc/log.json",
+  "log": "{\"n9\": {\"id\": \"n9\", \"fields\": {\"title\": [\"zażółć\", \"2026-01-01T00:00:00.000Z-0000-pc\"]}, \"deleted\": false, \"deleted_hlc\": null}}",
+  "envelope": "{\"v\":1,\"r\":{\"n9\":{\"d\":false,\"dh\":null,\"h\":\"2026-01-01T00:00:00.000Z-0000-pc\",\"p\":\"ATAIR4jQmlBjDF+/4+AYp3ATcGgjZQ60tQ05uvF1howYly4W4h3lLI04BssCRASargNV/+hDhqTl7n2cz4hh7Z5lmZYgElso/4k85hwO1SRuDPOYMKsLCpYgTy8zYzEiiRlv+g==\"}}}",
+  "whole": "{\"v\":1,\"b\":\"ARvUAj5nIfmJdsxdaiAl5uYkgry9VG5VQLQBi6+BNbyJ0t//UGjc1Ji2hmbBJl3v9kw=\"}"
+}

@@ -164,4 +164,40 @@ void main() {
       isFalse,
     );
   });
+
+  group('slashless prefix (settings-sync)', () {
+    final flat = E2eLayout.of('settings-sync');
+
+    test('revs and header stay inside the app node', () {
+      expect(flat.prefix, 'settings-sync-e2e');
+      expect(flat.revsPath, 'settings-sync-e2e/revs');
+      expect(flat.e2ePath, 'settings-sync-e2e/e2e');
+    });
+
+    test('old revs and header are not copied as logs', () async {
+      final remote = MemoryRemote({
+        'settings-sync/phone/log.json': encodeLog(logOf({'a': 'x'})),
+        'settings-sync/revs/phone': 'abc',
+        'settings-sync/e2e': '{"v":1}',
+      });
+      final key = await _key(remote, flat);
+      final report = await copyToEncrypted(
+        store: remote,
+        key: key,
+        fromPrefix: 'settings-sync',
+        layout: flat,
+      );
+      expect(report.copied, 1);
+      expect(report.skipped, isEmpty);
+      expect(
+        await verifyCopy(
+          store: remote,
+          key: key,
+          fromPrefix: 'settings-sync',
+          layout: flat,
+        ),
+        isTrue,
+      );
+    });
+  });
 }

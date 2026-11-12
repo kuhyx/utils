@@ -64,7 +64,8 @@ class MemoryRemote implements RemoteStore, BulkMapReader {
   @override
   Future<Map<String, String>> getStringMap(String path) async => {
     for (final entry in files.entries)
-      if (entry.key.startsWith('$path/'))
+      if (entry.key.startsWith('$path/') &&
+          !entry.key.substring(path.length + 1).contains('/'))
         entry.key.substring(path.length + 1): entry.value,
   };
 

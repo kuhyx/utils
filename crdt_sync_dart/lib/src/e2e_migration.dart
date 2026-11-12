@@ -13,6 +13,7 @@ import 'log.dart';
 import 'record.dart';
 import 'remote_store.dart';
 import 'store.dart';
+import 'sync.dart';
 
 /// Where an app's encrypted data lives, derived from its old plaintext prefix.
 class E2eLayout {
@@ -20,11 +21,17 @@ class E2eLayout {
 
   /// `<oldPrefix>-e2e`, with revisions and header apart from the old ones so
   /// old builds neither see nor clobber them.
+  ///
+  /// A slashless prefix (`settings-sync`) keeps revisions and header inside
+  /// its own node, as `defaultRevsPath` does, never at the database root.
   factory E2eLayout.of(String oldPrefix) {
-    final cut = oldPrefix.lastIndexOf('/');
-    final parent = cut < 0 ? '' : '${oldPrefix.substring(0, cut)}/';
     final prefix = '$oldPrefix-e2e';
-    return E2eLayout._(prefix, '${parent}revs-e2e', defaultE2ePath(prefix));
+    final cut = oldPrefix.lastIndexOf('/');
+    if (cut < 0) {
+      return E2eLayout._(prefix, '$prefix/revs', '$prefix/e2e');
+    }
+    final parent = oldPrefix.substring(0, cut);
+    return E2eLayout._(prefix, '$parent/revs-e2e', defaultE2ePath(prefix));
   }
 
   final String prefix;
@@ -42,24 +49,51 @@ class MigrationReport {
   final List<String> skipped;
 }
 
+/// Every text blob under [root], keyed by path relative to it: flat
+/// `<node>.json` leaves and nested `<device>/<file>` blobs. Real RTDB bulk
+/// reads return direct string children only, so dirs are walked.
 Future<Map<String, String>> _listBlobs(RemoteStore store, String root) async {
-  if (store is BulkMapReader) {
-    return (store as BulkMapReader).getStringMap(root);
-  }
   final out = <String, String>{};
-  for (final entry in await store.listDirectory(root)) {
-    final children = await store.listDirectory('$root/$entry');
+  if (store is BulkMapReader) {
+    out.addAll(await (store as BulkMapReader).getStringMap(root));
+  }
+  final revs = defaultRevsPath(root);
+  final header = defaultE2ePath(root);
+  for (final name in await store.listDirectory(root)) {
+    if (out.containsKey(name)) continue;
+    final full = '$root/$name';
+    if (full == header || full == revs) continue;
+    final children = await _safeList(store, full);
     if (children.isEmpty) {
-      final text = await store.getFileText('$root/$entry');
-      if (text != null) out[entry] = text;
+      final text = await _safeRead(store, full);
+      if (text != null) out[name] = text;
       continue;
     }
     for (final child in children) {
-      final text = await store.getFileText('$root/$entry/$child');
-      if (text != null) out['$entry/$child'] = text;
+      final text = await _safeRead(store, '$full/$child');
+      if (text != null) out['$name/$child'] = text;
     }
   }
+  out.removeWhere(
+    (rel, _) => '$root/$rel' == header || '$root/$rel'.startsWith('$revs/'),
+  );
   return out;
+}
+
+Future<List<String>> _safeList(RemoteStore store, String path) async {
+  try {
+    return await store.listDirectory(path);
+  } on Object {
+    return const [];
+  }
+}
+
+Future<String?> _safeRead(RemoteStore store, String path) async {
+  try {
+    return await store.getFileText(path);
+  } on Object {
+    return null;
+  }
 }
 
 EncryptingStore _dest(RemoteStore store, E2eKey key, E2eLayout layout) =>

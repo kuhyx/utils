@@ -26,6 +26,9 @@ class EncryptingStore implements RemoteStore, BulkMapReader {
 
   final RemoteStore _inner;
   final E2eKey _key;
+
+  /// The key this store seals with.
+  E2eKey get key => _key;
   final E2eCipher _cipher;
   final String _prefix;
   final String _revs;
@@ -60,7 +63,22 @@ class EncryptingStore implements RemoteStore, BulkMapReader {
   @override
   Future<Map<String, String>> getStringMap(String path) async {
     if (_inner case final BulkMapReader reader) {
-      return reader.getStringMap(path);
+      final map = await reader.getStringMap(path);
+      if (!_isLog('$path/x')) return map;
+      final out = <String, String>{};
+      for (final MapEntry(:key, :value) in map.entries) {
+        final full = '$path/$key';
+        if (!_isLog(full)) {
+          out[key] = value;
+          continue;
+        }
+        try {
+          out[key] = await openLogText(value, _cipher, path: full);
+        } on E2eDecryptError {
+          // Unreadable entries are dropped, as a corrupt value would be.
+        }
+      }
+      return out;
     }
     return const {};
   }
