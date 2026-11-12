@@ -14,6 +14,7 @@ library;
 export 'src/account_store.dart';
 export 'src/bootstrap.dart';
 export 'src/device_id.dart';
+export 'src/e2e_bootstrap.dart';
 export 'src/google_any_sign_in.dart';
 export 'src/google_desktop_sign_in.dart';
 export 'src/google_pkce.dart';

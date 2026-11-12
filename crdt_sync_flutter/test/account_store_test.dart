@@ -20,9 +20,7 @@ void main() {
   group('loadAccount', () {
     test('returns the stored account without touching the wrapper', () async {
       const stored = FirebaseAccount(email: 'a@b.c', password: 'pw');
-      installFakeSecureStorage(
-        initial: {kAccountKey: stored.toJsonString()},
-      );
+      installFakeSecureStorage(initial: {kAccountKey: stored.toJsonString()});
       var requests = 0;
       final account = await loadAccount(
         routes: routes,

@@ -108,9 +108,7 @@ Future<FirebaseAccount?> _adoptSeededSession(
 }) async {
   final httpClient = client ?? http.Client();
   try {
-    final response = await httpClient.get(
-      base.resolve(routes.credentialsPath),
-    );
+    final response = await httpClient.get(base.resolve(routes.credentialsPath));
     if (response.statusCode != 200) return null;
     final body = jsonDecode(utf8.decode(response.bodyBytes));
     if (body is! Map<String, dynamic>) return null;
