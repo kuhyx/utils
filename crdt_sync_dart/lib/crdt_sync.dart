@@ -7,6 +7,7 @@ export 'src/e2e_cipher.dart';
 export 'src/e2e_envelope.dart';
 export 'src/e2e_key.dart';
 export 'src/e2e_migration.dart';
+export 'src/e2e_open.dart';
 export 'src/encrypting_store.dart';
 export 'src/firebase_account_provisioning.dart';
 export 'src/firebase_auth_error.dart';
