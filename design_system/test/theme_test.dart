@@ -1,5 +1,5 @@
 import 'package:design_system/design_system.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -100,10 +100,7 @@ void main() {
         final focused = input.focusedBorder! as OutlineInputBorder;
         expect(focused.borderSide.color, AppPalette.accent);
         expect(focused.borderSide.width, 2.0);
-        expect(
-          focused.borderRadius,
-          BorderRadius.circular(AppRadius.sm),
-        );
+        expect(focused.borderRadius, BorderRadius.circular(AppRadius.sm));
 
         for (final border in [input.border!, input.enabledBorder!]) {
           expect(

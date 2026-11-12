@@ -2,7 +2,7 @@
 library;
 
 import 'package:design_system/src/tokens.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A centred icon, headline and explanation for an empty list.
 ///

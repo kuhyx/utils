@@ -7,7 +7,7 @@ library;
 
 import 'package:design_system/src/status_colors.dart';
 import 'package:design_system/src/tokens.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Builds the shared light [ThemeData].
 ThemeData buildLightTheme() {

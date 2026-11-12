@@ -8,7 +8,7 @@
 library;
 
 import 'package:design_system/src/tokens.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The four status colors, plus the text color to draw on top of them.
 @immutable

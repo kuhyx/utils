@@ -2,7 +2,7 @@
 library;
 
 import 'package:design_system/src/tokens.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A section title, optionally with a trailing action.
 ///
@@ -13,12 +13,7 @@ import 'package:flutter/material.dart';
 /// caller can adopt it without a visual change.
 class SectionHeader extends StatelessWidget {
   /// Creates a section header.
-  const SectionHeader(
-    this.title, {
-    this.action,
-    this.padding,
-    super.key,
-  });
+  const SectionHeader(this.title, {this.action, this.padding, super.key});
 
   /// The section's title.
   final String title;

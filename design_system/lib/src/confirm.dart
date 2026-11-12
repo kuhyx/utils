@@ -1,8 +1,8 @@
 /// Confirmation for destructive actions.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Asks the user to confirm a destructive action, returning true if they do.
 ///

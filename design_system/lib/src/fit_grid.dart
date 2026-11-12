@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:design_system/src/tokens.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A grid of square cells that always fits its box, so it never scrolls
 /// vertically.
