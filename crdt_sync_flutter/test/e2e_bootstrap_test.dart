@@ -135,4 +135,40 @@ void main() {
     await clearE2ePassphrase(storage: storage);
     expect(await storage.read(key: kE2ePassphraseKey), isNull);
   });
+
+  test('the derived key is cached: Argon2 runs once per device', () async {
+    final remote = _Remote();
+    await saveE2ePassphrase('pw', storage: storage);
+    var derived = 0;
+    for (var i = 0; i < 3; i++) {
+      resetE2eCopyMemo();
+      final state = await openEncryptedStoreFromKeystore(
+        store: remote,
+        oldPrefix: _old,
+        params: _cheap,
+        onDerive: () => derived++,
+      );
+      expect(state, isA<E2eReady>());
+    }
+    expect(derived, 1);
+    await clearE2ePassphrase(storage: storage);
+    final locked = await openEncryptedStoreFromKeystore(
+      store: remote,
+      oldPrefix: _old,
+      params: _cheap,
+    );
+    expect(locked, isA<E2eLocked>());
+  });
+
+  test('a corrupt cached key falls back to the passphrase', () async {
+    final remote = _Remote();
+    await saveE2ePassphrase('pw', storage: storage);
+    await storage.write(key: '${kE2eKeyCachePrefix}$_old', value: '%%%');
+    final state = await openEncryptedStoreFromKeystore(
+      store: remote,
+      oldPrefix: _old,
+      params: _cheap,
+    );
+    expect(state, isA<E2eReady>());
+  });
 }
