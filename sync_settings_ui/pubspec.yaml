@@ -5,7 +5,7 @@ description: >-
   injected closures -- no keystore or platform plugin access lives in this
   package itself.
 publish_to: 'none'
-version: 0.8.0
+version: 0.8.1
 
 environment:
   sdk: ^3.13.0
@@ -14,7 +14,7 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.13.1
+      ref: crdt_sync_dart-v0.14.0
       path: crdt_sync_dart
   data_transfer_flutter:
     git:
