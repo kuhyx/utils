@@ -21,6 +21,7 @@ from crdt_sync._e2e_cipher import (
     open_log_text,
     seal_log_text,
 )
+from crdt_sync._e2e_cleanup import clear_plaintext_prefix, unverified_blobs
 from crdt_sync._e2e_key import (
     Argon2Params,
     E2eHeaderError,
@@ -113,6 +114,7 @@ __all__ = [
     "SyncState",
     "SyncStateStore",
     "SyncTarget",
+    "clear_plaintext_prefix",
     "copy_to_encrypted",
     "credential_store_for",
     "default_e2e_path",
@@ -134,5 +136,6 @@ __all__ = [
     "seal_log_text",
     "sync_log",
     "unlock_e2e",
+    "unverified_blobs",
     "write_log",
 ]
