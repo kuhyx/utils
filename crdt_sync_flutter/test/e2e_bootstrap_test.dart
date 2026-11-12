@@ -88,7 +88,11 @@ void main() {
     final remote = _Remote();
     await saveE2ePassphrase('pw', storage: storage);
     final first =
-        await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap)
+        await openEncryptedStoreFromKeystore(
+              store: remote,
+              oldPrefix: _old,
+              params: _cheap,
+            )
             as E2eReady;
     final layout = E2eLayout.of(_old);
     await first.store.putFileText(
@@ -97,7 +101,11 @@ void main() {
       message: 'm',
     );
     final second =
-        await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap)
+        await openEncryptedStoreFromKeystore(
+              store: remote,
+              oldPrefix: _old,
+              params: _cheap,
+            )
             as E2eReady;
     final text = await second.store.getFileText(
       '${layout.prefix}/phone/log.json',
@@ -108,7 +116,11 @@ void main() {
   test('wrong passphrase is locked and merges nothing', () async {
     final remote = _Remote();
     await saveE2ePassphrase('pw', storage: storage);
-    await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap);
+    await openEncryptedStoreFromKeystore(
+      store: remote,
+      oldPrefix: _old,
+      params: _cheap,
+    );
     await saveE2ePassphrase('nope', storage: storage);
     final state = await openEncryptedStoreFromKeystore(
       store: remote,
