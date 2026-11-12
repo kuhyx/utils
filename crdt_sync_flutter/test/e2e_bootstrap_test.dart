@@ -52,7 +52,7 @@ void main() {
   setUp(installFakeSecureStorage);
 
   test('no passphrase on the device is locked, never plaintext', () async {
-    final state = await openEncryptedStore(
+    final state = await openEncryptedStoreFromKeystore(
       store: _Remote(),
       oldPrefix: _old,
       params: _cheap,
@@ -64,7 +64,7 @@ void main() {
   test('right passphrase unlocks and copies old plaintext once', () async {
     final remote = _Remote()..files['$_old/phone/log.json'] = _log('milk');
     await saveE2ePassphrase('pw', storage: storage);
-    final state = await openEncryptedStore(
+    final state = await openEncryptedStoreFromKeystore(
       store: remote,
       oldPrefix: _old,
       params: _cheap,
@@ -76,7 +76,7 @@ void main() {
       isNot(contains('milk')),
     );
     expect(remote.files['$_old/phone/log.json'], contains('milk'));
-    final again = await openEncryptedStore(
+    final again = await openEncryptedStoreFromKeystore(
       store: remote,
       oldPrefix: _old,
       params: _cheap,
@@ -88,7 +88,7 @@ void main() {
     final remote = _Remote();
     await saveE2ePassphrase('pw', storage: storage);
     final first =
-        await openEncryptedStore(store: remote, oldPrefix: _old, params: _cheap)
+        await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap)
             as E2eReady;
     final layout = E2eLayout.of(_old);
     await first.store.putFileText(
@@ -97,7 +97,7 @@ void main() {
       message: 'm',
     );
     final second =
-        await openEncryptedStore(store: remote, oldPrefix: _old, params: _cheap)
+        await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap)
             as E2eReady;
     final text = await second.store.getFileText(
       '${layout.prefix}/phone/log.json',
@@ -108,9 +108,9 @@ void main() {
   test('wrong passphrase is locked and merges nothing', () async {
     final remote = _Remote();
     await saveE2ePassphrase('pw', storage: storage);
-    await openEncryptedStore(store: remote, oldPrefix: _old, params: _cheap);
+    await openEncryptedStoreFromKeystore(store: remote, oldPrefix: _old, params: _cheap);
     await saveE2ePassphrase('nope', storage: storage);
-    final state = await openEncryptedStore(
+    final state = await openEncryptedStoreFromKeystore(
       store: remote,
       oldPrefix: _old,
       params: _cheap,
