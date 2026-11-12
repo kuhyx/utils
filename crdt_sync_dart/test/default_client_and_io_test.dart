@@ -40,9 +40,7 @@ void main() {
       // Nothing listens on this port, so the GET throws and the `on Exception`
       // path returns null -- while the `finally` still closes the client the
       // function created for itself.
-      final account = await accountFromWrapper(
-        Uri.parse('http://127.0.0.1:1'),
-      );
+      final account = await accountFromWrapper(Uri.parse('http://127.0.0.1:1'));
       expect(account, isNull);
     });
 
@@ -50,8 +48,10 @@ void main() {
       final mock = http_testing.MockClient(
         (_) async => http.Response(jsonEncode({}), 404),
       );
-      expect(await accountFromWrapper(Uri.parse('http://x'), client: mock),
-          isNull);
+      expect(
+        await accountFromWrapper(Uri.parse('http://x'), client: mock),
+        isNull,
+      );
       // Still usable: the function must not close a client it did not create.
       expect((await mock.get(Uri.parse('http://x'))).statusCode, 404);
     });
@@ -106,22 +106,26 @@ void main() {
       expect(await store.read(), isNull);
     });
 
-    test('read returns null when the file cannot be read', () async {
-      // A mode-000 file still passes existsSync, so the guard does not fire
-      // and readAsString throws PathAccessException (a FileSystemException).
-      // A directory would NOT work here: File.existsSync() is false for one,
-      // so read() would return early down the guard path instead.
-      final file = File('${dir.path}/unreadable.json')..writeAsStringSync('{}');
-      final chmod = Process.runSync('chmod', ['000', file.path]);
-      expect(chmod.exitCode, 0);
-      addTearDown(() => Process.runSync('chmod', ['644', file.path]));
+    test(
+      'read returns null when the file cannot be read',
+      () async {
+        // A mode-000 file still passes existsSync, so the guard does not fire
+        // and readAsString throws PathAccessException (a FileSystemException).
+        // A directory would NOT work here: File.existsSync() is false for one,
+        // so read() would return early down the guard path instead.
+        final file = File('${dir.path}/unreadable.json')
+          ..writeAsStringSync('{}');
+        final chmod = Process.runSync('chmod', ['000', file.path]);
+        expect(chmod.exitCode, 0);
+        addTearDown(() => Process.runSync('chmod', ['644', file.path]));
 
-      expect(await FileLogPersistence(file).read(), isNull);
-    },
-        // root ignores the permission bits, so the exception never fires.
-        skip: Platform.environment['USER'] == 'root'
-            ? 'permission bits do not apply to root'
-            : null);
+        expect(await FileLogPersistence(file).read(), isNull);
+      },
+      // root ignores the permission bits, so the exception never fires.
+      skip: Platform.environment['USER'] == 'root'
+          ? 'permission bits do not apply to root'
+          : null,
+    );
 
     test('round-trips what it wrote', () async {
       final store = FileLogPersistence(File('${dir.path}/log.json'));
@@ -129,31 +133,38 @@ void main() {
       expect(await store.read(), '{"hello":"world"}');
     });
 
-    test('50 overlapping writes all succeed and the last issued wins',
-        () async {
-      // Regression: every call shared one `<file>.<pid>.tmp`, so the first
-      // rename moved it away and a later rename threw PathNotFoundException.
-      final store = FileLogPersistence(File('${dir.path}/log.json'));
-      await Future.wait([
-        for (var i = 0; i < 50; i++) store.write('{"n":$i}'),
-      ]);
-      expect(await store.read(), '{"n":49}');
-      expect(dir.listSync().map((e) => e.uri.pathSegments.last),
-          ['log.json']);
-    });
+    test(
+      '50 overlapping writes all succeed and the last issued wins',
+      () async {
+        // Regression: every call shared one `<file>.<pid>.tmp`, so the first
+        // rename moved it away and a later rename threw PathNotFoundException.
+        final store = FileLogPersistence(File('${dir.path}/log.json'));
+        await Future.wait([
+          for (var i = 0; i < 50; i++) store.write('{"n":$i}'),
+        ]);
+        expect(await store.read(), '{"n":49}');
+        expect(dir.listSync().map((e) => e.uri.pathSegments.last), [
+          'log.json',
+        ]);
+      },
+    );
 
-    test('a failed write rejects its caller but does not block later writes',
-        () async {
-      final target = File('${dir.path}/log.json');
-      // A directory at the target path makes the rename fail.
-      Directory(target.path).createSync();
-      final store = FileLogPersistence(target);
-      await expectLater(
-          store.write('{"n":0}'), throwsA(isA<FileSystemException>()));
+    test(
+      'a failed write rejects its caller but does not block later writes',
+      () async {
+        final target = File('${dir.path}/log.json');
+        // A directory at the target path makes the rename fail.
+        Directory(target.path).createSync();
+        final store = FileLogPersistence(target);
+        await expectLater(
+          store.write('{"n":0}'),
+          throwsA(isA<FileSystemException>()),
+        );
 
-      Directory(target.path).deleteSync();
-      await store.write('{"n":1}');
-      expect(await store.read(), '{"n":1}');
-    });
+        Directory(target.path).deleteSync();
+        await store.write('{"n":1}');
+        expect(await store.read(), '{"n":1}');
+      },
+    );
   });
 }

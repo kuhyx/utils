@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'e2e_cipher.dart';
 import 'log.dart';
 import 'record.dart';
 import 'remote_store.dart';
@@ -44,6 +45,9 @@ String revisionOf(String encodedLog) =>
 /// treated as this device's own rather than as a peer's, so its
 /// pre-migration log is not pulled back and re-merged every tick. Pass null
 /// once that path has been reclaimed.
+///
+/// [onPeerSkipped] reports each peer skipped as unreadable, e.g. an
+/// [E2eDecryptError] from a wrong key or an app that needs updating.
 Future<Log> syncLog({
   required RemoteStore client,
   required String deviceId,
@@ -56,6 +60,7 @@ Future<Log> syncLog({
   SyncStateStore? stateStore,
   String? revsPath,
   String? legacyDeviceId,
+  void Function(String deviceId, Object error)? onPeerSkipped,
 }) async {
   final revs = revsPath ?? defaultRevsPath(pathPrefix);
   final state = await stateStore?.load() ?? const SyncState();
@@ -80,15 +85,21 @@ Future<Log> syncLog({
       seenRevs[otherDeviceId] = remoteRev;
       continue;
     }
-    final text = await client.getFileText(
-      '$pathPrefix/$otherDeviceId/$filename',
-    );
+    final String? text;
+    try {
+      text = await client.getFileText('$pathPrefix/$otherDeviceId/$filename');
+    } on E2eDecryptError catch (error) {
+      onPeerSkipped?.call(otherDeviceId, error);
+      continue;
+    }
     if (text == null) continue;
     try {
       mergedLog = mergeLogs(mergedLog, decode(text));
-    } on FormatException {
+    } on FormatException catch (error) {
+      onPeerSkipped?.call(otherDeviceId, error);
       continue;
-    } on TypeError {
+    } on TypeError catch (error) {
+      onPeerSkipped?.call(otherDeviceId, error);
       continue;
     }
     // Only remembered once the merge succeeded: a corrupt push must be

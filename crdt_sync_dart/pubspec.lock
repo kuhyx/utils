@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  characters:
+    dependency: transitive
+    description:
+      name: characters
+      sha256: faf38497bda5ead2a8c7615f4f7939df04333478bf32e4173fcb06d428b5716b
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.1"
   cli_config:
     dependency: transitive
     description:
@@ -81,6 +89,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.8"
+  cryptography:
+    dependency: "direct main"
+    description:
+      name: cryptography
+      sha256: "3eda3029d34ec9095a27a198ac9785630fe525c0eb6a49f3d575272f8e792ef0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.9.0"
+  ffi:
+    dependency: transitive
+    description:
+      name: ffi
+      sha256: "6d7fd89431262d8f3125e81b50d3847a091d846eafcd4fdb88dd06f36d705a45"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
   file:
     dependency: transitive
     description:
@@ -97,6 +121,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  glados:
+    dependency: "direct dev"
+    description:
+      name: glados
+      sha256: c39446c0c4fe83a6ee6ee4fdee5a1afa27050619c7df390bf4c3b77b6f1acb33
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.7"
   glob:
     dependency: transitive
     description:

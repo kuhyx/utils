@@ -23,7 +23,9 @@ const _prefix = '_smoketest/devices';
 var _failures = 0;
 
 void _check(String what, bool ok, [String detail = '']) {
-  stdout.writeln('${ok ? "  ok  " : "  FAIL"}  $what${detail.isEmpty ? '' : '  ($detail)'}');
+  stdout.writeln(
+    '${ok ? "  ok  " : "  FAIL"}  $what${detail.isEmpty ? '' : '  ($detail)'}',
+  );
   if (!ok) _failures++;
 }
 
@@ -68,16 +70,24 @@ Future<void> main(List<String> args) async {
   _check('canAccessRemote is false before sign-in', !await auth.hasSession());
   await auth.signIn(email: email, password: password);
   _check('signIn stored a session', await auth.hasSession());
-  _check('canAccessRemote is true after sign-in', await client.canAccessRemote());
+  _check(
+    'canAccessRemote is true after sign-in',
+    await client.canAccessRemote(),
+  );
 
   stdout.writeln('\n== round-trip and key escaping ==');
   const path = '$_prefix/pc/log.json';
   await client.putFileText(path, '{"hello":"world"}', message: 'smoke');
   final read = await client.getFileText(path);
-  _check('a .json filename round-trips byte-for-byte',
-      read == '{"hello":"world"}', read ?? 'null');
-  _check('missing path reads as null',
-      await client.getFileText('$_prefix/nope/log.json') == null);
+  _check(
+    'a .json filename round-trips byte-for-byte',
+    read == '{"hello":"world"}',
+    read ?? 'null',
+  );
+  _check(
+    'missing path reads as null',
+    await client.getFileText('$_prefix/nope/log.json') == null,
+  );
   final listed = await client.listDirectory(_prefix);
   _check('listDirectory sees the device', listed.contains('pc'), '$listed');
 
@@ -96,8 +106,11 @@ Future<void> main(List<String> args) async {
   final pushed = await client.getFileText(path);
   _check('the log landed in the database', pushed != null);
   final revs = await client.getStringMap('_smoketest/revs');
-  _check('a revision was published for this device',
-      revs['pc'] == revisionOf(_encode(pcLog)), '${revs.keys}');
+  _check(
+    'a revision was published for this device',
+    revs['pc'] == revisionOf(_encode(pcLog)),
+    '${revs.keys}',
+  );
 
   stdout.writeln('\n== sync: an unchanged tick writes nothing ==');
   final before = await client.getStringMap('_smoketest/revs');
@@ -110,8 +123,10 @@ Future<void> main(List<String> args) async {
     decode: _decode,
     stateStore: storePc,
   );
-  _check('revision unchanged, so nothing was re-uploaded',
-      (await client.getStringMap('_smoketest/revs'))['pc'] == before['pc']);
+  _check(
+    'revision unchanged, so nothing was re-uploaded',
+    (await client.getStringMap('_smoketest/revs'))['pc'] == before['pc'],
+  );
 
   stdout.writeln('\n== sync: two devices converge ==');
   final storePhone = InMemorySyncStateStore();
@@ -135,8 +150,10 @@ Future<void> main(List<String> args) async {
     stateStore: storePc,
   );
   _check('pc merged the phone record', pcAfter.containsKey('b'));
-  _check('each device wrote only its own revision key',
-      (await client.getStringMap('_smoketest/revs')).length == 2);
+  _check(
+    'each device wrote only its own revision key',
+    (await client.getStringMap('_smoketest/revs')).length == 2,
+  );
 
   stdout.writeln('\n== fail-closed ==');
   await auth.signOut();
@@ -160,7 +177,9 @@ Future<void> main(List<String> args) async {
   client.close();
   auth.close();
   stdout.writeln(
-    _failures == 0 ? '\nALL LIVE CHECKS PASSED' : '\n$_failures LIVE CHECK(S) FAILED',
+    _failures == 0
+        ? '\nALL LIVE CHECKS PASSED'
+        : '\n$_failures LIVE CHECK(S) FAILED',
   );
   exit(_failures == 0 ? 0 : 1);
 }

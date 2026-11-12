@@ -12,15 +12,15 @@ import 'package:crdt_sync/crdt_sync.dart';
 /// mode 0600 -- never in source, because this repository is public.
 final _configDir = '${Platform.environment['HOME']}/.config/crdt-sync';
 
-Log _decode(String t) => (jsonDecode(t) as Map<String, dynamic>)
-    .map((k, v) => MapEntry(k, Record.fromJson(v as Map<String, dynamic>)));
-String _encode(Log l) =>
-    jsonEncode(l.map((k, v) => MapEntry(k, v.toJson())));
+Log _decode(String t) => (jsonDecode(t) as Map<String, dynamic>).map(
+  (k, v) => MapEntry(k, Record.fromJson(v as Map<String, dynamic>)),
+);
+String _encode(Log l) => jsonEncode(l.map((k, v) => MapEntry(k, v.toJson())));
 
 Future<void> main(List<String> args) async {
-  final cfg = jsonDecode(
-    File('$_configDir/firebase.json').readAsStringSync(),
-  ) as Map<String, dynamic>;
+  final cfg =
+      jsonDecode(File('$_configDir/firebase.json').readAsStringSync())
+          as Map<String, dynamic>;
   final auth = FirebaseTokenProvider(
     apiKey: cfg['apiKey'] as String,
     store: InMemoryCredentialStore(),
