@@ -79,7 +79,7 @@ def _open_site(url: str) -> bool:
         return False
     try:
         # Not a `with`: the browser must outlive this process.
-        subprocess.Popen(
+        subprocess.Popen(  # pylint: disable=consider-using-with
             [opener, url],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,

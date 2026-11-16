@@ -4,43 +4,14 @@ import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 
 import 'e2e_cipher.dart';
+import 'e2e_params.dart';
 import 'encrypting_store.dart';
 import 'remote_store.dart';
 
+export 'e2e_params.dart';
+
 const _saltLength = 16;
 const _headerVersion = 1;
-
-/// Argon2id cost, stored in the header so it can be raised later.
-class Argon2Params {
-  const Argon2Params({
-    required this.memoryKiB,
-    required this.iterations,
-    required this.parallelism,
-  });
-
-  /// OWASP's floor (19 MiB, t=2); higher stalls the Flutter-web desktop build.
-  static const recommended = Argon2Params(
-    memoryKiB: 19456,
-    iterations: 2,
-    parallelism: 1,
-  );
-
-  final int memoryKiB;
-  final int iterations;
-  final int parallelism;
-}
-
-class E2eHeaderError extends FormatException {
-  E2eHeaderError(super.message);
-
-  @override
-  String toString() => 'E2eHeaderError: $message';
-}
-
-class E2eWrongPassphraseError implements Exception {
-  @override
-  String toString() => 'E2eWrongPassphraseError: wrong sync passphrase';
-}
 
 /// The clear header's path: a sibling of the device dirs, like `revs`.
 String defaultE2ePath(String pathPrefix) {

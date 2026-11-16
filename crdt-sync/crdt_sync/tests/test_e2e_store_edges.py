@@ -20,7 +20,8 @@ from crdt_sync import (
     reset_e2e_copy_memo,
     unlock_e2e,
 )
-from crdt_sync._e2e_store import _blobs, _fingerprint
+from crdt_sync._e2e_blobs import blobs as _blobs
+from crdt_sync._e2e_store import _fingerprint
 from crdt_sync.tests.conftest import FakeStore, FakeStoreWithoutBulkRead
 
 if TYPE_CHECKING:

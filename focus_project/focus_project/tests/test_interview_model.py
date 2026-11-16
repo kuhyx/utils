@@ -12,7 +12,7 @@ import pytest
 import focus_project as fp
 from focus_project import _interview, _milestones
 from focus_project._errors import RegistryError
-from focus_project.tests.helpers import SAT1, START, TEST_AT, TEST_DAY, at, make
+from focus_project.tests._helpers import SAT1, START, TEST_AT, TEST_DAY, at, make
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -80,25 +80,30 @@ def test_interview_roundtrip_and_file_shape(data: Path) -> None:
     assert row["invite_url"].startswith("https://")
 
 
+_URL = "invite_url must be an http"
+_TRIP = "must start by the test day"
+_WEEKEND = "is not a weekend inside the project"
+
+
 @pytest.mark.parametrize(
-    "bad",
+    ("bad", "match"),
     [
-        {"test_at": None},
-        {"test_at": at(26, 10)},  # end != test day
-        {"test_at": at(9, 10), "end": date(2026, 11, 9)},
-        {"invite_url": "ftp://x.example/t"},
-        {"invite_url": "javascript:alert(1)"},
-        {"invite_url": "https://a b.example"},
-        {"kind": "bogus"},
-        {"trips": [fp.Trip(date(2026, 11, 28), date(2026, 11, 29))]},
-        {"trips": [fp.Trip(date(2026, 11, 20), date(2026, 11, 19))]},
-        {"weekend_answers": {date(2026, 11, 15): True}},  # a Sunday
-        {"weekend_answers": {date(2026, 11, 28): True}},  # after T
-        {"daily_minutes": 29},
+        ({"test_at": None}, "needs test_at"),
+        ({"test_at": at(26, 10)}, "end must be the test day"),  # end != test day
+        ({"test_at": at(9, 10), "end": date(2026, 11, 9)}, "end is before start"),
+        ({"invite_url": "ftp://x.example/t"}, _URL),
+        ({"invite_url": "javascript:alert(1)"}, _URL),
+        ({"invite_url": "https://a b.example"}, _URL),
+        ({"kind": "bogus"}, "kind must be one of"),
+        ({"trips": [fp.Trip(date(2026, 11, 28), date(2026, 11, 29))]}, _TRIP),
+        ({"trips": [fp.Trip(date(2026, 11, 20), date(2026, 11, 19))]}, _TRIP),
+        ({"weekend_answers": {date(2026, 11, 15): True}}, _WEEKEND),  # a Sunday
+        ({"weekend_answers": {date(2026, 11, 28): True}}, _WEEKEND),  # after T
+        ({"daily_minutes": 29}, "daily_minutes must be at least 30"),
     ],
 )
-def test_interview_validation(bad: dict[str, object]) -> None:
-    with pytest.raises(ValueError):  # noqa: PT011
+def test_interview_validation(bad: dict[str, object], match: str) -> None:
+    with pytest.raises(ValueError, match=match):
         make(**bad)
 
 

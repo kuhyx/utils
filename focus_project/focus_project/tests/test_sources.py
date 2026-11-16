@@ -35,7 +35,7 @@ def _fake(
     fn: Callable[[date, Project], list[sources.Interval]],
 ) -> None:
     module = types.ModuleType(f"focus_project.sources.{name}")
-    module.intervals = fn  # type: ignore[attr-defined]
+    vars(module)["intervals"] = fn
     monkeypatch.setitem(sys.modules, f"focus_project.sources.{name}", module)
 
 
@@ -105,4 +105,18 @@ def test_broken_adapter_import_contributes_zero(
         result = sources.collect_by_source(DAY, PROJECT)
     assert all(spans == [] for spans in result.values())
     assert set(result) == set(sources.ADAPTERS)
+    assert "import failed" in caplog.text
+
+
+def test_adapter_missing_a_dependency_contributes_zero(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def missing_dep(name: str) -> None:
+        msg = "No module named 'some_dep'"
+        raise ModuleNotFoundError(msg, name="some_dep")
+
+    monkeypatch.setattr("focus_project.sources.importlib.import_module", missing_dep)
+    with caplog.at_level(logging.ERROR):
+        result = sources.collect_by_source(DAY, PROJECT)
+    assert result == {key: [] for key in sources.ADAPTERS}
     assert "import failed" in caplog.text

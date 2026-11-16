@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import focus_project as fp
 from focus_project import _clock, evidence
-from focus_project.tests.helpers import at, make
+from focus_project.tests._helpers import at, make
 
 if TYPE_CHECKING:
     from pathlib import Path

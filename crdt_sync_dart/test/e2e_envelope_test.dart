@@ -145,6 +145,25 @@ void main() {
         throwsA(isA<E2eDecryptError>()),
       );
     });
+    test('unknown envelope version asks for an app update', () async {
+      expect(
+        () => openLogText('{"v":99,"r":{}}', _cipher(), path: _path),
+        throwsA(
+          isA<E2eDecryptError>().having(
+            (e) => e.toString(),
+            'message',
+            contains('format 99'),
+          ),
+        ),
+      );
+    });
+    test('mis-shaped record', () async {
+      expect(
+        () =>
+            openLogText('{"v":1,"r":{"n1":{"p":"x"}}}', _cipher(), path: _path),
+        throwsA(isA<E2eDecryptError>()),
+      );
+    });
   });
 
   test('text that is not a log is sealed whole and opens back', () async {

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 
 import pytest
@@ -24,14 +24,14 @@ D4 = date(2026, 11, 5)
 def _make(
     pid: str = "hr", start: date = D1, end: date = D4, **kw: object
 ) -> fp.Project:
-    args: dict[str, object] = {
+    args: dict[str, Any] = {
         "name": "HackerRank prep",
         "replaces": ["leetcode", "reading", "tutor"],
         "daily_minutes": 120,
         "unlock_minutes": 30,
     }
     args.update(kw)
-    return fp.create_project(pid, start=start, end=end, **args)  # type: ignore[arg-type]
+    return fp.create_project(pid, start=start, end=end, **args)
 
 
 def test_empty_registry() -> None:
@@ -57,8 +57,10 @@ def test_create_roundtrip_and_file_shape(data: Path) -> None:
 def test_active_boundaries() -> None:
     _make()
     assert fp.active(D1 - timedelta(days=1)) is None
-    assert fp.active(D1).id == "hr"  # type: ignore[union-attr]
-    assert fp.active(D4).id == "hr"  # type: ignore[union-attr]
+    for day in (D1, D4):
+        found = fp.active(day)
+        assert found is not None
+        assert found.id == "hr"
     assert fp.active(D4 + timedelta(days=1)) is None
 
 
@@ -141,9 +143,9 @@ def test_end_project_errors() -> None:
         ({"name": " "}, "name"),
     ],
 )
-def test_create_validation(kw: dict[str, object], match: str) -> None:
+def test_create_validation(kw: dict[str, Any], match: str) -> None:
     with pytest.raises(ValueError, match=match):
-        _make(**kw)  # type: ignore[arg-type]
+        _make(**kw)
     assert fp.list_projects() == []
 
 
@@ -185,7 +187,7 @@ def test_failed_write_keeps_old_file(data: Path) -> None:
     _make()
     before = (data / "projects.json").read_text()
     with (
-        mock.patch("focus_project._store.os.replace", side_effect=OSError("boom")),
+        mock.patch("focus_project._store.Path.replace", side_effect=OSError("boom")),
         pytest.raises(OSError, match="boom"),
     ):
         _make("two", start=D4 + timedelta(days=3), end=D4 + timedelta(days=4))

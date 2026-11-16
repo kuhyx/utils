@@ -9,7 +9,7 @@ import pytest
 
 import focus_project as fp
 from focus_project import evidence
-from focus_project.tests.helpers import SAT1, at, make, states
+from focus_project.tests._helpers import SAT1, at, make, states
 
 
 def _ms(day: int, hour: int) -> int:
@@ -69,7 +69,7 @@ def test_trip_may_not_shrink_or_start_later(start: date, end: date) -> None:
 )
 def test_bad_trip_ranges(start: date, end: date) -> None:
     make()
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError, match="must start by the test day"):
         fp.add_trip("iv", start, end, now=at(10, 9))
 
 

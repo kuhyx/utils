@@ -43,7 +43,7 @@ MAX_GAP_S = 600.0
 BACKING_FROM: Final = date(2026, 11, 8)
 BACKING_SOURCES: Final = frozenset({"tutor", "sql_drills", "leetcode"})
 BRIDGE_S: Final = 1200.0
-_LOG = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def read_events(project_id: str) -> list[dict[str, Any]]:
@@ -67,7 +67,7 @@ def read_events(project_id: str) -> list[dict[str, Any]]:
         if ok:
             events.append(row)
         elif line.strip():
-            _LOG.debug("activity line skipped: %.80s", line)
+            _logger.debug("activity line skipped: %.80s", line)
     events.sort(key=lambda e: e["ts"])
     return events
 
@@ -127,8 +127,9 @@ def backing_times(events: list[dict[str, Any]], project: Project) -> list[float]
         # working (heartbeat backing only) where that is not installed.
         leetcode = importlib.import_module("focus_project.sources.leetcode")
         times += leetcode.submission_times(project)
-    except Exception:  # noqa: BLE001 (lose the submissions, keep the beats)
-        _LOG.exception("leetcode backing unavailable, heartbeats only")
+    # Lose the submissions, keep the beats.
+    except Exception:  # pylint: disable=broad-exception-caught
+        _logger.exception("leetcode backing unavailable, heartbeats only")
     return sorted(times)
 
 

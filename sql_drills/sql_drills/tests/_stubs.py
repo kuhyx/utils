@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from sql_drills import _dialect
 from sql_drills._sandbox import Executed
-from sql_drills.tests import synthetic
+from sql_drills.tests import _synthetic as synthetic
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator

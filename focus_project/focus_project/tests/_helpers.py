@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import focus_project as fp
 from focus_project._paths import activity_path
@@ -27,7 +27,7 @@ def at(day: int, hour: int = 0, minute: int = 0) -> datetime:
 
 def make(pid: str = "iv", /, **kw: object) -> fp.Project:
     """Create an interview project D1 = Nov 10, T = Nov 27."""
-    args: dict[str, object] = {
+    args: dict[str, Any] = {
         "name": "Interview",
         "start": START,
         "end": TEST_DAY,
@@ -39,7 +39,7 @@ def make(pid: str = "iv", /, **kw: object) -> fp.Project:
         "invite_url": "https://app.codility.com/c/run/abc",
     }
     args.update(kw)
-    return fp.create_project(pid, **args)  # type: ignore[arg-type]
+    return fp.create_project(pid, **args)
 
 
 def shot(tmp_path: Path, name: str = "rules.png") -> Path:

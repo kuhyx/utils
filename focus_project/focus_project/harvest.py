@@ -17,7 +17,7 @@ carry row pays it from the day's start, own-work rows pay the rest.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import logging
 import sys
 
@@ -64,7 +64,7 @@ def harvest_day(day: date, now: float) -> int:
 def harvest(now: float | None = None) -> int:
     """Harvest the backfill window; 0 on success, 1 if any path failed."""
     moment = _clock.now() if now is None else now
-    today = date.fromtimestamp(moment)  # noqa: DTZ012 (local day)
+    today = datetime.fromtimestamp(moment, tz=UTC).astimezone().date()
     try:
         days = project_days(today)
     except (RegistryError, OSError) as exc:

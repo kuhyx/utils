@@ -12,7 +12,7 @@ import pytest
 
 import sql_drills as sd
 from sql_drills import _engine, _pg_engine, _pg_sandbox
-from sql_drills.tests.synthetic import ORDERS, ORDERS_SQL, PIVOT, PIVOT_SQL
+from sql_drills.tests._synthetic import ORDERS, ORDERS_SQL, PIVOT, PIVOT_SQL
 
 if TYPE_CHECKING:
     from collections.abc import Callable

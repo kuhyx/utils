@@ -93,7 +93,7 @@ def _validate(project: Project) -> None:
         raise ValueError(msg)
 
 
-def create_project(  # noqa: PLR0913
+def create_project(  # pylint: disable=too-many-arguments,too-many-locals
     project_id: str,
     *,
     name: str,
@@ -161,20 +161,18 @@ def end_project(project_id: str, day: date) -> Project:
     """
     with _store.locked():
         existing = _store.read_all()
-        for i, project in enumerate(existing):
-            if project.id != project_id:
-                continue
-            if project.ended_on is not None:
-                msg = f"project {project_id!r} already ended on {project.ended_on}"
-                raise ValueError(msg)
-            if day < project.start:
-                msg = f"cannot end {project_id!r} before its start {project.start}"
-                raise ValueError(msg)
-            if day < _clock.today():
-                msg = f"cannot end {project_id!r} in the past ({day})"
-                raise ValueError(msg)
-            ended = replace(project, ended_on=min(day, project.end))
-            existing[i] = ended
-            _store.write_all(existing)
-            return ended
-    raise KeyError(project_id)
+        i = _store.index_of(existing, project_id)
+        project = existing[i]
+        if project.ended_on is not None:
+            msg = f"project {project_id!r} already ended on {project.ended_on}"
+            raise ValueError(msg)
+        if day < project.start:
+            msg = f"cannot end {project_id!r} before its start {project.start}"
+            raise ValueError(msg)
+        if day < _clock.today():
+            msg = f"cannot end {project_id!r} in the past ({day})"
+            raise ValueError(msg)
+        ended = replace(project, ended_on=min(day, project.end))
+        existing[i] = ended
+        _store.write_all(existing)
+        return ended

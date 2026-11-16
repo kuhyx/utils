@@ -10,7 +10,7 @@ import pytest
 
 import focus_project as fp
 from focus_project import _paths, evidence
-from focus_project.tests.helpers import at, make, shot
+from focus_project.tests._helpers import at, make, shot
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -50,28 +50,35 @@ def test_same_name_files_do_not_overwrite(tmp_path: Path) -> None:
     assert one.value != two.value
 
 
+_KINDS = "takes evidence kinds"
+_SCORE = "a score must be a finite, non-negative number"
+_PHONE = "phone_check needs"
+
+
 @pytest.mark.parametrize(
-    ("milestone", "kind", "value"),
+    ("milestone", "kind", "value", "match"),
     [
-        ("rules", "tap", True),  # wrong kind for the milestone
-        ("rules", "check", True),  # internal kind
-        ("trip_ask:2026-11-14", "answer", True),  # use answer_weekend
-        ("nope", "tap", True),  # not a milestone of the project
-        ("mock", "score", "high"),
-        ("mock", "score", True),
-        ("mock", "score", float("nan")),
-        ("mock", "score", -1),
-        ("slot", "slot", "tomorrow"),
-        ("slot", "slot", "2026-11-26T10:00:00+02:00"),  # aware
-        ("slot", "slot_confirm", False),
-        ("phone", "phone_check", {"plan": True}),
-        ("phone", "phone_check", {"plan": "yes", "due": 1, "seen_ms": 1}),
-        ("phone", "phone_check", "ok"),
+        ("rules", "tap", True, _KINDS),  # wrong kind for the milestone
+        ("rules", "check", True, _KINDS),  # internal kind
+        ("trip_ask:2026-11-14", "answer", True, _KINDS),  # use answer_weekend
+        ("nope", "tap", True, "is not a milestone of"),  # not of the project
+        ("mock", "score", "high", _SCORE),
+        ("mock", "score", True, _SCORE),
+        ("mock", "score", float("nan"), _SCORE),
+        ("mock", "score", -1, _SCORE),
+        ("slot", "slot", "tomorrow", "Invalid isoformat string"),
+        ("slot", "slot", "2026-11-26T10:00:00+02:00", "naive local"),  # aware
+        ("slot", "slot_confirm", False, "slot_confirm is a tap"),
+        ("phone", "phone_check", {"plan": True}, "due must be a non-negative"),
+        ("phone", "phone_check", {"plan": "yes", "due": 1, "seen_ms": 1}, _PHONE),
+        ("phone", "phone_check", "ok", _PHONE),
     ],
 )
-def test_bad_evidence_refused(milestone: str, kind: str, value: object) -> None:
+def test_bad_evidence_refused(
+    milestone: str, kind: str, value: object, match: str
+) -> None:
     make()
-    with pytest.raises(ValueError):  # noqa: PT011
+    with pytest.raises(ValueError, match=match):
         fp.record_evidence("iv", milestone, kind, value, now=at(12, 9))
 
 

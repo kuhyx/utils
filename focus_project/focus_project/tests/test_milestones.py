@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import focus_project as fp
 from focus_project import evidence
-from focus_project.tests.helpers import SAT1, SAT2, at, make, session, shot, states
+from focus_project.tests._helpers import SAT1, SAT2, at, make, session, shot, states
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -145,3 +145,5 @@ repos:
       - id: codespell
         args:
           - --skip=*.json,*.lock,.git,__pycache__,.venv
+          # `checkin` is a timer event name on the wire, not a typo.
+          - --ignore-words-list=checkin

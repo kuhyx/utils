@@ -9,7 +9,7 @@ import stat
 import subprocess
 import sys
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -43,6 +43,7 @@ def stubs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, Path]:
 
 
 def _project(**fields: object) -> None:
+    extra: dict[str, Any] = dict(fields)
     fp.create_project(
         "hr",
         name="HackerRank prep",
@@ -52,7 +53,7 @@ def _project(**fields: object) -> None:
         daily_minutes=120,
         unlock_minutes=30,
         site_patterns=["leetcode.com", "hackerrank.com"],
-        **fields,  # type: ignore[arg-type]
+        **extra,
     )
 
 

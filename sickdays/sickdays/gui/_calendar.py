@@ -96,8 +96,8 @@ class MonthCalendar(tk.Frame):
     def _draw_header(self) -> None:
         back = IconButton(self._header, "prev", lambda: self.step(-1), name="prev")
         forward = IconButton(self._header, "next", lambda: self.step(1), name="next")
-        back.set_enabled(self.month > self._first)
-        forward.set_enabled(self.month < self._last)
+        back.set_enabled(enabled=self.month > self._first)
+        forward.set_enabled(enabled=self.month < self._last)
         back.pack(side="left")
         forward.pack(side="right")
         ui.label(self._header, _dates.month_title(self.month), "subtitle").pack(

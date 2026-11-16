@@ -3,18 +3,21 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 import importlib
 import json
-from pathlib import Path  # noqa: TC003
 import threading
 import time
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 import focus_project as fp
 from focus_project import _clock
 from focus_project._paths import data_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 D1 = date(2026, 11, 2)
 
@@ -64,7 +67,7 @@ def test_record_activity_defaults_now_and_project(
     data: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(_clock, "now", time.time)  # the real clock, once
-    today = date.today()  # noqa: DTZ011
+    today = datetime.now(tz=UTC).astimezone().date()
     fp.create_project(
         "now",
         name="n",
@@ -96,9 +99,9 @@ def test_record_activity_no_project_when_none_active(data: Path) -> None:
         {"source": "timer", "kind": "start", "dev": "tv"},
     ],
 )
-def test_record_activity_validation(kw: dict[str, str], data: Path) -> None:
+def test_record_activity_validation(kw: dict[str, Any], data: Path) -> None:
     with pytest.raises(ValueError, match="unknown"):
-        fp.record_activity(**kw)  # type: ignore[arg-type]
+        fp.record_activity(**kw)
     assert not (data / "activity.jsonl").exists()
 
 
@@ -186,4 +189,4 @@ def test_a_timestamp_far_ahead_is_rejected(
 def test_the_real_clock_seam_reads_wall_time() -> None:
     importlib.reload(_clock)  # undo the autouse pin on the module attribute
     assert abs(_clock.now() - time.time()) < 5
-    assert _clock.today() == date.today()  # noqa: DTZ011
+    assert _clock.today() == datetime.now(tz=UTC).astimezone().date()
