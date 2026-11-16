@@ -5,8 +5,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 import json
-from pathlib import Path  # noqa: TC003
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import earned_time
 import pytest
@@ -14,6 +13,9 @@ import pytest
 import focus_project as fp
 from focus_project import carry, harvest, ledger, minutes
 from focus_project.tests.test_minutes import D1, at, events, project
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 KEY = b"k" * 32
 D2 = D1 + timedelta(days=1)

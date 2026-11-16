@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import sql_drills as sd
 from sql_drills._sandbox import Executed
-from sql_drills.tests.stubs import GOOD_ROWS, MONTHS, done, install
-from sql_drills.tests.synthetic import ORDERS, PIVOT
+from sql_drills.tests._stubs import GOOD_ROWS, MONTHS, done, install
+from sql_drills.tests._synthetic import ORDERS, PIVOT
 
 if TYPE_CHECKING:
     import pytest

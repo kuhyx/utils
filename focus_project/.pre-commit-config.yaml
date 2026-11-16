@@ -33,6 +33,8 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+        # Shared test helpers (rows, fixtures) are _private modules, not tests.
+        exclude: ^focus_project/focus_project/tests/_[a-z_]+\.py$
       - id: check-ast
       - id: mixed-line-ending
         args: [--fix=lf]
@@ -147,3 +149,5 @@ repos:
       - id: codespell
         args:
           - --skip=*.json,*.lock,.git,__pycache__,.venv
+          # `checkin` is a timer event name on the wire, not a typo.
+          - --ignore-words-list=checkin

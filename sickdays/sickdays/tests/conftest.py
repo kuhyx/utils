@@ -87,3 +87,16 @@ def tk_root() -> Iterator[tk.Tk]:
     root.withdraw()
     yield root
     root.destroy()
+
+
+@pytest.fixture
+def synced(monkeypatch: pytest.MonkeyPatch) -> list[Paths | None]:
+    """Record every background sync the panel starts."""
+    calls: list[Paths | None] = []
+
+    def record(*, paths: Paths | None = None) -> bool:
+        calls.append(paths)
+        return True
+
+    monkeypatch.setattr("sickdays.gui._panel.sync_quietly", record)
+    return calls

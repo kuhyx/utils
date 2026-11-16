@@ -10,6 +10,7 @@ from focus_project.sources import browser
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from urllib.request import Request
 
     import pytest
 
@@ -42,7 +43,7 @@ def test_config_without_url_is_none(
 def test_get_json_sends_bearer_and_query(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: dict[str, Any] = {}
 
-    def fake_open(req: Any, timeout: float) -> io.BytesIO:  # noqa: ANN401
+    def fake_open(req: Request, timeout: float) -> io.BytesIO:
         seen["url"] = req.full_url
         seen["auth"] = req.get_header("Authorization")
         seen["timeout"] = timeout
@@ -62,7 +63,7 @@ def test_get_json_without_token_sends_no_header(
 ) -> None:
     seen: dict[str, Any] = {}
 
-    def fake_open(req: Any, timeout: float) -> io.BytesIO:  # noqa: ANN401
+    def fake_open(req: Request, timeout: float) -> io.BytesIO:
         seen["auth"] = req.get_header("Authorization")
         return io.BytesIO(b"[]")
 

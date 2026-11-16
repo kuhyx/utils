@@ -97,6 +97,7 @@ class _Header:
 
     @classmethod
     def parse(cls, text: str) -> _Header:
+        """Read a header from its JSON text; ``E2eHeaderError`` if it is not one."""
         try:
             data = json.loads(text)
         except ValueError as exc:
@@ -119,6 +120,7 @@ class _Header:
             raise E2eHeaderError(msg) from exc
 
     def encode(self) -> str:
+        """The header as the JSON text ``parse`` reads back."""
         return json.dumps(
             {
                 "v": _HEADER_VERSION,

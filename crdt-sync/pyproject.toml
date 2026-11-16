@@ -108,8 +108,9 @@ ignore-patterns = [".*\\.pyi$"]
 [tool.pylint.basic]
 # snake_case, plus the ``do_<METHOD>`` names http.server dispatches on: the
 # stdlib looks handlers up as ``"do_" + command``, so ``do_GET`` is the only
-# spelling that works and cannot be renamed to satisfy the style.
-method-rgx = "([^\\W\\dA-Z][^\\WA-Z]{2,}|_[^\\WA-Z]*|__[^\\W\\dA-Z][^\\WA-Z]+__|do_[A-Z]+)$"
+# spelling that works and cannot be renamed to satisfy the style. ``of`` is
+# ``E2eLayout.of``, public API that daily-limits and diet-guard call by name.
+method-rgx = "([^\\W\\dA-Z][^\\WA-Z]{2,}|_[^\\WA-Z]*|__[^\\W\\dA-Z][^\\WA-Z]+__|do_[A-Z]+|of)$"
 
 [tool.pylint.messages_control]
 enable = "all"

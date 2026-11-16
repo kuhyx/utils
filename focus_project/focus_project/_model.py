@@ -5,11 +5,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from focus_project._errors import RegistryError
 from focus_project._kind import FOCUS, INTERVIEW, interview_minutes
 from focus_project._trips import Trip
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 GATES = frozenset({"leetcode", "reading", "tutor"})
 _ALIASES = {"book": "reading"}
@@ -53,7 +56,7 @@ class Limits:
         return row
 
     @classmethod
-    def from_dict(cls, row: Any) -> Limits:  # noqa: ANN401
+    def from_dict(cls, row: Mapping[str, Any]) -> Limits:
         """Parse a history row (errors surface as RegistryError upstream)."""
         gates = row.get("replaces")
         return cls(
@@ -65,7 +68,7 @@ class Limits:
 
 
 @dataclass(frozen=True)
-class Project:
+class Project:  # pylint: disable=too-many-instance-attributes
     """One time-boxed focus project; at most one is active per day."""
 
     id: str
@@ -154,7 +157,7 @@ class Project:
         return row
 
     @classmethod
-    def from_dict(cls, row: Any) -> Project:  # noqa: ANN401
+    def from_dict(cls, row: Mapping[str, Any]) -> Project:
         """Parse a registry row, or raise :class:`RegistryError`."""
         try:
             ended = row.get("ended_on")

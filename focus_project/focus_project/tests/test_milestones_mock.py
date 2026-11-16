@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import focus_project as fp
-from focus_project.tests.helpers import at, make, session, states
+from focus_project.tests._helpers import at, make, session, states
 
 
 def test_mock_needs_a_score_after_a_long_session() -> None:

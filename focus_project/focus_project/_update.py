@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from focus_project import _store
@@ -113,7 +113,7 @@ def apply_update(
     project_id: str,
     *,
     today: date | None = None,
-    **changes: Any,  # noqa: ANN401
+    **changes: object,
 ) -> Update:
     """Edit ``project_id``; ValueError on bad input, overlap or a past edit.
 
@@ -130,32 +130,29 @@ def apply_update(
     if unknown:
         msg = f"cannot change {unknown}"
         raise ValueError(msg)
-    today = today or date.today()  # noqa: DTZ011
+    today = today or datetime.now(tz=UTC).astimezone().date()
     with _store.locked():
         existing = _store.read_all()
-        for i, project in enumerate(existing):
-            if project.id != project_id:
-                continue
-            done = _apply(project, changes, today)
-            edited = done.project
-            _validate(edited)
-            for other in existing:
-                if other.id != project_id and (
-                    edited.start <= other.last_day and other.start <= edited.last_day
-                ):
-                    msg = f"project overlaps {other.id!r}"
-                    raise ValueError(msg)
-            existing[i] = edited
-            _store.write_all(existing)
-            return done
-    raise KeyError(project_id)
+        i = _store.index_of(existing, project_id)
+        done = _apply(existing[i], changes, today)
+        edited = done.project
+        _validate(edited)
+        for other in existing:
+            if other.id != project_id and (
+                edited.start <= other.last_day and other.start <= edited.last_day
+            ):
+                msg = f"project overlaps {other.id!r}"
+                raise ValueError(msg)
+        existing[i] = edited
+        _store.write_all(existing)
+        return done
 
 
 def update_project(
     project_id: str,
     *,
     today: date | None = None,
-    **changes: Any,  # noqa: ANN401
+    **changes: object,
 ) -> Project:
     """:func:`apply_update` returning just the project."""
     return apply_update(project_id, today=today, **changes).project

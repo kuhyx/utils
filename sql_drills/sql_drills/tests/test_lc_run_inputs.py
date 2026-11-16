@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 import sql_drills as sd
-from sql_drills.tests.stubs import GOOD_ROWS, MONTHS, done, install
-from sql_drills.tests.synthetic import PIVOT
+from sql_drills.tests._stubs import GOOD_ROWS, MONTHS, done, install
+from sql_drills.tests._synthetic import PIVOT
 
 if TYPE_CHECKING:
     from sql_drills._dialect import Dialect

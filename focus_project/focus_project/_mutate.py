@@ -144,7 +144,7 @@ def _clean(
     return True  # tap, slot_confirm
 
 
-def record_evidence(  # noqa: PLR0913
+def record_evidence(  # pylint: disable=too-many-arguments
     project_id: str,
     milestone: str,
     kind: str,

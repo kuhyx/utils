@@ -18,7 +18,7 @@ import logging
 from focus_project import _milestones, _mutate, _store, evidence
 from focus_project._model import Project
 
-_LOG = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 CheckSource = Callable[[Project, datetime], bool | None]
 DAY_MS = 24 * 3600 * 1000
 # A phone check starts 24 h before the milestone is due.
@@ -48,10 +48,12 @@ def phone_source(project: Project, now: datetime) -> bool | None:
     """
     report = evidence.last(evidence.read(project.id), "phone", "phone_check")
     if report is None:
-        _LOG.warning("phone check: no tutor report for %s", project.id)
+        _logger.warning("phone check: no tutor report for %s", project.id)
         return None
     if not 0 <= evidence.to_ms(now) - report.ms <= DAY_MS:
-        _LOG.warning("phone check: tutor report for %s is stale or ahead", project.id)
+        _logger.warning(
+            "phone check: tutor report for %s is stale or ahead", project.id
+        )
         return None
     return _report_ok(report.value, report.ms)
 
@@ -70,8 +72,9 @@ def register_source(name: str, source: CheckSource) -> None:
 def _run(project: Project, now: datetime) -> bool | None:
     try:
         return SOURCES["phone"](project, now)
-    except Exception as exc:  # noqa: BLE001 (pluggable code: any failure = unknown)
-        _LOG.warning("phone check source failed: %s", exc)
+    # Pluggable code: any failure means unknown, never a crash.
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _logger.warning("phone check source failed: %s", exc, exc_info=True)
         return None
 
 

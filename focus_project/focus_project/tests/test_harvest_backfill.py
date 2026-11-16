@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from pathlib import Path  # noqa: TC003
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -12,6 +12,9 @@ import focus_project as fp
 from focus_project import harvest, ledger
 from focus_project.tests.test_ledger_harvest import KEY, rows
 from focus_project.tests.test_minutes import D1, at, events
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture(autouse=True)

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import json
 from typing import TYPE_CHECKING
 
@@ -57,7 +57,7 @@ def test_update_nothing_is_a_noop() -> None:
 
 
 def test_update_defaults_today_to_real_today() -> None:
-    now = date.today()  # noqa: DTZ011
+    now = datetime.now(tz=UTC).astimezone().date()
     _make("now", start=now, end=now + DAY)
     assert fp.update_project("now", name="X").name == "X"
 

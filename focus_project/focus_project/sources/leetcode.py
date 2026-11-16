@@ -49,8 +49,10 @@ def _submitted_at(row: object, key: bytes) -> float | None:
     ):
         return None
     detail = row.get("detail")
+    if not isinstance(detail, dict):
+        return None
     try:
-        return float(detail["submitted_at"])  # type: ignore[index]
+        return float(detail["submitted_at"])
     except KeyError, TypeError, ValueError:
         return None
 
@@ -67,6 +69,7 @@ def submission_times(project: Project) -> list[float]:
     return [ts for ts in stamps if ts is not None]
 
 
-def intervals(day: date, project: Project) -> list[Interval]:  # noqa: ARG001
+def intervals(day: date, project: Project) -> list[Interval]:
     """One heartbeat per accepted submission (the registry clips to the day)."""
+    del day  # the adapter signature takes the day; the registry does the clipping
     return [heartbeat_interval(ts) for ts in submission_times(project)]

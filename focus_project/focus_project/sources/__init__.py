@@ -30,7 +30,7 @@ Interval = tuple[float, float]
 # Each heartbeat vouches for the five minutes before it.
 HEARTBEAT_WINDOW_S = 300.0
 ADAPTERS = ("activity", "leetcode", "browser")
-_LOG = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def heartbeat_interval(ts: float) -> Interval:
@@ -61,19 +61,25 @@ def collect_by_source(day: date, project: Project) -> dict[str, list[Interval]]:
     found: dict[str, list[Interval]] = {}
     for name in ADAPTERS:
         module_name = f"{__name__}.{name}"
+        # A broken adapter must add 0, never stop the others.
         try:
             module = importlib.import_module(module_name)
-        except Exception as exc:  # noqa: BLE001 (a broken adapter must add 0)
-            if isinstance(exc, ModuleNotFoundError) and exc.name == module_name:
-                _LOG.info("source %s: not installed (inactive)", name)
+        except ModuleNotFoundError as exc:
+            if exc.name == module_name:
+                _logger.info("source %s: not installed (inactive)", name)
                 continue
-            _LOG.exception("source %s: import failed, contributes 0", name)
+            _logger.exception("source %s: import failed, contributes 0", name)
             found[name] = []
             continue
+        except Exception:  # pylint: disable=broad-exception-caught
+            _logger.exception("source %s: import failed, contributes 0", name)
+            found[name] = []
+            continue
+        # Fail closed: this source adds 0.
         try:
             found[name] = clip(list(module.intervals(day, project)), bounds)
-        except Exception:  # noqa: BLE001 (fail closed: this source adds 0)
-            _LOG.exception("source %s: failed, contributes 0", name)
+        except Exception:  # pylint: disable=broad-exception-caught
+            _logger.exception("source %s: failed, contributes 0", name)
             found[name] = []
     return found
 

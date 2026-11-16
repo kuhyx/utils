@@ -16,13 +16,16 @@ local day up to "now"; carry and the cap play no part. Shown, never paid.
 
 from __future__ import annotations
 
-from datetime import date  # noqa: TC003
 import logging
+from typing import TYPE_CHECKING
 
 from focus_project import _api, _clock, carry, sources
 from focus_project._errors import RegistryError
 from focus_project._own import union_seconds
 from focus_project.sources import activity
+
+if TYPE_CHECKING:
+    from datetime import date
 
 _LOG = logging.getLogger(__name__)
 

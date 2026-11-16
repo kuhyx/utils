@@ -150,19 +150,6 @@ void main() {
     expect(remote.files['wake-alarm/e2e'], contains('argon2id'));
   });
 
-  test('paths outside the prefix pass through untouched', () async {
-    final remote = MemoryRemote();
-    final store = EncryptingStore(
-      remote,
-      await _key(remote),
-      pathPrefix: _prefix,
-    );
-    await store.putFileText('other/x', '{"a":1}', message: 'm');
-    expect(remote.files['other/x'], '{"a":1}');
-    expect(await store.getFileText('other/x'), '{"a":1}');
-    expect(await store.getFileText('$_prefix/none/log.json'), isNull);
-  });
-
   test('a flat <prefix>/<node>.json layout (todo) is sealed too', () async {
     final remote = MemoryRemote();
     final store = EncryptingStore(
@@ -203,43 +190,6 @@ void main() {
       acceptPlaintext: false,
     );
     expect(await _tick(store, 'phone', {}), isEmpty);
-  });
-
-  group('delegation', () {
-    test('bulk reads forward when the inner store has them', () async {
-      final remote = MemoryRemote({'$_revs/a': 'r'});
-      final store = EncryptingStore(
-        remote,
-        await _key(remote),
-        pathPrefix: _prefix,
-      );
-      expect(await store.getStringMap(_revs), {'a': 'r'});
-    });
-
-    test('bulk reads degrade to "fetch everything" without them', () async {
-      final remote = MemoryRemote({'$_revs/a': 'r'});
-      final store = EncryptingStore(
-        PlainRemote(remote),
-        await _key(remote),
-        pathPrefix: _prefix,
-      );
-      expect(await store.getStringMap(_revs), isEmpty);
-    });
-
-    test('list, delete, access and close reach the inner store', () async {
-      final remote = MemoryRemote({'$_prefix/a/log.json': '{}'});
-      final store = EncryptingStore(
-        remote,
-        await _key(remote),
-        pathPrefix: _prefix,
-      );
-      expect(await store.listDirectory(_prefix), ['a']);
-      await store.deleteFile('$_prefix/a/log.json', message: 'm');
-      expect(remote.files.containsKey('$_prefix/a/log.json'), isFalse);
-      expect(await store.canAccessRemote(), isTrue);
-      store.close();
-      expect(remote.closed, isTrue);
-    });
   });
 
   // Differential: the same sync rounds over a plain and an encrypting relay

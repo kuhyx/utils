@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 import focus_project as fp
 from focus_project import _paths, checks, evidence
-from focus_project.tests.helpers import SAT1, at, make
+from focus_project.tests._helpers import SAT1, at, make
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -57,9 +57,9 @@ def test_phone_source_passes_on_a_fresh_good_report() -> None:
     "bad",
     [{"plan": False}, {"due": 0}, {"seen": at(11, 7)}],
 )
-def test_phone_source_fails_on_any_bad_part(bad: dict[str, object]) -> None:
+def test_phone_source_fails_on_any_bad_part(bad: dict[str, Any]) -> None:
     make()
-    _report(at(13, 8), **bad)  # type: ignore[arg-type]
+    _report(at(13, 8), **bad)
     assert _phone(at(13, 9)) is False
 
 

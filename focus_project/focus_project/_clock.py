@@ -3,8 +3,12 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, datetime
 import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 def now() -> float:
@@ -14,4 +18,4 @@ def now() -> float:
 
 def today() -> date:
     """The local calendar date right now."""
-    return date.fromtimestamp(now())  # noqa: DTZ012 (local day by contract)
+    return datetime.fromtimestamp(now(), tz=UTC).astimezone().date()

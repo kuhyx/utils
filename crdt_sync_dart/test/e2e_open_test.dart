@@ -13,6 +13,9 @@ Future<E2eState> _open(MemoryRemote r, String? pass) => openEncryptedStore(
 );
 
 void main() {
+  // The copy memo is process-wide; a prior open would skip the copy.
+  setUp(resetE2eCopyMemo);
+
   test('no passphrase is locked', () async {
     for (final p in [null, '']) {
       final s = await _open(MemoryRemote(), p);

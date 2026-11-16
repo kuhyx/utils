@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import logging
 from typing import TYPE_CHECKING
 
+from crdt_sync._e2e_blobs import blobs as _blobs
 from crdt_sync._e2e_cache import (
     read_cached_key,
     read_copy_memo,
@@ -124,27 +125,6 @@ class EncryptingStore:
     def can_access_remote(self) -> bool:
         """Delegate."""
         return self._inner.can_access_remote()
-
-
-def _blobs(store: RemoteStore, root: str) -> dict[str, str]:
-    """Every text blob under ``root`` (flat leaves and ``<dir>/<file>``)."""
-    skip = {default_revs_path(root), f"{root}/e2e", f"{root}/revs"}
-    out: dict[str, str] = {}
-    for name in store.list_directory(root):
-        full = f"{root}/{name}"
-        if full in skip:
-            continue
-        children = store.list_directory(full)
-        if not children:
-            text = store.get_file_text(full)
-            if text is not None:
-                out[name] = text
-            continue
-        for child in children:
-            text = store.get_file_text(f"{full}/{child}")
-            if text is not None:
-                out[f"{name}/{child}"] = text
-    return out
 
 
 def copy_to_encrypted(

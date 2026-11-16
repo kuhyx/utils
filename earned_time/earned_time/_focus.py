@@ -7,11 +7,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 import importlib
 import logging
-from typing import Any, Final
+from typing import TYPE_CHECKING, Final, Protocol
 
 from earned_time._ladder import shutdown_units_minutes
 from earned_time._match import focus_match
 from earned_time._policy import Earner
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 __all__ = [
     "FOCUS_LEDGER",
@@ -25,6 +28,16 @@ FOCUS_LEDGER: Final = ".local/share/focus_project/ledger.json"
 _SYNONYMS: Final = {"book": "reading"}
 _logger: Final = logging.getLogger(__name__)
 _warned: set[str] = set()
+
+
+class _Project(Protocol):
+    """What this module reads off a ``focus_project.Project``."""
+
+    start: date
+    daily_minutes: int
+
+    #: The gate names the project stands in for.
+    replaces: Iterable[str]
 
 
 @dataclass(frozen=True)
@@ -45,31 +58,34 @@ class FocusEarner(Earner):
     def shutdown_for(
         self,
         units: int,
-        day: date | None = None,  # noqa: ARG002
+        day: date | None = None,
     ) -> int:
         """Shutdown minutes of ``units`` focused minutes, floored."""
+        del day  # the base signature takes it; focus pay is the same every day
         return self.capped(units) * self.shutdown_minutes // (self.max_units or 1)
 
 
-def _active(day: date) -> Any:  # noqa: ANN401
+def _active(day: date) -> _Project | None:
     """The active project on ``day``; ``None`` for none or on any failure."""
     try:
         return importlib.import_module("focus_project").active(day)
-    except Exception as exc:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         message = f"focus_project unusable ({type(exc).__name__}: {exc})"
         if message not in _warned:
             _warned.add(message)
-            _logger.warning("%s; behaving as if no project is active", message)
+            _logger.warning(
+                "%s; behaving as if no project is active", message, exc_info=True
+            )
         return None
 
 
-def daily_on(project: Any, day: date) -> int:  # noqa: ANN401
+def daily_on(project: _Project, day: date) -> int:
     """``day``'s target: ``project.daily_on(day)`` (a later edit never re-prices it)."""
     pick = getattr(project, "daily_on", None)
     return int(pick(day) if pick is not None else project.daily_minutes)
 
 
-def focus_earner(project: Any, dropped: tuple[Earner, ...], day: date) -> Earner:  # noqa: ANN401
+def focus_earner(project: _Project, dropped: tuple[Earner, ...], day: date) -> Earner:
     """The ``focus`` earner paying what ``dropped`` paid, over ``project``.
 
     Gaming: the cut is every dropped gate's full pay; a full day pays that plus

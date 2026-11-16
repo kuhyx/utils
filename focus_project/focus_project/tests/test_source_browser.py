@@ -53,7 +53,7 @@ def _fake_tracker(
 
     def fake(
         _cfg: browser.Config, path: str, params: dict[str, str] | None = None
-    ) -> Any:  # noqa: ANN401
+    ) -> object:
         calls.append((path, params))
         if path == "/api/0/buckets":
             return {b["id"]: b for b in buckets}

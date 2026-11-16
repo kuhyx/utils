@@ -66,7 +66,7 @@ class IconButton(tk.Canvas):
         self.bind("<Button-1>", lambda _event: self.invoke())
         self._paint()
 
-    def set_enabled(self, enabled: bool) -> None:  # noqa: FBT001
+    def set_enabled(self, *, enabled: bool) -> None:
         """Grey the icon out and ignore clicks while disabled."""
         self.configure(
             state="normal" if enabled else "disabled",
@@ -104,7 +104,7 @@ class Toggle(tk.Canvas):
         self.bind("<Button-1>", lambda _event: self.invoke())
         self.paint()
 
-    def set_enabled(self, enabled: bool) -> None:  # noqa: FBT001
+    def set_enabled(self, *, enabled: bool) -> None:
         """Fade the switch and ignore clicks while disabled."""
         self.configure(
             state="normal" if enabled else "disabled",

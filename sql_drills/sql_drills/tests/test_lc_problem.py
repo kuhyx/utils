@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sql_drills import _lc_problem as lp
-from sql_drills.tests.synthetic import ORDERS, PIVOT
+from sql_drills.tests._synthetic import ORDERS, PIVOT
 
 
 def test_pivot_example() -> None:

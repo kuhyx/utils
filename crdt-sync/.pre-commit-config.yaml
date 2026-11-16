@@ -113,6 +113,9 @@ repos:
           # dies on Python 3.15 (code objects lost co_lnotab), 2026-11-16.
           - --jobs=1
         additional_dependencies:
+          # Kept in step with pyproject.toml, so pylint resolves the e2e imports.
+          - argon2-cffi==25.1.0
+          - pynacl==1.6.2
           - pytest
           - requests
 

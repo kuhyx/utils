@@ -95,4 +95,18 @@ void main() {
     final map = await state.store.getStringMap('app/notes-e2e');
     expect(map['k1'], log);
   });
+
+  test('a cache that reports a bad header locks as badHeader', () async {
+    final state = await openEncryptedStore(
+      store: MemoryRemote(),
+      oldPrefix: _old,
+      readPassphrase: () async => 'pw',
+      params: cheapArgon,
+      keyCache: E2eKeyCache(
+        read: () async => throw E2eHeaderError('bad header'),
+        write: (_) async {},
+      ),
+    );
+    expect((state as E2eLocked).reason, E2eLockReason.badHeader);
+  });
 }

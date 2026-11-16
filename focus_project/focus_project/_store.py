@@ -28,6 +28,15 @@ def locked() -> Iterator[None]:
         yield
 
 
+def _project_rows(text: str) -> list[object]:
+    """The ``projects`` list of a registry file; ValueError/KeyError/TypeError."""
+    rows = json.loads(text)["projects"]
+    if not isinstance(rows, list):
+        msg = "'projects' is not a list"
+        raise TypeError(msg)
+    return rows
+
+
 def read_all() -> list[Project]:
     """Every project; a missing file is empty, a bad one raises."""
     try:
@@ -35,14 +44,19 @@ def read_all() -> list[Project]:
     except FileNotFoundError:
         return []
     try:
-        rows = json.loads(text)["projects"]
-        if not isinstance(rows, list):
-            msg = "'projects' is not a list"
-            raise TypeError(msg)  # noqa: TRY301
+        rows = _project_rows(text)
     except (ValueError, KeyError, TypeError) as exc:
         msg = f"unreadable {projects_path()}: {exc}"
         raise RegistryError(msg) from exc
     return [Project.from_dict(row) for row in rows]
+
+
+def index_of(projects: list[Project], project_id: str) -> int:
+    """Position of the first project with ``project_id``; KeyError if none."""
+    for i, project in enumerate(projects):
+        if project.id == project_id:
+            return i
+    raise KeyError(project_id)
 
 
 def write_all(projects: list[Project]) -> None:
@@ -55,7 +69,7 @@ def write_all(projects: list[Project]) -> None:
             handle.write(payload + "\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(tmp, target)  # noqa: PTH105
+        Path(tmp).replace(target)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise

@@ -45,12 +45,12 @@ def test_every_locker_has_an_icon() -> None:
 def test_a_click_invokes_the_button_unless_disabled(shown: tk.Tk) -> None:
     calls: list[int] = []
     button = IconButton(shown, "check", lambda: calls.append(1), name="ok")
-    button.set_enabled(False)
+    button.set_enabled(enabled=False)
     assert str(button.cget("cursor")) == "arrow"
     _click(button)
     button.invoke()
     assert calls == []
-    button.set_enabled(True)
+    button.set_enabled(enabled=True)
     _click(button)
     assert calls == [1]
 
@@ -61,10 +61,10 @@ def test_a_click_flips_the_switch_unless_disabled(shown: tk.Tk) -> None:
     _click(switch)
     assert switch.is_on()
     assert on.get()
-    switch.set_enabled(False)
+    switch.set_enabled(enabled=False)
     _click(switch)
     switch.invoke()
     assert switch.is_on()
-    switch.set_enabled(True)
+    switch.set_enabled(enabled=True)
     switch.invoke()
     assert not switch.is_on()

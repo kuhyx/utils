@@ -166,7 +166,7 @@ class KeepPanel(tk.Frame):
             switch = Toggle(self, self._vars[locker], name=f"keep-{locker}")
             switch.grid(row=row, column=1, sticky="e", padx=(tok.LG, 0), pady=tok.XS)
             if not editable:
-                switch.set_enabled(False)
+                switch.set_enabled(enabled=False)
 
     def _draw_actions(
         self, *, writable: bool, on_cancel: Callable[[], None] | None

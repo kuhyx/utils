@@ -25,7 +25,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -78,10 +78,10 @@ def _config() -> Config | None:
     return Config(url.rstrip("/"), values.get("KT_TOKEN", "")) if url else None
 
 
-def _get_json(cfg: Config, path: str, params: dict[str, str] | None = None) -> Any:  # noqa: ANN401
+def _get_json(cfg: Config, path: str, params: dict[str, str] | None = None) -> object:
     """One authenticated GET returning parsed JSON."""
     url = cfg.url + path + (f"?{urlencode(params)}" if params else "")
-    request = Request(url)  # noqa: S310 (operator-configured http URL)
+    request = Request(url)
     if cfg.token:
         request.add_header("Authorization", f"Bearer {cfg.token}")
     with _urlopen(request, timeout=TIMEOUT_S) as response:
@@ -158,17 +158,14 @@ def intervals(day: date, project: Project) -> list[Interval]:
     if cfg is None:
         _LOG.info("browser source: no kuhytrack config (inactive)")
         return []
-    lo, hi = day_bounds(day)
-    stamp = "%Y-%m-%dT%H:%M:%S.000Z"
-    params = {
-        "start": datetime.fromtimestamp(lo - LOOKBACK_S, UTC).strftime(stamp),
-        "end": datetime.fromtimestamp(hi, UTC).strftime(stamp),
-    }
+    params = _window(day)
 
     def events(bucket: dict[str, Any]) -> list[dict[str, Any]]:
-        return list(_get_json(cfg, f"/api/0/buckets/{bucket['id']}/events", params))
+        path = f"/api/0/buckets/{bucket['id']}/events"
+        return list(cast("list[dict[str, Any]]", _get_json(cfg, path, params)))
 
-    buckets = list(_get_json(cfg, "/api/0/buckets").values())
+    found = cast("dict[str, dict[str, Any]]", _get_json(cfg, "/api/0/buckets"))
+    buckets = list(found.values())
     present: dict[str, list[Interval]] = {}
     for bucket in buckets:
         if bucket["type"] == "afkstatus":
@@ -179,6 +176,23 @@ def intervals(day: date, project: Project) -> list[Interval]:
         if bucket["type"] == "currentwindow":
             hits = [e for e in events(bucket) if _matches(e["data"], full, stems)]
             on_site.setdefault(bucket["hostname"], []).extend(_spans(hits))
+    return _present_on_site(on_site, present)
+
+
+def _window(day: date) -> dict[str, str]:
+    """The tracker query range: ``day`` plus :data:`LOOKBACK_S` before it."""
+    lo, hi = day_bounds(day)
+    stamp = "%Y-%m-%dT%H:%M:%S.000Z"
+    return {
+        "start": datetime.fromtimestamp(lo - LOOKBACK_S, UTC).strftime(stamp),
+        "end": datetime.fromtimestamp(hi, UTC).strftime(stamp),
+    }
+
+
+def _present_on_site(
+    on_site: dict[str, list[Interval]], present: dict[str, list[Interval]]
+) -> list[Interval]:
+    """Each host's site time trimmed to its presence (no AFK bucket: present)."""
     out: list[Interval] = []
     for host, spans in on_site.items():
         merged = _merge(spans)

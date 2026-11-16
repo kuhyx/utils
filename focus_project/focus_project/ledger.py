@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 import tempfile
 import time
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, TypeIs
 
 import earned_time
 
@@ -93,6 +93,27 @@ def _write_rows(path: Path, rows: list[Any]) -> None:
     Path(handle.name).replace(path)
 
 
+def _whole_minutes(value: object) -> TypeIs[int]:
+    """Whether ``value`` is a positive int minute count (bools excluded)."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def _pays_for(
+    row: dict[str, Any],
+    detail: dict[str, Any],
+    project_id: str,
+    day: date,
+    *,
+    carry: bool | None,
+) -> bool:
+    """Whether a credit row is for ``project_id`` on ``day`` in class ``carry``."""
+    return (
+        row.get("day") == day.isoformat()
+        and detail.get("project") == project_id
+        and (carry is None or bool(detail.get("carry")) == carry)
+    )
+
+
 def paid_minutes(
     rows: list[Any],
     key: bytes,
@@ -116,12 +137,8 @@ def paid_minutes(
             continue
         minutes = detail.get("minutes")
         if (
-            row.get("day") != day.isoformat()
-            or detail.get("project") != project_id
-            or not isinstance(minutes, int)
-            or isinstance(minutes, bool)
-            or minutes < 1
-            or (carry is not None and bool(detail.get("carry")) != carry)
+            not _whole_minutes(minutes)
+            or not _pays_for(row, detail, project_id, day, carry=carry)
             or not earned_time.verified(row, key)
         ):
             continue
@@ -130,7 +147,7 @@ def paid_minutes(
     return sum(by_id.values())
 
 
-def build_row(  # noqa: PLR0913
+def build_row(  # pylint: disable=too-many-arguments
     project_id: str,
     day: date,
     total: int,
@@ -207,7 +224,7 @@ def credit_to(
             key,
             now=now or time.time(),
             carry=carry,
-            first_carry=paid == 0,
+            first_carry=not paid,
         )
         if any(
             isinstance(r, dict) and r.get("entry_id") == row["entry_id"] for r in rows

@@ -12,8 +12,9 @@ from __future__ import annotations
 import hmac
 from typing import TYPE_CHECKING
 
+from crdt_sync._e2e_blobs import blobs as _blobs
 from crdt_sync._e2e_key import derive_key, read_header
-from crdt_sync._e2e_store import E2eLayout, E2eLockedError, EncryptingStore, _blobs
+from crdt_sync._e2e_store import E2eLayout, E2eLockedError, EncryptingStore
 from crdt_sync._log import merge_logs
 from crdt_sync._store import dump_log, load_log
 

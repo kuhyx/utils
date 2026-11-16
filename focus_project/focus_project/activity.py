@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, datetime
 import fcntl
 import json
 import os
@@ -20,7 +20,7 @@ DEVICES = frozenset({"pc", "phone"})
 MAX_SKEW_S = 120.0
 
 
-def record_activity(  # noqa: PLR0913, PLR0917
+def record_activity(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     source: str,
     kind: str,
     ts: float | None = None,
@@ -48,7 +48,7 @@ def record_activity(  # noqa: PLR0913, PLR0917
         msg = f"ts is {when - now:.0f} s ahead of the clock (max {MAX_SKEW_S:.0f} s)"
         raise ValueError(msg)
     if project is None:
-        found = _api.active(date.fromtimestamp(when))  # noqa: DTZ012
+        found = _api.active(datetime.fromtimestamp(when, tz=UTC).astimezone().date())
         project = found.id if found else None
     line = json.dumps(
         {

@@ -36,6 +36,16 @@ unfixable = []
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
 "**/test_*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001"]
+# Public API that focus-guard (and its e2e scripts) call by keyword: these
+# signatures mirror Project's fields, so cutting arguments means a breaking
+# release across the consumers. The matching pylint disables sit on each def.
+"focus_project/_api.py" = ["PLR0913"]
+"focus_project/_mutate.py" = ["PLR0913"]
+"focus_project/activity.py" = ["PLR0913", "PLR0917"]
+"focus_project/ledger.py" = ["PLR0913"]
+# The browser source's base URL is operator config (an http:// localhost
+# extension bridge), never user input, so urllib's scheme check is moot.
+"focus_project/sources/browser.py" = ["S310"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
