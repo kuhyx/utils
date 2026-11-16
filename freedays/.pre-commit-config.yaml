@@ -101,13 +101,15 @@ repos:
           - --disable-error-code=list-item
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: v4.0.8
+    rev: v4.1.4
     hooks:
       - id: pylint
         args:
           - --rcfile=freedays/pyproject.toml
           - --fail-under=10
-          - --jobs=4
+          # One process: with --jobs>1 pylint pickles its AST via dill, which
+          # dies on Python 3.15 (code objects lost co_lnotab), 2026-11-16.
+          - --jobs=1
         additional_dependencies:
           - pytest
           # Kept in step with pyproject.toml, so pylint resolves the crdt_sync
