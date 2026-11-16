@@ -12,7 +12,7 @@ requires-python = ">=3.14"
 # leetcode_guard is NOT a dependency (guard_bridge imports it on demand, so the
 # package never pulls the gate's ledger code into a tutor server).
 dependencies = [
-    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.0#subdirectory=crdt-sync",
+    "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync",
     "genanki==0.13.1",
     "requests==2.34.2",
 ]

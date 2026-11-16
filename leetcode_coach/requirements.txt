@@ -5,16 +5,16 @@
 # none of them at import time.
 bandit[toml]==1.9.4
 codespell==2.4.3
-coverage==7.17.2
-crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.0#subdirectory=crdt-sync
+coverage==7.17.3
+crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync
 genanki==0.13.1
 mypy==2.4.1
 pre-commit==4.7.0
-pylint==4.1.3
+pylint==4.1.4
 pytest==9.2.0
 pytest-cov==7.1.0
 pytest-randomly==5.1.0
 pytest-xdist==3.8.0
 requests==2.34.2
-ruff==0.17.4
+ruff==0.17.5
 types-requests==2.33.0.20261030
