@@ -1,0 +1,35 @@
+name: game_recording tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as game_recording: editing only this file used
+    # to trigger nothing, so a fix to the job itself could never prove itself.
+    paths: ['game_recording/**', '.github/workflows/game-recording-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['game_recording/**', '.github/workflows/game-recording-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game_recording
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # The finalize and library tests run the real ffmpeg and ffprobe.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: python -m pytest -v --cov=game_recording
