@@ -1,6 +1,6 @@
 import 'package:crdt_sync_flutter/crdt_sync_flutter.dart';
 import 'package:crdt_sync_flutter/testing/fake_secure_storage.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
