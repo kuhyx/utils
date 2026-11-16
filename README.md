@@ -149,6 +149,6 @@ object. Read [`godot_dev_tools/README.md`](godot_dev_tools/README.md).
 
 Consume via a shallow fetch of the tag, then mount the addon folder:
 ```
-git clone --depth 1 --branch godot-dev-tools-v0.1.0 https://github.com/kuhyx/utils
+git clone --depth 1 --branch godot-dev-tools-v0.1.1 https://github.com/kuhyx/utils
 # link or copy godot_dev_tools/addons/dev_tools to res://addons/dev_tools
 ```

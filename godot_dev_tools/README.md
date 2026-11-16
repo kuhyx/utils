@@ -37,7 +37,7 @@ the tag (shallow), then link or copy `godot_dev_tools/addons/dev_tools` to
 `res://addons/dev_tools` and gitignore that path:
 
 ```bash
-git clone --depth 1 --branch godot-dev-tools-v0.1.0 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch godot-dev-tools-v0.1.1 https://github.com/kuhyx/utils "$cache"
 ln -sfn "$cache/godot_dev_tools/addons/dev_tools" addons/dev_tools   # CI: cp -a instead
 ```
 

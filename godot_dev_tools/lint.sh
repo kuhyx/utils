@@ -20,8 +20,11 @@ main() {
         }
     done
     mapfile -t files < <(find "$HERE/addons/dev_tools" "$HERE/tests" -name '*.gd' -type f | sort)
-    (cd "$HERE" && printf '%s\0' "${files[@]}" | xargs -0 -n 12 -P 4 gdlint >/dev/null)
-    printf '%s\0' "${files[@]}" | xargs -0 -n 12 -P 4 gdformat --check >/dev/null 2>&1 || {
+    # One process per tool, not xargs -P: parallel gdtoolkit processes race to
+    # create their grammar cache dir (os.makedirs EEXIST) on a cold cache and
+    # report a file as unopenable.
+    (cd "$HERE" && gdlint "${files[@]}" >/dev/null)
+    gdformat --check "${files[@]}" >/dev/null 2>&1 || {
         gdformat --check "${files[@]}" 2>&1 | grep -v 'left unchanged' >&2 || true
         exit 1
     }
