@@ -101,18 +101,21 @@ repos:
           - --disable-error-code=list-item
 
   - repo: https://github.com/pylint-dev/pylint
-    rev: v4.0.8
+    rev: v4.1.4
     hooks:
       - id: pylint
         args:
           - --rcfile=focus_project/pyproject.toml
           - --fail-under=10
-          - --jobs=4
+          # One process: with --jobs>1 pylint pickles its AST via dill, which
+          # dies on Python 3.15 (code objects lost co_lnotab), 2026-11-16.
+          - --jobs=1
         additional_dependencies:
           - pytest
           # Kept in step with pyproject.toml, so pylint resolves the crdt_sync
           # imports instead of scoring every one of them as import-error.
           - crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync
+          - earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.21.0#subdirectory=earned_time
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.4
