@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+import pytest
+
 from earned_time import (
     GAMING_BASE_MINUTES,
     GAMING_CEILING_MINUTES,
@@ -16,6 +18,13 @@ from earned_time import (
     gaming_ceiling_minutes_for,
     resolve,
 )
+
+
+@pytest.fixture(autouse=True)
+def _gaming_still_budgeted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests price 2027 days: put the 0.22.0 no-budget switch beyond them."""
+    monkeypatch.setattr("earned_time._gaming.GAMING_UNLIMITED_FROM", date(2100, 1, 1))
+
 
 EVE = LEISURE_FROM - timedelta(days=1)
 FULL = {"workout": 1, "leetcode": 1, "reading": 1, "tutor": 60}

@@ -26,6 +26,7 @@ import re
 import stat
 from typing import Final
 
+from earned_time._gaming import gaming_enforced
 from earned_time._policy import GAMING_BASE_MINUTES, GAMING_CEILING_MINUTES
 
 # Parked far ahead: the switch file moves it, never a same-day cut (2026-09-26).
@@ -78,8 +79,10 @@ def leisure_active(day: date, path: Path = LEISURE_FROM_PATH) -> bool:
     """Is ``day`` (a gaming day) on the leisure budget? ``day >= leisure_from()``.
 
     The only way a consumer may ask "is Phase 2 on?"; none reads the file.
+    Always ``False`` from ``GAMING_UNLIMITED_FROM`` (0.22.0): no gaming budget
+    exists any more, so none can be a leisure one.
     """
-    return day >= leisure_from(path)
+    return gaming_enforced(day) and day >= leisure_from(path)
 
 
 def is_leisure(day: date, *, leisure: bool | None = None) -> bool:

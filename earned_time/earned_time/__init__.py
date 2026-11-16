@@ -22,6 +22,10 @@ A consumer's whole integration::
     day = earned_time.resolve(answers, sick=sickdays.is_sick_day())
     apply(day.gaming_minutes)
 
+``gaming_enforced(day)`` (0.22.0): from ``GAMING_UNLIMITED_FROM`` there is no
+gaming budget; shutdown is the only carrot. ``Resolution.gaming_enforced``
+carries it; a consumer that applies a budget lifts the limit on ``False``.
+
 ``sick`` (0.11.0) only raises shutdown to at least 20:00; gaming is unchanged.
 ``leisure`` (0.16.0): ``None`` follows the switch file on ``day``, ``True``
 prices gaming with the leisure base and cap (the shadow budget), ``False``
@@ -44,6 +48,7 @@ from earned_time._credits import (
 )
 from earned_time._evidence import real_credit
 from earned_time._focus import FOCUS_LEDGER, FocusEarner
+from earned_time._gaming import GAMING_UNLIMITED_FROM, gaming_enforced
 from earned_time._ladder import (
     ANKI_WAIVED_FROM,
     LADDER,
@@ -109,6 +114,7 @@ __all__ = [
     "FOCUS_LEDGER",
     "GAMING_BASE_MINUTES",
     "GAMING_CEILING_MINUTES",
+    "GAMING_UNLIMITED_FROM",
     "LADDER",
     "LADDER_FROM",
     "LEETCODE",
@@ -153,6 +159,7 @@ __all__ = [
     "first_credit_at",
     "gaming_base_minutes_for",
     "gaming_ceiling_minutes_for",
+    "gaming_enforced",
     "ladder_for",
     "leisure_active",
     "leisure_from",

@@ -26,6 +26,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from earned_time._focus import FocusEarner
+from earned_time._gaming import gaming_enforced
 from earned_time._ladder import on_ladder, shutdown_ceiling_for
 from earned_time._leisure import base_minutes, ceiling_minutes, is_leisure
 from earned_time._maturity import confirmed_start, penalty_start
@@ -167,8 +168,16 @@ def _term(item: Earner, answers: Mapping[str, Answer], day: date) -> Term:
 
 
 def _sick_or(earned: int, terms: list[Term], day: date) -> int:
-    """A sick day's shutdown: 20:00 plus gaming pay, never below ``earned``."""
-    return max(earned, sick_shutdown_from(sum(t.gaming_minutes for t in terms), day))
+    """A sick day's shutdown: 20:00 plus the paid terms, never below ``earned``.
+
+    The terms are paid at gaming pay before ``GAMING_UNLIMITED_FROM`` and at
+    their shutdown (rung) pay from it: the gaming budget no longer exists.
+    """
+    if gaming_enforced(day):
+        paid = sum(t.gaming_minutes for t in terms)
+    else:
+        paid = sum(t.shutdown_minutes for t in terms)
+    return max(earned, sick_shutdown_from(paid, day))
 
 
 def resolve(
@@ -196,14 +205,17 @@ def resolve(
             Only ever delays a penalty; omitted, 0.5.0's ``penalty_from``.
         sick: The day is a sick day (the consumer asks ``sickdays``): shutdown
             is 20:00 plus the terms' gaming pay
-            (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0).
+            (:func:`~earned_time._sick.sick_shutdown_from`, 0.13.0), from
+            ``GAMING_UNLIMITED_FROM`` their shutdown pay (0.22.0).
             Gaming and every term are unchanged.
         leisure: ``None`` (0.16.0 default): the switch file decides on
             ``day``. ``True`` (0.14.0): the leisure base and cap whatever the
             day says -- the shadow budget. ``False``: the old base and cap
             whatever the file says -- a gaming day (06:00) still before the
             switch while the calendar day is past it. Terms, penalties and
-            shutdown are unchanged.
+            shutdown are unchanged. From ``GAMING_UNLIMITED_FROM`` (0.22.0)
+            ``None`` is always the old base: read
+            ``Resolution.gaming_enforced``, the budget is not a limit.
 
     Returns:
         The resolution, with a term for every registered earner.
@@ -233,4 +245,5 @@ def resolve(
         shutdown_minutes=shutdown,
         sick=sick,
         sick_lift_minutes=shutdown - earned,
+        gaming_enforced=gaming_enforced(target),
     )

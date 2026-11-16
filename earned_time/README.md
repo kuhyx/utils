@@ -122,6 +122,23 @@ it, and ignore answers for an earner of another day's registry.
 
 **Gap waiver** (`ANKI_WAIVED_FROM`, 2026-10-09): no anki/automation earner.
 
+## No gaming budget (0.22.0)
+
+kuhy's decision, 2026-11-16: the stick of gaming time is gone; only shutdown
+is the carrot (all locks done = 23:00, the ladder is unchanged). One dated
+switch, `GAMING_UNLIMITED_FROM` (2026-11-16, a gaming day), and
+`gaming_enforced(day) -> bool` (`day < GAMING_UNLIMITED_FROM`), also carried as
+`Resolution.gaming_enforced`. Nothing was removed: `gaming_minutes`, `GAMING_*`
+and the leisure API still resolve numbers, so old imports keep working, but
+from the switch they are history, not a limit. A consumer that applies a
+budget must read the switch and lift its limit on `False`.
+
+- `leisure_active(day)` is `False` from the switch (no budget to be a leisure
+  one); `resolve`/`base_for` with `leisure=None` then use the old base.
+- A sick day's shutdown is 20:00 plus the credited terms' **shutdown** (rung)
+  pay from the switch (gaming pay before it), capped at the ceiling. The two
+  are equal on the unified ladder, so no number moves.
+
 ## Gate maturity (0.6.0)
 
 How far to trust a gate, computed from its ledger by `maturity()`, is in
@@ -135,6 +152,7 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
   leisure=None) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
   `gaming_ceiling_minutes_for(day) -> int` — the gaming base and cap.
   `leisure_from(path=LEISURE_FROM_PATH) -> date`, `leisure_active(day, path=...)`.
+  `gaming_enforced(day) -> bool`, `GAMING_UNLIMITED_FROM` (0.22.0).
 - `done_today(earner, ledger, key_file, *, now=None) -> bool | None`
 - `first_credit_at(earner, ledger, key_file, day) -> float | None` — unix time
   of the earliest verified credit for `day`, on its matcher's stamp
@@ -214,7 +232,7 @@ Unbacked timer time pays 0 from 2026-11-08 (focus_project 0.10.0).
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.20.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.22.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy` and imports from

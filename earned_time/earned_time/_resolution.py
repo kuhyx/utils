@@ -62,6 +62,9 @@ class Resolution:
         sick_lift_minutes: How far the sick floor raised ``shutdown_minutes``
             above base plus terms (``0`` unless sick): a consumer adding live
             credits on top pays them out of this first, as with a grace lift.
+        gaming_enforced: Whether ``day`` has a gaming budget at all (0.22.0,
+            :func:`earned_time.gaming_enforced`). ``False``: ``gaming_minutes``
+            is history, a consumer must not enforce it.
     """
 
     day: date
@@ -71,6 +74,7 @@ class Resolution:
     shutdown_minutes: int
     sick: bool = False
     sick_lift_minutes: int = 0
+    gaming_enforced: bool = True
 
     def term(self, name: str) -> Term:
         """The term of the earner called ``name``.
