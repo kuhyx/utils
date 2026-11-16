@@ -17,6 +17,7 @@ from gatelock._arbiter import (
 from gatelock._claimfile import held_grabs
 from gatelock._claims import ArbiterVerdict, Claim, default_runtime_dir, grab_strength
 from gatelock._config import GrabPolicy, LockConfig, SpaceStep, TypeRole
+from gatelock._credit_watch import CREDIT_POLL_MS, watch_credit
 from gatelock._detect import OutputChangeDetector
 from gatelock._escape import (
     EscapeDraft,
@@ -72,6 +73,7 @@ from gatelock.widgets import (
 )
 
 __all__ = [
+    "CREDIT_POLL_MS",
     "DEFAULT_WRAP",
     "QUEUE_DEADLINE_SECONDS",
     "QUEUE_HEARTBEAT_SECONDS",
@@ -137,4 +139,5 @@ __all__ = [
     "stronger_claims",
     "wait_for_turn",
     "wait_for_x_server",
+    "watch_credit",
 ]

@@ -78,6 +78,15 @@ that is stood down but not done (`build_corner_strip`, `CornerStrip`,
 `StripContent`, `corner_rect`, `corner_geometry`). It never grabs input; its
 tick ends when the owner's `supply` returns `None`.
 
+`gatelock.watch_credit(root, paths, is_done, on_credit, poll_ms=3000)` lets an
+open lock window notice a credit that landed while it was up (a workout or meal
+logged elsewhere). One `stat` per path per poll on the Tk `after` loop; the
+owner's `is_done()` runs only on the first poll and when a path's (mtime, size,
+inode) changed; True calls `on_credit` (the window's normal close) and stops.
+A raising `is_done`/`on_credit` or an unreadable path is logged and retried
+(fail closed). Pass `poll_ms` of 3000 or less: an open window should notice
+inside ~10 s. Generalises screen-locker's `_credit_watch`.
+
 `gatelock.night_lockdown.evening_lockdown_today` answers "has tonight's
 evening night-lockdown already happened?" from night-lockdown's
 `/var/lib/night-lockdown/locked_at_epoch` (local date today, local time
