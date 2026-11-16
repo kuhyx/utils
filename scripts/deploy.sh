@@ -49,6 +49,7 @@ check_tag() {
     local prefix="$1" dir="$2" manifest version tag
     manifest="$UTILS_DIR/$dir/pyproject.toml"
     [[ -f "$manifest" ]] || manifest="$UTILS_DIR/$dir/pubspec.yaml"
+    [[ -f "$manifest" ]] || manifest="$UTILS_DIR/$dir/addons/dev_tools/dev_tools.cfg"
     version="$(manifest_version "$manifest")"
     tag="${prefix}-v${version}"
     if ! git -C "$UTILS_DIR" fetch -q origin "+refs/tags/${tag}:refs/tags/${tag}" 2>/dev/null; then
@@ -82,6 +83,8 @@ check_sickdays() {
 verify() {
     check_tag sickdays sickdays
     check_tag sync_settings_ui sync_settings_ui
+    check_tag game-recording game_recording
+    check_tag godot-dev-tools godot_dev_tools
     check_sickdays
     if [[ "$FAILED" -ne 0 ]]; then
         log "health check FAILED"

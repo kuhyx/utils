@@ -101,6 +101,17 @@ Consume via:
 music_theory @ git+https://github.com/kuhyx/utils@music-theory-v0.1.0#subdirectory=music_theory
 ```
 
+## game_recording/
+
+Session recorder for a game (package: `game_recording`, stdlib only, not
+published to PyPI): records a dev run from outside the game and stamps its
+telemetry moments onto the video. A game configures it with one `Config`.
+
+Consume via:
+```
+game_recording @ git+https://github.com/kuhyx/utils@game-recording-v0.1.0#subdirectory=game_recording
+```
+
 ## unified-design-system/
 
 Not a package — the frozen design tokens (colors, spacing, type, radius,
@@ -127,4 +138,17 @@ planted violation per rule family proves each gate bites.
 "devDependencies": {
   "@kuhyx/ts-config": "github:kuhyx/utils#ts_config-v0.1.0&path:/ts_config"
 }
+```
+
+## godot_dev_tools/
+
+Godot addon (`addons/dev_tools/`): the F12 dev feedback mode of kuhy's games
+(annotate the frozen frame, save a bundle that `feedback_inbox` turns into a
+task). A game mounts it at a pinned tag; the game's own code stays a small host
+object. Read [`godot_dev_tools/README.md`](godot_dev_tools/README.md).
+
+Consume via a shallow fetch of the tag, then mount the addon folder:
+```
+git clone --depth 1 --branch godot-dev-tools-v0.1.0 https://github.com/kuhyx/utils
+# link or copy godot_dev_tools/addons/dev_tools to res://addons/dev_tools
 ```

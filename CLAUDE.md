@@ -1,8 +1,9 @@
 # utils
 
 Monorepo of shared gates and libraries (dep_freshness, file_length, md_naming,
-repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory,
+repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory, game_recording,
 flutter_web_drive (headless Flutter-web E2E driver + MCP), ...).
+`godot_dev_tools/` is a Godot addon (GDScript): `godot_dev_tools/test.sh` runs its GUT tests.
 Python packages with a root-level `<pkg>/tests` run with `PYTHONPATH=.`;
 subprojects with their own `pyproject.toml` run via `scripts/run_subproject_tests.sh <dir>`.
 `scripts/check_repo_contract.sh` is the REAL shared gate (not a shim): never
