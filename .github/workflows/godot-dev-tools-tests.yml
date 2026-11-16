@@ -1,0 +1,37 @@
+name: godot_dev_tools tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['godot_dev_tools/**', '.github/workflows/godot-dev-tools-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['godot_dev_tools/**', '.github/workflows/godot-dev-tools-tests.yml']
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.x" }
+
+      - name: Install Godot
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          rm godot.zip
+
+      - name: Install gdtoolkit (pinned)
+        run: pip install -r godot_dev_tools/requirements-dev.txt
+
+      - name: Lint (gdlint, gdformat)
+        run: godot_dev_tools/lint.sh
+
+      - name: GUT against the stub host (GUT is fetched at its pinned tag)
+        run: godot_dev_tools/test.sh
