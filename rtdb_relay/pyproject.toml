@@ -1,6 +1,6 @@
 [project]
 name = "rtdb-relay"
-version = "0.1.0"
+version = "0.1.1"
 description = "Sealed request relay over Firebase RTDB: PC worker (Python) + Flutter client (Dart)"
 requires-python = ">=3.14"
 dependencies = [
@@ -11,6 +11,11 @@ dependencies = [
 # Ship the library and its tests (consumers run the contract vectors).
 [tool.setuptools]
 packages = ["rtdb_relay", "rtdb_relay.tests"]
+
+# py.typed: consumers type-check against the package (PEP 561).
+[tool.setuptools.package-data]
+rtdb_relay = ["py.typed"]
+"rtdb_relay.tests" = ["data/*.json"]
 
 [tool.ruff]
 target-version = "py314"
