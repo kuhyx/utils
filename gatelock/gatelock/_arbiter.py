@@ -2,9 +2,8 @@
 """Decide which of N locker apps may hold the screen.
 
 On 2026-07-25 two lockers armed at the same boot. One won the X grab; the
-other spun forever in a retry loop, logging that "a fullscreen game" held the
-grab. No game was running -- the holder was the other locker. Nothing
-coordinated them because nothing could: each app only knew about itself.
+other spun forever, logging that "a fullscreen game" held it. No game was
+running -- the holder was the other locker, and each app only knew itself.
 
 This module is that coordination. Every app publishes a *claim* before it
 builds any window, and the highest-ranked live claim wins. Ranks, highest
@@ -12,6 +11,7 @@ first:
 
 * ``RANK_WAKE_ALARM``    -- you have to wake up before you can do anything else
 * ``RANK_SCREEN_LOCKER`` -- then you work out
+* ``RANK_EVENING_GATE``  -- then the evening gate chain
 * ``RANK_DIET_GUARD``    -- then you eat
 
 Two properties do the real work.
@@ -55,8 +55,8 @@ _logger = logging.getLogger(__name__)
 
 RANK_WAKE_ALARM: Final = 300
 RANK_SCREEN_LOCKER: Final = 200
+RANK_EVENING_GATE: Final = 150
 RANK_DIET_GUARD: Final = 100
-
 _HOLDER_FILENAME: Final = "holder.lock"
 
 

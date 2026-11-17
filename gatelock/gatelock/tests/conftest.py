@@ -12,6 +12,8 @@ display).
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -182,6 +184,14 @@ def make_arbiter(
     arbiter.publish()
     _MADE.append(arbiter)
     return arbiter
+
+
+@pytest.fixture(autouse=True)
+def _no_live_focus_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    """earned_time reads the real focus projects file; no project is active."""
+    monkeypatch.setitem(
+        sys.modules, "focus_project", SimpleNamespace(active=lambda _day: None)
+    )
 
 
 @pytest.fixture(autouse=True)

@@ -125,6 +125,28 @@ lower ranks keep queueing), waits windowless, and re-arms fully once nothing
 outranks it. `scripts/verify_all_lockers.py` checks this with five real
 processes on a private Xvfb.
 
+## Evening gate chain
+
+`python3 -m gatelock.evening_chain pending|run` (0.15.0) runs book, then tutor,
+then LeetCode in front of night lockdown. Needs the `evening` extra
+(earned-time, freedays, sickdays); only this CLI imports them.
+
+- `pending` prints the unpaid rungs. Exit 0 some rung is unpaid; 1 nothing
+  to do (all paid, free day, sick day, or 23:00 and later); 2 could not
+  check (unreadable ledger or key, any exception; stderr says why) -- it
+  fails closed, so root enters lockdown. Reading and LeetCode use
+  `earned_time.done_today`; the tutor is quota-based
+  (`credit_units >= max_units`). Cheap: three small reads, root runs it
+  every minute.
+- `run` runs each unpaid rung's gate (`GATE_COMMANDS`, all `--production
+  --evening`) and re-checks before each. A gate's exit 10
+  (`EXIT_END_EVENING`) stops the chain with 0; 3 (`EXIT_NO_X`) exits 3; a
+  gate killed at 23:00 or nothing left exits 0; a failing gate (or one that
+  exits 0 with its rung still unpaid) is skipped, and two in a row exit 1.
+- `RANK_EVENING_GATE` = 150 sits between the screen-locker and diet-guard.
+- `systemd/evening-gates.service` is the user unit root starts;
+  `install_evening_gates.sh` copies it and reloads, and never enables it.
+
 ## Development
 
 ```bash
