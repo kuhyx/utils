@@ -7,28 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// A sink recording every patch; [fail] makes the next ones throw.
-class FakeSink {
-  final patches = <String, Map<String, Object?>>{};
-  bool fail = false;
-
-  Future<void> call(String path, Map<String, Object?> values) async {
-    if (fail) throw StateError('offline');
-    (patches[path] ??= {}).addAll(values);
-  }
-
-  List<Map<String, Object?>> get entries => [
-    for (final v in patches.values.expand((m) => m.values))
-      v! as Map<String, Object?>,
-  ];
-}
-
-const config = AppErrorsConfig(
-  app: 'todo',
-  repo: 'kuhyx/todo',
-  build: 42,
-  version: '1.2.3',
-);
+import 'app_errors_support.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -90,7 +69,7 @@ void main() {
     });
 
     test('never throws on an error whose toString throws', () {
-      reporter().report('k', _Throws());
+      reporter().report('k', ThrowingToString());
       expect(queue.entries, isEmpty);
     });
 
@@ -179,250 +158,12 @@ void main() {
     });
   });
 
-  group('ErrorUploader', () {
-    test('uploads to /<app>/errors/<device>/<id> with the build', () async {
-      final sink = FakeSink();
-      reporter().report('k', 'Bad state: token=abc123 me@x.org');
-      final up = ErrorUploader(
-        queue,
-        config: config,
-        sink: () async => sink.call,
-        deviceId: () async => 'dev-1',
-      );
-      expect(await up.flush(), isTrue);
-      expect(sink.patches.keys.single, 'todo/errors');
-      final key = sink.patches['todo/errors']!.keys.single;
-      expect(key, startsWith('dev-1/'));
-      final e = sink.entries.single;
-      expect(e['build'], 42);
-      expect(e['version'], '1.2.3');
-      expect(e['repo'], 'kuhyx/todo');
-      expect(e['mark'], 'package:todo/');
-      expect(e['error'], 'Bad state: token=<redacted> <email>');
-      expect(queue.entries, isEmpty);
-    });
-
-    test('offline keeps the queue; back online sends it', () async {
-      final sink = FakeSink()..fail = true;
-      reporter().report('k', 'x');
-      final up = ErrorUploader(
-        queue,
-        config: config,
-        sink: () async => sink.call,
-        deviceId: () async => 'd',
-      );
-      expect(await up.flush(), isFalse);
-      expect(queue.entries, hasLength(1));
-      sink.fail = false;
-      expect(await up.flush(), isTrue);
-      expect(sink.entries, hasLength(1));
-      up.dispose();
-    });
-
-    test('signed out (no sink) keeps the queue', () async {
-      reporter().report('k', 'x');
-      final up = ErrorUploader(
-        queue,
-        config: config,
-        sink: () async => null,
-        deviceId: () async => 'd',
-      );
-      expect(await up.flush(), isFalse);
-      expect(queue.entries, hasLength(1));
-      up.dispose();
-    });
-
-    test('nothing pending is a no-op', () async {
-      final up = ErrorUploader(
-        queue,
-        config: config,
-        sink: () async => throw StateError('never called'),
-        deviceId: () async => 'd',
-      );
-      expect(await up.flush(), isTrue);
-    });
-
-    test('an append schedules a debounced flush', () async {
-      final sink = FakeSink();
-      final up = ErrorUploader(
-        queue,
-        config: config,
-        sink: () async => sink.call,
-        deviceId: () async => 'd',
-        debounce: Duration.zero,
-      )..start();
-      reporter().report('k', 'x');
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(sink.entries, hasLength(1));
-      up.dispose();
-    });
-  });
-
-  group('installAppErrors', () {
-    late FlutterExceptionHandler? savedFlutter;
-    late ErrorCallback? savedAsync;
-
-    setUp(() {
-      savedFlutter = FlutterError.onError;
-      savedAsync = PlatformDispatcher.instance.onError;
-    });
-
-    tearDown(() {
-      FlutterError.onError = savedFlutter;
-      PlatformDispatcher.instance.onError = savedAsync;
-      AppErrors.instance = null;
-    });
-
-    test('chains the framework and async hooks', () async {
-      final seen = <Object>[];
-      FlutterError.onError = (d) => seen.add(d.exception);
-      PlatformDispatcher.instance.onError = (e, s) {
-        seen.add(e);
-        return true;
-      };
-      final errors = await installAppErrors(
-        config,
-        preferences: await SharedPreferences.getInstance(),
-      );
-      expect(AppErrors.instance, same(errors));
-      FlutterError.onError!(
-        FlutterErrorDetails(exception: StateError('framework')),
-      );
-      FlutterError.onError!(
-        FlutterErrorDetails(exception: StateError('quiet'), silent: true),
-      );
-      expect(
-        PlatformDispatcher.instance.onError!(
-          StateError('async'),
-          StackTrace.empty,
-        ),
-        isTrue,
-      );
-      expect(seen, hasLength(3));
-      expect(errors.queue.entries.map((e) => e.kind), [
-        'uncaught.flutter',
-        'uncaught.async',
-      ]);
-    });
-
-    test('without prior hooks the async error is not handled', () async {
-      FlutterError.onError = null;
-      PlatformDispatcher.instance.onError = null;
-      final errors = await installAppErrors(
-        config,
-        preferences: await SharedPreferences.getInstance(),
-      );
-      FlutterError.onError!(FlutterErrorDetails(exception: StateError('f')));
-      expect(
-        PlatformDispatcher.instance.onError!('a', StackTrace.empty),
-        isFalse,
-      );
-      expect(errors.queue.entries, hasLength(2));
-    });
-
-    test('connect starts uploads; the route observer stamps routes', () async {
-      final errors = await installAppErrors(
-        config,
-        preferences: await SharedPreferences.getInstance(),
-      );
-      final sink = FakeSink();
-      final up = errors.connect(
-        sink: () async => sink.call,
-        deviceId: () async => 'd',
-        startDelay: Duration.zero,
-      );
-      AppErrorsRouteObserver(errors).didPush(
-        MaterialPageRoute<void>(
-          builder: (_) => const SizedBox(),
-          settings: const RouteSettings(name: '/settings'),
-        ),
-        null,
-      );
-      errors.reporter.report('k', 'x');
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      await up.flush();
-      expect(sink.entries.single['route'], '/settings');
-      up.dispose();
-    });
-  });
-
-  group('WaitWatch', () {
-    tearDown(() => AppErrors.instance = null);
-
-    testWidgets('without AppErrors it only shows the child', (tester) async {
-      await tester.pumpWidget(const WaitWatch.centered('x'));
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('a spinner shown 2 s is a perf.slow entry', (tester) async {
-      var now = DateTime.utc(2026);
-      final errors = AppErrors.forTest(config, queue, now: () => now);
-      AppErrors.instance = errors;
-      await tester.pumpWidget(
-        const WaitWatch(operation: 'list.load', child: SizedBox()),
-      );
-      now = now.add(const Duration(seconds: 2));
-      await tester.pumpWidget(const SizedBox());
-      expect(queue.entries.single.operation, 'list.load');
-    });
-
-    testWidgets('backgrounding ends the wait, resuming starts one', (
-      tester,
-    ) async {
-      var now = DateTime.utc(2026);
-      final errors = AppErrors.forTest(config, queue, now: () => now);
-      AppErrors.instance = errors;
-      await tester.pumpWidget(
-        const WaitWatch(operation: 'op', child: SizedBox()),
-      );
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-      now = now.add(const Duration(seconds: 30));
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      now = now.add(const Duration(milliseconds: 100));
-      await tester.pumpWidget(const SizedBox());
-      expect(queue.entries, isEmpty, reason: 'background time is no wait');
-    });
-  });
-
-  test('install reads the default preferences', () async {
-    final saved = (FlutterError.onError, PlatformDispatcher.instance.onError);
-    final errors = await installAppErrors(config);
-    expect(errors.config.mark, 'package:todo/');
-    FlutterError.onError = saved.$1;
-    PlatformDispatcher.instance.onError = saved.$2;
-    AppErrors.instance = null;
-  });
-
   test('config mark uses the package name, else the app', () {
     // ignore: prefer_const_constructors -- a runtime instance for coverage
     final named = AppErrorsConfig(app: 'a-b', repo: 'o/a', package: 'pkg');
     expect(named.mark, 'package:pkg/');
     // ignore: prefer_const_constructors
     expect(AppErrorsConfig(app: 'a-b', repo: 'o/a').mark, 'package:a_b/');
-  });
-
-  test('route observer follows pop and replace', () {
-    final errors = AppErrors.forTest(config, queue);
-    final observer = AppErrorsRouteObserver(errors);
-    Route<void> named(String name) => MaterialPageRoute<void>(
-      builder: (_) => const SizedBox(),
-      settings: RouteSettings(name: name),
-    );
-    observer.didPop(named('/b'), named('/a'));
-    expect(errors.reporter.route, '/a');
-    observer.didReplace(newRoute: named('/c'));
-    expect(errors.reporter.route, '/c');
-    observer.didPop(named('/c'), null);
-    expect(errors.reporter.route, '/c', reason: 'no name keeps the last');
-  });
-
-  testWidgets('WaitWatch built at runtime', (tester) async {
-    // ignore: prefer_const_constructors
-    await tester.pumpWidget(WaitWatch.centered('x'));
-    // ignore: prefer_const_constructors
-    await tester.pumpWidget(WaitWatch(operation: 'y', child: SizedBox()));
-    expect(find.byType(SizedBox), findsOneWidget);
   });
 
   test('redactForReport masks secrets', () {
@@ -452,9 +193,4 @@ void main() {
     expect(back.toJson(), e.toJson());
     expect(ErrorEntry.tryFromJson('nope'), isNull);
   });
-}
-
-class _Throws {
-  @override
-  String toString() => throw StateError('no');
 }
