@@ -77,6 +77,13 @@ watcher + pacman hooks). Not a package — installed by running
 Consumed by `steam-backlog-enforcer` (expects a `guard-lib/install.sh`
 sibling clone) and referenced by `screen-locker`.
 
+## app_errors/
+
+The PC ingest of the shared app error and slow-wait reporting: RTDB and local
+spool reports in, todoImplementer board tickets out, on a systemd `--user`
+timer. The reporters live in `crdt_sync_flutter`, `gatelock` and
+`godot_dev_tools/addons/app_errors`. See [`DOCS-app-errors.md`](DOCS-app-errors.md).
+
 ## gatelock/
 
 Python lock-window + HMAC log-integrity backend (package: `gatelock`, not
