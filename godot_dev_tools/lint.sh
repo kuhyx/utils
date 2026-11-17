@@ -19,7 +19,7 @@ main() {
             exit 1
         }
     done
-    mapfile -t files < <(find "$HERE/addons/dev_tools" "$HERE/tests" -name '*.gd' -type f | sort)
+    mapfile -t files < <(find "$HERE/addons/dev_tools" "$HERE/addons/app_errors" "$HERE/tests" -name '*.gd' -type f | sort)
     # One process per tool, not xargs -P: parallel gdtoolkit processes race to
     # create their grammar cache dir (os.makedirs EEXIST) on a cold cache and
     # report a file as unopenable.

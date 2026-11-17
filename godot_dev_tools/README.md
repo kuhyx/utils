@@ -37,7 +37,7 @@ the tag (shallow), then link or copy `godot_dev_tools/addons/dev_tools` to
 `res://addons/dev_tools` and gitignore that path:
 
 ```bash
-git clone --depth 1 --branch godot-dev-tools-v0.1.1 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch godot-dev-tools-v0.2.0 https://github.com/kuhyx/utils "$cache"
 ln -sfn "$cache/godot_dev_tools/addons/dev_tools" addons/dev_tools   # CI: cp -a instead
 ```
 
@@ -55,6 +55,28 @@ if options.dev and ResourceLoader.exists(ADDON):
 
 Exclude `addons/dev_tools/*` from every export preset, and keep the host glue
 out of exports too.
+
+## Error and slow-wait reporting (`addons/app_errors/`)
+
+The Godot reporter of kuhy's shared app-errors pipeline (utils
+`DOCS-app-errors.md`), released under the same tag. Unlike dev_tools, mount it
+in **every** build and keep it in exports: player errors are the point.
+
+```gdscript
+const ERRORS := "res://addons/app_errors/error_reporter.gd"
+
+if ResourceLoader.exists(ERRORS):
+	var rep: Node = (load(ERRORS) as GDScript).new()
+	rep.setup("car-rental-sim", "kuhyx/car-rental-sim")
+	add_child(rep)
+	# rep.report_wait("level.load", msec), or begin_wait / end_wait
+```
+
+Script errors and `push_error` arrive through an `OS.add_logger` logger. Any
+frame over 1 s becomes the wait `godot.frame`. Reports go to
+`~/.local/state/app-errors-spool/<app>.jsonl` on desktop Linux, and nothing is
+written on web. The `app-errors` ingest timer turns them into board tickets.
+Nothing shows on screen.
 
 ## The host interface
 
