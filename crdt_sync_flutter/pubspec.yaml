@@ -4,7 +4,7 @@ description: >-
   persisted per-install device id, and a one-call bootstrap. Removes the
   ~150 lines of firebase_backend.dart every consuming app was copying.
 publish_to: 'none'
-version: 0.8.2
+version: 0.8.3
 
 environment:
   sdk: ^3.12.2
@@ -35,7 +35,7 @@ dependencies:
   http: 1.6.0
   # Flutter 3.50 deprecates package:flutter/material.dart. An app on
   # material_ui gives flutter/material dialogs no MaterialLocalizations.
-  material_ui: 1.11.0
+  material_ui: 1.11.1
   shared_preferences: 2.5.6
   # Opens the system browser for the desktop loopback sign-in.
   url_launcher: 6.3.3
