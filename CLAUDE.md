@@ -1,6 +1,6 @@
 # utils
 
-Monorepo of shared gates and libraries (dep_freshness, file_length, md_naming,
+Monorepo of shared gates and libraries (app_errors, dep_freshness, file_length, md_naming,
 repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory, game_recording,
 flutter_web_drive (headless Flutter-web E2E driver + MCP), ...).
 `godot_dev_tools/` is a Godot addon (GDScript): `godot_dev_tools/test.sh` runs its GUT tests.
