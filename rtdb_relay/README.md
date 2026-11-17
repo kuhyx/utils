@@ -76,14 +76,85 @@ from rtdb_relay import presence, sse, mirror
   local copy of a streamed node. To publish a sealed snapshot node, `await
   rtdb.put("<unit path>", value)`.
 
-## Dart API (the Flutter client)
+## Dart API (the Flutter client, `dart/`)
 
-Not extracted yet: the tutor app's `lib/sync/` and `lib/relay/` still hold
-the client half. Until it moves here, a new client follows the wire format
-above (`requests/{rid}/req` sealed with crdt_sync's Dart `E2eCipher`, then
-listen on `requests/{rid}/result`).
+```yaml
+rtdb_relay:
+  git:
+    url: https://github.com/kuhyx/utils
+    ref: rtdb-relay-v0.2.0
+    path: rtdb_relay/dart
+```
 
-## Develop
+`import 'package:rtdb_relay/rtdb_relay.dart';` The tutor app uses it since
+v0.2.0 (`lib/sync/*.dart` there are thin tutor bindings: a worked example).
+A request is written by the app and answered by the worker; the app never
+writes `claim` or `result`.
+
+- `RelayLayout(String base, {required List<String> clear, required
+  Map<String, Set<String>> units})`: the tree rules, same patterns as the
+  Python `Layout`. `root` is crdt_sync's e2e prefix of `base`
+  (`todoimpl/v1` -> `todoimpl/v1-e2e`); the passphrase header lives at
+  `<base>/e2e`. Start from `kRelayClear` + `kRelayUnits` (claim clear;
+  `requests/*/req` keeps `created`, `requests/*/result` keeps `at`,
+  `presence/workers/*` keeps `beat`). `classify(parts) -> E2eRule`,
+  `unitPath(rel) -> String?`, `rel(path) -> String?`. Unknown paths throw
+  `E2eLayoutError` on write.
+- `RelaySealer(E2eCipher cipher, {required RelayLayout layout, String?
+  root})`: `seal(rel, value)`, `sealPatch(rel, body)`, `open(rel, value)`.
+  `E2eGate` makes one for you; build it by hand only in tests.
+- `RtdbClient({required RelayLayout layout, required String databaseUrl,
+  required IdTokenSource idToken, http.Client? httpClient, String?
+  namespace, RelaySealer? sealer, bool sealRequired = false})`:
+  `get(path, {query})`, `keys(path)`, `getTagged(path) -> Tagged`,
+  `put(path, value)`, `putIfMatch(path, value, etag) -> ConditionalResult`,
+  `deleteIfMatch(path, etag)`, `patch(path, Map)`, `delete(path)`,
+  `close()`. Paths are full (`<root>/requests/<rid>/req`). Errors are
+  `RtdbError` (`isAuth`, `isTransient`); with `sealRequired` nothing under
+  the root is sent before the key is unlocked. `keyRangeQuery(startAt)`
+  gives the `$key`-ordered range query (the only index the rules allow).
+- `RtdbStream(RtdbClient client, {Sleep? sleep})`: `listen(path, {query})
+  -> Stream<RtdbEvent>` (SSE, reconnects with backoff, opens sealed
+  units; events `RtdbPut`, `RtdbPatch`, `RtdbConnected`,
+  `RtdbDisconnected`, ...). `applyEvent(tree, event)`, `getAt(tree, path)`
+  and `setAt(tree, path, value)` keep a local copy of a streamed node.
+- `RequestHub(RtdbStream stream, String requestsPath)`: one ranged listen
+  for every request in flight. `watch(rid) -> Stream<Object?>` yields the
+  `requests/<rid>` node (`req`, `claim`, `result`) each time it changes;
+  `inFlight` counts the followed requests. To send: `put('<root>/requests/
+  <rid>/req', {'kind': k, 'dev': deviceId, 'created': {'.sv':
+  'timestamp'}, 'sent_at': ms, 'body': {...}})` with a fresh ULID `rid`,
+  then `watch(rid)` until `result` appears (`ok`, or `code`/`error`/`retry`).
+- `RevWatcher(RtdbStream stream, String path, {WidgetsBinding? binding,
+  ValueListenable<int>? yieldTo})`: `changesOf(key) -> Stream<int>` emits
+  real moves of `rev/<key>` only; pauses while the app is hidden and while
+  `yieldTo` (pass `RequestHub.inFlight`) is above 0. `revOf(rev, key)`,
+  `foregroundFor(state)`.
+- `E2eGate({required RtdbClient client, FlutterSecureStorage storage,
+  Argon2Params params})`: `unlock() -> Future<bool>` opens the key from the
+  keystore passphrase (crdt_sync_flutter) and sets `client.sealer`;
+  `locked`, `reason`.
+- `RelayFirebaseConfig({apiKey, databaseUrl, syncUid, serverClientId})`
+  (const; keep the values in a gitignored generated file) and
+  `RelayAuth({required RelayFirebaseConfig config, required
+  GoogleTokenFetcher googleToken, required FirebaseCredentialStore store,
+  http.Client? httpClient, DateTime Function()? clock, Future<bool>
+  Function()? adopt})`: `hasSession()`, `signInWithGoogle({tokenFetcher})
+  -> SignInOutcome` (refuses a Google account whose uid is not
+  `syncUid`), `idToken()` (pass `auth.idToken` to `RtdbClient`),
+  `signOut()`. `googleToken`: crdt_sync_flutter's `googleIdToken`.
+  `secureCredentialStore(String key)` is the keystore-backed store.
+- Desktop (web in a Chrome `--app` window): `adoptWrapperCredentials(base:,
+  client:, store:, expectedUid:)` takes the PC server's seeded session once
+  from `<base>sync-credentials`; pass it as `RelayAuth.adopt`.
+
+Develop: `cd dart && fvm flutter test --coverage &&
+scripts/check_coverage.sh coverage/lcov.info 100`; `fvm flutter analyze`.
+`test/data/e2e_vectors.json` (the tutor's contract vectors) and
+`test/differential_test.dart` (the tutor's pre-extraction sealer, frozen in
+`test/support/`) pin the wire format.
+
+## Develop (Python)
 
 `uv venv --python 3.15 .venv && uv pip install -e . pytest==9.2.0
 pytest-cov==7.1.0 ruff==0.17.4 mypy==2.4.1`, then `scripts/run_subproject_tests.sh rtdb_relay`
