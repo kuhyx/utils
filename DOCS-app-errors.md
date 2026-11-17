@@ -44,11 +44,11 @@ shipped fixes by `fixed_build`.
 
 ## Choices made (no questions asked, per the brief)
 
-- kartka keeps its own ingest for now. The shared ingest skips `/kartka`, and
-  the board's `kartka` adapter still reads kartka's `state.json`. Two readers
-  would race on deletes. To move kartka over, switch the board's default
-  source off (`error_sources`) and retire `kartka-errors.timer`. Its ticket
-  ids stay the same, because the signatures match.
+- kartka moved over on 2026-11-17: the shared ingest reads `/kartka` too
+  (it parses kartka's older entry shape: `sourceId`, per-entry `build`),
+  the board's `error_sources` is `[]` and `kartka-errors.timer` is retired.
+  Ticket ids stayed the same: all 134 stored kartka signatures recompute
+  identically.
 - Tk and Godot use the local spool instead of RTDB: they only run on the PC.
 - The Godot reporter is its own addon folder, mounted in every build. It is
   not part of `dev_tools`, which only loads for `--dev` runs.

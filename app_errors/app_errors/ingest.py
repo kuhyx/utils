@@ -23,8 +23,8 @@ from app_errors.rtdb import RtdbError
 if TYPE_CHECKING:
     from app_errors.rtdb import Rtdb
 
-#: Apps with their own ingest, never read here.
-SKIP_APPS = frozenset({"kartka"})
+#: Apps with their own ingest, never read here (kartka moved over 2026-11-17).
+SKIP_APPS: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)

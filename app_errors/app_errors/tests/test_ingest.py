@@ -70,16 +70,18 @@ def dirs(tmp_path: Path) -> ingest.Paths:
 def test_rtdb_entries_become_reports_and_are_deleted(dirs: ingest.Paths) -> None:
     db = FakeRtdb({
         "todo": {"errors": {"dev1": {"e1": _crash("2026-11-17T10:00:00Z"), "e2": _crash("2026-11-17T10:00:01Z")}}},
-        "kartka": {"errors": {"dev": {"k": _crash("2026-11-17T10:00:00Z")}}},
+        # kartka's own pre-0.9 uploader shape: sourceId, build per entry.
+        "kartka": {"errors": {"dev": {"k": {**_crash("2026-11-17T10:00:00Z"), "sourceId": "mangadex", "build": 556}}}},
         "other": {"data": 1},
     })  # fmt: skip
     summary = ingest.run(dirs, db)
-    assert summary.merged == 2
+    assert summary.merged == 3
     report = json.loads((dirs.reports / "todo.json").read_text())
     assert report["errors"][0]["count"] == 2
-    assert not (dirs.reports / "kartka.json").exists()  # kartka keeps its own ingest
+    kartka = json.loads((dirs.reports / "kartka.json").read_text())  # kartka moved over 2026-11-17
+    assert kartka["errors"][0]["build"] == 556
     assert db.data["todo"] == {"errors": {"dev1": {}}}  # ingested entries are removed from RTDB
-    assert "k" in db.data["kartka"]["errors"]["dev"]  # type: ignore[index]
+    assert db.data["kartka"] == {"errors": {"dev": {}}}
 
 
 def test_keep_leaves_rtdb_and_still_counts_once(dirs: ingest.Paths) -> None:
