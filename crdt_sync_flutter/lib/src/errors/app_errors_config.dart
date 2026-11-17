@@ -28,6 +28,15 @@ class AppErrorsConfig {
   /// The version name (`1.2.3`).
   final String? version;
 
+  /// This config with [build] replaced.
+  AppErrorsConfig withBuild(int build) => AppErrorsConfig(
+    app: app,
+    repo: repo,
+    package: package,
+    build: build,
+    version: version,
+  );
+
   /// What marks the app's own stack frames (`package:todo/`).
   String get mark => 'package:${package ?? app.replaceAll('-', '_')}/';
 }

@@ -208,7 +208,8 @@ errors.connect(
 `installAppErrors` chains `FlutterError.onError` and `PlatformDispatcher.onError`.
 Reports are deduplicated on the device (30 s window, 20 a minute), redacted,
 queued in `SharedPreferences` (so offline reports survive), and uploaded to
-RTDB `/<app>/errors/<device>/<id>` with `repo`, `build` and `version`. A spinner
+RTDB `/<app>/errors/<device>/<id>` with `repo`, `build` and `version`. Without
+`APP_BUILD` the installed versionCode (`package_info_plus`) is the build. A spinner
 inside `WaitWatch` that stays over 1 s becomes `perf.slow`. Nothing shows on
 screen.
 

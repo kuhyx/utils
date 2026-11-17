@@ -12,6 +12,7 @@ import 'package:crdt_sync_flutter/src/errors/error_upload.dart';
 import 'package:crdt_sync_flutter/src/errors/slow_wait.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The installed reporting: [reporter] for errors, [waits] for slow waits,
@@ -54,14 +55,22 @@ class AppErrors {
 /// `WidgetsFlutterBinding.ensureInitialized`: uncaught framework errors
 /// (`uncaught.flutter`) and async errors (`uncaught.async`) are queued, then
 /// handed to the handlers installed before. Shows nothing on screen.
+///
+/// A [config] with build 0 (no `--dart-define=APP_BUILD`) takes the installed
+/// versionCode from [buildNumber] (default [platformBuildNumber]), so every
+/// report names the build it came from; an unreadable one stays 0.
 Future<AppErrors> installAppErrors(
   AppErrorsConfig config, {
   SharedPreferences? preferences,
+  Future<String?> Function() buildNumber = platformBuildNumber,
 }) async {
+  final stamped = config.build != 0
+      ? config
+      : config.withBuild(await _installedBuild(buildNumber));
   final queue = await ErrorQueue.open(
     preferences ?? await SharedPreferences.getInstance(),
   );
-  final errors = AppErrors.instance = AppErrors.forTest(config, queue);
+  final errors = AppErrors.instance = AppErrors.forTest(stamped, queue);
   final reporter = errors.reporter;
   final framework = FlutterError.onError;
   FlutterError.onError = (details) {
@@ -81,6 +90,18 @@ Future<AppErrors> installAppErrors(
     return async?.call(error, stack) ?? false;
   };
   return errors;
+}
+
+/// The installed app's build number (Android versionCode).
+Future<String?> platformBuildNumber() async =>
+    (await PackageInfo.fromPlatform()).buildNumber;
+
+Future<int> _installedBuild(Future<String?> Function() read) async {
+  try {
+    return int.tryParse(await read() ?? '') ?? 0;
+  } on Object {
+    return 0;
+  }
 }
 
 /// Keeps the reporter's route current, so every report names its screen.
