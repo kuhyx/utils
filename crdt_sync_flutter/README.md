@@ -185,6 +185,33 @@ what Android does in practice, since `Uri.base` there is `file:///`.
 Nothing in this package reads `~/.config/crdt-sync/` directly. That is the
 desktop/Python half, reached over the wrapper's HTTP routes.
 
+## Error and slow-wait reporting
+
+Every error, and every wait the user sees over 1 s, goes to the PC's
+`app-errors` ingest (utils `DOCS-app-errors.md`). The board turns each one into
+a self-fixing ticket. Generalised from kartka.
+
+```dart
+final errors = await installAppErrors(const AppErrorsConfig(
+  app: 'todo', repo: 'kuhyx/todo',
+  build: int.fromEnvironment('APP_BUILD'),       // versionCode
+  version: String.fromEnvironment('APP_VERSION'),
+));
+errors.connect(
+  sink: () async => (await openFirebase())?.patchValues,   // null = signed out
+  deviceId: () async => repository.nodeId,
+);
+// MaterialApp(navigatorObservers: [AppErrorsRouteObserver(errors)], ...)
+// Wrap every loader: WaitWatch.centered('list.load')
+```
+
+`installAppErrors` chains `FlutterError.onError` and `PlatformDispatcher.onError`.
+Reports are deduplicated on the device (30 s window, 20 a minute), redacted,
+queued in `SharedPreferences` (so offline reports survive), and uploaded to
+RTDB `/<app>/errors/<device>/<id>` with `repo`, `build` and `version`. A spinner
+inside `WaitWatch` that stays over 1 s becomes `perf.slow`. Nothing shows on
+screen.
+
 ## Testing
 
 The keystore fake ships with the package, so a consuming app does not rebuild
