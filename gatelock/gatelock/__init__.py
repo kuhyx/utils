@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from gatelock._arbiter import (
     RANK_DIET_GUARD,
+    RANK_EVENING_GATE,
     RANK_SCREEN_LOCKER,
     RANK_WAKE_ALARM,
     Arbiter,
@@ -79,6 +80,7 @@ __all__ = [
     "QUEUE_HEARTBEAT_SECONDS",
     "QUEUE_POLL_SECONDS",
     "RANK_DIET_GUARD",
+    "RANK_EVENING_GATE",
     "RANK_SCREEN_LOCKER",
     "RANK_WAKE_ALARM",
     "Arbiter",

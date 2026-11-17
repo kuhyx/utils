@@ -5,10 +5,10 @@ on:
     branches: [main]
     # The workflow's own file counts as gatelock: editing only this file used
     # to trigger nothing, so a fix to the job itself could never prove itself.
-    paths: ['gatelock/**', '.github/workflows/gatelock-tests.yml']
+    paths: ['gatelock/**', 'earned_time/**', 'freedays/**', 'sickdays/**', '.github/workflows/gatelock-tests.yml']
   pull_request:
     branches: [main]
-    paths: ['gatelock/**', '.github/workflows/gatelock-tests.yml']
+    paths: ['gatelock/**', 'earned_time/**', 'freedays/**', 'sickdays/**', '.github/workflows/gatelock-tests.yml']
 
 jobs:
   test:
@@ -25,6 +25,14 @@ jobs:
           python-version: "3.x"
           cache: pip
           cache-dependency-path: gatelock/requirements.txt
+
+      # The evening chain (gatelock.evening_chain) reads earned_time, freedays
+      # and sickdays; they are siblings in this repo, so CI installs the
+      # checkout, not a tag.
+      - name: Install the sibling packages
+        run: >-
+          pip install ../crdt-sync ../earned_time
+          && pip install --no-deps ../freedays ../sickdays
 
       - name: Install dependencies
         run: pip install -r requirements.txt

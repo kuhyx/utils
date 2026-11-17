@@ -1,0 +1,16 @@
+[Unit]
+Description=Evening gate chain: book, tutor, LeetCode before night lockdown
+After=graphical-session.target
+
+# Started by root's day-specific-shutdown-check (systemctl --user -M kuhy@
+# start) when `python3 -m gatelock.evening_chain pending` exits 0. There is no
+# timer and no [Install]: arming it any other way would put a gate up on a day
+# nobody asked for one.
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=%h/.Xauthority
+ExecStart=/usr/bin/python3 -m gatelock.evening_chain run
+# A stopped or finished chain stays stopped: root reads "inactive after it was
+# started tonight" as "kuhy ended the evening" and enters lockdown.
+Restart=no

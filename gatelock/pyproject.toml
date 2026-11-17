@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gatelock"
-version = "0.15.1"
+version = "0.16.0"
 description = "Shared per-output lock-window + HMAC log-integrity backend for blocking-overlay apps"
 requires-python = ">=3.14"
 dependencies = []  # pure stdlib — tkinter is bundled with Python
@@ -16,6 +16,15 @@ dependencies = []  # pure stdlib — tkinter is bundled with Python
 # because a dependency is missing is itself a way to end up unlocked.
 # Consumers' install scripts install it unconditionally all the same.
 randr = ["python-xlib==0.33"]
+# The evening gate chain (gatelock.evening_chain) reads the signed ledgers and
+# the free/sick-day pools. Optional for the same reason as randr: a locker
+# must not refuse to start over a missing dependency, and only the chain's
+# own CLI imports these (lazily). Pins match book-guard / leetcode-guard.
+evening = [
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.22.0#subdirectory=earned_time",
+    "freedays @ git+https://github.com/kuhyx/utils@freedays-v0.4.3#subdirectory=freedays",
+    "sickdays @ git+https://github.com/kuhyx/utils@sickdays-v0.5.5#subdirectory=sickdays",
+]
 
 [tool.setuptools.packages.find]
 include = ["gatelock*"]
@@ -114,6 +123,8 @@ ignore = [".venv", "__pycache__"]
 # paths, so a directory name in `ignore` never fires under the hook.
 ignore-paths = ["^(.*/)?tests/.*$"]
 ignore-patterns = [".*\\.pyi$"]
+# The evening chain reads these siblings; the pre-commit pylint env has none.
+ignored-modules = ["earned_time", "freedays", "sickdays"]
 
 [tool.pylint.messages_control]
 enable = "all"
