@@ -1,0 +1,10 @@
+[Unit]
+Description=Ingest app error and slow-wait reports for the todoImplementer board
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/share/app-errors/venv/bin/app-errors ingest
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=120

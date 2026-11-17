@@ -1,0 +1,5 @@
+# Exact pins, enforced by the shared dependency-freshness gate.
+crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync
+jsonschema==4.26.0
+pytest==9.2.0
+pytest-cov==7.1.0

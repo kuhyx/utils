@@ -1,0 +1,34 @@
+name: app_errors tests
+
+on:
+  push:
+    branches: [main]
+    # The workflow's own file counts as app_errors: editing only this file would
+    # otherwise trigger nothing, so a fix to the job itself could never prove
+    # itself.
+    paths: ['app_errors/**', '.github/workflows/app-errors-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['app_errors/**', '.github/workflows/app-errors-tests.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app_errors
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          cache: pip
+          cache-dependency-path: app_errors/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install --no-deps -e .
+
+      - name: Run tests with coverage
+        run: python -m pytest -v

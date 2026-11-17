@@ -7,7 +7,9 @@
 #   1. every released library's tag for its current version is on origin
 #      (sickdays, sync_settings_ui: the apps' pins resolve to the code on main);
 #   2. the sickdays CLI + launcher run the checkout's code, via
-#      sickdays/install.sh (its venv installs sickdays editable from here).
+#      sickdays/install.sh (its venv installs sickdays editable from here);
+#   3. the app-errors ingest timer is active and runs this checkout's code,
+#      via app_errors/install.sh.
 #
 # Run it from the live checkout (~/src/utils), never from a worktree: install.sh
 # installs editable from its own directory, and a worktree path would point the
@@ -80,12 +82,29 @@ check_sickdays() {
     fi
 }
 
+# The ingest timer must be active and its venv must import this checkout.
+check_app_errors() {
+    local module
+    if ! systemctl --user is-active --quiet app-errors-ingest.timer; then
+        bad "app-errors-ingest.timer is not active"
+        return
+    fi
+    module="$("$HOME/.local/share/app-errors/venv/bin/python" -I -c 'import app_errors; print(app_errors.__file__)' 2>/dev/null || true)"
+    if [[ "$module" != "$UTILS_DIR/app_errors/"* ]]; then
+        bad "the app-errors venv imports ${module:-nothing}, not $UTILS_DIR/app_errors"
+    else
+        log "ok: app-errors ingest runs $module"
+    fi
+}
+
 verify() {
     check_tag sickdays sickdays
     check_tag sync_settings_ui sync_settings_ui
     check_tag game-recording game_recording
     check_tag godot-dev-tools godot_dev_tools
+    check_tag app-errors app_errors
     check_sickdays
+    check_app_errors
     if [[ "$FAILED" -ne 0 ]]; then
         log "health check FAILED"
         exit 1
@@ -97,6 +116,8 @@ main() {
     if [[ "$VERIFY_ONLY" -eq 0 ]]; then
         log "installing sickdays from $UTILS_DIR/sickdays"
         "$UTILS_DIR/sickdays/install.sh"
+        log "installing the app-errors ingest from $UTILS_DIR/app_errors"
+        "$UTILS_DIR/app_errors/install.sh"
     fi
     verify
 }

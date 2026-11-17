@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://todoimplementer.local/contracts/app-error.schema.json",
+  "title": "App errors",
+  "description": "What an app writes for the errors loop (DOCS-errors.md): `~/.local/state/app-errors/<app>.json` is a `report`; kartka's own state.json is mapped to the same `record` by an adapter. One record per identical error (signature).",
+  "$defs": {
+    "record": {
+      "type": "object",
+      "description": "One identical error or slow wait. The loop makes one ticket per `app:signature`.",
+      "properties": {
+        "app": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+        "repo": { "type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$", "description": "owner/name of the repo that holds the fix." },
+        "signature": { "type": "string", "minLength": 1, "pattern": "^\\S+$", "description": "Stable id of the error: the same error always gets the same one." },
+        "kind": { "type": "string", "minLength": 1, "description": "crash, ui.error, perf.slow, ..." },
+        "message": { "type": "string", "description": "Masked message (no secrets, no user data)." },
+        "top_frame": { "type": ["string", "null"] },
+        "count": { "type": "integer", "minimum": 1 },
+        "first_seen": { "type": "string", "minLength": 1 },
+        "last_seen": { "type": "string", "minLength": 1 },
+        "build": { "type": "integer", "minimum": 0, "description": "Monotonic build of the newest report (Android versionCode); 0 when the source does not know it." },
+        "version_name": { "type": ["string", "null"] },
+        "detail": { "type": ["string", "null"], "description": "Free text: durations, route." },
+        "open": { "type": "boolean", "description": "False once the source marks the error resolved; default true." }
+      },
+      "required": ["app", "repo", "signature", "kind", "message", "count", "first_seen", "last_seen", "build"],
+      "additionalProperties": false
+    },
+    "report": {
+      "type": "object",
+      "properties": {
+        "version": { "const": 1 },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/record" } }
+      },
+      "required": ["version", "errors"],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "description": "One entry of settings.json `error_sources`. `resolve` and `build` are argv lists; `{signature}`, `{repo_dir}` and `{commit}` are replaced.",
+      "properties": {
+        "app": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+        "repo": { "type": "string", "pattern": "^[^/\\s]+/[^/\\s]+$" },
+        "adapter": { "enum": ["kartka", "contract"] },
+        "path": { "type": "string", "minLength": 1 },
+        "resolve": { "type": "array", "items": { "type": "string" } },
+        "build": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["app", "repo", "adapter", "path"],
+      "additionalProperties": false
+    },
+    "ledger": {
+      "type": "object",
+      "description": "`<run root>/app-errors.json`: what the loop knows per `app:signature`.",
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "state": { "enum": ["ticket", "shipped", "fixed"] },
+        "repo": { "type": "string" },
+        "title": { "type": "string" },
+        "count": { "type": "integer", "minimum": 0 },
+        "starts": { "type": "integer", "minimum": 0 },
+        "commit": { "type": "string" },
+        "shipped_at": { "type": "number" },
+        "fixed_build": { "type": "integer", "minimum": 0 },
+        "installed_at": { "type": "number" },
+        "missing": { "type": "integer", "minimum": 0, "description": "Ticks the part was not on the board (a Ship may be closing it)." }
+      },
+      "required": ["state", "repo", "title", "count", "starts"],
+      "additionalProperties": false
+    }
+  }
+}
