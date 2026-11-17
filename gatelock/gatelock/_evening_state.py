@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import time
+import json
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Protocol
@@ -21,7 +22,7 @@ from gatelock.log_integrity import DEFAULT_HMAC_KEY_FILE
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from datetime import datetime
+    from datetime import date, datetime
 
 
 class _Earner(Protocol):
@@ -52,6 +53,7 @@ GATE_COMMANDS: Final[Mapping[str, tuple[str, ...]]] = {
     "leetcode": (_PYTHON, "-m", "leetcode_guard", "--production", "--evening"),
 }
 TUTOR: Final = "tutor"
+LEETCODE: Final = "leetcode"
 
 # What a ledger read may raise; anything else is a bug and surfaces in main().
 _CHECK_ERRORS: Final = (OSError, ValueError, TypeError, LookupError, RuntimeError)
@@ -81,8 +83,33 @@ def production_sources() -> Sources:
     return Sources(Path.home(), Path(DEFAULT_HMAC_KEY_FILE), None, None)
 
 
+def _charged_today(ledger: Path, sources: Sources, day: date) -> bool:
+    """Whether a verified ``charge`` row names ``day``, whatever its source.
+
+    A day settled by the escape hatch or a LeetCode outage carries a
+    non-paying charge, and the gate then writes no ``source=leetcode`` row, so
+    the rung can never be paid. earned_time has no public helper for "any
+    charge" (``done_today`` only sees the paying one), so this reads the rows
+    itself and trusts only signed ones. Raises OSError/ValueError when the
+    ledger or key cannot be read.
+    """
+    key = sources.key_file.read_bytes().strip()
+    rows = json.loads(ledger.read_text(encoding="utf-8"))["entries"]
+    return any(
+        isinstance(row, dict)
+        and row.get("kind") == "charge"
+        and row.get("day") == day.isoformat()
+        and earned_time.verified(row, key)
+        for row in rows
+    )
+
+
 def _paid(rung: str, earner: _Earner, sources: Sources, now: datetime) -> bool | None:
-    """Whether ``rung`` is paid today; None when it could not be checked."""
+    """Whether ``rung`` has nothing to run; None when it could not be checked.
+
+    The LeetCode rung also counts as settled on a day an unpaying charge
+    closed (see :func:`_charged_today`): it is not payable, so not pending.
+    """
     ledger = sources.home / earner.ledger
     try:
         if rung == TUTOR:
@@ -94,7 +121,11 @@ def _paid(rung: str, earner: _Earner, sources: Sources, now: datetime) -> bool |
         done = earned_time.done_today(
             earner, ledger, sources.key_file, now=now, gate_off=False
         )
-        return None if done is None else bool(done)
+        if done is None:
+            return None
+        if done or rung != LEETCODE:
+            return bool(done)
+        return _charged_today(ledger, sources, now.date())
     except _CHECK_ERRORS:
         _logger.exception("Could not check the %s rung", rung)
         return None

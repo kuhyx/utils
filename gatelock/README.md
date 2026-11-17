@@ -136,7 +136,9 @@ then LeetCode in front of night lockdown. Needs the `evening` extra
   check (unreadable ledger or key, any exception; stderr says why) -- it
   fails closed, so root enters lockdown. Reading and LeetCode use
   `earned_time.done_today`; the tutor is quota-based
-  (`credit_units >= max_units`). Cheap: three small reads, root runs it
+  (`credit_units >= max_units`). The LeetCode rung is pending only while
+  payable: a day settled by any signed `charge:<day>` row (escape hatch,
+  outage) can never earn the bonus, so it is not listed. Cheap: three small reads, root runs it
   every minute.
 - `run` runs each unpaid rung's gate (`GATE_COMMANDS`, all `--production
   --evening`) and re-checks before each. A gate's exit 10

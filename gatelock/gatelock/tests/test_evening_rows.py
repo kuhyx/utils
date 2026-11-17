@@ -55,6 +55,17 @@ def leetcode_row() -> dict[str, object]:
     return _signed(row)
 
 
+def settled_row(source: str, day: date = DAY) -> dict[str, object]:
+    """A non-paying charge: the day settled by escape hatch or outage."""
+    row = {
+        "kind": "charge",
+        "entry_id": f"charge:{day.isoformat()}",
+        "day": day.isoformat(),
+        "detail": {"source": source},
+    }
+    return _signed(row)
+
+
 def tutor_row(minutes: int) -> dict[str, object]:
     """``minutes`` of tutoring ending today."""
     detail = {"minutes": minutes, "ended_at": stamp()}

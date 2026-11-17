@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
+
+import pytest
 
 from gatelock import RANK_DIET_GUARD, RANK_SCREEN_LOCKER
 from gatelock import evening_chain as chain
@@ -17,6 +20,7 @@ from gatelock.tests.test_evening_rows import (
     mark_sick,
     pay_all,
     seeded,
+    settled_row,
     tutor_row,
     write_ledger,
 )
@@ -24,8 +28,6 @@ from gatelock.tests.test_evening_rows import (
 if TYPE_CHECKING:
     from datetime import datetime
     from pathlib import Path
-
-    import pytest
 
 
 def _run(sources: chain.Sources, now: datetime) -> tuple[int, str]:
@@ -162,3 +164,59 @@ def test_a_rung_the_registry_dropped_is_not_asked(
     kept = tuple(e for e in earned_time.earners_for(DAY) if e.name != "reading")
     monkeypatch.setattr("earned_time.earners_for", lambda _day: kept)
     assert _run(sources, EVENING) == (0, "tutor leetcode")
+
+
+@pytest.mark.parametrize("source", ["escape", "outage"])
+def test_a_settled_leetcode_day_is_unpayable_so_not_pending(
+    tmp_path: Path, source: str
+) -> None:
+    sources = seeded(tmp_path)
+    pay_all(sources)
+    write_ledger(sources, "leetcode", [settled_row(source)])
+    assert _run(sources, EVENING) == (1, "")
+
+
+def test_a_settled_leetcode_day_leaves_the_other_rungs(tmp_path: Path) -> None:
+    sources = seeded(tmp_path)
+    write_ledger(sources, "reading", [])
+    write_ledger(sources, "tutor", [])
+    write_ledger(sources, "leetcode", [settled_row("escape")])
+    assert _run(sources, EVENING) == (0, "reading tutor")
+
+
+def test_yesterdays_charge_does_not_settle_today(tmp_path: Path) -> None:
+    sources = seeded(tmp_path)
+    pay_all(sources)
+    yesterday = DAY - timedelta(days=1)
+    write_ledger(sources, "leetcode", [settled_row("escape", yesterday)])
+    assert _run(sources, EVENING) == (0, "leetcode")
+
+
+def test_an_unsigned_charge_does_not_settle_the_day(tmp_path: Path) -> None:
+    sources = seeded(tmp_path)
+    pay_all(sources)
+    forged = {**settled_row("escape"), "hmac": "0" * 64}
+    write_ledger(sources, "leetcode", [forged])
+    assert _run(sources, EVENING) == (0, "leetcode")
+
+
+def test_a_plain_unpaid_leetcode_day_is_still_pending(tmp_path: Path) -> None:
+    sources = seeded(tmp_path)
+    pay_all(sources)
+    write_ledger(sources, "leetcode", [])
+    assert _run(sources, EVENING) == (0, "leetcode")
+
+
+def test_a_settled_check_that_cannot_verify_is_exit_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sources = seeded(tmp_path)
+    pay_all(sources)
+    write_ledger(sources, "leetcode", [settled_row("escape")])
+
+    def boom(*_args: object) -> bool:
+        msg = "cannot verify"
+        raise ValueError(msg)
+
+    monkeypatch.setattr("earned_time.verified", boom)
+    assert _run(sources, EVENING) == (2, "")
