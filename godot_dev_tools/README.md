@@ -37,7 +37,7 @@ the tag (shallow), then link or copy `godot_dev_tools/addons/dev_tools` to
 `res://addons/dev_tools` and gitignore that path:
 
 ```bash
-git clone --depth 1 --branch godot-dev-tools-v0.2.0 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch godot-dev-tools-v0.2.1 https://github.com/kuhyx/utils "$cache"
 ln -sfn "$cache/godot_dev_tools/addons/dev_tools" addons/dev_tools   # CI: cp -a instead
 ```
 
@@ -76,7 +76,9 @@ Script errors and `push_error` arrive through an `OS.add_logger` logger. Any
 frame over 1 s becomes the wait `godot.frame`. Reports go to
 `~/.local/state/app-errors-spool/<app>.jsonl` on desktop Linux, and nothing is
 written on web. The `app-errors` ingest timer turns them into board tickets.
-Nothing shows on screen.
+Nothing shows on screen. Headless runs (tests, CI, bots) and `APP_ERRORS_OFF=1`
+write nothing, so a game's own checks never file tickets; `APP_ERRORS_FORCE=1`
+turns a headless end-to-end probe back on.
 
 ## The host interface
 

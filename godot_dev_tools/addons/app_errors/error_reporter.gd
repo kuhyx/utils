@@ -12,6 +12,7 @@ extends Node
 ## reported as the wait `godot.frame`. Each report is one JSON line in
 ## $XDG_STATE_HOME/app-errors-spool/<app>.jsonl, which the PC's app-errors
 ## ingest turns into a board ticket. Desktop only (a web build has no spool),
+## off in headless runs and with APP_ERRORS_OFF=1 (see default_enabled),
 ## shows nothing on screen, and never reports from inside a report. Identical
 ## errors within WINDOW_SEC are dropped; at most MAX_PER_MINUTE are written.
 ## No class_name (the addon stays out of the global class cache).
@@ -33,6 +34,8 @@ const KINDS := {
 var clock: Callable = Time.get_unix_time_from_system
 ## Folder of the spool; empty writes nothing (a web build).
 var spool_dir := default_spool_dir()
+## False writes nothing: headless runs (tests, CI, bots) and APP_ERRORS_OFF.
+var enabled := default_enabled()
 var logger: Logger
 
 var _app := ""
@@ -56,6 +59,17 @@ static func default_spool_dir() -> String:
 	if base == "":
 		base = OS.get_environment("HOME").path_join(".local/state")
 	return base.path_join("app-errors-spool")
+
+
+## Whether this process reports: never with APP_ERRORS_OFF=1, and not when
+## headless (tests, CI, smoke runs, export checks: their errors are not a
+## player's) unless APP_ERRORS_FORCE=1 (an end-to-end probe).
+static func default_enabled() -> bool:
+	if OS.get_environment("APP_ERRORS_OFF") == "1":
+		return false
+	if DisplayServer.get_name() == "headless":
+		return OS.get_environment("APP_ERRORS_FORCE") == "1"
+	return true
 
 
 ## Names the game: `app` as the board shows it, `repo` as owner/name, and the
@@ -181,7 +195,7 @@ func _allowed(bucket: String, cap: int, now: float) -> bool:
 
 ## Appends one entry; a missing spool folder is made, a failure drops it.
 func _write(entry: Dictionary, now: float) -> void:
-	if spool_dir == "":
+	if spool_dir == "" or not enabled:
 		return
 	var ms := int(fmod(now, 1.0) * 1000.0)
 	entry.at = "%s.%03dZ" % [Time.get_datetime_string_from_unix_time(int(now)), ms]

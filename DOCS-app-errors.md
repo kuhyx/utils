@@ -22,7 +22,9 @@ board's half is todoImplementer `DOCS-errors.md`, with the contract in
      `rep.wait(...)` and `rep.begin(...)` time a wait.
    - Godot, `godot_dev_tools` 0.2.0, `addons/app_errors`: an `OS.add_logger`
      logger catches script errors and `push_error`. A frame over 1 s, or
-     `report_wait` over 1 s, becomes `perf.slow`.
+     `report_wait` over 1 s, becomes `perf.slow`. Headless runs and
+     `APP_ERRORS_OFF=1` write nothing, so a game's own test gates file no
+     tickets.
    - PC apps (Tk and Godot) append to the local spool
      `~/.local/state/app-errors-spool/<app>.jsonl`. They need no RTDB, because
      the ingest runs on the same PC.

@@ -12,6 +12,7 @@ var _rep: Node
 func before_each() -> void:
 	_rep = Reporter.new()
 	_rep.spool_dir = ProjectSettings.globalize_path(_dir)
+	_rep.enabled = true  # tests run headless, where the reporter is off
 	_rep.setup("car-rental-sim", "kuhyx/car-rental-sim", 12, "0.4.0")
 	_rep.clock = func() -> float: return 1800000000.0
 	add_child_autofree(_rep)
@@ -178,3 +179,19 @@ func test_real_push_error_reaches_the_spool() -> void:
 	for entry in _lines():
 		errors.append(entry.error)
 	assert_has(errors, "deliberate test error")
+
+
+func test_headless_runs_are_off_unless_forced() -> void:
+	assert_false(Reporter.default_enabled(), "GUT runs headless: off by default")
+	OS.set_environment("APP_ERRORS_FORCE", "1")
+	assert_true(Reporter.default_enabled(), "a probe can force it on")
+	OS.set_environment("APP_ERRORS_OFF", "1")
+	assert_false(Reporter.default_enabled(), "APP_ERRORS_OFF always wins")
+	OS.unset_environment("APP_ERRORS_FORCE")
+	OS.unset_environment("APP_ERRORS_OFF")
+
+
+func test_disabled_writes_nothing() -> void:
+	_rep.enabled = false
+	_rep.report_wait("level.load", 5000)
+	assert_eq(_lines(), [])
