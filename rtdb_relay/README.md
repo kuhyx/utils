@@ -13,7 +13,7 @@ check that the package seals and opens exactly those bytes.
 Python 3.14+ (tested on 3.15.2). Install from a release tag:
 
 ```toml
-"rtdb-relay @ git+https://github.com/kuhyx/utils@rtdb-relay-v0.1.1#subdirectory=rtdb_relay"
+"rtdb-relay @ git+https://github.com/kuhyx/utils@rtdb-relay-v0.2.0#subdirectory=rtdb_relay"
 ```
 
 ## Wire format (under the app's root, e.g. `todoimpl/v1-e2e`)
