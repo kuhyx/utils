@@ -125,6 +125,24 @@ lower ranks keep queueing), waits windowless, and re-arms fully once nothing
 outranks it. `scripts/verify_all_lockers.py` checks this with five real
 processes on a private Xvfb.
 
+## Error and slow-wait reporting
+
+`gatelock.error_report` is the Python reporter of the shared app-errors pipeline
+(utils `DOCS-app-errors.md`). Call it once at start-up, then watch the Tk loop:
+
+```python
+from gatelock import error_report
+
+rep = error_report.install("leetcode-guard", "kuhyx/leetcode-guard")
+error_report.watch_stalls(root, rep)       # a frozen loop over 1 s -> perf.slow
+with rep.wait("coach.load"):               # or rep.begin(...).end() across callbacks
+    ...
+```
+
+Uncaught, thread and Tk callback errors and waits over 1 s go to
+`~/.local/state/app-errors-spool/<app>.jsonl`. The `app-errors` ingest timer
+turns them into board tickets. Nothing shows on screen.
+
 ## Development
 
 ```bash
