@@ -70,6 +70,33 @@ void main() {
     );
   });
 
+  Future<String?> fetch(http.Response Function(http.Request) answer) =>
+      fetchWrapperPassphrase(
+        base: base,
+        client: MockClient((r) async {
+          expect(r.url.path, '/app/sync-passphrase');
+          return answer(r);
+        }),
+      );
+
+  test('fetches the PC passphrase, or null', () async {
+    expect(
+      await fetch((_) => http.Response(jsonEncode({'passphrase': 'p'}), 200)),
+      'p',
+    );
+    expect(await fetch((_) => http.Response('', 404)), isNull);
+    expect(await fetch((_) => http.Response('[1]', 200)), isNull);
+    expect(
+      await fetch((_) => http.Response(jsonEncode({'passphrase': ''}), 200)),
+      isNull,
+    );
+    expect(
+      await fetch((_) => http.Response(jsonEncode({'passphrase': 1}), 200)),
+      isNull,
+    );
+    expect(await fetch((_) => throw http.ClientException('none')), isNull);
+  });
+
   test('auth: the desktop adopts on the first session probe', () async {
     final token = _jwt({'user_id': 'u'});
     final store = InMemoryCredentialStore();

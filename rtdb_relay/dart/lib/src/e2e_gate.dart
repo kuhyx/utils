@@ -6,13 +6,14 @@ library;
 import 'package:crdt_sync/crdt_sync.dart'
     show
         Argon2Params,
+        E2eLockReason,
         E2eLocked,
         E2eReady,
         E2eState,
         RemoteStore,
         RemoteSyncError;
 import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
-    show kSecureStorage, openEncryptedStoreFromKeystore;
+    show kSecureStorage, openEncryptedStoreFromKeystore, saveE2ePassphrase;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:rtdb_relay/src/rtdb_client.dart';
 import 'package:rtdb_relay/src/sealer.dart';
@@ -24,6 +25,7 @@ class E2eGate {
     required this.client,
     this.storage = kSecureStorage,
     this.params = Argon2Params.recommended,
+    this.recover,
   });
 
   /// The client whose sealer this sets.
@@ -34,6 +36,13 @@ class E2eGate {
 
   /// Argon2id cost for a header this device creates.
   final Argon2Params params;
+
+  /// Where a missing or wrong passphrase can be fetched from (the desktop:
+  /// its PC wrapper, `fetchWrapperPassphrase`). Asked at most once per gate,
+  /// so a wrong answer cannot loop; the manual entry stays the fallback.
+  final Future<String?> Function()? recover;
+
+  bool _recovered = false;
 
   /// Why the last [unlock] stayed locked; null once open.
   E2eState? last;
@@ -49,12 +58,16 @@ class E2eGate {
   /// not a crdt log; the PC worker copies the old root itself.
   Future<bool> unlock() async {
     if (!locked) return true;
-    final state = await openEncryptedStoreFromKeystore(
-      store: E2eHeaderStore(client),
-      oldPrefix: client.layout.base,
-      storage: storage,
-      params: params,
-    );
+    var state = await _open();
+    final fetch = recover;
+    if (fetch != null && !_recovered && _passphraseIsTheProblem(state)) {
+      _recovered = true;
+      final secret = await fetch();
+      if (secret != null) {
+        await saveE2ePassphrase(secret, storage: storage);
+        state = await _open();
+      }
+    }
     last = state;
     if (state is E2eReady) {
       client.sealer = RelaySealer(
@@ -65,6 +78,21 @@ class E2eGate {
     }
     return false;
   }
+
+  Future<E2eState> _open() => openEncryptedStoreFromKeystore(
+    store: E2eHeaderStore(client),
+    oldPrefix: client.layout.base,
+    storage: storage,
+    params: params,
+  );
+
+  static bool _passphraseIsTheProblem(E2eState state) => switch (state) {
+    E2eLocked(
+      reason: E2eLockReason.needsPassphrase || E2eLockReason.wrongKey,
+    ) =>
+      true,
+    _ => false,
+  };
 
   /// The lock reason of the last attempt, for the spoken label.
   String get reason => switch (last) {

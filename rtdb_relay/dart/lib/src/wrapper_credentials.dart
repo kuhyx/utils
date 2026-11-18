@@ -7,6 +7,9 @@
 /// `~/.config/tutor/firebase_auth.json`, written by crdt-sync's
 /// `link_google.py`) ONCE, at `<app>/sync-credentials`, and the page keeps it
 /// in its own credential store from then on.
+///
+/// The e2e passphrase comes the same way (`<app>/sync-passphrase`, the PC's
+/// `~/.config/crdt-sync/password`), asked for only while the key is locked.
 library;
 
 import 'dart:convert';
@@ -18,6 +21,27 @@ import 'package:http/http.dart' as http;
 
 /// Route, relative to the app's base URL (`/app/sync-credentials`).
 const kSyncCredentialsRoute = 'sync-credentials';
+
+/// Route, relative to the app's base URL (`/app/sync-passphrase`).
+const kSyncPassphraseRoute = 'sync-passphrase';
+
+/// The crdt-sync passphrase the wrapper at [base] hands out, or null when it
+/// has none to give (404, malformed, empty, no wrapper at all).
+Future<String?> fetchWrapperPassphrase({
+  required Uri base,
+  required http.Client client,
+}) async {
+  try {
+    final res = await client.get(base.resolve(kSyncPassphraseRoute));
+    if (res.statusCode != 200) return null;
+    final body = jsonDecode(utf8.decode(res.bodyBytes));
+    final secret = body is Map<String, dynamic> ? body['passphrase'] : null;
+    return secret is String && secret.isNotEmpty ? secret : null;
+  } on Object catch (error) {
+    log('wrapper passphrase unavailable', level: 800, error: error);
+    return null;
+  }
+}
 
 /// The Firebase uid inside [idToken] (JWT `user_id`, else `sub`), or null.
 String? uidOfIdToken(String idToken) {

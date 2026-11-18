@@ -4,7 +4,7 @@ description: >-
   half is the Python rtdb_relay next to this directory). Extracted from the
   tutor app; any app that talks to a PC worker over RTDB reuses it.
 publish_to: 'none'
-version: 0.2.0
+version: 0.2.1
 
 environment:
   sdk: ^3.13.5

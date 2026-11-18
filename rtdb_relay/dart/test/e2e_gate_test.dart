@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:crdt_sync/crdt_sync.dart' show E2eLayout, E2eLockReason;
 import 'package:crdt_sync_flutter/crdt_sync_flutter.dart'
-    show kE2ePassphraseKey;
+    show kE2ePassphraseKey, kSecureStorage;
 import 'package:crdt_sync_flutter/testing/fake_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rtdb_relay/src/e2e_gate.dart';
@@ -106,6 +106,102 @@ void main() {
       final wrong = E2eGate(client: needy(db), params: fastArgon);
       expect(await wrong.unlock(), isFalse);
       expect(wrong.reason, E2eLockReason.wrongKey.name);
+    });
+  });
+
+  group('E2eGate recovery', () {
+    RtdbClient needy(FakeRtdb db) => RtdbClient(
+      layout: tutorLayout,
+      databaseUrl: 'https://fake',
+      idToken: () async => 'tok',
+      httpClient: db.client().httpClient,
+      namespace: '',
+      sealRequired: true,
+    );
+
+    Future<FakeRtdb> headerFor(String passphrase) async {
+      installFakeSecureStorage(initial: {kE2ePassphraseKey: passphrase});
+      final db = FakeRtdb();
+      expect(
+        await E2eGate(client: needy(db), params: fastArgon).unlock(),
+        isTrue,
+      );
+      return db;
+    }
+
+    test('a missing passphrase is fetched, kept and opens the key', () async {
+      final db = await headerFor('right');
+      installFakeSecureStorage();
+      var asked = 0;
+      final gate = E2eGate(
+        client: needy(db),
+        params: fastArgon,
+        recover: () async {
+          asked++;
+          return 'right';
+        },
+      );
+      expect(await gate.unlock(), isTrue);
+      expect(asked, 1);
+      expect(await kSecureStorage.read(key: kE2ePassphraseKey), 'right');
+    });
+
+    test('a wrong stored passphrase is replaced by the fetched one', () async {
+      final db = await headerFor('right');
+      installFakeSecureStorage(initial: {kE2ePassphraseKey: 'wrong'});
+      final gate = E2eGate(
+        client: needy(db),
+        params: fastArgon,
+        recover: () async => 'right',
+      );
+      expect(await gate.unlock(), isTrue);
+    });
+
+    test(
+      'nothing fetched, or fetched wrong, stays locked; asks once',
+      () async {
+        final db = await headerFor('right');
+        installFakeSecureStorage();
+        final none = E2eGate(
+          client: needy(db),
+          params: fastArgon,
+          recover: () async => null,
+        );
+        expect(await none.unlock(), isFalse);
+        expect(none.reason, E2eLockReason.needsPassphrase.name);
+        var asked = 0;
+        final wrong = E2eGate(
+          client: needy(db),
+          params: fastArgon,
+          recover: () async {
+            asked++;
+            return 'also-wrong';
+          },
+        );
+        expect(await wrong.unlock(), isFalse);
+        expect(wrong.reason, E2eLockReason.wrongKey.name);
+        expect(await wrong.unlock(), isFalse);
+        expect(asked, 1);
+      },
+    );
+
+    test('a bad header is not a passphrase problem: never asks', () async {
+      installFakeSecureStorage(initial: {kE2ePassphraseKey: 'x'});
+      final db = FakeRtdb();
+      db.root = setAt(db.root, E2eLayout.of(tutorLayout.base).e2ePath, {
+        'not': 'a header',
+      });
+      var asked = 0;
+      final gate = E2eGate(
+        client: needy(db),
+        params: fastArgon,
+        recover: () async {
+          asked++;
+          return 'x';
+        },
+      );
+      expect(await gate.unlock(), isFalse);
+      expect(asked, 0);
     });
   });
 
