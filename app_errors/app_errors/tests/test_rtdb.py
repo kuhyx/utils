@@ -118,7 +118,7 @@ class _PatchFails:
 
 
 def test_delete_failure_is_reported_after_save(tmp_path: Path) -> None:
-    paths = ingest.Paths(tmp_path / "s.json", tmp_path / "r", tmp_path / "sp")
+    paths = ingest.Paths(tmp_path / "s.json", tmp_path / "r", tmp_path / "sp", tmp_path / "src")
     summary = ingest.run(paths, _PatchFails())
     assert summary == ingest.Summary(1, "patch down")
     assert (tmp_path / "r" / "todo.json").exists()

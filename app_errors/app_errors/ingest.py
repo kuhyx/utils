@@ -13,11 +13,12 @@ its ``kartka`` adapter, and two readers of ``/kartka/errors`` would race.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import functools
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app_errors import spool, store
+from app_errors import origin, spool, store
 from app_errors.rtdb import RtdbError
 
 if TYPE_CHECKING:
@@ -34,6 +35,8 @@ class Paths:
     state: Path
     reports: Path
     spool: Path
+    #: Checkouts: ``<src_root>/<app>``'s origin names the repo of a report without one.
+    src_root: Path
 
 
 @dataclass(frozen=True)
@@ -45,12 +48,13 @@ class Summary:
 
 
 def default_paths() -> Paths:
-    """Return the paths under ``$XDG_STATE_HOME`` (default ``~/.local/state``)."""
+    """Return the state paths (``$XDG_STATE_HOME``, default ``~/.local/state``) and ``~/src``."""
     base = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state")
     return Paths(
         base / "app-errors-ingest" / "state.json",
         base / "app-errors",
         base / "app-errors-spool",
+        Path.home() / "src",
     )
 
 
@@ -75,6 +79,7 @@ def _rtdb_entries(
 def run(paths: Paths, db: Rtdb | None, *, keep: bool = False) -> Summary:
     """Ingest everything once; RTDB failures are returned, the spool still goes in."""
     state = store.load(paths.state)
+    repo_of = functools.partial(origin.repo_slug, paths.src_root, owner=store.OWNER)
     merged = 0
     rtdb_error = None
     deletes: dict[str, dict[str, object]] = {}
@@ -83,8 +88,9 @@ def run(paths: Paths, db: Rtdb | None, *, keep: bool = False) -> Summary:
             found, deletes = _rtdb_entries(db)
         except RtdbError as e:
             found, rtdb_error = [], str(e)
-        merged += sum(store.merge(state, app, key, entry) for app, key, entry in found)
-    merged += sum(store.merge(state, line.app, line.id, line.entry) for line in spool.drain(paths.spool))
+        merged += sum(store.merge(state, a, k, e, repo_of=repo_of) for a, k, e in found)
+    lines = spool.drain(paths.spool)
+    merged += sum(store.merge(state, ln.app, ln.id, ln.entry, repo_of=repo_of) for ln in lines)
     store.save(paths.state, state)
     store.write_reports(paths.reports, state)
     if db is not None and not keep:

@@ -24,6 +24,8 @@ class Paths:
     lock_file: Path
     unit_dir: Path
     mcp_url: str
+    # Game checkouts: ``<src_root>/<repo>``'s origin names the GitHub repo.
+    src_root: Path
 
     @classmethod
     def under(cls, root: Path) -> Paths:
@@ -34,6 +36,7 @@ class Paths:
             lock_file=root / "state" / "lock",
             unit_dir=root / "units",
             mcp_url=DEAD_URL,
+            src_root=root / "src",
         )
 
 
@@ -48,4 +51,5 @@ def resolve_paths(given: Paths | None = None) -> Paths:
         lock_file=home / ".local" / "share" / "feedback-inbox" / "lock",
         unit_dir=home / ".config" / "systemd" / "user",
         mcp_url=MCP_URL,
+        src_root=home / "src",
     )

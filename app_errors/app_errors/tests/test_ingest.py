@@ -9,6 +9,7 @@ import pytest
 
 from app_errors import cli, ingest, spool
 from app_errors.rtdb import RtdbError
+from app_errors.tests.checkout import make_checkout
 
 
 class FakeRtdb:
@@ -64,6 +65,7 @@ def dirs(tmp_path: Path) -> ingest.Paths:
         state=tmp_path / "ingest" / "state.json",
         reports=tmp_path / "app-errors",
         spool=tmp_path / "app-errors-spool",
+        src_root=tmp_path / "src",
     )
 
 
@@ -103,6 +105,18 @@ def test_rtdb_down_still_ingests_spool(dirs: ingest.Paths) -> None:
     assert summary.rtdb_error == "down"
     assert json.loads((dirs.reports / "tk-app.json").read_text())["errors"][0]["repo"] == "kuhyx/tk"
     assert list(dirs.spool.glob("*")) == []  # the spool is consumed
+
+
+def test_report_without_repo_takes_the_checkouts_origin(dirs: ingest.Paths) -> None:
+    # Regression: a report with no repo was filed under a guessed kuhyx/<app>;
+    # the checkout's origin names the real one (here Sepci0/cleanup-plate).
+    make_checkout(dirs.src_root / "cleanup-plate", "git@github.com:Sepci0/cleanup-plate.git")
+    spool.append(dirs.spool, "cleanup-plate", {"at": "2026-11-17T10:00:00Z", "kind": "k", "error": "e"})
+    spool.append(dirs.spool, "kartka", {"at": "2026-11-17T10:00:00Z", "kind": "k", "error": "e"})
+    assert ingest.run(dirs, None).merged == 2
+    repos = {app: json.loads((dirs.reports / f"{app}.json").read_text())["errors"][0]["repo"]
+             for app in ("cleanup-plate", "kartka")}  # fmt: skip
+    assert repos == {"cleanup-plate": "Sepci0/cleanup-plate", "kartka": "kuhyx/kartka"}
 
 
 def test_no_rtdb_at_all(dirs: ingest.Paths) -> None:

@@ -28,7 +28,10 @@ MANUAL = "MANUAL WORK REQUIRED: "
 
 
 def _run(paths: Paths, todo: FakeTodo) -> list[Outcome]:
-    return [r.outcome for r in run_once(paths.data_root, Importer(todo, OWNER), NOW)]
+    return [
+        r.outcome
+        for r in run_once(paths.data_root, Importer(todo, OWNER, paths.src_root), NOW)
+    ]
 
 
 def _marker(bundle: Path) -> dict[str, object]:
@@ -63,7 +66,7 @@ def test_failed_update_keeps_marker_and_retries_without_a_second_task(
 ) -> None:
     bundle = make_bundle(paths.data_root)
     todo = FakeTodo(fail_update=True)
-    results = run_once(paths.data_root, Importer(todo, OWNER), NOW)
+    results = run_once(paths.data_root, Importer(todo, OWNER, paths.src_root), NOW)
     assert [r.outcome for r in results] == [Outcome.FAILED]
     assert "update refused" in results[0].detail
     assert "format" not in _marker(bundle)
@@ -138,7 +141,9 @@ def test_repair_reports_an_unwritable_marker(paths: Paths) -> None:
     )
     bundle.chmod(0o500)
     try:
-        results = run_once(paths.data_root, Importer(FakeTodo(), OWNER), NOW)
+        results = run_once(
+            paths.data_root, Importer(FakeTodo(), OWNER, paths.src_root), NOW
+        )
     finally:
         bundle.chmod(0o700)
     assert results[0].outcome is Outcome.FAILED

@@ -24,13 +24,20 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 from app_errors.signature import SLOW_KIND, mark_of, signature, strings, top_frame
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
 #: Entry ids remembered for dedup (oldest dropped first).
 MAX_SEEN = 5000
 #: An app name the board accepts (the contract's ``app`` pattern).
 APP_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 _REPO = re.compile(r"^[^/\s]+/[^/\s]+$")
+#: The owner guessed for an app whose report names no repo and has no checkout.
+OWNER = "kuhyx"
+
+
+def guess_repo(app: str) -> str:
+    """Return ``OWNER/app``: the fallback when nothing better names the repo."""
+    return f"{OWNER}/{app}"
 
 
 class Resolved(TypedDict):
@@ -109,8 +116,18 @@ def _reopens(resolved: Resolved, at: str, build: int) -> bool:
     return at > resolved["at"]
 
 
-def merge(state: State, app: str, entry_id: str, raw: object) -> bool:
-    """Count one report ``raw`` of ``app`` under its signature; False when seen or not a report."""
+def merge(
+    state: State,
+    app: str,
+    entry_id: str,
+    raw: object,
+    *,
+    repo_of: Callable[[str], str] = guess_repo,
+) -> bool:
+    """Count one report ``raw`` of ``app`` under its signature; False when seen or not a report.
+
+    A new record takes the report's ``repo``, else ``repo_of(app)``.
+    """
     if not isinstance(raw, dict):
         return False
     entry = cast("Mapping[str, object]", raw)
@@ -131,7 +148,7 @@ def merge(state: State, app: str, entry_id: str, raw: object) -> bool:
         repo = _str(entry.get("repo"))
         rec = recs[sig.id] = {
             "signature": sig.id,
-            "repo": repo if repo and _REPO.match(repo) else f"kuhyx/{app}",
+            "repo": repo if repo and _REPO.match(repo) else repo_of(app),
             "kind": kind,
             "message": sig.message,
             "top_frame": top_frame(strings(entry.get("stack")), mark_of(entry, app)),

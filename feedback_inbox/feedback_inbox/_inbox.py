@@ -24,6 +24,7 @@ from feedback_inbox._entry import (
     note_from_entry,
     read_report,
 )
+from feedback_inbox._origin import repo_slug
 from feedback_inbox._todo import TodoError
 
 if TYPE_CHECKING:
@@ -122,10 +123,11 @@ def _read_marker(bundle: Path) -> dict[str, object] | None:
 
 @dataclass(frozen=True)
 class Importer:
-    """Who files the tasks (``client``) under which GitHub owner."""
+    """Who files the tasks (``client``), where checkouts live, the fallback owner."""
 
     client: TodoClient
     owner: str
+    src_root: Path
     settle: float = SETTLE_SECONDS
 
     def import_bundle(self, feedback_dir: Path, bundle: Path, now: float) -> Result:
@@ -140,7 +142,8 @@ class Importer:
             return Result(bundle, Outcome.PENDING, detail="report.json settling")
         repo = repo_name(feedback_dir)
         draft = build_task(repo, bundle.name, entry, read_report(report_path))
-        return self._file(bundle, f"{self.owner}/{repo}", draft)
+        slug = repo_slug(self.src_root, repo, self.owner)
+        return self._file(bundle, slug, draft)
 
     def _file(self, bundle: Path, repo: str, draft: TaskDraft) -> Result:
         """Create the task, write the marker, then fix the title."""

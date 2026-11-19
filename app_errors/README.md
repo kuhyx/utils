@@ -26,7 +26,7 @@ The ingest skips `kartka` in RTDB, because kartka still runs its own ingest.
 `ui.snackbar`, `perf.slow`, ...), `error`, `stack` (list of frames), plus these
 optional fields:
 
-- `repo` (`owner/name`, default `kuhyx/<app>`)
+- `repo` (`owner/name`; default: the `origin` of `~/src/<app>` when it is on GitHub, else `kuhyx/<app>`)
 - `mark` (the substring that marks the app's own frames: `package:todo/`,
   `leetcode_guard/`, `res://`)
 - `route`

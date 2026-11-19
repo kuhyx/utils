@@ -42,7 +42,7 @@ def _run(wait: float, client: TodoClient | None) -> int:
         fcntl.flock(lock, fcntl.LOCK_EX)
         results = run_settled(
             paths.data_root,
-            Importer(todo, OWNER),
+            Importer(todo, OWNER, paths.src_root),
             Waiter(wait, time.time, time.sleep),
         )
     failed = 0

@@ -6,6 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 import os
+import shutil
+import subprocess
 from typing import TYPE_CHECKING
 
 from feedback_inbox._todo import TaskRef, TodoError
@@ -93,3 +95,21 @@ class FakeTodo:
             raise TodoError(msg)
         self.updated.append(task_id)
         self.stored[task_id] = f"{title}\n\n{body}"
+
+
+GIT = shutil.which("git") or "git"
+
+
+def make_checkout(path: Path, origin: str | None) -> Path:
+    """A real git repo at ``path`` (origin ``origin`` unless None), no real config."""
+    env = {
+        "PATH": os.environ["PATH"],
+        "HOME": str(path.parent),
+        "GIT_CONFIG_NOSYSTEM": "1",
+    }
+    path.mkdir(parents=True)
+    subprocess.run([GIT, "init", "-q", str(path)], check=True, env=env)
+    if origin is not None:
+        git = [GIT, "-C", str(path), "remote", "add", "origin", origin]
+        subprocess.run(git, check=True, env=env)
+    return path

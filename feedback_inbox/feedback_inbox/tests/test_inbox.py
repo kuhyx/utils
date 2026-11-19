@@ -16,7 +16,12 @@ from feedback_inbox._inbox import (
     run_once,
     run_settled,
 )
-from feedback_inbox.tests.test_support import STAMP, FakeTodo, make_bundle
+from feedback_inbox.tests.test_support import (
+    STAMP,
+    FakeTodo,
+    make_bundle,
+    make_checkout,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,7 +34,21 @@ MANUAL = "MANUAL WORK REQUIRED: "
 
 
 def _run(paths: Paths, todo: FakeTodo) -> list[Outcome]:
-    return [r.outcome for r in run_once(paths.data_root, Importer(todo, OWNER), NOW)]
+    return [
+        r.outcome
+        for r in run_once(paths.data_root, Importer(todo, OWNER, paths.src_root), NOW)
+    ]
+
+
+def test_task_goes_to_the_checkouts_origin_not_a_guessed_owner(paths: Paths) -> None:
+    # Regression: the board showed a phantom kuhyx/cleanup-plate; the real
+    # repo is the origin of the checkout, Sepci0/cleanup-plate.
+    origin = "https://github.com/Sepci0/cleanup-plate"
+    make_checkout(paths.src_root / "cleanup-plate", origin)
+    make_bundle(paths.data_root)
+    todo = FakeTodo()
+    assert _run(paths, todo) == [Outcome.IMPORTED]
+    assert [repo for repo, _, _ in todo.calls] == ["Sepci0/cleanup-plate"]
 
 
 def test_complete_bundle_becomes_one_task(paths: Paths) -> None:
@@ -64,7 +83,7 @@ def test_incomplete_bundles_wait(paths: Paths) -> None:
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.PENDING] * 3
     assert todo.calls == []
-    later = run_once(paths.data_root, Importer(todo, OWNER), NOW + 10)
+    later = run_once(paths.data_root, Importer(todo, OWNER, paths.src_root), NOW + 10)
     assert [r.outcome for r in later] == [
         Outcome.PENDING,
         Outcome.PENDING,
@@ -126,7 +145,7 @@ def test_title_uses_first_line_and_caps_length() -> None:
 def test_todo_failure_leaves_no_marker(paths: Paths) -> None:
     bundle = make_bundle(paths.data_root)
     todo = FakeTodo(fail=True)
-    results = run_once(paths.data_root, Importer(todo, OWNER), NOW)
+    results = run_once(paths.data_root, Importer(todo, OWNER, paths.src_root), NOW)
     assert [r.outcome for r in results] == [Outcome.FAILED]
     assert "todo down" in results[0].detail
     assert not (bundle / MARKER).exists()
@@ -135,7 +154,9 @@ def test_todo_failure_leaves_no_marker(paths: Paths) -> None:
 
 def test_merge_is_flagged_but_marked(paths: Paths) -> None:
     make_bundle(paths.data_root)
-    results = run_once(paths.data_root, Importer(FakeTodo(merged=True), OWNER), NOW)
+    results = run_once(
+        paths.data_root, Importer(FakeTodo(merged=True), OWNER, paths.src_root), NOW
+    )
     assert results[0].outcome is Outcome.IMPORTED
     assert "merged" in results[0].detail
 
@@ -143,12 +164,16 @@ def test_merge_is_flagged_but_marked(paths: Paths) -> None:
 def test_marker_write_failure_is_reported(paths: Paths) -> None:
     bundle = make_bundle(paths.data_root)
     (bundle / MARKER).mkdir()
-    results = run_once(paths.data_root, Importer(FakeTodo(), OWNER), NOW)
+    results = run_once(
+        paths.data_root, Importer(FakeTodo(), OWNER, paths.src_root), NOW
+    )
     assert results[0].outcome is Outcome.SKIPPED
     (bundle / MARKER).rmdir()
     bundle.chmod(0o500)
     try:
-        results = run_once(paths.data_root, Importer(FakeTodo(), OWNER), NOW)
+        results = run_once(
+            paths.data_root, Importer(FakeTodo(), OWNER, paths.src_root), NOW
+        )
     finally:
         bundle.chmod(0o700)
     assert results[0].outcome is Outcome.FAILED
@@ -166,7 +191,9 @@ def test_run_settled_waits_then_gives_up(paths: Paths, tmp_path: Path) -> None:
 
     todo = FakeTodo()
     results = run_settled(
-        paths.data_root, Importer(todo, OWNER), Waiter(5.0, lambda: clock[0], sleep)
+        paths.data_root,
+        Importer(todo, OWNER, paths.src_root),
+        Waiter(5.0, lambda: clock[0], sleep),
     )
     assert [r.outcome for r in results] == [Outcome.IMPORTED]
     assert slept == [1.0, 1.0]
@@ -176,7 +203,9 @@ def test_run_settled_waits_then_gives_up(paths: Paths, tmp_path: Path) -> None:
     make_bundle(other, report=None)
     slept.clear()
     results = run_settled(
-        other, Importer(todo, OWNER), Waiter(3.0, lambda: clock[0], sleep)
+        other,
+        Importer(todo, OWNER, paths.src_root),
+        Waiter(3.0, lambda: clock[0], sleep),
     )
     assert [r.outcome for r in results] == [Outcome.PENDING]
     assert slept == [1.0, 1.0, 1.0]

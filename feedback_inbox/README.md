@@ -6,7 +6,9 @@ kuhy saves with F12 is never forgotten.
 A game saves `~/data/<repo>_binaries/feedback/<stamp>/` (`report.json`,
 screenshots, logs) and appends a ready-to-run Claude prompt to
 `feedback-<date>.md` beside it. This package imports each complete bundle once
-as a task in the todo app for `kuhyx/<repo>`.
+as a task in the todo app for the GitHub repo named by the `origin` of
+`~/src/<repo>` (`kuhyx/<repo>` only when there is no such checkout or it is not
+on GitHub).
 
 ## Task shape
 
