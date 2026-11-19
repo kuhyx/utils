@@ -42,7 +42,7 @@ Rules (all machine-checked):
 python3 ~/src/utils/repo_contract/check.py --repo <path>      # 0 pass / 1 violations / 2 unreadable
 python3 ~/src/utils/repo_contract/bootstrap.py --repo <path>  # print proposal
 python3 ~/src/utils/repo_contract/bootstrap.py --repo <path> --write
-python3 ~/src/utils/repo_contract/sweep.py                    # ~/data/claude-scratch/repo-contract/SWEEP.md
+python3 ~/src/utils/repo_contract/sweep.py                    # ~/data/claude-scratch/repo-contract/SWEEP.md; --dry-run prints it instead, --out PATH writes elsewhere
 ```
 
 Bootstrap never overwrites: it appends the section (or inserts missing lines at

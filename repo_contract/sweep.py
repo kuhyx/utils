@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from collections import Counter
 from dataclasses import dataclass
@@ -82,19 +83,46 @@ def render(results: list[Result]) -> str:
     return "\n".join(out) + "\n"
 
 
+def parse_args(argv: list[str] | None, default_out: Path) -> argparse.Namespace:
+    """Parse argv; argparse exits 0 on --help and 2 on bad args before any walk."""
+    parser = argparse.ArgumentParser(
+        prog="sweep.py",
+        description=(
+            "Run the repo contract check over every git repo directly under ~/src "
+            "and ~ and write a markdown report (SWEEP.md)."
+        ),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="walk and check, print the report to stdout, write nothing",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=default_out,
+        help=f"report path (default: {default_out})",
+    )
+    return parser.parse_args(argv)
+
+
 def main(
     argv: list[str] | None = None, roots: list[Path] | None = None, out: Path = OUT
 ) -> int:
-    """Sweep, write the report, print the summary line. Always exit 0."""
-    del argv
+    """Sweep, write (or with --dry-run print) the report, print the summary. Exit 0."""
+    args = parse_args(argv, out)
     home = Path.home()
     results = [run_one(r) for r in find_repos(roots or [home / "src", home])]
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(results), encoding="utf-8")
+    report = render(results)
     passed = sum(r.passed for r in results)
-    print(
-        f"repo-contract sweep: {len(results)} repos, {passed} pass, {len(results) - passed} fail -> {out}"
-    )
+    summary = f"repo-contract sweep: {len(results)} repos, {passed} pass, {len(results) - passed} fail"
+    if args.dry_run:
+        sys.stdout.write(report)
+        print(f"{summary} (dry run, nothing written)", file=sys.stderr)
+        return 0
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(report, encoding="utf-8")
+    print(f"{summary} -> {args.out}")
     return 0
 
 
