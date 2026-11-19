@@ -170,3 +170,5 @@ satisfies them — Flutter, web and Python/Tkinter — is in
   app actually uses that status (success/warning/etc.) before adding it.
 - Don't touch `../gatelock` without the production-path verification above;
   a broken import there takes down 3 services at once.
+
+`logo/` holds the six personal-logo candidates (A-F) and `contact-sheet.png`; regenerate the sheet with `python3 scripts/make_logo_sheet.py` and check one SVG with `python3 scripts/logo_check.py <svg>`.
