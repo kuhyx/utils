@@ -1,0 +1,2 @@
+# Dependency freshness runs locally only (pre-commit hook); no GitHub Actions
+# workflow. This marker stops the fleet installer from re-adding it.

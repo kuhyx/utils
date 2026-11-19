@@ -7,7 +7,8 @@
 # every manifest in the monorepo, so one feature branch went red on 43 stale
 # pins in 12 projects it never touched. Scoping to changed manifests makes the
 # hook answer "did this change leave a stale pin?". The repo-wide question
-# stays with CI (.github/workflows/dependency-freshness.yml: --all --strict).
+# is a local sweep (scripts/check_dependency_freshness.sh --all --strict);
+# there is no CI workflow for it (.dep-freshness-no-workflow).
 #
 # "Changed" = differs from the merge-base with $DEP_FRESHNESS_BASE (default
 # main, then origin/main), working tree included, plus untracked files.

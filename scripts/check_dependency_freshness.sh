@@ -14,7 +14,7 @@
 #
 # Usage:
 #   scripts/check_dependency_freshness.sh <file> [<file> ...]   # pre-commit
-#   scripts/check_dependency_freshness.sh --all --strict        # CI
+#   scripts/check_dependency_freshness.sh --all --strict        # full local sweep
 #
 # Exit: 0 current | 1 behind | 2 allowlist wrong | 3 undeterminable (offline)
 # ============================================================================
