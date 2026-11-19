@@ -21,7 +21,7 @@ Needs `ffmpeg`, `ffprobe`, `xdotool` and, optionally, `gpu-screen-recorder`.
 
 Consume via:
 ```
-game_recording @ git+https://github.com/kuhyx/utils@game-recording-v0.1.0#subdirectory=game_recording
+game_recording @ git+https://github.com/kuhyx/utils@game-recording-v0.1.1#subdirectory=game_recording
 ```
 
 ## Configure it for a game
@@ -88,4 +88,4 @@ python -m pytest --cov=game_recording        # 100 % branch coverage required
 pre-commit run --config game_recording/.pre-commit-config.yaml --all-files   # from the utils root
 ```
 
-Version 0.1.0; the tag is `game-recording-v0.1.0`.
+Version 0.1.1; the tag is `game-recording-v0.1.1`.

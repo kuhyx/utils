@@ -7,5 +7,5 @@ and calls `game_recording.cli.main`. See the package README for the whole surfac
 
 from game_recording.config import Config, MomentMap
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __all__ = ["Config", "MomentMap", "__version__"]

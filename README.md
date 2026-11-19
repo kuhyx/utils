@@ -116,7 +116,7 @@ telemetry moments onto the video. A game configures it with one `Config`.
 
 Consume via:
 ```
-game_recording @ git+https://github.com/kuhyx/utils@game-recording-v0.1.0#subdirectory=game_recording
+game_recording @ git+https://github.com/kuhyx/utils@game-recording-v0.1.1#subdirectory=game_recording
 ```
 
 ## unified-design-system/

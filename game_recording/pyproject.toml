@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "game_recording"
-version = "0.1.0"
+version = "0.1.1"
 description = "Session recorder for a game: records a dev run beside it and stamps telemetry moments onto the video timeline"
 requires-python = ">=3.14"
 dependencies = []
