@@ -51,7 +51,7 @@ def no_walk(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
     def boom(roots: list[Path]) -> list[Path]:
-        raise AssertionError(f"walked {roots}")
+        raise AssertionError(f"walked {roots}")  # pragma: no cover - regression only
 
     monkeypatch.setattr("repo_contract.sweep.find_repos", boom)
     return tmp_path / "default" / "SWEEP.md"
