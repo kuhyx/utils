@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect id="field" width="512" height="512" fill="#211D1B"/>
+  <g fill="none" stroke="#B8862E" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(-40 -16)">
+      <path d="M116 116V236M216 116L116 176L216 236"/>
+      <path d="M296 116V186A50 50 0 0 0 396 186V116"/>
+    </g>
+    <g transform="translate(40 16)">
+      <path d="M116 276V396M216 276V396M116 336H216"/>
+      <path d="M296 276L346 336M396 276L346 336V396"/>
+    </g>
+  </g>
+</svg>

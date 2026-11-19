@@ -17,9 +17,9 @@ LOGO_DIR = Path(__file__).resolve().parents[1] / "logo"
 GOOD = (Path(__file__).parent / "fixtures" / "logo-fixture.svg").read_text()
 
 
-def test_six_candidates_exist() -> None:
-    names = [p.name[0] for p in make_logo_sheet.candidates(LOGO_DIR)]
-    assert names == list("abcdef")
+def test_three_variants_of_six_candidates_exist() -> None:
+    names = [p.name[:2] for p in make_logo_sheet.candidates(LOGO_DIR)]
+    assert names == [f"{kind}{n}" for kind in "abcdef" for n in "123"]
 
 
 @pytest.mark.parametrize("svg", sorted(LOGO_DIR.glob("*.svg")), ids=lambda p: p.name)
@@ -67,7 +67,7 @@ def test_main_writes_sheet(tmp_path: Path) -> None:
     out = tmp_path / "sheet.png"
     assert make_logo_sheet.main(["--dir", str(LOGO_DIR), "--out", str(out)]) == 0
     sheet = Image.open(out)
-    rows, cols = 6, len(make_logo_sheet.VARIANTS) * len(make_logo_sheet.SIZES)
+    rows, cols = 18, len(make_logo_sheet.VARIANTS) * len(make_logo_sheet.SIZES)
     cell, gap = make_logo_sheet.CELL, make_logo_sheet.GAP
     assert sheet.size == (
         cols * cell + (cols + 1) * gap,
