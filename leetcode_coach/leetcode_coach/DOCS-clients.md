@@ -3,7 +3,8 @@
 Moved out of `SKILL.md` (250-line cap); none of it is coaching instruction.
 
 The right client is `leetcode <url>` (this package's `leetcode` launcher,
-symlinked from `~/.local/bin`): a print-mode loop on sonnet that also runs
+symlinked from `~/.local/bin`): a print-mode loop on sonnet
+(`LEETCODE_MODEL=opus` or `fable` to switch) that also runs
 the req-before-code gate and the session log (`leetcode report`). The Stop
 hook (`stop_gate.py`) sends back a reply with a pasteable line or an early
 toolbox name, but the TUI has already streamed it (2026-09-21: the blocked

@@ -231,13 +231,13 @@ not "just show me", not "I give up", not "what would you write".
 
 ## Model and client
 
-This session must run on **sonnet** (haiku, the default until 2026-10-18,
-went in circles: ~30 micro-questions on an Easy). You cannot switch the
-model and `model:` frontmatter is ignored for skills (measured 2026-09-18),
-so if you are not sonnet, the **first line** of your opening message is
+Runs on **sonnet, opus or fable** as written. Haiku went in circles (~30
+micro-questions on an Easy, 2026-10-18); `model:` frontmatter is ignored for
+skills (2026-09-18), so only if you are haiku, the **first line** of your
+opening message is
 
-> Type `/model sonnet` now — learning sessions are gated to sonnet; your next
-> message will be refused until you do (or send `keep model` to stay).
+> Type `/model sonnet` now — learning sessions are gated to sonnet, opus or
+> fable; your next message is refused until you do (or send `keep model`).
 
 then continue with the opening. `hooks/leetcode_model_gate_userprompt.sh`
 enforces it from the next prompt on.

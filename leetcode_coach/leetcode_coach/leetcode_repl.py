@@ -115,7 +115,7 @@ def main(argv: list[str]) -> int:
         return report.main(args[1:])
     if not args or args[0] in {"-h", "--help"}:
         print("Usage: leetcode [--local] <url-or-slug> [what you are stuck on...]")
-        print("  LEETCODE_MODEL=opus leetcode ...     to use a stronger model")
+        print("  LEETCODE_MODEL=opus|fable leetcode ...   (default: sonnet)")
         print("  --local   coach on the local Ollama model (free, offline)")
         print("  leetcode due | --cluster <name> | --retest <slug>   (--dry-run)")
         print("  leetcode report   req-before-code, max rung, reveal per problem")
