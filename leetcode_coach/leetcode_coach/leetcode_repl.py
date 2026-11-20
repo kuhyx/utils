@@ -104,7 +104,7 @@ def start_session(problem: list[str], *, local: bool) -> int:
         opener = local_session.opening_message(problem[1:])
         gate = phase.PhaseGate.open(problem[0])
         return local_session.run(problem[0], [], opener, read_block, gate=gate)
-    return run_claude(os.environ.get("LEETCODE_MODEL", "sonnet"), problem)
+    return run_claude(os.environ.get("LEETCODE_MODEL", "opus"), problem)
 
 
 def main(argv: list[str]) -> int:
@@ -115,7 +115,7 @@ def main(argv: list[str]) -> int:
         return report.main(args[1:])
     if not args or args[0] in {"-h", "--help"}:
         print("Usage: leetcode [--local] <url-or-slug> [what you are stuck on...]")
-        print("  LEETCODE_MODEL=opus|fable leetcode ...   (default: sonnet)")
+        print("  LEETCODE_MODEL=sonnet|fable leetcode ...   (default: opus)")
         print("  --local   coach on the local Ollama model (free, offline)")
         print("  leetcode due | --cluster <name> | --retest <slug>   (--dry-run)")
         print("  leetcode report   req-before-code, max rung, reveal per problem")

@@ -129,12 +129,12 @@ def test_read_block_joins_lines_until_a_blank(
     assert leetcode_repl.read_block() == "x"
 
 
-def test_repl_defaults_to_sonnet(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_repl_defaults_to_opus(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[str] = []
     monkeypatch.delenv("LEETCODE_MODEL", raising=False)
     monkeypatch.setattr(leetcode_repl, "run_claude", lambda m, _a: seen.append(m))
     leetcode_repl.main(["two-sum"])
-    assert seen == ["sonnet"]
+    assert seen == ["opus"]
 
 
 def test_local_flag_skips_claude(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,3 +179,10 @@ def test_launcher_does_not_leak_pythonpath_into_the_session() -> None:
     """The REPL hands its environment to `claude -p`; the launcher adds nothing."""
     body = LAUNCHER.read_text(encoding="utf-8").split("set -euo pipefail", 1)[1]
     assert "PYTHONPATH" not in body
+
+
+def test_relay_chat_defaults_to_opus(monkeypatch: pytest.MonkeyPatch) -> None:
+    from leetcode_coach.relay import chat
+
+    monkeypatch.delenv("LEETCODE_MODEL", raising=False)
+    assert chat.model() == "opus"

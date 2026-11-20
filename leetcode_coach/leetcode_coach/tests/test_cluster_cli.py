@@ -241,6 +241,6 @@ def test_repl_main_dispatches_cluster_commands(
     monkeypatch.setattr(local_session, "run", fake_local)
     monkeypatch.setattr(cluster_cli, "accepted_on_leetcode", never)
     assert leetcode_repl.main(["--cluster", "intervals"]) == 0
-    assert started == [("sonnet", ["merge-intervals"])]
+    assert started == [("opus", ["merge-intervals"])]
     assert leetcode_repl.main(["--local", "--cluster", "intervals"]) == 0
     assert handed == ["merge-intervals"]

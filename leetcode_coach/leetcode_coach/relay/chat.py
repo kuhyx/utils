@@ -1,4 +1,4 @@
-"""The coaching chat: the CLI's sonnet session, one per problem.
+"""The coaching chat: the CLI's opus session, one per problem.
 
 The same session `leetcode_repl.run_claude` runs: it opens with
 ``/leetcode <slug>`` (which loads SKILL.md and arms the no-solution Stop
@@ -43,8 +43,8 @@ TurnError = CoachError
 
 
 def model() -> str:
-    """The coaching model (``LEETCODE_MODEL``, default sonnet, as the REPL)."""
-    return os.environ.get("LEETCODE_MODEL") or "sonnet"
+    """The coaching model (``LEETCODE_MODEL``, default opus, as the REPL)."""
+    return os.environ.get("LEETCODE_MODEL") or "opus"
 
 
 def _env(session: Session) -> dict[str, str]:
