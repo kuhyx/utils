@@ -94,6 +94,7 @@ def test_third_party_and_test_trees_are_skipped(tmp_path: Path) -> None:
     for rel in (
         "mcp-servers/a.py",
         "vendor/b.py",
+        "skills/synced/x/scripts/f.py",
         "repo/tests/c.py",
         "repo/test_d.py",
         "repo/e_test.py",

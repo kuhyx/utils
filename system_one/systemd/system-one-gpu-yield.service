@@ -1,0 +1,12 @@
+# Lives exactly as long as the Kev model server; stops it when a game starts
+# (SteamAppId or an enforcer counted_processes name) or other VRAM use grows.
+[Unit]
+Description=Give the GPU back from Kev when a game starts
+PartOf=system-one-kev-model.service
+After=system-one-kev-model.service
+
+[Service]
+Type=exec
+Environment=PYTHONPATH=%h/src/utils/system_one
+ExecStart=/usr/bin/python3 -m system_one.yield_gpu
+Nice=10
