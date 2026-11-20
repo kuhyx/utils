@@ -75,12 +75,18 @@ main() {
     trap cleanup EXIT
     export XDG_DATA_HOME="$TMP/xdg"
     # GUT's own class_names need a class cache before a script run.
-    local imported
-    imported="$(godot_run --headless --path "$HERE" --import 2>&1)" || true
-    local out code=0 start="$SECONDS"
-    out="$(godot_run --headless --audio-driver Dummy \
-        --path "$HERE" -s addons/gut/gut_cmdln.gd -gexit "$@" 2>&1)" || code=$?
-    local tests passing failing pending why=""
+    # Output goes to files, not $(...): the godot build-lock shim may hold a
+    # child that keeps a command-substitution pipe open (a deadlock).
+    godot_run --headless --path "$HERE" --import >"$TMP/import.log" 2>&1 || true
+    local imported out code=0 start="$SECONDS"
+    imported="$(<"$TMP/import.log")"
+    godot_run --headless --audio-driver Dummy \
+        --path "$HERE" -s addons/gut/gut_cmdln.gd -gexit "$@" >"$TMP/gut.log" 2>&1 || code=$?
+    out="$(<"$TMP/gut.log")"
+    local tests passing failing pending why="" declared
+    # Every test_* function must run: a script that fails to parse is dropped
+    # by GUT without a failure, so count what the files declare.
+    declared="$(cat "$HERE"/tests/test_*.gd | grep -c '^func test_')"
     tests="$(total_of Tests "$out")"
     passing="$(total_of "Passing Tests" "$out")"
     failing="$(total_of "Failing Tests" "$out")"
@@ -93,6 +99,8 @@ main() {
         why="exit code $code"
     elif ((tests == 0)); then
         why="no tests ran"
+    elif (($# == 0 && tests != declared)); then
+        why="ran $tests tests but tests/ declares $declared (a script failed to load?)"
     elif ((tests != passing + pending)); then
         why="tests $tests != passing $passing + pending $pending"
     fi

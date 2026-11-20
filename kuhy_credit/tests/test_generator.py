@@ -137,6 +137,7 @@ HAND_WRITTEN = [
     "web/src/kuhy-credit.js",
     "web/demo/index.html",
     "flutter/lib/src/kuhy_credit.dart",
+    "flutter/lib/src/kuhy_credit_logo.dart",
     "flutter/example/lib/main.dart",
     "godot/addons/kuhy_credit/kuhy_credit.gd",
     "godot/demo/demo.gd",

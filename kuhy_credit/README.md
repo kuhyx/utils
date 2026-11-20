@@ -121,6 +121,7 @@ bash kuhy_credit/terminal/kuhy-credit.sh   # no Python needed
 
 ```python
 from kuhy_credit import credit_line
+
 print(credit_line())  # Created by kuhy https://kuhy.duckdns.org
 ```
 

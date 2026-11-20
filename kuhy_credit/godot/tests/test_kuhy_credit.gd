@@ -1,4 +1,4 @@
-extends GutTest
+extends "res://tests/click_test.gd"
 ## The credit control: logo -> panel -> URL, every close path, theme tokens.
 ## Input goes through the viewport (push_input), as a real click would.
 
@@ -25,7 +25,7 @@ func _click_at(pos: Vector2) -> void:
 		ev.pressed = pressed
 		ev.position = pos
 		ev.global_position = pos
-		get_viewport().push_input(ev)
+		get_viewport().push_input(ev, true)
 	await wait_process_frames(2)
 
 

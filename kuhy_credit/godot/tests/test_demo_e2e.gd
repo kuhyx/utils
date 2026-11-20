@@ -1,4 +1,4 @@
-extends GutTest
+extends "res://tests/click_test.gd"
 ## E2E: the demo scene, two clicks through the viewport, the URL that would open.
 
 const CreditData = preload("res://addons/kuhy_credit/credit_data.gd")
@@ -12,7 +12,7 @@ func _click(at: Vector2) -> void:
 		ev.pressed = pressed
 		ev.position = at
 		ev.global_position = at
-		get_viewport().push_input(ev)
+		get_viewport().push_input(ev, true)
 	await wait_process_frames(2)
 
 
