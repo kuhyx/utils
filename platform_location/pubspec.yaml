@@ -1,0 +1,26 @@
+name: platform_location
+description: >-
+  Android location through the platform LocationManager (AOSP,
+  LocationManagerCompat): permission, location switch, one-shot fix and a
+  fix stream. No Google Play services in the APK, unlike geolocator.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.kuhy.platform_location
+        pluginClass: PlatformLocationPlugin

@@ -104,6 +104,7 @@ verify() {
     check_tag godot-dev-tools godot_dev_tools
     check_tag app-errors app_errors
     check_tag kuhy-credit kuhy_credit
+    check_tag platform_location platform_location
     check_sickdays
     check_app_errors
     if [[ "$FAILED" -ne 0 ]]; then

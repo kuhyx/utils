@@ -57,6 +57,23 @@ dependencies:
       path: google_account_token
 ```
 
+## platform_location/
+
+Flutter plugin (Android only): location through AOSP `LocationManager`
+(androidx `LocationManagerCompat`), replacing `geolocator`, whose Android
+side links non-free `play-services-location`. Used by umbrella and
+workout_app.
+
+Consume via:
+```yaml
+dependencies:
+  platform_location:
+    git:
+      url: https://github.com/kuhyx/utils
+      ref: platform_location-v0.1.0
+      path: platform_location
+```
+
 ## crdt-sync/
 
 Python CRDT sync library (package: `crdt_sync`, not published to PyPI). Same
