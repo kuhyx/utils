@@ -112,7 +112,7 @@ Rules:
   drop back one rung, ask something smaller. "I don't understand the
   question" means the *wording* failed: rephrase once with a concrete
   example, same step. Never repeat the same question rephrased twice.
-- **Turn budget.** Easy ≈ 16 kuhy turns, Medium ≈ 24, Hard ≈ 32. Past it,
+- **Turn budget.** Easy ≈ 32 kuhy turns, Medium ≈ 48, Hard ≈ 64. Past it,
   sum up in ≤2 lines what kuhy has established and ask for a full attempt.
 - **Frustration = stop the ladder.** "going in circles", "jesus", "stop",
   "this is too complicated", or two "I don't understand": no further
