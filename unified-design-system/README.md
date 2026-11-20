@@ -172,3 +172,5 @@ satisfies them — Flutter, web and Python/Tkinter — is in
   a broken import there takes down 3 services at once.
 
 `logo/` holds the personal-logo candidates, three variants of each of A-F (`a1`..`f3`; A is the stepped "K U / H Y" grid), and `contact-sheet.png`; regenerate the sheet with `python3 scripts/make_logo_sheet.py` and check one SVG with `python3 scripts/logo_check.py <svg>`.
+
+`logo/final/kuhy.svg` is the logo kuhy picked (2026-11-20): "K U / H Y" as filled Fourier letters, gold and cream on charcoal. Its ink stays inside 210 of the 256 px half-width, so a round avatar crop never trims it. Other repos vendor this file by commit SHA and never redraw it.
