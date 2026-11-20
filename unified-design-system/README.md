@@ -173,4 +173,4 @@ satisfies them — Flutter, web and Python/Tkinter — is in
 
 `logo/` holds the personal-logo candidates, three variants of each of A-F (`a1`..`f3`; A is the stepped "K U / H Y" grid), and `contact-sheet.png`; regenerate the sheet with `python3 scripts/make_logo_sheet.py` and check one SVG with `python3 scripts/logo_check.py <svg>`.
 
-`logo/final/kuhy.svg` is the logo kuhy picked (2026-11-20): "K U / H Y" as filled Fourier letters, gold and cream on charcoal. Its ink stays inside 210 of the 256 px half-width, so a round avatar crop never trims it. Other repos vendor this file by commit SHA and never redraw it.
+`logo/final/kuhy.svg` is the logo kuhy picked (2026-11-20): "K U / H Y" as filled Fourier letters, gold and cream on charcoal. Its ink stays inside 210 of the 256 px half-width, so a round avatar crop never trims it. `logo/final/kuhy-favicon.svg` is the same letters 1.31 times larger, one pixel of air at 16 px: for square places that nothing crops round (browser tab icons). Other repos vendor these files by commit SHA and never redraw them.
