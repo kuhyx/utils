@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kuhy-credit"
+version = "0.1.0"
+description = "The shared 'Created by kuhy' logo credit: Tkinter widget and terminal line"
+requires-python = ">=3.14"
+dependencies = []  # pure stdlib: tkinter and webbrowser ship with Python
+
+[project.scripts]
+kuhy-credit = "kuhy_credit.terminal:main"
+
+[tool.setuptools.packages.find]
+include = ["kuhy_credit*"]
+exclude = ["kuhy_credit.tests*"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["web", "flutter", "godot"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D213", "COM812", "ISC001", "S603", "S607", "CPY001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001", "E501"]
+"kuhy_credit/_data.py" = ["E501"]
+# The generator and the terminal helper are CLIs: printing is their output.
+"generator/generate.py" = ["T201"]
+"kuhy_credit/terminal.py" = ["T201"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=kuhy_credit",
+    "--cov=generator",
+    "--cov-branch",
+    "--cov-report=term-missing",
+]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":']
