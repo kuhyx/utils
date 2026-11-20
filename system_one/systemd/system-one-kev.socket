@@ -1,0 +1,10 @@
+# On-demand local System One (Kev) endpoint: the first connection to
+# 127.0.0.1:8008 starts the proxy, which pulls in the model server.
+[Unit]
+Description=Local System One decision API (Kev, on demand)
+
+[Socket]
+ListenStream=127.0.0.1:8008
+
+[Install]
+WantedBy=sockets.target

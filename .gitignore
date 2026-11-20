@@ -23,3 +23,6 @@ firebase-debug.log
 firebase-debug.*.log
 firestore-debug.log
 database-debug.log
+
+# Claude Code harness worktrees: never commit them as gitlinks.
+.claude/worktrees/

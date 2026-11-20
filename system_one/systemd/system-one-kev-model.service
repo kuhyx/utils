@@ -1,0 +1,22 @@
+# The Kev model server. kev_serve.sh refuses to load while a game runs or
+# VRAM is short (exit 75); the proxy then fails and callers fall back.
+# While it runs, system-one-gpu-yield stops it the moment a game starts.
+[Unit]
+Description=Kev decision model server (Kev-4B, loopback 8018)
+StopWhenUnneeded=yes
+Wants=system-one-gpu-yield.service
+
+[Service]
+Type=exec
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Hard VRAM budget (kev_launch.py): measured 22.5 GB unbounded under jevgrep.
+Environment=KEV_VRAM_MIB=15000
+# Fewer, shorter cached prefixes (defaults: 4 states, 65,536 tokens).
+Environment=KEV_PREFIX_CACHE=2
+Environment=KEV_PREFIX_MAX_TOKENS=16384
+Environment=PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ExecStart=%h/src/utils/system_one/scripts/kev_serve.sh jaredpalmer/kev-4b@v1.0 8018 16500
+# Ready = the HTTP API answers; the proxy must not connect before that.
+ExecStartPost=/bin/bash -c 'for _ in $(seq 1 240); do curl -sf -o /dev/null http://127.0.0.1:8018/v1/models && exit 0; sleep 0.5; done; exit 1'
+TimeoutStartSec=180
+Nice=5

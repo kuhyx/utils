@@ -1,0 +1,9 @@
+# Socket proxy in front of the model server. It exits after 15 idle minutes;
+# the model server is StopWhenUnneeded, so the 14 GB of VRAM goes with it.
+[Unit]
+Description=Local System One proxy (8008 -> Kev on 8018)
+Requires=system-one-kev-model.service
+After=system-one-kev-model.service
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd --exit-idle-time=15min 127.0.0.1:8018

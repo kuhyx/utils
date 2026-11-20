@@ -64,7 +64,11 @@ IGNORED_SEGMENTS = frozenset(
 
 # Third-party trees. Their layout is not ours to police, and `~/Unity` in a
 # vendored Unity MCP server is correct for the machine it was written for.
-THIRD_PARTY_PARTS = frozenset({"mcp-servers", "vendor", "node_modules", "third_party", "vendored"})
+# `synced` is ~/.claude/skills/synced: Claude-managed skill copies that are
+# regenerated, so an edit there would not stick.
+THIRD_PARTY_PARTS = frozenset(
+    {"mcp-servers", "vendor", "node_modules", "third_party", "vendored", "synced"}
+)
 
 # Test corpora spell pre-move paths on purpose -- system-maintenance's own
 # manifest already protects its fixtures under `refs.skip_paths`, for the
