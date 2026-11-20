@@ -89,7 +89,8 @@ def test_keyboard_opens_panel_then_url(root, opener, key: str) -> None:
     root.update()
     assert credit.is_open
     assert root.focus_get() is credit.panel
-    credit.panel.event_generate(key)
+    credit.panel.event_generate(key.replace("<", "<KeyRelease-", 1), time=100)
+    credit.panel.event_generate(key, time=400)
     root.update()
     assert opener.urls == [URL]
 
@@ -145,3 +146,37 @@ def test_escape_when_closed_keeps_focus_where_it_is(root, opener) -> None:
     entry.event_generate("<Escape>")
     root.update()
     assert root.focus_get() is entry
+
+
+def _key_at(widget: tk.Misc, kind: str, key: str, when: int) -> None:
+    widget.event_generate(f"<{kind}-{key}>", time=when)
+    widget.update()
+
+
+@pytest.mark.parametrize(
+    "events",
+    [
+        [("KeyPress", 1000)],  # repeat with no release between
+        [("KeyRelease", 1000), ("KeyPress", 1000)],  # X autorepeat pair
+    ],
+)
+def test_held_enter_never_opens_the_site(root, opener, events) -> None:
+    credit = _make(root, opener)
+    credit.focus_force()
+    root.update()
+    _key_at(credit, "KeyPress", "Return", 900)
+    assert credit.is_open
+    for kind, when in events:
+        _key_at(root.focus_get(), kind, "Return", when)
+    assert opener.urls == []
+    assert credit.is_open
+
+
+def test_a_fresh_press_after_release_opens_the_site(root, opener) -> None:
+    credit = _make(root, opener)
+    credit.focus_force()
+    root.update()
+    _key_at(credit, "KeyPress", "Return", 900)
+    _key_at(root.focus_get(), "KeyRelease", "Return", 1000)
+    _key_at(root.focus_get(), "KeyPress", "Return", 1300)
+    assert opener.urls == [URL]

@@ -63,6 +63,8 @@ def run(page: Page, port: int, theme: str, shots: Path | None) -> None:
     page.key("Tab", "Tab", 9)
     page.key("Enter", "Enter", 13, "\r")
     assert is_open(page), "Tab + Enter did not open the panel"
+    page.key("Enter", "Enter", 13, "\r", repeat=True)
+    assert page.opened() == [CREDIT["url"]], "holding Enter opened the site"
     assert page.opened() == [CREDIT["url"]], "a close path opened the site"
     foreign = page.foreign_requests()
     assert not foreign, f"network requests off loopback: {foreign}"

@@ -97,9 +97,15 @@ class KuhyCredit(tk.Canvas):
         self.bind("<Button-1>", self._toggle)
         for widget in (self.panel, self.panel_logo, self.label):
             widget.bind("<Button-1>", self._activate)
+        # A held key must not open the site: the press that opened the panel
+        # stays "held" until released, and X autorepeat (a release and a press
+        # with the same timestamp) does not count as a release.
+        self._held = False
+        self._released_at = -1
         for key in _KEYS:
-            self.bind(key, self._toggle)
-            self.panel.bind(key, self._activate)
+            self.bind(key, self._key_toggle)
+            self.panel.bind(key, self._key_activate)
+            self.panel.bind(key.replace("<", "<KeyRelease-", 1), self._key_released)
         self._top.bind("<Escape>", self._escape, add="+")
         self._top.bind("<Button-1>", self._outside, add="+")
 
@@ -128,6 +134,20 @@ class KuhyCredit(tk.Canvas):
             self.close()
         else:
             self.open()
+
+    def _key_toggle(self, event: tk.Event) -> None:
+        self._held = True
+        self._toggle(event)
+
+    def _key_released(self, event: tk.Event) -> None:
+        self._held = False
+        self._released_at = event.time
+
+    def _key_activate(self, event: tk.Event) -> None:
+        if self._held or event.time == self._released_at:
+            self._held = True
+            return
+        self._activate(event)
 
     def _activate(self, _event: tk.Event | None = None) -> None:
         self.close()

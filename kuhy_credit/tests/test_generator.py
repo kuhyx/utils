@@ -158,3 +158,36 @@ def test_gdscript_strings_follow_gdformat_quoting() -> None:
     assert emit._gd_str('a"b') == "'a\"b'"
     assert emit._gd_str("a'b\"") == '"a\'b\\""'
     assert emit._gd_str("plain") == '"plain"'
+
+
+@pytest.mark.parametrize(
+    ("d", "match"),
+    [
+        ("M.5 0L100 0L100 100Z", None),
+        ("M0 0L100 0L100 100", "without Z"),
+        ("M0 0L100 0;L5 5Z", "unparsed"),
+    ],
+)
+def test_path_data_is_parsed_strictly(d: str, match: str | None) -> None:
+    doc = f'<svg viewBox="0 0 10 10"><rect id="field" fill="#000000"/><path fill="#FFFFFF" d="{d}"/></svg>'
+    if match is None:
+        assert svg.parse_logo(doc).shapes[0].points[:2] == (0.5, 0.0)
+    else:
+        with pytest.raises(ValueError, match=match):
+            svg.parse_logo(doc)
+
+
+def test_transforms_are_rejected() -> None:
+    doc = (
+        '<svg viewBox="0 0 10 10"><rect id="field" fill="#000000"/>'
+        '<g transform="translate(5 5)"><path fill="#FFFFFF" d="M1 1L5 1L5 5Z"/></g></svg>'
+    )
+    with pytest.raises(ValueError, match="transform"):
+        svg.parse_logo(doc)
+
+
+def test_relative_dir_resolves(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(CREDIT_DIR)
+    assert generate.main(["--check", "--dir", "."]) == 0

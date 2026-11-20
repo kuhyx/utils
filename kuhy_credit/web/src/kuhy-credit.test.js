@@ -65,6 +65,22 @@ describe("<kuhy-credit>", () => {
     expect(open).not.toHaveBeenCalled();
   });
 
+  it("ignores a held (repeating) Enter or Space on the panel", () => {
+    const { logo, panel } = parts();
+    click(logo);
+    for (const k of ["Enter", " "]) {
+      const held = new KeyboardEvent("keydown", { key: k, repeat: true, bubbles: true, cancelable: true });
+      panel.dispatchEvent(held);
+      expect(held.defaultPrevented).toBe(true);
+    }
+    const fresh = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    panel.dispatchEvent(fresh);
+    expect(fresh.defaultPrevented).toBe(false);
+    const heldOther = new KeyboardEvent("keydown", { key: "a", repeat: true, bubbles: true, cancelable: true });
+    panel.dispatchEvent(heldOther);
+    expect(heldOther.defaultPrevented).toBe(false);
+  });
+
   it("ignores other keys and Escape while closed", () => {
     const { logo, panel } = parts();
     key(document, "Escape");

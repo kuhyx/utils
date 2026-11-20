@@ -75,7 +75,8 @@ main() {
     trap cleanup EXIT
     export XDG_DATA_HOME="$TMP/xdg"
     # GUT's own class_names need a class cache before a script run.
-    godot_run --headless --path "$HERE" --import >/dev/null 2>&1 || true
+    local imported
+    imported="$(godot_run --headless --path "$HERE" --import 2>&1)" || true
     local out code=0 start="$SECONDS"
     out="$(godot_run --headless --audio-driver Dummy \
         --path "$HERE" -s addons/gut/gut_cmdln.gd -gexit "$@" 2>&1)" || code=$?
@@ -86,7 +87,7 @@ main() {
     pending="$(total_of "Risky/Pending" "$out")"
     if [[ "$code" -eq 124 || "$code" -eq 137 || "$code" -eq 143 ]]; then
         why="timed out or killed after ${RUN_TIMEOUT}s (exit $code)"
-    elif grep -qE 'SCRIPT ERROR|Failing Tests' <<<"$out" || ((failing > 0)); then
+    elif grep -qE 'SCRIPT ERROR|Failing Tests' <<<"$out$imported" || ((failing > 0)); then
         why="failing tests or a script error"
     elif ((code != 0)); then
         why="exit code $code"

@@ -20,29 +20,29 @@ Future<List<Uri>> _pump(
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(
     WidgetsApp(
-        color: const Color(kDarkBg),
-        pageRouteBuilder: _route,
-        home: Stack(
-          children: [
-            const Positioned(
-              left: 0,
-              top: 0,
-              child: SizedBox(width: 40, height: 40),
-            ),
-            Align(
-              alignment: at,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: KuhyCredit(
-                  below: below,
-                  alignStart: alignStart,
-                  launcher: (uri) async => opened.add(uri),
-                ),
+      color: const Color(kDarkBg),
+      pageRouteBuilder: _route,
+      home: Stack(
+        children: [
+          const Positioned(
+            left: 0,
+            top: 0,
+            child: SizedBox(width: 40, height: 40),
+          ),
+          Align(
+            alignment: at,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: KuhyCredit(
+                below: below,
+                alignStart: alignStart,
+                launcher: (uri) async => opened.add(uri),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    ),
   );
   return opened;
 }
@@ -196,10 +196,10 @@ void main() {
     final fake = _FakeLauncher();
     UrlLauncherPlatform.instance = fake;
     await tester.pumpWidget(
-      const WidgetsApp(
-        color: Color(kDarkBg),
+      WidgetsApp(
+        color: const Color(kDarkBg),
         pageRouteBuilder: _route,
-        home: Center(child: KuhyCredit()),
+        home: const Center(child: KuhyCredit()),
       ),
     );
     await tester.tap(_logo);

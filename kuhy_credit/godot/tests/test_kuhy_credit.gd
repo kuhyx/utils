@@ -125,6 +125,29 @@ func test_below_and_start_placement() -> void:
 	assert_almost_eq(p.position.x, l.position.x, 0.5)
 
 
+func test_logo_size_set_after_init_resizes_and_anchors() -> void:
+	credit.logo_size = 96
+	assert_eq(credit.logo.size, Vector2(96, 96))
+	assert_eq(credit.size, Vector2(96, 96))
+	assert_eq(credit.logo.texture_normal.get_width(), 96)
+	await _click(credit.logo)
+	var p: Rect2 = credit.panel.get_global_rect()
+	assert_almost_eq(p.end.x, credit.logo.get_global_rect().end.x, 0.5)
+
+
+func test_scene_values_apply_on_instantiate() -> void:
+	var packed := PackedScene.new()
+	var node: Control = Scene.instantiate()
+	node.logo_size = 64
+	node.placement_below = true
+	packed.pack(node)
+	node.free()
+	var fresh: Control = packed.instantiate()
+	add_child_autofree(fresh)
+	assert_eq(fresh.logo.size, Vector2(64, 64))
+	assert_true(fresh.placement_below)
+
+
 func test_theme_colours_come_from_tokens() -> void:
 	var box: StyleBoxFlat = credit.panel.get_theme_stylebox("panel")
 	assert_eq(box.bg_color, CreditData.DARK.surface)

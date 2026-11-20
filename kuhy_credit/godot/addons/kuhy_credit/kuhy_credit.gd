@@ -9,7 +9,8 @@ extends Control
 
 const CreditData = preload("credit_data.gd")
 
-@export var logo_size := 48
+@export var logo_size := 48:
+	set = _set_logo_size
 @export var placement_below := false
 @export var align_start := false
 @export var light := false:
@@ -26,11 +27,8 @@ var label: Label
 func _init() -> void:
 	opener = _shell_open
 	logo = TextureButton.new()
-	logo.texture_normal = _logo_texture(logo_size)
 	logo.ignore_texture_size = true
 	logo.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	logo.custom_minimum_size = Vector2(logo_size, logo_size)
-	logo.size = logo.custom_minimum_size
 	logo.focus_mode = Control.FOCUS_ALL
 	logo.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	logo.accessibility_name = CreditData.TEXT
@@ -46,7 +44,6 @@ func _init() -> void:
 	row.add_theme_constant_override("separation", CreditData.SPACE_SM)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel_logo = TextureRect.new()
-	panel_logo.texture = logo.texture_normal
 	panel_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label = Label.new()
 	label.text = CreditData.TEXT
@@ -56,8 +53,7 @@ func _init() -> void:
 	row.add_child(label)
 	panel.add_child(row)
 	add_child(panel)
-	custom_minimum_size = logo.custom_minimum_size
-	size = custom_minimum_size
+	_set_logo_size(logo_size)
 	_apply_theme()
 
 
@@ -98,13 +94,27 @@ func _toggle() -> void:
 
 
 func _on_panel_input(event: InputEvent) -> void:
-	var clicked := (
+	var clicked: bool = (
 		event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	)
 	if clicked or event.is_action_pressed("ui_accept"):
 		accept_event()
 		close()
 		opener.call(CreditData.URL)
+
+
+## Scene/inspector values arrive after _init, so the size rebuilds here.
+func _set_logo_size(value: int) -> void:
+	logo_size = value
+	close()
+	var texture := _logo_texture(value)
+	var edge := Vector2(value, value)
+	logo.texture_normal = texture
+	logo.custom_minimum_size = edge
+	logo.size = edge
+	panel_logo.texture = texture
+	custom_minimum_size = edge
+	size = edge
 
 
 func _set_light(value: bool) -> void:

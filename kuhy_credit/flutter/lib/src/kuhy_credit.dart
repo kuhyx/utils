@@ -103,8 +103,7 @@ class _KuhyCreditState extends State<KuhyCredit> {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     final above = !widget.below;
     final end = !widget.alignStart;
     final logo = Semantics(

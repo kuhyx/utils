@@ -74,9 +74,11 @@ class Page:
             )
         time.sleep(0.15)
 
-    def key(self, key: str, code: str, vk: int, text: str = "") -> None:
+    def key(self, key: str, code: str, vk: int, text: str = "", *, repeat: bool = False) -> None:
         """Press and release one key; ``text`` makes Enter/Space activate."""
-        extra = {"text": text} if text else {}
+        extra: dict[str, object] = {"text": text} if text else {}
+        if repeat:
+            extra["autoRepeat"] = True
         self.s.call(
             "Input.dispatchKeyEvent",
             type="keyDown" if text else "rawKeyDown",

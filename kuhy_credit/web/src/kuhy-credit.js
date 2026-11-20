@@ -101,6 +101,11 @@ export class KuhyCredit extends HTMLElement {
     this.#panel.querySelector("span").textContent = CREDIT_TEXT;
     for (const svg of root.querySelectorAll("svg")) svg.setAttribute("aria-hidden", "true");
     this.#logo.addEventListener("click", () => (this.open ? this.close() : this.#show()));
+    // Holding Enter on the logo opens the panel and focuses it; the key's
+    // autorepeat must not then activate the link and open the site.
+    this.#panel.addEventListener("keydown", (event) => {
+      if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
+    });
     this.#panel.addEventListener("click", (event) => {
       event.preventDefault();
       this.close();

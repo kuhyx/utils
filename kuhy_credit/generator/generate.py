@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="fail on drift, write nothing")
     parser.add_argument("--dir", type=Path, default=CREDIT_DIR, help="the kuhy_credit dir")
     args = parser.parse_args(argv)
+    args.dir = args.dir.resolve()
     if not args.check:
         write(args.dir)
         print(f"wrote {len(STACKS)} stacks")

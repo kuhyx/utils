@@ -19,8 +19,7 @@ class CreditDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     return WidgetsApp(
       color: Color(dark ? kDarkBg : kLightBg),
       pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
@@ -32,10 +31,7 @@ class CreditDemo extends StatelessWidget {
         child: const SafeArea(
           child: Align(
             alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: KuhyCredit(),
-            ),
+            child: Padding(padding: EdgeInsets.all(16), child: KuhyCredit()),
           ),
         ),
       ),

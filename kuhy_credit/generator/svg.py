@@ -15,7 +15,8 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 _NS = "{http://www.w3.org/2000/svg}"
-_TOKEN = re.compile(r"[A-Za-z]|-?\d+(?:\.\d+)?")
+_TOKEN = re.compile(r"[A-Za-z]|-?(?:\d+(?:\.\d*)?|\.\d+)")
+_SEPARATORS = re.compile(r"[\s,]*")
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,9 @@ class Logo:
 
 def _subpaths(d: str) -> list[list[float]]:
     """Split path data into point lists, one per M ... Z subpath."""
+    if _SEPARATORS.fullmatch(_TOKEN.sub(" ", d)) is None:
+        msg = f"unparsed characters in path data: {_TOKEN.sub('', d)!r}"
+        raise ValueError(msg)
     out: list[list[float]] = []
     current: list[float] = []
     for tok in _TOKEN.findall(d):
@@ -50,6 +54,9 @@ def _subpaths(d: str) -> list[list[float]]:
             raise ValueError(msg)
         else:
             current.append(float(tok))
+    if current:
+        msg = "path data ends without Z: an open subpath would be dropped"
+        raise ValueError(msg)
     return out
 
 
@@ -70,6 +77,9 @@ def _check_disjoint(polys: list[list[float]]) -> None:
 def parse_logo(text: str) -> Logo:
     """Parse the SVG text into a :class:`Logo`."""
     root = ET.fromstring(text)  # noqa: S314 - our own checked-in art
+    if any("transform" in el.attrib for el in root.iter()):
+        msg = "transform attributes are unsupported: bake them into the path data"
+        raise ValueError(msg)
     size = int(float(root.attrib["viewBox"].split()[2]))
     field = next((r for r in root.iter(f"{_NS}rect") if r.get("id") == "field"), None)
     field = field if field is not None else root.find("rect[@id='field']")
