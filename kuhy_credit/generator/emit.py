@@ -168,3 +168,63 @@ def terminal(c: Credit) -> str:
         "set -euo pipefail\n"
         f"printf '%s %s\\n' {shlex.quote(c.text)} {shlex.quote(c.url)}\n"
     )
+
+
+_TEX_SPECIAL = set("\\{}%#$&^_~")
+
+
+def _tex_safe(value: str) -> str:
+    """Refuse a value that would need TeX escaping; the macros keep it verbatim."""
+    bad = sorted(set(value) & _TEX_SPECIAL)
+    if bad:
+        msg = f"TeX-special characters {bad} in {value!r}: the LaTeX stack cannot carry them"
+        raise ValueError(msg)
+    return value
+
+
+def latex(c: Credit) -> str:
+    """latex/kuhy-credit.sty."""
+    names = {c.logo.field: "kuhycreditfield"}
+    for s in c.logo.shapes:
+        names.setdefault(s.fill, f"kuhycreditfill{len(names)}")
+    colours = "".join(
+        f"\\definecolor{{{name}}}{{HTML}}{{{fill.lstrip('#').upper()}}}\n"
+        for fill, name in names.items()
+    )
+
+    def poly(points: tuple[float, ...]) -> str:
+        pairs = [f"({_num(points[i])},{_num(points[i + 1])})" for i in range(0, len(points), 2)]
+        return textwrap.fill(" ".join(pairs), 76, initial_indent="    ", subsequent_indent="    ")
+
+    shapes = "".join(
+        f"  \\fill[{names[s.fill]}] plot coordinates {{\n{poly(s.points)}\n  }} -- cycle;\n"
+        for s in c.logo.shapes
+    )
+    n = c.logo.size
+    return (
+        f"% The kuhy credit for LaTeX ({MARK}).\n"
+        "% \\kuhycredit[<size>] draws the logo linked to the site (needs hyperref);\n"
+        "% \\kuhycreditlogo[<size>] draws it without a link. Size defaults to\n"
+        "% \\kuhycreditsize (12mm, about the web stack's 48px).\n"
+        "\\NeedsTeXFormat{LaTeX2e}\n"
+        "\\ProvidesPackage{kuhy-credit}[kuhy credit]\n"
+        "\\RequirePackage{tikz}\n"
+        f"{colours}"
+        f"\\newcommand*\\kuhycreditURL{{{_tex_safe(c.url)}}}\n"
+        f"\\newcommand*\\kuhycreditText{{{_tex_safe(c.text)}}}\n"
+        "\\newlength\\kuhycreditsize\n\\setlength\\kuhycreditsize{12mm}\n"
+        "\\newcommand\\kuhycreditlogo[1][\\kuhycreditsize]{%\n"
+        f"  \\pgfmathsetmacro\\kuhycredit@unit{{(#1)/{n}}}%\n"
+        "  \\begin{tikzpicture}[x=\\kuhycredit@unit pt,y=-\\kuhycredit@unit pt,\n"
+        "    baseline=(current bounding box.south)]\n"
+        f"  \\fill[kuhycreditfield] (0,0) rectangle ({n},{n});\n"
+        f"{shapes}"
+        "  \\end{tikzpicture}}\n"
+        "\\newcommand\\kuhycredit[1][\\kuhycreditsize]{%\n"
+        "  \\ifdefined\\href{\\hypersetup{pdfborder={0 0 0}}%\n"
+        "    \\href{\\kuhycreditURL}{\\kuhycreditlogo[#1]}}%\n"
+        "  \\else\\kuhycreditlogo[#1]\\fi}\n"
+        "\\AtBeginDocument{\\ifdefined\\href\\else\\PackageWarningNoLine{kuhy-credit}%\n"
+        "  {hyperref is not loaded: \\string\\kuhycredit\\space draws no link}\\fi}\n"
+        "\\endinput\n"
+    )

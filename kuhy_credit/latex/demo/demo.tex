@@ -1,0 +1,18 @@
+% Demo of the LaTeX stack: build with TEXINPUTS pointing at kuhy_credit/latex.
+%   TEXINPUTS=../: pdflatex demo.tex   (from kuhy_credit/latex/demo)
+\pdfcompresslevel=0
+\pdfobjcompresslevel=0
+\documentclass{article}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{kuhy-credit}
+\setlength{\footskip}{48pt}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[R]{\kuhycredit}
+\begin{document}
+\centering
+\kuhycredit[40mm]\par\bigskip
+\kuhycreditlogo
+\end{document}

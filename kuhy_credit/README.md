@@ -21,13 +21,15 @@ Nothing loads over the network and nothing opens without a click.
   | flutter  | `flutter/lib/src/credit_data.g.dart`      |
   | godot    | `godot/addons/kuhy_credit/credit_data.gd` |
   | terminal | `terminal/kuhy-credit.sh`                 |
+  | latex    | `latex/kuhy-credit.sty`                   |
 
 - `python -m generator.generate --check` (from `kuhy_credit/`) fails and names
   every stack whose file differs from the sources. CI runs it on every push.
 
 ## Decisions (change them here if you disagree)
 
-- Placement: web footer, Flutter about screen, Godot main-menu corner. The
+- Placement: web footer, Flutter about screen, Godot main-menu corner, PDF
+  (LaTeX) footer's right corner. The
   panel opens above the logo, aligned to its end edge; each stack has a
   "below" and a "start" option.
 - Lockers and gate windows get no credit. The Tk widget ships but no locker
@@ -40,7 +42,7 @@ Nothing loads over the network and nothing opens without a click.
 
 ```jsonc
 // package.json
-"@kuhyx/kuhy-credit": "github:kuhyx/utils#kuhy-credit-v0.1.0&path:kuhy_credit/web"
+"@kuhyx/kuhy-credit": "github:kuhyx/utils#kuhy-credit-v0.2.0&path:kuhy_credit/web"
 ```
 
 ```html
@@ -66,7 +68,7 @@ dependencies:
   kuhy_credit:
     git:
       url: https://github.com/kuhyx/utils
-      ref: kuhy-credit-v0.1.0
+      ref: kuhy-credit-v0.2.0
       path: kuhy_credit/flutter
 ```
 
@@ -83,7 +85,7 @@ app on Android). Back closes an open panel. Demo: `flutter/example`.
 
 ```bash
 cache="$(mktemp -d)"
-git clone --depth 1 --branch kuhy-credit-v0.1.0 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch kuhy-credit-v0.2.0 https://github.com/kuhyx/utils "$cache"
 cp -r "$cache/kuhy_credit/godot/addons/kuhy_credit" addons/
 ```
 
@@ -99,7 +101,7 @@ The script opens the site with `OS.shell_open`. Demo:
 ## Python / Tkinter
 
 ```bash
-pip install "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.1.0#subdirectory=kuhy_credit"
+pip install "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.2.0#subdirectory=kuhy_credit"
 ```
 
 ```python
@@ -111,6 +113,28 @@ KuhyCredit(root, theme="dark").place(relx=1, rely=1, x=-16, y=-16, anchor="se")
 The widget opens the site with `webbrowser` (a new tab). Tk has no rounded
 corners and no accessibility tree, so those two parts of the design do not
 apply there. Demo: `python -m kuhy_credit.demo [--light]`.
+
+## LaTeX (PDF documents)
+
+PDFs have no click-to-open panel, so the LaTeX stack draws the logo only (as
+vector TikZ, no image file) and makes it a link to the site. No words appear.
+
+```bash
+# vendor the generated package from the tag, like the Godot addon
+cache="$(mktemp -d)"
+git clone --depth 1 --branch kuhy-credit-v0.2.0 https://github.com/kuhyx/utils "$cache"
+cp "$cache/kuhy_credit/latex/kuhy-credit.sty" kuhy-credit/
+TEXINPUTS="$PWD/kuhy-credit//:" pdflatex doc.tex
+```
+
+```latex
+\usepackage{hyperref}
+\usepackage{kuhy-credit}        % after hyperref is fine, before it too
+\fancyfoot[R]{\kuhycredit}      % \kuhycredit[8mm] for another size
+```
+
+`\kuhycreditlogo[<size>]` draws the logo without a link. The default size is
+`\kuhycreditsize` (12mm). Demo: `latex/demo/demo.tex`.
 
 ## Terminal programs
 
@@ -136,6 +160,8 @@ print(credit_line())  # Created by kuhy https://kuhy.duckdns.org
 | flutter web E2E | build `flutter/example` for web, then `python3 e2e/flutter_web_e2e.py` |
 | godot + E2E     | `godot/test.sh` (GUT; `tests/test_demo_e2e.gd` is the E2E)      |
 | Tk E2E          | part of the pytest run: `tests/test_tk_e2e.py`                  |
+| LaTeX E2E       | part of the pytest run: `tests/test_latex.py` (needs pdflatex)  |
 
 Every E2E clicks the logo, then the panel, and checks the URL the stubbed
-browser launch received.
+browser launch received. The LaTeX E2E compiles the demo and checks the PDF's
+link annotations carry the URL.

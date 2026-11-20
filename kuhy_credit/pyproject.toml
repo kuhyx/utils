@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kuhy-credit"
-version = "0.1.0"
+version = "0.2.0"
 description = "The shared 'Created by kuhy' logo credit: Tkinter widget and terminal line"
 requires-python = ">=3.14"
 dependencies = []  # pure stdlib: tkinter and webbrowser ship with Python

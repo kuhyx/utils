@@ -27,6 +27,7 @@ STACKS = {
     "flutter": "flutter/lib/src/credit_data.g.dart",
     "godot": "godot/addons/kuhy_credit/credit_data.gd",
     "terminal": "terminal/kuhy-credit.sh",
+    "latex": "latex/kuhy-credit.sty",
 }
 _EMITTERS = {
     "python": emit.python,
@@ -34,6 +35,7 @@ _EMITTERS = {
     "flutter": emit.flutter,
     "godot": emit.godot,
     "terminal": emit.terminal,
+    "latex": emit.latex,
 }
 
 

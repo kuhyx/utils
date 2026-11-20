@@ -141,6 +141,7 @@ HAND_WRITTEN = [
     "flutter/example/lib/main.dart",
     "godot/addons/kuhy_credit/kuhy_credit.gd",
     "godot/demo/demo.gd",
+    "latex/demo/demo.tex",
 ]
 
 

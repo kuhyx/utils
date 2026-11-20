@@ -23,7 +23,8 @@ jobs:
         with: { python-version: "3.15.2" }
       - name: Install the package, pytest and a virtual X display
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb python3-tk
+          sudo apt-get update && sudo apt-get install -y xvfb python3-tk \
+            texlive-latex-base texlive-latex-recommended texlive-pictures
           pip install -r requirements-dev.txt && pip install --no-deps -e .
       - name: Lint
         run: ruff check . && ruff format --check .
