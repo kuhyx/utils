@@ -37,9 +37,11 @@ final fix = await loc.currentLocation();           // throws PlatformException
 final sub = loc.fixes(interval: const Duration(seconds: 2)).listen((f) {});
 ```
 
-- `checkPermission` reports `granted` or `denied`. Android only tells a
-  permanent refusal apart right after a request, so `deniedForever` comes
-  from `requestPermission` (refused and no rationale to show).
+- `deniedForever`: refused and Android shows no rationale any more. A
+  request reports it directly; `checkPermission` reports it only after this
+  app has asked before (a prefs flag) and only with a foreground Activity,
+  so an app's resume re-check keeps the state. Background engines see
+  `denied`.
 - Provider: GPS when fine location is granted and GPS is on; else the
   platform fused provider (Android 12+, AOSP), else network. No Play
   services fused provider.

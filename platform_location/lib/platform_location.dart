@@ -93,9 +93,9 @@ abstract class PlatformLocation {
   /// Whether the device's location switch is on.
   Future<bool> isLocationEnabled();
 
-  /// The permission as it stands; never prompts. Reports
-  /// [LocationPermissionState.denied], never `deniedForever`: Android only
-  /// tells a permanent refusal apart right after a request.
+  /// The permission as it stands; never prompts. `deniedForever` only once
+  /// this app has asked before and a foreground Activity shows no rationale
+  /// (the rule geolocator used); a background engine sees `denied`.
   Future<LocationPermissionState> checkPermission();
 
   /// Shows the system prompt (needs a foreground Activity). [precise] asks

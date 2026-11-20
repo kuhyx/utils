@@ -6,10 +6,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.location.LocationCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.os.CancellationSignal
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -88,9 +86,8 @@ class PlatformLocationPlugin :
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         val ctx = context ?: return result.error("no_context", "detached", null)
         when (call.method) {
-            "isLocationEnabled" -> result.success(locationEnabled(ctx))
-            "checkPermission" ->
-                result.success(if (hasAny(ctx)) GRANTED else DENIED)
+            "isLocationEnabled" -> result.success(Locations.locationEnabled(ctx))
+            "checkPermission" -> result.success(check(ctx))
             "requestPermission" ->
                 request(ctx, call.argument<Boolean>("precise") ?: true, result)
             "currentLocation" -> current(ctx, result)
@@ -98,14 +95,32 @@ class PlatformLocationPlugin :
         }
     }
 
+    /**
+     * Granted, or a refusal. "Forever" needs a past request (remembered in
+     * prefs) plus an Activity to ask for the rationale: without the memory,
+     * the app's resume re-check would turn a fresh deniedForever back into
+     * denied. Same rule geolocator used.
+     */
+    private fun check(ctx: Context): String {
+        if (Locations.hasAny(ctx)) return GRANTED
+        val activity = binding?.activity ?: return DENIED
+        return if (asked(ctx) && permanentlyDenied(activity)) DENIED_FOREVER else DENIED
+    }
+
+    private fun prefs(ctx: Context) =
+        ctx.getSharedPreferences("dev.kuhy.platform_location", Context.MODE_PRIVATE)
+
+    private fun asked(ctx: Context): Boolean = prefs(ctx).getBoolean(ASKED, false)
+
     private fun request(ctx: Context, precise: Boolean, result: MethodChannel.Result) {
-        if (hasAny(ctx)) return result.success(GRANTED)
+        if (Locations.hasAny(ctx)) return result.success(GRANTED)
         val activity = binding?.activity
             ?: return result.error("no_activity", "no foreground activity", null)
         if (pendingPermission != null) {
             return result.error("busy", "a permission request is in flight", null)
         }
         pendingPermission = result
+        prefs(ctx).edit().putBoolean(ASKED, true).apply()
         val perms = if (precise) {
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, COARSE)
         } else {
@@ -139,38 +154,50 @@ class PlatformLocationPlugin :
     private fun permanentlyDenied(activity: Activity): Boolean =
         !ActivityCompat.shouldShowRequestPermissionRationale(activity, COARSE)
 
+    /**
+     * Asks every enabled provider at once; the first fix wins and cancels
+     * the rest. One provider alone can sit out its whole ~30 s timeout with
+     * nothing (seen: fused indoors while GPS had a fix). When all come back
+     * empty, the newest cached fix, else a no_fix error.
+     */
     private fun current(ctx: Context, result: MethodChannel.Result) {
-        val lm = locationManager(ctx)
-        val provider = pickProvider(ctx, lm)
-            ?: return result.error("unavailable", "no permission or provider", null)
+        val lm = Locations.locationManager(ctx)
+        val providers = Locations.candidates(ctx, lm)
+        if (providers.isEmpty()) {
+            return result.error("unavailable", "no permission or provider", null)
+        }
+        val cancel = providers.associateWith { CancellationSignal() }
+        var pending = providers.size
         var answered = false
         val reply = { location: Location? ->
-            if (!answered) {
+            pending--
+            if (!answered && (location != null || pending == 0)) {
                 answered = true
+                cancel.values.forEach { it.cancel() }
                 val fix = location ?: lastKnown(lm, ctx)
                 if (fix == null) {
-                    result.error("no_fix", "no location from $provider", null)
+                    result.error("no_fix", "no location from $providers", null)
                 } else {
-                    result.success(toMap(fix))
+                    result.success(Locations.toMap(fix))
                 }
             }
         }
-        try {
-            LocationManagerCompat.getCurrentLocation(
-                lm,
-                provider,
-                CancellationSignal(),
-                ContextCompat.getMainExecutor(ctx),
-            ) { reply(it) }
-        } catch (e: SecurityException) {
-            result.error("denied", e.message, null)
+        val main = ContextCompat.getMainExecutor(ctx)
+        for (provider in providers) {
+            try {
+                LocationManagerCompat.getCurrentLocation(
+                    lm, provider, cancel.getValue(provider), main,
+                ) { reply(it) }
+            } catch (_: SecurityException) {
+                main.execute { reply(null) }
+            }
         }
     }
 
     // A one-shot request can time out indoors; the newest cached fix from
     // any enabled provider is good enough for a coarse "where am I".
     private fun lastKnown(lm: LocationManager, ctx: Context): Location? {
-        if (!hasAny(ctx)) return null
+        if (!Locations.hasAny(ctx)) return null
         return try {
             lm.getProviders(true)
                 .mapNotNull { lm.getLastKnownLocation(it) }
@@ -187,48 +214,6 @@ class PlatformLocationPlugin :
         private const val GRANTED = "granted"
         private const val DENIED = "denied"
         private const val DENIED_FOREVER = "deniedForever"
-
-        fun locationManager(ctx: Context): LocationManager =
-            ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        fun locationEnabled(ctx: Context): Boolean =
-            LocationManagerCompat.isLocationEnabled(locationManager(ctx))
-
-        fun hasFine(ctx: Context): Boolean = ContextCompat.checkSelfPermission(
-            ctx,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-
-        fun hasAny(ctx: Context): Boolean = hasFine(ctx) ||
-            ContextCompat.checkSelfPermission(ctx, COARSE) ==
-            PackageManager.PERMISSION_GRANTED
-
-        /**
-         * GPS when fine location is granted and GPS is on; otherwise the
-         * platform fused provider (AOSP, Android 12+) or the network one.
-         * Null when no permission or no enabled provider fits.
-         */
-        fun pickProvider(ctx: Context, lm: LocationManager): String? {
-            if (!hasAny(ctx)) return null
-            val enabled = lm.getProviders(true)
-            val order = buildList {
-                if (hasFine(ctx)) add(LocationManager.GPS_PROVIDER)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    add(LocationManager.FUSED_PROVIDER)
-                }
-                add(LocationManager.NETWORK_PROVIDER)
-                add(LocationManager.GPS_PROVIDER)
-            }
-            return order.firstOrNull { it in enabled }
-        }
-
-        fun toMap(l: Location): Map<String, Any> = mapOf(
-            "time" to l.time,
-            "latitude" to l.latitude,
-            "longitude" to l.longitude,
-            "altitude" to if (l.hasAltitude()) l.altitude else 0.0,
-            "accuracy" to if (l.hasAccuracy()) l.accuracy.toDouble() else 0.0,
-            "isMock" to LocationCompat.isMock(l),
-        )
+        private const val ASKED = "asked"
     }
 }

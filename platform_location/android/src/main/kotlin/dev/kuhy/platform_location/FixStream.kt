@@ -21,8 +21,8 @@ internal class FixStream(private val ctx: Context) : EventChannel.StreamHandler 
         stop()
         val intervalMs = ((arguments as? Map<*, *>)?.get("intervalMs") as? Number)
             ?.toLong() ?: DEFAULT_INTERVAL_MS
-        val lm = PlatformLocationPlugin.locationManager(ctx)
-        val provider = PlatformLocationPlugin.pickProvider(ctx, lm)
+        val lm = Locations.locationManager(ctx)
+        val provider = Locations.pickProvider(ctx, lm)
             ?: return sink.error("unavailable", "no permission or provider", null)
         val request = LocationRequestCompat.Builder(intervalMs)
             .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
@@ -30,7 +30,7 @@ internal class FixStream(private val ctx: Context) : EventChannel.StreamHandler 
             .build()
         val l = object : LocationListenerCompat {
             override fun onLocationChanged(location: Location) {
-                sink.success(PlatformLocationPlugin.toMap(location))
+                sink.success(Locations.toMap(location))
             }
 
             override fun onProviderDisabled(disabled: String) {
@@ -58,7 +58,7 @@ internal class FixStream(private val ctx: Context) : EventChannel.StreamHandler 
     private fun stop() {
         val l = listener ?: return
         listener = null
-        LocationManagerCompat.removeUpdates(PlatformLocationPlugin.locationManager(ctx), l)
+        LocationManagerCompat.removeUpdates(Locations.locationManager(ctx), l)
     }
 
     private companion object {
