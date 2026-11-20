@@ -58,6 +58,13 @@ def test_own_code_is_not_vendored() -> None:
     assert not is_vendored(Path("/home/u/mcp-servers/session-autopsy/x.py"))
 
 
+def test_excluded_dirs_only_count_below_the_root() -> None:
+    root = Path("/home/u/.cache/wt")
+    assert not is_vendored(root / "src/a.py", root)
+    assert is_vendored(root / "build/a.py", root)
+    assert is_vendored(Path("/elsewhere/.cache/a.py"), root)
+
+
 def test_session_artifact() -> None:
     assert is_session_artifact(Path("/home/u/r/docs/superpowers/plans/a.md"))
     assert not is_session_artifact(Path("/home/u/r/docs/README.md"))

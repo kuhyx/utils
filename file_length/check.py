@@ -67,7 +67,7 @@ def exempt_reason(path: Path, lines: int) -> str | None:
     """Why this file is not subject to the cap, or None if it is subject."""
     if path.suffix.lower() not in CAPPED_EXTENSIONS:
         return "not a capped extension"
-    if is_vendored(absolutize(path)):
+    if is_vendored(absolutize(path), Path.cwd()):
         return "vendored / third-party"
     repo_reason = repo_exempt_reason(absolutize(path), Path.cwd())
     if repo_reason is not None:

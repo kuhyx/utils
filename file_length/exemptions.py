@@ -47,15 +47,20 @@ def is_data_text(path: Path, lines: int, size: int) -> bool:
     return (size / lines) < DATA_TXT_MAX_MEAN_LINE
 
 
-def is_vendored(path: Path) -> bool:
+def is_vendored(path: Path, root: Path | None = None) -> bool:
     """True if the path sits under a known vendored subtree or excluded dir.
 
     Callers must pass an absolute path (see `check.absolutize`). Every rule
     below needs the repo-name context that a repo-relative path has already
     thrown away: '/.claude/skills/' cannot match 'skills/x.md', so a relative
     path would quietly skip the exemption instead of applying it.
+
+    EXCLUDED_DIRS match only the parts below ``root`` (the repo): a repo that
+    itself sits under '.cache' (agent worktrees) is not excluded wholesale.
     """
     parts = path.parts
+    if root is not None and path.is_relative_to(root):
+        parts = path.relative_to(root).parts
     if any(part in EXCLUDED_DIRS for part in parts):
         return True
     posix = path.as_posix()

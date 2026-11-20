@@ -149,3 +149,18 @@ def test_runs_as_a_plain_script(repo: Path, monkeypatch: pytest.MonkeyPatch) -> 
     with pytest.raises(SystemExit) as exc:
         runpy.run_path(str(Path(check.__file__)), run_name="__main__")
     assert exc.value.code == 0
+
+
+def test_a_repo_under_an_excluded_dir_is_still_capped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Agent worktrees live under ~/.cache/...: only the parts inside the repo
+    # may match EXCLUDED_DIRS, or every file there was silently exempt.
+    root = tmp_path / ".cache" / "wt"
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    monkeypatch.chdir(root)
+    write(root, "big.py", lines(260))
+    write(root, ".cache/inner.py", lines(260))
+    assert run_main(monkeypatch, "big.py") == 1
+    assert run_main(monkeypatch, "--all") == 1
+    assert run_main(monkeypatch, ".cache/inner.py") == 0
