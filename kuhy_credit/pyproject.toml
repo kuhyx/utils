@@ -21,12 +21,16 @@ target-version = "py314"
 line-length = 100
 extend-exclude = ["web", "flutter", "godot"]
 
+# The generated data file wraps itself; the formatter would explode it.
+[tool.ruff.format]
+exclude = ["kuhy_credit/_data.py"]
+
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = ["D203", "D213", "COM812", "ISC001", "S603", "S607", "CPY001"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["ARG", "D", "PLC0415", "PLR2004", "S101", "SLF001", "E501"]
+"tests/*.py" = ["ANN", "ARG", "D", "TC", "PLC0415", "PLR2004", "S101", "SLF001", "E501"]
 "kuhy_credit/_data.py" = ["E501"]
 # The generator and the terminal helper are CLIs: printing is their output.
 "generator/generate.py" = ["T201"]
@@ -56,4 +60,4 @@ omit = ["*/tests/*"]
 [tool.coverage.report]
 fail_under = 100
 show_missing = true
-exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":']
+exclude_lines = ["pragma: no cover", 'if __name__ == "__main__":', "if TYPE_CHECKING:"]
