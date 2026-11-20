@@ -103,6 +103,7 @@ verify() {
     check_tag game-recording game_recording
     check_tag godot-dev-tools godot_dev_tools
     check_tag app-errors app_errors
+    check_tag kuhy-credit kuhy_credit
     check_sickdays
     check_app_errors
     if [[ "$FAILED" -ne 0 ]]; then

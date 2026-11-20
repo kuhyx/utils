@@ -32,6 +32,8 @@ ignore = ["D203", "D213", "COM812", "ISC001", "S603", "S607", "CPY001"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["ANN", "ARG", "D", "TC", "PLC0415", "PLR2004", "S101", "SLF001", "E501"]
 "kuhy_credit/_data.py" = ["E501"]
+# E2E drivers: scripts that assert and print, not library code.
+"e2e/*.py" = ["ANN", "D", "TC", "E501", "EM", "INP001", "S101", "S603", "T201", "TRY003", "PLR2004"]
 # The generator and the terminal helper are CLIs: printing is their output.
 "generator/generate.py" = ["T201"]
 "kuhy_credit/terminal.py" = ["T201"]

@@ -1,0 +1,36 @@
+{
+  "name": "@kuhyx/kuhy-credit",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "<kuhy-credit>: the shared 'Created by kuhy' logo credit as a dependency-free custom element.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@12.21.0+sha512.66fd8278ee28935ce951792d34367ff3af5c432a2756445823029533835b8da529bbe0be5130afd56ed0713fb8789e47bad82d93bd5ae2fe54b15562d6276ef0",
+  "files": [
+    "src/kuhy-credit.js",
+    "src/kuhy-credit.d.ts",
+    "src/credit-data.js"
+  ],
+  "main": "./src/kuhy-credit.js",
+  "types": "./src/kuhy-credit.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/kuhy-credit.d.ts",
+      "default": "./src/kuhy-credit.js"
+    }
+  },
+  "scripts": {
+    "lint": "node --check src/kuhy-credit.js && node --check src/credit-data.js",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "5.1.1",
+    "jsdom": "31.0.1",
+    "vitest": "5.1.1"
+  }
+}

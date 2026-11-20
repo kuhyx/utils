@@ -23,7 +23,7 @@ def build(
 ) -> KuhyCredit:
     """Fill ``root`` with a themed demo window and return its credit."""
     root.geometry("640x400")
-    root.configure(bg=(DARK if theme == "dark" else LIGHT)["surface"])
+    root.configure(bg=(DARK if theme == "dark" else LIGHT)["bg"])
     credit = KuhyCredit(root, theme=theme, opener=opener)
     credit.place(relx=1.0, rely=1.0, x=-SPACE_MD, y=-SPACE_MD, anchor="se")
     return credit

@@ -132,8 +132,8 @@ LOGO_SHAPES: tuple[tuple[str, tuple[float, ...]], ...] = (
         ),
     ),
 )
-DARK = {"surface": "#2b2624", "border": "#463e3a", "text": "#eceae9"}
-LIGHT = {"surface": "#fcfbfb", "border": "#e0dad7", "text": "#211d1b"}
+DARK = {"bg": "#211d1b", "surface": "#2b2624", "border": "#463e3a", "text": "#eceae9"}
+LIGHT = {"bg": "#f6f4f3", "surface": "#fcfbfb", "border": "#e0dad7", "text": "#211d1b"}
 FOCUS = "#b8862e"
 RADIUS = 12
 SPACE_SM = 8

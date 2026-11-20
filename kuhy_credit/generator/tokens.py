@@ -18,8 +18,9 @@ _COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 @dataclass(frozen=True)
 class Palette:
-    """Panel colours for one theme."""
+    """Page background and panel colours for one theme."""
 
+    bg: str
     surface: str
     border: str
     text: str
@@ -50,7 +51,12 @@ def _get(table: dict[str, str], name: str) -> str:
 
 
 def _palette(table: dict[str, str]) -> Palette:
-    return Palette(_get(table, "--surface-1"), _get(table, "--border"), _get(table, "--text"))
+    return Palette(
+        _get(table, "--bg"),
+        _get(table, "--surface-1"),
+        _get(table, "--border"),
+        _get(table, "--text"),
+    )
 
 
 def _px(table: dict[str, str], name: str) -> int:

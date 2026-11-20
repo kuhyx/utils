@@ -47,6 +47,7 @@ def test_missing_field_is_rejected() -> None:
 
 def test_tokens_read_dark_and_light_from_css() -> None:
     tok = tokens.parse_tokens((REPO_ROOT / "web_ui/src/tokens.css").read_text())
+    assert (tok.dark.bg, tok.light.bg) == ("#211d1b", "#f6f4f3")
     assert tok.dark.surface == "#2b2624"
     assert tok.light.surface == "#fcfbfb"
     assert tok.dark.text == "#eceae9"
@@ -118,7 +119,7 @@ def test_main_writes_without_check(copy: Path, capsys: pytest.CaptureFixture[str
 
 
 def test_css_without_root_is_rejected() -> None:
-    with pytest.raises(ValueError, match="--surface-1"):
+    with pytest.raises(ValueError, match="--bg"):
         tokens.parse_tokens("")
 
 
@@ -127,3 +128,33 @@ def test_whole_numbers_keep_a_decimal_point() -> None:
 
     assert emit._num(12.0) == "12.0"
     assert emit._num(12.5) == "12.5"
+
+
+HAND_WRITTEN = [
+    "kuhy_credit/__init__.py",
+    "kuhy_credit/tk.py",
+    "kuhy_credit/demo.py",
+    "web/src/kuhy-credit.js",
+    "web/demo/index.html",
+    "flutter/lib/src/kuhy_credit.dart",
+    "flutter/example/lib/main.dart",
+    "godot/addons/kuhy_credit/kuhy_credit.gd",
+    "godot/demo/demo.gd",
+]
+
+
+@pytest.mark.parametrize("rel", HAND_WRITTEN)
+def test_hand_written_code_reads_the_constants(rel: str) -> None:
+    """Only generated files may spell out the URL or the words."""
+    text = (CREDIT_DIR / rel).read_text()
+    data = json.loads((CREDIT_DIR / "credit.json").read_text())
+    assert data["url"] not in text
+    assert data["text"] not in text
+
+
+def test_gdscript_strings_follow_gdformat_quoting() -> None:
+    from generator import emit
+
+    assert emit._gd_str('a"b') == "'a\"b'"
+    assert emit._gd_str("a'b\"") == '"a\'b\\""'
+    assert emit._gd_str("plain") == '"plain"'

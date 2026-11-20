@@ -51,6 +51,8 @@ def test_panel_click_opens_the_url_and_closes(root, opener, target: str) -> None
 def test_escape_closes_without_opening(root, opener) -> None:
     credit = _make(root, opener)
     _click(credit)
+    credit.panel.focus_force()
+    root.update()
     credit.panel.event_generate("<Escape>")
     root.update()
     assert not credit.is_open

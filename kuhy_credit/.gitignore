@@ -1,0 +1,6 @@
+# Tool output, never committed.
+web/node_modules/
+web/coverage/
+flutter/.dart_tool/
+flutter/coverage/
+flutter/example/.dart_tool/

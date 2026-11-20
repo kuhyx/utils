@@ -1,0 +1,4 @@
+# gdlint: every check on, no rule disabled. The cap matches the shared 250-line gate.
+max-file-lines: 250
+max-line-length: 100
+disable: []

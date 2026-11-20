@@ -1,0 +1,96 @@
+name: kuhy_credit tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['kuhy_credit/**', 'flutter_web_drive/**', '.github/workflows/kuhy-credit-tests.yml']
+  pull_request:
+    branches: [main]
+    paths: ['kuhy_credit/**', 'flutter_web_drive/**', '.github/workflows/kuhy-credit-tests.yml']
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kuhy_credit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.15.2" }
+      - name: Install the package, pytest and a virtual X display
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb python3-tk
+          pip install -r requirements-dev.txt && pip install --no-deps -e .
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Tests, Tk E2E and the drift check, 100% branch coverage
+        run: xvfb-run -a -s "-screen 0 1600x1200x24" python -m pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kuhy_credit/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 12 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "26.13.1" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.15.2" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - name: Unit tests, 100% coverage
+        run: pnpm coverage
+      - name: E2E in headless Chrome (window.open stubbed)
+        working-directory: .
+        env: { CHROMIUM: google-chrome }
+        run: |
+          pip install -r flutter_web_drive/requirements.txt
+          python3 kuhy_credit/e2e/web_e2e.py
+
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kuhy_credit/flutter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.15.2" }
+      - run: flutter pub get
+      - run: flutter analyze
+      - name: Widget tests, 100% line coverage
+        run: flutter test --coverage && ../../scripts/check_coverage.sh coverage/lcov.info 100
+      - name: Example web build + E2E in headless Chrome (window.open stubbed)
+        env: { CHROMIUM: google-chrome }
+        run: |
+          (cd example && flutter pub get && flutter analyze && flutter build web --release)
+          pip install -r ../../flutter_web_drive/requirements.txt
+          python3 ../e2e/flutter_web_e2e.py
+
+  godot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.15.2" }
+      - name: Install Godot
+        run: |
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          rm godot.zip
+      - name: Lint (gdlint, gdformat)
+        run: pip install -r godot_dev_tools/requirements-dev.txt && kuhy_credit/godot/lint.sh
+      - name: GUT unit tests + demo E2E (GUT fetched at its pinned tag)
+        env: { KUHY_CREDIT_GODOT_TIMEOUT: "50" }
+        run: kuhy_credit/godot/test.sh

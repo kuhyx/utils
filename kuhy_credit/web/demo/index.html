@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- Plain-HTML demo. Serve the repo root (python3 -m http.server -d ../../..)
+     and open /kuhy_credit/web/demo/index.html; add ?theme=light or ?theme=dark
+     to force a theme, otherwise it follows the system. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kuhy-credit demo</title>
+    <link rel="stylesheet" href="/web_ui/src/tokens.css" />
+    <style>
+      html, body { height: 100%; margin: 0; background: var(--bg); }
+      footer { position: fixed; right: var(--space-3); bottom: var(--space-3); }
+    </style>
+    <script type="module" src="../src/kuhy-credit.js"></script>
+    <script type="module" src="./theme.js"></script>
+  </head>
+  <body>
+    <footer><kuhy-credit></kuhy-credit></footer>
+  </body>
+</html>

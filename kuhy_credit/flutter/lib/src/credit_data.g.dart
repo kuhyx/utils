@@ -126,6 +126,8 @@ const List<(int, List<double>)> kLogoShapes = [
     ],
   ),
 ];
+const int kDarkBg = 0xFF211D1B;
+const int kLightBg = 0xFFF6F4F3;
 const int kDarkSurface = 0xFF2B2624;
 const int kDarkBorder = 0xFF463E3A;
 const int kDarkText = 0xFFECEAE9;

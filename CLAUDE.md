@@ -4,6 +4,9 @@ Monorepo of shared gates and libraries (app_errors, dep_freshness, file_length, 
 repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory, game_recording,
 flutter_web_drive (headless Flutter-web E2E driver + MCP), ...).
 `godot_dev_tools/` is a Godot addon (GDScript): `godot_dev_tools/test.sh` runs its GUT tests.
+`kuhy_credit/` is the shared "Created by kuhy" credit, one implementation per stack (web, Flutter,
+Godot, Tk, terminal) generated from `kuhy_credit/credit.json`; `kuhy_credit/README.md` lists each
+stack's test and E2E command, `python -m generator.generate --check` (from `kuhy_credit/`) the drift check.
 Python packages with a root-level `<pkg>/tests` run with `PYTHONPATH=.`;
 subprojects with their own `pyproject.toml` run via `scripts/run_subproject_tests.sh <dir>`.
 `scripts/check_repo_contract.sh` is the REAL shared gate (not a shim): never

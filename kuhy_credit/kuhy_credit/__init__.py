@@ -1,4 +1,4 @@
-"""The shared "Created by kuhy" credit for Python programs.
+"""The shared kuhy credit for Python programs.
 
 ``credit_line()`` is the terminal form; :mod:`kuhy_credit.tk` holds the
 Tkinter logo widget. The words and the link come from the generated

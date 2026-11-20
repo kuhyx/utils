@@ -1,4 +1,4 @@
-"""The Tkinter credit: an M1 logo button that opens a "Created by kuhy" panel.
+"""The Tkinter credit: an M1 logo button that opens a credit-text panel.
 
     credit = KuhyCredit(parent)            # a Canvas: pack/grid/place it
     credit.place(relx=1, rely=1, anchor="se")

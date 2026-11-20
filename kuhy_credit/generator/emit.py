@@ -47,6 +47,14 @@ def _chunks(text: str, size: int = 60) -> list[str]:
     return [json.dumps(text[i : i + size]) for i in range(0, len(text), size)]
 
 
+def _gd_str(chunk: str) -> str:
+    """GDScript literal the way gdformat writes it: single quotes around '"'."""
+    text = json.dumps(chunk)
+    if '"' in chunk and "'" not in chunk:
+        return "'" + text[1:-1].replace('\\"', '"') + "'"
+    return text
+
+
 def _argb(hex_colour: str) -> str:
     return f"0xFF{hex_colour.lstrip('#').upper()}"
 
@@ -59,7 +67,10 @@ def python(c: Credit) -> str:
     )
 
     def pal(p: Palette) -> str:
-        return f'{{"surface": "{p.surface}", "border": "{p.border}", "text": "{p.text}"}}'
+        return (
+            f'{{"bg": "{p.bg}", "surface": "{p.surface}", "border": "{p.border}", '
+            f'"text": "{p.text}"}}'
+        )
 
     t = c.tokens
     return (
@@ -79,7 +90,7 @@ def web(c: Credit) -> str:
     t = c.tokens
 
     def pal(p: Palette) -> str:
-        return f'{{ surface: "{p.surface}", border: "{p.border}", text: "{p.text}" }}'
+        return f'{{ bg: "{p.bg}", surface: "{p.surface}", border: "{p.border}", text: "{p.text}" }}'
 
     return (
         f"// The shared credit data ({MARK}).\n"
@@ -107,6 +118,8 @@ def flutter(c: Credit) -> str:
         f"const double kLogoSize = {c.logo.size};\n"
         f"const int kLogoField = {_argb(c.logo.field)};\n"
         f"const List<(int, List<double>)> kLogoShapes = [\n{shapes}];\n"
+        f"const int kDarkBg = {_argb(t.dark.bg)};\n"
+        f"const int kLightBg = {_argb(t.light.bg)};\n"
         f"const int kDarkSurface = {_argb(t.dark.surface)};\n"
         f"const int kDarkBorder = {_argb(t.dark.border)};\n"
         f"const int kDarkText = {_argb(t.dark.text)};\n"
@@ -123,13 +136,13 @@ def flutter(c: Credit) -> str:
 
 def godot(c: Credit) -> str:
     """godot/addons/kuhy_credit/credit_data.gd."""
-    svg = "\n\t+ ".join(_chunks(c.svg))
+    svg = "\n\t+ ".join(_gd_str(c.svg[i : i + 60]) for i in range(0, len(c.svg), 60))
     t = c.tokens
 
     def pal(p: Palette) -> str:
         return (
-            f'{{\n\t"surface": Color("{p.surface}"),\n\t"border": Color("{p.border}"),'
-            f'\n\t"text": Color("{p.text}"),\n}}'
+            f'{{\n\t"bg": Color("{p.bg}"),\n\t"surface": Color("{p.surface}"),'
+            f'\n\t"border": Color("{p.border}"),\n\t"text": Color("{p.text}"),\n}}'
         )
 
     return (
@@ -137,6 +150,7 @@ def godot(c: Credit) -> str:
         "extends RefCounted\n\n"
         f"const URL := {json.dumps(c.url)}\n"
         f"const TEXT := {json.dumps(c.text)}\n"
+        f"const LOGO_SIZE := {c.logo.size}\n"
         f"const LOGO_SVG := (\n\t{svg}\n)\n"
         f"const DARK := {pal(t.dark)}\n"
         f"const LIGHT := {pal(t.light)}\n"

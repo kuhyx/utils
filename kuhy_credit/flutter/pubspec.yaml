@@ -1,0 +1,21 @@
+name: kuhy_credit
+description: >-
+  The shared "Created by kuhy" credit: an M1 logo button that opens a small
+  panel, whose tap opens kuhy.duckdns.org. Android and Flutter web.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  url_launcher: 6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  plugin_platform_interface: 2.1.8
+  url_launcher_platform_interface: 2.3.2
+  very_good_analysis: ^11.0.0

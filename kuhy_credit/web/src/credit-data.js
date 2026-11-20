@@ -105,8 +105,8 @@ export const LOGO_SVG =
   + "139.77 376.54L138.77 382.07L138.23 387.76L138.29 393.51L139."
   + "06 399.17L140.59 404.59Z\"/>\n</svg>\n";
 export const TOKENS = {
-  dark: { surface: "#2b2624", border: "#463e3a", text: "#eceae9" },
-  light: { surface: "#fcfbfb", border: "#e0dad7", text: "#211d1b" },
+  dark: { bg: "#211d1b", surface: "#2b2624", border: "#463e3a", text: "#eceae9" },
+  light: { bg: "#f6f4f3", surface: "#fcfbfb", border: "#e0dad7", text: "#211d1b" },
   focus: "#b8862e",
   radius: 12,
   spaceSm: 8,

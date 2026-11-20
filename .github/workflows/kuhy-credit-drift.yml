@@ -1,0 +1,22 @@
+name: kuhy_credit drift
+
+# Not path-filtered, like palette-drift: the sources live outside kuhy_credit/
+# (the M1 art, web_ui's tokens.css), so an edit there must be able to fail it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kuhy_credit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.15.2" }
+      - name: Every stack's generated file matches credit.json, the art and the tokens
+        run: python3 -m generator.generate --check
