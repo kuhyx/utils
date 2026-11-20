@@ -1,6 +1,6 @@
 {
   "name": "@kuhyx/kuhy-credit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "type": "module",
   "description": "<kuhy-credit>: the shared 'Created by kuhy' logo credit as a dependency-free custom element.",

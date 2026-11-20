@@ -3,7 +3,7 @@ description: >-
   The shared "Created by kuhy" credit: an M1 logo button that opens a small
   panel, whose tap opens kuhy.duckdns.org. Android and Flutter web.
 publish_to: 'none'
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: ^3.12.2

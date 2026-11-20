@@ -41,8 +41,8 @@ def _compile(tmp_path: Path) -> bytes:
 def test_demo_pdf_links_the_logo_to_the_site(tmp_path: Path) -> None:
     pdf = _compile(tmp_path)
     url = json.loads((CREDIT_DIR / "credit.json").read_text())["url"]
-    # One link per \kuhycredit call in the demo, each with the shared URL.
-    assert pdf.count(f"/URI({url})".encode()) == 2
+    # One link per \kuhycredit call in the demo (footer, body, page corner).
+    assert pdf.count(f"/URI({url})".encode()) == 3
     # The field and both glyph colours are painted (non-stroking rgb fills).
     for rgb in (b"0.12941 0.11374 0.10588", b"0.72157 0.5255 0.18039", b"0.92549 0.91765 0.91374"):
         assert rgb + b" rg" in pdf
@@ -64,3 +64,13 @@ def test_tex_special_characters_are_refused(value: str) -> None:
 
     with pytest.raises(ValueError, match="TeX-special"):
         emit._tex_safe(value)
+
+
+def test_corner_logo_sits_in_the_bottom_right_margin(tmp_path: Path) -> None:
+    """\\kuhycreditcorner[4mm] puts a 12mm logo 4mm from the page's corner."""
+    pdf = _compile(tmp_path)
+    rects = [tuple(float(v) for v in m.split()) for m in re.findall(rb"/Rect\s*\[([^\]]*)\]", pdf)]
+    mm = 72 / 25.4
+    width = 8.5 * 72  # letterpaper in the demo
+    want = (width - 16 * mm, 4 * mm, width - 4 * mm, 16 * mm)
+    assert any(all(abs(a - b) < 1 for a, b in zip(r, want, strict=True)) for r in rects), rects
