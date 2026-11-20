@@ -196,3 +196,48 @@ def test_cli_without_a_command_prints_usage(
     with pytest.raises(SystemExit):
         toolbox_cards.main([])
     assert "usage" in capsys.readouterr().err
+
+
+def test_append_entry_defines_new_properties(box: Path) -> None:
+    meaning = "each item's share of the total is counted, not rebuilt"
+    toolbox_cards.append_entry(
+        "trie",
+        [],
+        ["counted shares", "greedy"],
+        path=box,
+        definitions={"counted shares": meaning},
+    )
+    data = toolbox.load(box)
+    assert data["properties"]["counted shares"] == meaning
+    assert data["entries"][-1]["properties"] == ["counted shares", "greedy"]
+
+
+@pytest.mark.parametrize(
+    ("definitions", "error"),
+    [
+        ({"greedy": "x"}, "already defined: greedy"),
+        ({"new one": " "}, "empty meaning: new one"),
+        ({"unused one": "x"}, "defined but not used: unused one"),
+    ],
+)
+def test_append_entry_refuses_bad_definitions(
+    box: Path, definitions: dict[str, str], error: str
+) -> None:
+    before = box.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match=error):
+        toolbox_cards.append_entry(
+            "trie", [], ["new one", "greedy"], path=box, definitions=definitions
+        )
+    assert box.read_text(encoding="utf-8") == before
+
+
+def test_cli_add_define_adds_a_property(
+    box: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(toolbox, "TOOLBOX_PATH", box)
+    args = ["add", "trie", "--property", "counted shares", "--property", "greedy"]
+    assert toolbox_cards.main([*args, "--define", "counted shares=a b"]) == 0
+    assert "added 'trie'" in capsys.readouterr().out
+    assert toolbox.load(box)["properties"]["counted shares"] == "a b"
+    assert toolbox_cards.main(["add", "t2", "--property", "p", "--define", "p"]) == 1
+    assert "name=meaning" in capsys.readouterr().err

@@ -48,7 +48,7 @@ STEPS = (
         "List what the operation must do, as properties, never by name.",
     ),
     Step("Toolbox", "Search the toolbox for an operation with those properties."),
-    Step("Post-mortem", "Say which hint gave which requirement, then make the cards."),
+    Step("Post-mortem", "Claude says which hint gave which requirement and makes the cards."),
 )
 NEXT_NOTE = (
     "The command skips problems LeetCode already shows as Accepted, "
