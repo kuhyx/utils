@@ -9,9 +9,10 @@ slug means one note per entry however many problems used it.
   python3 -m leetcode_coach.toolbox_cards cards <name|alias>...   (stdout ->
       the JSON make_cards.py reads; pipe it straight in)
   python3 -m leetcode_coach.toolbox_cards add <name> [--alias A]... --property P...
+      [--define "P=meaning"]...   (a property the vocabulary lacks yet)
 
 ``add`` (``append_entry``) is the only writer of toolbox.json and the coach
-calls it only after kuhy has confirmed the properties. It refuses unknown
+calls it on its own judgement (kuhy may veto). It refuses unknown
 properties, a name or alias already taken, and a property set that nests with
 an existing entry's (that card would have two right answers). Its printed
 lines are its interface (T201 exemption in pyproject.toml).
@@ -91,16 +92,37 @@ def _problems(
     return problems
 
 
+def _definition_problems(
+    vocab: dict[str, str], properties: list[str], definitions: dict[str, str]
+) -> list[str]:
+    """Why the new vocabulary entries may not be added (empty = ok)."""
+    problems = [f"already defined: {p}" for p in definitions if p in vocab]
+    problems += [f"empty meaning: {p}" for p, m in definitions.items() if not m.strip()]
+    unused = [p for p in definitions if p not in properties]
+    problems += [f"defined but not used: {p}" for p in unused]
+    return problems
+
+
 def append_entry(
     name: str,
     aliases: list[str],
     properties: list[str],
     *,
     path: Path | None = None,
+    definitions: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Append one confirmed entry to toolbox.json; ValueError if it is refused."""
+    """Append one entry to toolbox.json; ValueError if it is refused.
+
+    ``definitions`` adds properties the vocabulary lacks yet (name -> meaning);
+    each must be new and used by this entry, so the vocabulary never holds an
+    unused or silently redefined property.
+    """
     target = toolbox.TOOLBOX_PATH if path is None else path
     data = toolbox.load(target)
+    definitions = definitions or {}
+    if problems := _definition_problems(data["properties"], properties, definitions):
+        raise ValueError("; ".join(problems))
+    data["properties"].update(definitions)
     if problems := _problems(data, name, aliases, properties):
         raise ValueError("; ".join(problems))
     entry = {"name": name.strip(), "aliases": aliases, "properties": properties}
@@ -120,15 +142,25 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     cards = sub.add_parser("cards", help="print make_cards.py input for entries")
     cards.add_argument("names", nargs="+")
-    add = sub.add_parser("add", help="append an entry kuhy has confirmed")
+    add = sub.add_parser("add", help="append a new toolbox entry")
     add.add_argument("name")
     add.add_argument("--alias", action="append", default=[])
     add.add_argument("--property", action="append", default=[], required=True)
+    add.add_argument("--define", action="append", default=[], metavar="P=MEANING")
     return parser
 
 
+def _parse_definitions(raw: list[str]) -> dict[str, str]:
+    """``["P=meaning", ...]`` as a dict; ValueError on an item without ``=``."""
+    if bad := [item for item in raw if "=" not in item]:
+        msg = "--define takes name=meaning, got: " + ", ".join(bad)
+        raise ValueError(msg)
+    pairs = (item.split("=", 1) for item in raw)
+    return {name.strip(): meaning.strip() for name, meaning in pairs}
+
+
 def main(argv: list[str]) -> int:
-    """`cards` prints builder input; `add` appends a confirmed entry."""
+    """`cards` prints builder input; `add` appends a new entry."""
     args = _parser().parse_args(argv)
     if args.command == "cards":
         try:
@@ -140,7 +172,10 @@ def main(argv: list[str]) -> int:
         print(json.dumps({"slug": SLUG, "cards": cards}, ensure_ascii=False))
         return 0
     try:
-        entry = append_entry(args.name, args.alias, args.property)
+        definitions = _parse_definitions(args.define)
+        entry = append_entry(
+            args.name, args.alias, args.property, definitions=definitions
+        )
     except ValueError as exc:
         _logger.warning("toolbox entry refused: %s", exc)
         print(f"not added: {exc}", file=sys.stderr)

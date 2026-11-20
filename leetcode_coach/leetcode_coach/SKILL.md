@@ -156,22 +156,20 @@ Rules:
 
 ## 5. Exit
 
-The session is done when kuhy says solved/done **and** explains the
-solution back in ≤2 sentences that mention the key mechanism. If the
-explanation is wrong, that is one more H0 turn, not a failure.
+The session is done when kuhy's code passes the statement's examples (you
+ran it, section 4) or kuhy says solved/done. Ask nothing more: no
+explain-back, no "what is wrong with your opening belief" (kuhy dropped both
+2026-11-20). Go straight to the post-mortem in the same reply.
 
-Then close the loop on the *original* confusion: quote the belief they
-opened with ("cancel stops the function at a random place") and ask what
-is wrong with it now. A passing submission does not retire a misconception;
-only a corrected sentence from them does.
+## 5b. Post-mortem: written by you, then property cards
 
-## 5b. Post-mortem: requirement list, then property cards
+kuhy writes nothing here; you write it from this session's transcript.
 
-After the loop is closed, in the same reply:
-
-1. Ask kuhy for the requirement list as *properties* (what must vanish, what
-   must survive, how much space), not code or an operation name; then, for
-   every hint rung kuhy saw, which requirement that hint handed over.
+1. Post-mortem, ≤5 lines of plain prose: the requirement list as
+   *properties* (what must vanish, what must survive, how much space); for
+   each hint rung kuhy saw, which requirement it handed over; which steps
+   kuhy found and which you supplied (bluntly, no comfort); and the answer
+   to the belief kuhy opened with (quote it, say what was wrong with it).
 2. Cards are **property -> operation only** (DOCS-coach-spec.md decision 11): one
    per toolbox entry the solution relied on, generated from `toolbox.json`
    (front = its properties, back = its name), in ONE Bash call:
@@ -181,16 +179,17 @@ After the loop is closed, in the same reply:
    ```
    Names or aliases, 1-6 per call. They all share the slug `toolbox`, so
    never `--replace` here: it would delete every other entry's card.
-3. An operation kuhy named that is **not** in the toolbox: propose its
-   properties from the `toolbox.json` vocabulary and ask kuhy to confirm or
-   correct them. Only after kuhy confirms, append it (`append_entry`) --
-   never on your own judgement, never with unconfirmed properties:
+3. An operation the solution relied on that is **not** in the toolbox: pick
+   its properties from the `toolbox.json` vocabulary yourself (`--define
+   "P=meaning"` for one it lacks) and append it,
+   then build its card as in step 2. List each added entry with its
+   properties so kuhy can veto it:
    ```bash
    python3 -m leetcode_coach.toolbox_cards add "<name>" --alias "<alias>" \
      --property "<prop>" --property "<prop>"
    ```
-   Refused because the set nests with another entry's? Ask kuhy which
-   property tells the two apart. Then build its card as in step 2.
+   Refused because the set nests with another entry's? Add the property
+   that tells the two apart.
 4. Relay the builder's stdout verbatim -- as markdown, NOT inside a code
    fence (the table must render): the table and the delivery line.
    If Anki desktop is open (AnkiConnect) the cards are already in deck

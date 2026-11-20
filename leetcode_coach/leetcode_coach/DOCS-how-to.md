@@ -17,4 +17,4 @@ The method:
 1. **Constraint** - Turn the hard constraint into a rule for the design.
 2. **Requirements** - List what the operation must do, as properties, never by name.
 3. **Toolbox** - Search the toolbox for an operation with those properties.
-4. **Post-mortem** - Say which hint gave which requirement, then make the cards.
+4. **Post-mortem** - Claude says which hint gave which requirement and makes the cards.
