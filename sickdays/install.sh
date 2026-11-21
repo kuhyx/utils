@@ -46,6 +46,8 @@ build_venv() {
     "$VENV_DIR/bin/pip" install --quiet --upgrade pip || fail "pip self-upgrade"
     "$VENV_DIR/bin/pip" install --quiet "$UTILS_DIR/crdt-sync" \
         || fail "the crdt-sync sibling package"
+    "$VENV_DIR/bin/pip" install --quiet --no-deps "$UTILS_DIR/kuhy_credit" \
+        || fail "the kuhy_credit sibling package"
     "$VENV_DIR/bin/pip" install --quiet --no-deps "$UTILS_DIR/freedays" \
         || fail "the freedays sibling package"
     "$VENV_DIR/bin/pip" install --quiet --no-deps -e "$REPO_DIR" \

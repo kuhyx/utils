@@ -26,6 +26,7 @@ fail() { printf 'install: FAILED -- %s\n' "$1" >&2; exit 1; }
 build_venv() {
     [[ -x "$VENV_DIR/bin/python" ]] || /usr/bin/python3 -m venv "$VENV_DIR" || fail "venv"
     "$VENV_DIR/bin/pip" install --quiet "$UTILS_DIR/crdt-sync" || fail "crdt-sync"
+    "$VENV_DIR/bin/pip" install --quiet --no-deps "$UTILS_DIR/kuhy_credit" || fail "kuhy_credit"
     "$VENV_DIR/bin/pip" install --quiet --no-deps -e "$REPO_DIR" || fail "app-errors"
     mkdir -p "$BIN_DIR"
     ln -sf "$VENV_DIR/bin/app-errors" "$BIN_DIR/app-errors"
