@@ -6,7 +6,7 @@ A skeleton sheet is one code template with holes for one curriculum unit. It sho
 
 Show a sheet only when all three hold:
 
-1. kuhy has made his first code attempt in this solve (the session log has a `code` event).
+1. kuhy has made his first code attempt in this solve (the session log has a `code` event; in a review his accepted code counts).
 2. kuhy asks for it. Never offer it, never hint that it exists, never show it unasked.
 3. The session is a normal session or a review.
 
@@ -16,7 +16,9 @@ Before his first code attempt, answer "give me a skeleton" with the next hint-la
 
 Run the command; it logs the open and prints the sheet.
 
-COMMAND: skeleton-open <slug> <unit>
+`python3 -m leetcode_coach.review_cli skeleton-open <slug> <unit>`
+
+The sheet arrives on stdout, one confirmation line on stderr. The command refuses (exit 1) when neither holds: the session log has a `code` event, or the guard flags the solve right now (a review). Exit 2 means it could not check: say so, show nothing.
 
 Opening a sheet counts above hint H1. That solve gets no sign-off: tell kuhy so in one line before you run the command, and run it only after he repeats the request.
 

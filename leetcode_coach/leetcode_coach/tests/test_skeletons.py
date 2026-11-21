@@ -210,7 +210,7 @@ def test_the_typescript_sheets_use_typescript_types(unit: str) -> None:
 
 def test_the_rule_text_covers_when_how_and_the_cost() -> None:
     text = RULES.read_text(encoding="utf-8")
-    assert "COMMAND: skeleton-open <slug> <unit>" in text
+    assert "python3 -m leetcode_coach.review_cli skeleton-open <slug> <unit>" in text
     for needle in (
         "first code attempt",
         "only when",
