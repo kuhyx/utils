@@ -33,7 +33,7 @@ from earned_time._maturity import confirmed_start, penalty_start
 from earned_time._policy import SHUTDOWN_BASE_MINUTES, Earner
 from earned_time._registry import all_earners, earners_for
 from earned_time._resolution import Base, Resolution, Term
-from earned_time._sick import sick_shutdown_from
+from earned_time._sick import sick_or
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -84,11 +84,13 @@ def _shutdown_floor(day: date, earners: tuple[Earner, ...], cut: list[Earner]) -
     On the ladder: the ceiling minus the most each earner can pay (all of a
     capped earner's units), so doing everything lands exactly on the ceiling
     -- but only a pure bonus (no ``penalty_from``) or an earner in ``cut``: a
-    gate whose penalty has not started cannot lower the floor (0.6.1). Before
-    it: the old base minus the penalties in force.
+    gate whose penalty has not started cannot lower the floor (0.6.1), nor can
+    a top-up (0.23.0). Before it: the old base minus the penalties in force.
     """
     if on_ladder(day):
-        rungs = (e for e in earners if e.penalty_from is None or e in cut)
+        rungs = (
+            e for e in earners if not e.topup and (e.penalty_from is None or e in cut)
+        )
         return shutdown_ceiling_for(day) - sum(
             e.shutdown_for(e.max_units or 1, day) for e in rungs
         )
@@ -167,19 +169,6 @@ def _term(item: Earner, answers: Mapping[str, Answer], day: date) -> Term:
     )
 
 
-def _sick_or(earned: int, terms: list[Term], day: date) -> int:
-    """A sick day's shutdown: 20:00 plus the paid terms, never below ``earned``.
-
-    The terms are paid at gaming pay before ``GAMING_UNLIMITED_FROM`` and at
-    their shutdown (rung) pay from it: the gaming budget no longer exists.
-    """
-    if gaming_enforced(day):
-        paid = sum(t.gaming_minutes for t in terms)
-    else:
-        paid = sum(t.shutdown_minutes for t in terms)
-    return max(earned, sick_shutdown_from(paid, day))
-
-
 def resolve(
     answers: Mapping[str, Answer],
     day: date | None = None,
@@ -236,7 +225,7 @@ def resolve(
         shutdown_ceiling_for(target),
         base.shutdown_minutes + sum(t.shutdown_minutes for t in terms),
     )
-    shutdown = _sick_or(earned, terms, target) if sick else earned
+    shutdown = sick_or(earned, terms, target) if sick else earned
     return Resolution(
         day=target,
         base=base,

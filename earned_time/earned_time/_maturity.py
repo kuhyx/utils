@@ -136,6 +136,8 @@ def _level(days: list[date], earner: Earner, today: date, reasons: list[str]) ->
 def _penalty_reason(
     earner: Earner, start: date | None, first: date | None, *, checked: bool
 ) -> str:
+    if earner.topup:
+        return "a top-up: nothing to cut, never penalised"
     if earner.penalty_from is None:
         return "no penalty_from: a pure bonus"
     if start is not None and first is None:

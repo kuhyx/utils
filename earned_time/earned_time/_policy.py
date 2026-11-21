@@ -6,16 +6,10 @@ steam-backlog-enforcer (gaming) lives here, once. A consumer never hard-codes
 an hour; it asks :func:`earned_time.resolve` and applies the answer.
 
 **Penalty, then reward.** A gate with ``penalty_from`` lowers the base by
-exactly what it pays back, from that day on. Doing the thing restores the old
-day; skipping it costs the full amount. The date is the gate's own start, so
-the cut never lands before the reward that pays for it -- taking an hour a
-reader could not yet earn back was a same-day loss on 2026-09-26.
-
-**Ceilings stay put.** Adding a penalised earner leaves the best case
-unchanged: the base drops by what the new earner adds.
-
-From ``LADDER_FROM`` shutdown follows the sleep ladder instead
-(:mod:`earned_time._ladder`); gaming keeps the penalty derivation unchanged.
+exactly what it pays back, from that day on (never before the reward that
+pays for it: a same-day loss on 2026-09-26). Ceilings stay put. From
+``LADDER_FROM`` shutdown follows the sleep ladder (:mod:`earned_time._ladder`).
+The review top-up (``REVIEW``, 0.23.0) lives in :mod:`earned_time._review`.
 
 **The registry is per day** (:func:`earners_for`). From ``TUTOR_FROM`` Anki
 is retired -- neither penalised nor paid -- and the tutor (``TUTOR``) is the
@@ -40,6 +34,8 @@ from earned_time._match import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from earned_time._review import RowEvidence
 
     Window = tuple[float, float]
     # Whether one HMAC-verified ``credit`` row counts for the window.
@@ -103,6 +99,16 @@ class Earner:
     max_units: int | None = None
     confirmed_on: date | None = None
 
+    @property
+    def topup(self) -> bool:
+        """A top-up (0.23.0): no rung, no floor cut, added last and capped."""
+        return False
+
+    @property
+    def evidence(self) -> RowEvidence | None:
+        """A reader that pays from all rows instead of ``match`` (``_review``)."""
+        return None
+
     def capped(self, units: int) -> int:
         """``units`` clamped to ``[0, max_units]``."""
         units = max(0, units)
@@ -142,8 +148,7 @@ WORKOUT: Final = Earner(
     ledger=".local/share/workout_locker/ledger.json",
     match=workout_match,
     missing_ledger_is_no=True,
-    # The day of its first verified credit, read off the real ledger on
-    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 10, 1),
 )
 LEETCODE: Final = Earner(
@@ -153,8 +158,7 @@ LEETCODE: Final = Earner(
     shutdown_minutes=60,
     ledger=".local/share/leetcode_guard/ledger.json",
     match=leetcode_match,
-    # The day of its first verified credit, read off the real ledger on
-    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 8, 12),
 )
 READING: Final = Earner(
@@ -166,8 +170,7 @@ READING: Final = Earner(
     ledger=".local/share/book_guard/ledger.json",
     match=reading_match,
     missing_ledger_is_no=True,
-    # The day of its first verified credit, read off the real ledger on
-    # 2026-10-09 (earned_time 0.6.0); kuhy had been using the gate for real.
+    # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 10, 2),
 )
 ANKI: Final = Earner(
@@ -195,18 +198,15 @@ AUTOMATION: Final = Earner(
 )
 
 # From ``TUTOR_FROM``: the tutor pays per active minute (0.8.0; a 0.7.0
-# 15-minute block row counts 15), 1 gaming minute each, up to 60 a day summed
-# across sessions. Anki's 30 is folded in, so the base drops by 60. Named
-# ``automation`` (``AUTOMATION_TUTOR``) until 0.9.0; rows carry no earner name,
-# so the rename only moved the ledger (copied over, old rows included).
+# 15-minute block row counts 15), up to 60 a day; Anki's 30 is folded in.
+# Named ``automation`` until 0.9.0 (rows carry no earner name).
 TUTOR: Final = Earner(
     name="tutor",
     label="Tutor",
     gaming_minutes=1,
     extra_gaming_minutes=1,
     max_units=60,
-    # Pre-ladder values, unused (TUTOR_FROM is not before LADDER_FROM); the
-    # ladder pays 1 per minute (``TUTOR_LADDER``).
+    # Pre-ladder values, unused: the ladder pays 1 per minute.
     shutdown_minutes=1,
     extra_shutdown_minutes=1,
     kind="counted",

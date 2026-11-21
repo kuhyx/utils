@@ -58,9 +58,12 @@ def test_table(home: Path, capsys: pytest.CaptureFixture[str]) -> None:
         "anki",
         "automation",
         "tutor",
+        "review",
     }
     assert rows["leetcode"].split()[1:5] == ["maturing", "1", str(DAY), str(DAY)]
     assert "not in the registry on 2026-10-09" in rows["anki"]
+    assert "a top-up: nothing to cut, never penalised" in rows["review"]
+    assert "not in the registry on 2026-10-09" in rows["review"]
     assert "could not check: ledger" not in rows["reading"]
     assert rows["reading"].endswith(
         "no verified credit but confirmed_on 2026-10-02: "
@@ -96,6 +99,7 @@ def test_default_day_and_unregistered_earners(
         "workout",
         "reading",
         "tutor",
+        "review",
     ]
 
 
@@ -142,4 +146,4 @@ def test_a_name_shared_across_registries_gets_its_ledger_dir(
     monkeypatch.setattr(earned_time, "TUTOR_EARNERS", (new,))
     assert cli.main(["maturity", "--day", DAY.isoformat()]) == 0
     rows = [line.split()[0] for line in capsys.readouterr().out.splitlines()[2:-1]]
-    assert rows == ["twin:a", "twin:b"]
+    assert rows == ["twin:a", "twin:b", "review"]

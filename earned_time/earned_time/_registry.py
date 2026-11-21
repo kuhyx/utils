@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Final
 
 from earned_time._focus import FOCUS_WATCH, with_focus
 from earned_time._ladder import ANKI_WAIVED_FROM, TUTOR_FROM
+from earned_time._review import REVIEW, REVIEW_FROM
 
 if TYPE_CHECKING:
     from earned_time._policy import Earner
@@ -41,15 +42,23 @@ def earners_for(day: date | None = None) -> tuple[Earner, ...]:
     Between ``ANKI_WAIVED_FROM`` and ``TUTOR_FROM`` the old registry without
     Anki and the anki-backed Automation: neither penalised nor paid. From
     ``TUTOR_FROM`` an active focus project swaps its replaced earners for one
-    ``focus`` earner (:mod:`earned_time._focus`, 0.19.0).
+    ``focus`` earner (:mod:`earned_time._focus`, 0.19.0). From
+    ``REVIEW_FROM`` the review top-up joins it (0.23.0).
     """
     target = day or datetime.now(tz=UTC).astimezone().date()
     before, tutor = registries()
     if target >= TUTOR_FROM:
-        return with_focus(tutor, target)
+        return with_focus(_with_review(tutor, target), target)
     if target >= ANKI_WAIVED_FROM:
         return _without_waived(before)
     return before
+
+
+def _with_review(registry: tuple[Earner, ...], day: date) -> tuple[Earner, ...]:
+    """``registry`` plus ``REVIEW`` from ``REVIEW_FROM``, never twice."""
+    if day < REVIEW_FROM or REVIEW in registry:
+        return registry
+    return (*registry, REVIEW)
 
 
 @cache
@@ -67,5 +76,6 @@ def all_earners() -> tuple[Earner, ...]:
     seen: dict[Earner, None] = {}
     for registry in registries():
         seen.update(dict.fromkeys(registry))
+    seen[REVIEW] = None
     seen[FOCUS_WATCH] = None
     return tuple(seen)

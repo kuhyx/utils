@@ -133,7 +133,8 @@ def counting_rows(
     today. ``gate_off`` defaults to False so a caller that forgets it fails
     closed: no bonus for a part-paid day.
 
-    ``None`` when the key or the ledger cannot be read.
+    ``None`` when the key or the ledger cannot be read. An earner with
+    ``evidence`` (the review, 0.23.0) is decided by it instead, on all rows.
 
     Raises:
         ValueError: ``earner`` has no ``match``; its answer is the consumer's.
@@ -147,6 +148,8 @@ def counting_rows(
     rows = read_rows(ledger, earner)
     if rows is None:
         return None
+    if earner.evidence is not None:
+        return earner.evidence(earner, ledger, key, rows, window)
     match = earner.match
     kinds = ROW_KINDS.get(match, _CREDIT_ONLY)
     if not gate_off:
