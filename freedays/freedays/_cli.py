@@ -18,6 +18,8 @@ import argparse
 import sys
 from typing import TYPE_CHECKING
 
+from kuhy_credit import credit_line
+
 from freedays._api import is_free_day as _is_free_day
 from freedays._api import mark, release, status
 from freedays._cli_output import emit, emit_error
@@ -41,6 +43,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "One shared pool of days on which every gate app stands down. "
             f"{DEFAULT_ANNUAL_BUDGET} per calendar year, resetting Jan 1."
         ),
+        epilog=credit_line(),
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

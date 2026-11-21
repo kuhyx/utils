@@ -7,7 +7,9 @@ name = "feedback-inbox"
 version = "0.1.0"
 description = "Turns every game dev-feedback bundle into one todo-app task"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.1#subdirectory=kuhy_credit",
+]
 
 [project.scripts]
 feedback-inbox = "feedback_inbox._cli:main"

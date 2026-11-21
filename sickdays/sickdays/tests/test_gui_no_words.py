@@ -27,9 +27,22 @@ LETTER = re.compile(r"[^\W\d_]")
 
 
 def _shown(widget: tk.Misc) -> list[str]:
-    """Every string ``widget`` and its descendants paint."""
+    """Every string ``widget`` and its descendants paint, except the credit."""
     found: list[str] = []
+    # Find the credit panel frame in the toplevel so we can skip it
+    credit_panel = None
     for child in widget.winfo_children():
+        if child.__class__.__name__ == "KuhyCredit" and hasattr(child, "panel"):
+            credit_panel = child.panel
+            break
+
+    for child in widget.winfo_children():
+        # Skip the KuhyCredit widget (Canvas)
+        if child.__class__.__name__ == "KuhyCredit":
+            continue
+        # Skip the credit panel Frame (in toplevel) and its children
+        if credit_panel is not None and child == credit_panel:
+            continue
         if isinstance(child, tk.Canvas):
             # Raw Tcl: typeshed types Canvas.type()/itemcget() too loosely.
             path = str(child)

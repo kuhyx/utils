@@ -16,6 +16,8 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from kuhy_credit import credit_line
+
 from omniroute_offload import _privacy as privacy
 
 ENDPOINT = "http://127.0.0.1:20128/v1/chat/completions"
@@ -38,7 +40,9 @@ class GatewayError(RuntimeError):
 def parse(argv: list[str]) -> argparse.Namespace:
     """Command-line options."""
     parser = argparse.ArgumentParser(
-        prog="free-llm", description=__doc__.splitlines()[0]
+        prog="free-llm",
+        description=__doc__.splitlines()[0],
+        epilog=credit_line(),
     )
     parser.add_argument("prompt", help="question or instruction")
     parser.add_argument(

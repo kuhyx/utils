@@ -8,6 +8,8 @@ import datetime as dt
 import sys
 from typing import TYPE_CHECKING
 
+from kuhy_credit import credit_line
+
 from app_errors import ingest, store
 from app_errors.rtdb import DEFAULT_SESSION, RtdbError, open_rtdb
 
@@ -16,7 +18,11 @@ if TYPE_CHECKING:
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="app-errors", description=__doc__)
+    parser = argparse.ArgumentParser(
+        prog="app-errors",
+        description=__doc__,
+        epilog=credit_line(),
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("ingest", help="read RTDB and the spool, write the board reports")
     run.add_argument("--keep", action="store_true", help="leave RTDB entries in place")

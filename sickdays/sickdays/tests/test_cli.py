@@ -196,3 +196,13 @@ def test_importing_the_library_and_cli_never_imports_tkinter() -> None:
     )
     done = subprocess.run([sys.executable, "-c", probe], check=False)
     assert done.returncode == 0
+
+
+def test_help_ends_with_credit_line(capsys: pytest.CaptureFixture[str]) -> None:
+    """--help output ends with the kuhy credit line."""
+    from kuhy_credit import credit_line
+
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    out = capsys.readouterr().out
+    assert out.strip().endswith(credit_line())

@@ -7,7 +7,9 @@ name = "omniroute_offload"
 version = "0.1.0"
 description = "Offload easy LLM work to free models behind the local OmniRoute gateway"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.1#subdirectory=kuhy_credit",
+]
 
 [project.scripts]
 free-llm = "omniroute_offload._cli:main"

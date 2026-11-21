@@ -192,3 +192,13 @@ def test_tty_stdin_is_not_read(
     monkeypatch.setattr(sys, "stdin", Tty("must not be sent"))
     assert cli.main(["hi"]) == 0
     assert "must not be sent" not in sent[0]["messages"][-1]["content"]
+
+
+def test_help_ends_with_credit_line(capsys: pytest.CaptureFixture[str]) -> None:
+    """--help output ends with the kuhy credit line."""
+    from kuhy_credit import credit_line
+
+    with pytest.raises(SystemExit):
+        cli.main(["--help"])
+    out = capsys.readouterr().out
+    assert out.strip().endswith(credit_line())

@@ -153,3 +153,13 @@ def test_sync_quiet_exits_zero_when_there_is_no_remote(
     monkeypatch.setattr("freedays._sync.get_client", _refuse)
     assert main(["sync-quiet"]) == 0
     assert "no remote available" in capsys.readouterr().out
+
+
+def test_help_ends_with_credit_line(capsys: pytest.CaptureFixture[str]) -> None:
+    """--help output ends with the kuhy credit line."""
+    from kuhy_credit import credit_line
+
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    out = capsys.readouterr().out
+    assert out.strip().endswith(credit_line())

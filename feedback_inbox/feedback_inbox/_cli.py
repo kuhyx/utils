@@ -9,6 +9,8 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
+from kuhy_credit import credit_line
+
 from feedback_inbox._inbox import Importer, Outcome, Waiter, run_settled
 from feedback_inbox._paths import resolve_paths
 from feedback_inbox._todo import McpTodoClient
@@ -25,7 +27,10 @@ DEFAULT_WAIT = 15.0
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="feedback-inbox")
+    parser = argparse.ArgumentParser(
+        prog="feedback-inbox",
+        epilog=credit_line(),
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="import new bundles as todo tasks")
     run.add_argument("--wait", type=float, default=DEFAULT_WAIT)

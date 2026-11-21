@@ -101,3 +101,13 @@ def test_real_paths_are_under_home(
 def test_module_entry_point(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sys.argv", ["feedback-inbox", "run", "--wait", "0"])
     assert entry.run() == 0
+
+
+def test_help_ends_with_credit_line(capsys: pytest.CaptureFixture[str]) -> None:
+    """--help output ends with the kuhy credit line."""
+    from kuhy_credit import credit_line
+
+    with pytest.raises(SystemExit):
+        main(["--help"])
+    out = capsys.readouterr().out
+    assert out.strip().endswith(credit_line())

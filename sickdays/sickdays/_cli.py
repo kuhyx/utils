@@ -25,6 +25,8 @@ import importlib
 import sys
 from typing import TYPE_CHECKING
 
+from kuhy_credit import credit_line
+
 from sickdays._api import add_sick_day, is_sick_day, load, remove_sick_day
 from sickdays._cli_output import emit, emit_error
 from sickdays._constants import LOCKERS
@@ -56,6 +58,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "One shared pool of sick days every gate respects. No cap, no "
             "reason; today or later only."
         ),
+        epilog=credit_line(),
     )
     sub = parser.add_subparsers(dest="command", required=True)
     add = sub.add_parser("add", help="mark a day sick (today or later)")

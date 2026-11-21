@@ -17,6 +17,8 @@ from __future__ import annotations
 import tkinter as tk
 from typing import TYPE_CHECKING, Final
 
+from kuhy_credit.tk import KuhyCredit
+
 from sickdays._api import is_sick_day, load
 from sickdays._day import to_iso, today
 from sickdays._keep_api import kept_lockers
@@ -84,6 +86,10 @@ class SickDaysApp:
         self._list = tk.Frame(left, name="upcoming", bg=tok.INK)
         self._list.pack(anchor="w", fill="x")
         self._draw_upcoming()
+        # Credit in the bottom-right corner of the window
+        KuhyCredit(root, theme="dark").place(
+            relx=1, rely=1, x=-tok.LG, y=-tok.LG, anchor="se"
+        )
 
     def close(self, _event: object = None) -> None:
         """Close the window (bound to ``Escape``)."""
