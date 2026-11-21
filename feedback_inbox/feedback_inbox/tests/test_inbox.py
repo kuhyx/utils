@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 from feedback_inbox._entry import Report
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
 
 NOW = 1_000_000.0
 OWNER = "kuhyx"
-MANUAL = "MANUAL WORK REQUIRED: "
 
 
 def _run(paths: Paths, todo: FakeTodo) -> list[Outcome]:
@@ -57,10 +57,7 @@ def test_complete_bundle_becomes_one_task(paths: Paths) -> None:
     assert _run(paths, todo) == [Outcome.IMPORTED]
     ((repo, title, body),) = todo.calls
     assert repo == "kuhyx/cleanup-plate"
-    assert (
-        title
-        == MANUAL + "cleanup-plate feedback: I would like to see the painting IN FULL"
-    )
+    assert title == "cleanup-plate feedback: I would like to see the painting IN FULL"
     assert body.startswith("Due: 2026-11-12 10:00\n\n### 2026-11-11T13:52:33")
     assert f"{bundle}/report.json" in body
     marker = json.loads((bundle / MARKER).read_text(encoding="utf-8"))
@@ -97,8 +94,8 @@ def test_multiple_games(paths: Paths) -> None:
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.IMPORTED] * 2
     assert [(c[0], c[1]) for c in todo.calls] == [
-        ("kuhyx/cleanup-plate", "MANUAL WORK REQUIRED: cleanup-plate feedback: a"),
-        ("kuhyx/dread-grid", "MANUAL WORK REQUIRED: dread-grid feedback: b"),
+        ("kuhyx/cleanup-plate", "cleanup-plate feedback: a"),
+        ("kuhyx/dread-grid", "dread-grid feedback: b"),
     ]
 
 
@@ -107,10 +104,7 @@ def test_corrupt_report_still_a_task(paths: Paths) -> None:
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.IMPORTED]
     ((_, title, body),) = todo.calls
-    assert (
-        title
-        == "MANUAL WORK REQUIRED: cleanup-plate feedback: keep me [corrupt report.json]"
-    )
+    assert title == "cleanup-plate feedback: keep me [corrupt report.json]"
     assert "report.json is corrupt" in body
     assert (bundle / MARKER).exists()
 
@@ -121,25 +115,22 @@ def test_corrupt_report_without_note(paths: Paths) -> None:
     assert _run(paths, todo) == [Outcome.IMPORTED]
     title = todo.calls[0][1]
     game_part = "museum loop=P2,carry=d,id=c 13:52"
-    assert title == f"{MANUAL}cleanup-plate feedback: {game_part} [corrupt report.json]"
+    assert title == f"cleanup-plate feedback: {game_part} [corrupt report.json]"
 
 
 def test_no_note_title_names_game_combo_time(paths: Paths) -> None:
     make_bundle(paths.data_root, note="")
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.IMPORTED]
-    assert (
-        todo.calls[0][1]
-        == "MANUAL WORK REQUIRED: cleanup-plate feedback: museum loop=P2 13:52"
-    )
+    assert todo.calls[0][1] == "cleanup-plate feedback: museum loop=P2 13:52"
 
 
 def test_title_uses_first_line_and_caps_length() -> None:
     report = Report(note="\n  " + "x" * 300 + "\nsecond", game="g", combo="c")
     draft = build_task("repo", STAMP, "## e", report)
-    assert draft.title == "MANUAL WORK REQUIRED: repo feedback: " + "x" * 119 + "…"
+    assert draft.title == "repo feedback: " + "x" * 119 + "…"
     bare = build_task("repo", STAMP, "## e", Report(note="", game="", combo=""))
-    assert bare.title == "MANUAL WORK REQUIRED: repo feedback: 13:52"
+    assert bare.title == "repo feedback: 13:52"
 
 
 def test_todo_failure_leaves_no_marker(paths: Paths) -> None:
@@ -211,7 +202,7 @@ def test_run_settled_waits_then_gives_up(paths: Paths, tmp_path: Path) -> None:
     assert slept == [1.0, 1.0, 1.0]
 
 
-def test_every_title_starts_with_the_manual_prefix(paths: Paths) -> None:
+def test_no_title_carries_the_manual_prefix(paths: Paths) -> None:
     make_bundle(paths.data_root, stamp="2026-11-11T10-00-00-001", note="a")
     make_bundle(paths.data_root, stamp="2026-11-11T10-00-01-001", note="")
     make_bundle(paths.data_root, stamp="2026-11-11T10-00-02-001", report="{")
@@ -220,4 +211,5 @@ def test_every_title_starts_with_the_manual_prefix(paths: Paths) -> None:
     assert _run(paths, todo) == [Outcome.IMPORTED] * 4
     titles = [call[1] for call in todo.calls]
     assert len(titles) == 4
-    assert all(t.startswith("MANUAL WORK REQUIRED: ") for t in titles)
+    assert not any("MANUAL" in t for t in titles)
+    assert all(re.match(r"[a-z-]+ feedback: ", t) for t in titles)

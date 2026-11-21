@@ -12,18 +12,18 @@ on GitHub).
 
 ## Task shape
 
-- Title: `MANUAL WORK REQUIRED: <repo> feedback: <first line of his note>` (note capped
-  at 120 characters). The prefix makes todoImplementer list it as a human part and never
-  run it. No note: `... feedback: <game> <combo> <HH:MM>`. A `report.json` that does
-  not parse still gets a task, tagged `[corrupt report.json]`; the note then
-  comes from the markdown entry.
+- Title: `<repo> feedback: <first line of his note>` (note capped at 120 characters).
+  No `MANUAL WORK REQUIRED:` prefix: the note asks Claude to fix the game, so
+  todoImplementer may run it. No note: `... feedback: <game> <combo> <HH:MM>`. A
+  `report.json` that does not parse still gets a task, tagged `[corrupt report.json]`;
+  the note then comes from the markdown entry.
 - Body: a `Due: <next day 10:00>` line, then the bundle's markdown entry (the
   prompt with absolute paths).
 - The task is its own note (`add_task` with `new_note`). The server stores that as
   `<repo> todos: <title>` plus a `## <title>` section, so right after adding, the inbox
   rewrites it with `update_task` to the exact title and a section-free body (the entry's
-  own `##` headings become `###`). todoImplementer splits notes at `## ` headings, and a
-  title that does not start with `MANUAL WORK REQUIRED: ` would make a runnable part.
+  own `##` headings become `###`). todoImplementer splits notes at `## ` headings, so the
+  body must hold none.
   The marker records `format: 2` once the rewrite worked; a failed rewrite is retried on
   the next sweep (never a second task), and markers without it are repaired the same way.
 - Closing the task cancels the feedback. "Act on feedback" in a Claude session

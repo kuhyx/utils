@@ -39,7 +39,6 @@ MARKER = ".inbox-imported.json"
 FORMAT = 2
 SETTLE_SECONDS = 2.0
 TITLE_CAP = 120
-MANUAL_PREFIX = "MANUAL WORK REQUIRED: "
 CORRUPT_TAG = " [corrupt report.json]"
 CORRUPT_LINE = "Warning: report.json is corrupt; the note below comes from the entry."
 
@@ -97,7 +96,7 @@ def build_task(repo: str, stamp: str, entry: str, report: Report | None) -> Task
     clock = parse_stamp(stamp).strftime("%H:%M")
     fallback = " ".join(x for x in (game, combo, clock) if x)
     suffix = CORRUPT_TAG if report is None else ""
-    title = f"{MANUAL_PREFIX}{repo} feedback: {_first_line(note, fallback)}{suffix}"
+    title = f"{repo} feedback: {_first_line(note, fallback)}{suffix}"
     due = due_at(stamp)
     lines = [f"Due: {due:%Y-%m-%d %H:%M}", ""]
     if report is None:

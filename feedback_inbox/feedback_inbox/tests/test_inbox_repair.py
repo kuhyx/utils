@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 
 NOW = 1_000_000.0
 OWNER = "kuhyx"
-MANUAL = "MANUAL WORK REQUIRED: "
 
 
 def _run(paths: Paths, todo: FakeTodo) -> list[Outcome]:
@@ -43,12 +42,12 @@ def _no_extra_sections(text: str) -> bool:
     return not any(line.startswith("## ") for line in text.splitlines())
 
 
-def test_stored_note_is_one_manual_part(paths: Paths) -> None:
+def test_stored_note_is_one_part_without_manual_prefix(paths: Paths) -> None:
     bundle = make_bundle(paths.data_root)
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.IMPORTED]
     (stored,) = todo.stored.values()
-    assert stored.startswith(MANUAL)
+    assert stored.startswith("cleanup-plate feedback: ")
     assert _no_extra_sections(stored)
     assert "### 2026-11-11T13:52:33" in stored
     assert _marker(bundle)["format"] == FORMAT
@@ -74,7 +73,7 @@ def test_failed_update_keeps_marker_and_retries_without_a_second_task(
     assert _run(paths, todo) == [Outcome.IMPORTED]
     assert len(todo.calls) == 1
     (stored,) = todo.stored.values()
-    assert stored.startswith(MANUAL)
+    assert stored.startswith("cleanup-plate feedback: ")
     assert _no_extra_sections(stored)
     assert _run(paths, todo) == [Outcome.SKIPPED]
 
@@ -89,7 +88,7 @@ def test_old_marker_is_repaired_from_the_bundle(paths: Paths) -> None:
     todo = FakeTodo()
     assert _run(paths, todo) == [Outcome.IMPORTED]
     assert todo.calls == []
-    assert todo.stored[task_id].startswith(MANUAL)
+    assert todo.stored[task_id].startswith("cleanup-plate feedback: ")
     assert _no_extra_sections(todo.stored[task_id])
     assert _marker(bundle)["format"] == FORMAT
 
