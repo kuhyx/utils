@@ -129,38 +129,47 @@ class _KuhyCreditState extends State<KuhyCredit> {
         ),
       ),
     );
-    return PopScope(
-      canPop: !_portal.isShowing,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _close();
-      },
-      child: TapRegion(
-        groupId: this,
-        onTapOutside: (_) => _close(),
-        child: CompositedTransformTarget(
-          link: _link,
-          child: OverlayPortal(
-            controller: _portal,
-            overlayChildBuilder: (context) => CompositedTransformFollower(
-              link: _link,
-              targetAnchor: Alignment(end ? 1 : -1, above ? -1 : 1),
-              followerAnchor: Alignment(end ? 1 : -1, above ? 1 : -1),
-              offset: Offset(0, above ? -kSpaceSm : kSpaceSm),
-              child: Align(
-                alignment: Alignment(end ? 1 : -1, above ? 1 : -1),
-                child: TapRegion(
-                  groupId: this,
-                  child: _Panel(
-                    dark: dark,
-                    size: widget.size,
-                    focusNode: _panelFocus,
-                    onKey: _onPanelKey,
-                    onTap: _activate,
+    // A stretching parent (ListView, Column.stretch) would force the logo
+    // to the full row width: the painter then scaled the dark field across
+    // the screen and the glyph fell outside the clip, an invisible logo.
+    // Loosen the constraints here so the logo, the tap target and the panel
+    // anchor all keep [KuhyCredit.size].
+    return Center(
+      widthFactor: 1,
+      heightFactor: 1,
+      child: PopScope(
+        canPop: !_portal.isShowing,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _close();
+        },
+        child: TapRegion(
+          groupId: this,
+          onTapOutside: (_) => _close(),
+          child: CompositedTransformTarget(
+            link: _link,
+            child: OverlayPortal(
+              controller: _portal,
+              overlayChildBuilder: (context) => CompositedTransformFollower(
+                link: _link,
+                targetAnchor: Alignment(end ? 1 : -1, above ? -1 : 1),
+                followerAnchor: Alignment(end ? 1 : -1, above ? 1 : -1),
+                offset: Offset(0, above ? -kSpaceSm : kSpaceSm),
+                child: Align(
+                  alignment: Alignment(end ? 1 : -1, above ? 1 : -1),
+                  child: TapRegion(
+                    groupId: this,
+                    child: _Panel(
+                      dark: dark,
+                      size: widget.size,
+                      focusNode: _panelFocus,
+                      onKey: _onPanelKey,
+                      onTap: _activate,
+                    ),
                   ),
                 ),
               ),
+              child: logo,
             ),
-            child: logo,
           ),
         ),
       ),

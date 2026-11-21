@@ -16,8 +16,11 @@ class _LogoPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Scale by the short side and clip, so a non-square box can never
+    // push the glyph out of view.
     canvas
-      ..scale(size.width / kLogoSize)
+      ..clipRect(Offset.zero & size)
+      ..scale(size.shortestSide / kLogoSize)
       ..drawRect(
         const Rect.fromLTWH(0, 0, kLogoSize, kLogoSize),
         Paint()..color = const Color(kLogoField),
