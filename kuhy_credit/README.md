@@ -32,8 +32,10 @@ Nothing loads over the network and nothing opens without a click.
   (LaTeX) footer's right corner. The
   panel opens above the logo, aligned to its end edge; each stack has a
   "below" and a "start" option.
-- Lockers and gate windows get no credit. The Tk widget ships but no locker
-  uses it.
+- Every program gets the credit, lockers and gate windows too (kuhy,
+  2026-11-21: "everywhere in every single app, desktop program"). On a lock
+  window, put the Tk widget in a corner of each surface; the site opens in
+  a tab behind the lock. home-guard's `_view.py` is the example.
 - Distribution: a git dependency pinned to the tag `kuhy-credit-v<version>`
   (version in `pyproject.toml`, `web/package.json` and
   `flutter/pubspec.yaml`, kept equal). Never copy the files into a repo by hand.
