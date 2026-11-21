@@ -25,6 +25,7 @@ Stdlib only unless noted. Import only what you need.
 |---|---|
 | Gates | `phase`, `shape`, `gate_notes`, `req_check`, `leak`, `toolbox`, `stop_gate`, `gate_detector` |
 | Log + progress | `session_log`, `progress`, `report` |
+| Review | `review_cli` (`/leetcode review`, skeleton sheets), `flagged` (guard CLI reader), `review_ledger` (the coach's own signed ledger) |
 | Content | `fetch_problem`, `toolbox.json`, `answer_key`, `clusters.json` |
 | Cards | `toolbox_cards`, `card_rules`, `make_cards` (needs genanki), `anki_connect` |
 | Models | `claude_cli` (haiku/sonnet via `claude -p`), `local_backend` (Ollama) |
@@ -77,12 +78,21 @@ too early), `stop_gate.verdict(raw, reply)`, `gate_detector.offending_snippets`.
 
 **Log.** `session_log.log_path(problem)`, `append(path, event, **fields)`,
 `read(path)`, `current(events)`, `has_code(path)`. Events: `session_start`,
-`req`, `req_check`, `code`, `rung`, `reveal`, `grade`, `chat`. The field set is
-a FIXED contract read by `leetcode_guard._coach_log`: add a field only together
-with that reader.
+`req`, `req_check`, `code`, `rung`, `reveal`, `grade`, `chat`, `review`
+(`cause`, plus `module` for `missing-idea`), `skeleton` (`unit`). The field set
+is a FIXED contract read by `leetcode_guard._coach_log`: add a field only
+together with that reader.
 
 **Progress.** `progress.history(slug)`, `due_retests()` (cold re-tests at +3
-and +10 days), `cluster_progress()`, `next_new(...)`, `cluster_of(slug)`.
+and +10 days), `cluster_progress()`, `next_new(...)`, `cluster_of(slug)`. A
+`review` event marks its day solved, like `code` plus `postmortem`.
+
+**Review.** `python3 -m leetcode_coach.review_cli review-list | review-finish
+<slug> --cause <cause> [--module <unit>] | skeleton-open <slug> <unit>`
+(`DOCS-review.md`). `review-finish` takes only a slug the guard flags now and
+writes one signed row per slug to
+`~/.local/share/leetcode-coach/review_ledger.json` (`review_ledger.record`),
+then the `review` event. It never touches the guard's ledger.
 
 **Toolbox + cards.** `toolbox.load_safe() -> Toolbox` (`.entries`,
 `.properties`), `toolbox_cards.cards_for(names) -> [Card]` (property list ->
