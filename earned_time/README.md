@@ -139,6 +139,12 @@ budget must read the switch and lift its limit on `False`.
   pay from the switch (gaming pay before it), capped at the ceiling. The two
   are equal on the unified ladder, so no number moves.
 
+## The LeetCode review top-up (0.23.0)
+
+From 2026-11-23 a finished, backed coach review adds 20 shutdown minutes once a
+day, capped at the ceiling; never a rung, never in the floor. The row contract
+and the rules are in [DOCS-review.md](DOCS-review.md).
+
 ## Gate maturity (0.6.0)
 
 How far to trust a gate, computed from its ledger by `maturity()`, is in
@@ -169,6 +175,10 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
   view lists as still left to earn. `Earner.shutdown_for(units, day=None)` is
   the day-aware sum. Never read `earner.shutdown_minutes`: pre-ladder value.
 - `day_window(day)`, `today_window(now=None)`, `entry_signature`, `verified`.
+- `REVIEW`, `REVIEW_FROM`, `REVIEW_SHUTDOWN_MINUTES`, `REVIEW_LEDGER`,
+  `REVIEW_SOURCE`, `GUARD_LEDGER`, `ACCEPTED_LOOKBACK_DAYS`, `review_match`,
+  `paid_reviews`, `guard_ledger_for(ledger, earner) -> Path | None`;
+  `Earner.topup` and `Earner.evidence` (0.23.0).
 
 ## The workout ledger
 
@@ -232,7 +242,7 @@ Unbacked timer time pays 0 from 2026-11-08 (focus_project 0.10.0).
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.22.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy` and imports from
