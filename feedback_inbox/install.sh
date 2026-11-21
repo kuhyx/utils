@@ -14,6 +14,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_DIR
+readonly UTILS_DIR="${REPO_DIR%/*}"
 readonly STATE_DIR="${HOME}/.local/share/feedback-inbox"
 readonly VENV_DIR="${STATE_DIR}/venv"
 readonly BIN_DIR="${HOME}/.local/bin"
@@ -35,8 +36,12 @@ build_venv() {
     mkdir -p "$STATE_DIR"
     [[ -x "$VENV_DIR/bin/python" ]] || "$SYSTEM_PYTHON" -m venv "$VENV_DIR" \
         || fail "could not create the venv"
+    # One line per pyproject dependency (tests/test_install.py): the package
+    # itself goes in with --no-deps, so a missing line kills every run.
+    "$VENV_DIR/bin/pip" install --quiet --no-deps "$UTILS_DIR/kuhy_credit" \
+        || fail "the kuhy_credit sibling package"
     "$VENV_DIR/bin/pip" install --quiet --no-deps -e "$REPO_DIR" \
-        || fail "feedback-inbox itself (stdlib only, no other packages)"
+        || fail "feedback-inbox itself"
     mkdir -p "$BIN_DIR"
     ln -sf "$VENV_DIR/bin/feedback-inbox" "$BIN_DIR/feedback-inbox"
 }
