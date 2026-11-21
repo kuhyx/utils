@@ -15,6 +15,7 @@ export 'src/confirm.dart';
 export 'src/empty_state.dart';
 export 'src/feedback.dart';
 export 'src/fit_grid.dart';
+export 'src/logo.dart';
 export 'src/section_header.dart';
 export 'src/status_colors.dart';
 export 'src/theme.dart';

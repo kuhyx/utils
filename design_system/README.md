@@ -51,6 +51,7 @@ MaterialApp(
 | `showToast()` / `showError()` | ~38 raw `SnackBar` sites and zero helpers |
 | `EmptyState` | 4 variants, only one of them reusable |
 | `SectionHeader` | 3 near-identical private widgets |
+| `KLogo` (+ `KLogoSmall`/`Medium`/`Large`/`XLarge`: 24/32/48/96 px) | per-app copies of the kuhy logo; the SVG ships as a package asset |
 
 ### Why the scales are what they are
 

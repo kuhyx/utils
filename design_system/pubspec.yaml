@@ -5,7 +5,7 @@ description: >-
   helpers that were each reimplemented in three or more repos. Owns the tokens
   -- consumers import them rather than transcribing the token table by hand.
 publish_to: 'none'
-version: 0.4.1
+version: 0.5.1
 
 environment:
   sdk: ^3.12.2
@@ -13,6 +13,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: 2.5.0
   material_ui: 1.11.1
 
 dev_dependencies:
@@ -21,3 +22,5 @@ dev_dependencies:
   very_good_analysis: ^11.0.0
 
 flutter:
+  assets:
+    - assets/logo/kuhy.svg
