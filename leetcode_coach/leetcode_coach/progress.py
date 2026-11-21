@@ -8,7 +8,7 @@ record, so progress survives anything that survives the logs.
   first day by which it has both a ``code`` and a ``postmortem`` event. A
   later re-test session logs its own code and post-mortem; that never moves
   the solve day, so it cannot reset the schedule.
-* A ``review`` event (REVIEW.md: a flagged solve, reviewed with a named cause)
+* A ``review`` event (DOCS-review.md: a flagged solve, reviewed with a named cause)
   also marks its day solved and the problem started: an uncoached solve has
   neither ``code`` nor ``postmortem``, and its re-test clock starts here.
 * Re-tests fall due ``RETEST_OFFSETS`` days after the solve day (+3, +10).

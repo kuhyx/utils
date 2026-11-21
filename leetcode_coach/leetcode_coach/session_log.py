@@ -43,7 +43,7 @@ EVENTS = frozenset(
     }
 )
 """``review`` carries ``cause`` (and ``module`` for ``missing-idea``), ``skeleton``
-carries ``unit``; both came with ``review_cli`` (REVIEW.md)."""
+carries ``unit``; both came with ``review_cli`` (DOCS-review.md)."""
 
 
 def sessions_dir() -> Path:
