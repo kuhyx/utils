@@ -36,6 +36,10 @@ Nothing loads over the network and nothing opens without a click.
   2026-11-21: "everywhere in every single app, desktop program"). On a lock
   window, put the Tk widget in a corner of each surface; the site opens in
   a tab behind the lock. home-guard's `_view.py` is the example.
+- Exception: client work handed over to someone else gets no credit.
+  kuhyx/teatr-pw (the Teatr PW site, handed to the theatre and hosted by PW
+  IT) bans `@kuhyx/*` dependencies and sends `style-src 'self'`; its owner
+  decides on any credit, not this package (automatic choice, 2026-11-21).
 - Distribution: a git dependency pinned to the tag `kuhy-credit-v<version>`
   (version in `pyproject.toml`, `web/package.json` and
   `flutter/pubspec.yaml`, kept equal). Never copy the files into a repo by hand.
