@@ -5,7 +5,7 @@ description: >-
   injected closures -- no keystore or platform plugin access lives in this
   package itself.
 publish_to: 'none'
-version: 0.8.4
+version: 0.8.5
 
 environment:
   sdk: ^3.13.0
@@ -19,7 +19,7 @@ dependencies:
   data_transfer_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: data_transfer_flutter-v0.2.3
+      ref: data_transfer_flutter-v0.2.4
       path: data_transfer_flutter
   flutter:
     sdk: flutter
