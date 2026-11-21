@@ -21,8 +21,9 @@ dependencies = [
 include = ["leetcode_coach*"]
 
 [tool.setuptools.package-data]
-# The skill body and the launcher are read/executed from the package dir.
-leetcode_coach = ["SKILL.md", "leetcode", "*.json", "py.typed"]
+# The skill body, the texts it points to (DOCS-review.md, DOCS-skeletons.md),
+# the skeleton sheets and the launcher are read/executed from the package dir.
+leetcode_coach = ["*.md", "skeletons/*.md", "leetcode", "*.json", "py.typed"]
 
 [tool.ruff]
 target-version = "py314"
@@ -75,6 +76,10 @@ unfixable = []
 "leetcode_coach/cluster_cli.py" = ["T201"]
 "leetcode_coach/toolbox_cards.py" = ["T201"]
 "leetcode_coach/report.py" = ["T201"]
+# review-list / review-finish / skeleton-open: the lines Claude reads back in
+# a review. Without this entry the fixer emptied `_refuse` and `_unchecked`
+# (2026-11-21) and the run still exited 0.
+"leetcode_coach/review_cli.py" = ["T201"]
 # S310 (urlopen scheme audit): all three open a fixed literal URL --
 # AnkiConnect on 127.0.0.1, LeetCode's https GraphQL endpoint, and Ollama on
 # localhost, where http_json additionally refuses any URL off OLLAMA_URL. They

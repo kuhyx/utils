@@ -39,8 +39,11 @@ EVENTS = frozenset(
     {
         *("req", "req_check", "code", "rung", "reveal", "postmortem", "retest"),
         *("session_start", "grade", "chat", "session_end"),
+        *("review", "skeleton"),
     }
 )
+"""``review`` carries ``cause`` (and ``module`` for ``missing-idea``), ``skeleton``
+carries ``unit``; both came with ``review_cli`` (REVIEW.md)."""
 
 
 def sessions_dir() -> Path:

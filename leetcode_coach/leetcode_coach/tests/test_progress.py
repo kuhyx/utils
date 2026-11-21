@@ -195,3 +195,23 @@ def test_append_event_writes_todays_file(
     assert event["event"] == "retest"
     assert dt.datetime.fromisoformat(event["ts"]).tzinfo is not None
     assert progress.count_events("two-sum", "retest", tmp_path / "new") == 1
+
+
+def test_a_review_marks_the_day_solved_and_starts_the_clock(tmp_path: Path) -> None:
+    review = {"event": "review", "cause": "debugging"}
+    log(tmp_path, DAY0, "two-sum", review)
+    past = progress.history("two-sum", tmp_path)
+    assert (past.started, past.solved, past.retests) == (True, DAY0, 0)
+    assert progress.due_retests(tmp_path, today=DAY0 + dt.timedelta(days=2)) == []
+    due = progress.due_retests(tmp_path, today=DAY0 + dt.timedelta(days=3))
+    assert [(r["slug"], r["stage"], r["due"]) for r in due] == [
+        ("two-sum", 1, "2026-10-23")
+    ]
+
+
+def test_a_review_after_a_coached_solve_does_not_move_the_solve_day(
+    tmp_path: Path,
+) -> None:
+    solve(tmp_path, DAY0, "3sum")
+    log(tmp_path, DAY0 + dt.timedelta(days=5), "3sum", {"event": "review"})
+    assert progress.history("3sum", tmp_path).solved == DAY0

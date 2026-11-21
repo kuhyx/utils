@@ -8,6 +8,9 @@ record, so progress survives anything that survives the logs.
   first day by which it has both a ``code`` and a ``postmortem`` event. A
   later re-test session logs its own code and post-mortem; that never moves
   the solve day, so it cannot reset the schedule.
+* A ``review`` event (REVIEW.md: a flagged solve, reviewed with a named cause)
+  also marks its day solved and the problem started: an uncoached solve has
+  neither ``code`` nor ``postmortem``, and its re-test clock starts here.
 * Re-tests fall due ``RETEST_OFFSETS`` days after the solve day (+3, +10).
   Each ``retest`` event completes one stage.
 
@@ -136,10 +139,11 @@ def _history(entries: list[tuple[dt.date, Event]]) -> History:
     solved: dt.date | None = None
     for day, event in entries:
         seen.add(event["event"])
-        if solved is None and {"code", "postmortem"} <= seen:
+        if solved is None and ({"code", "postmortem"} <= seen or "review" in seen):
             solved = day
     retests = sum(event["event"] == "retest" for _day, event in entries)
-    return History(started="code" in seen, solved=solved, retests=retests)
+    started = "code" in seen or "review" in seen
+    return History(started=started, solved=solved, retests=retests)
 
 
 def history(slug: str, directory: Path | None = None) -> History:

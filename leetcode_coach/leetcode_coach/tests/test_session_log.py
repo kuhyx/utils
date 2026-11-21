@@ -81,3 +81,17 @@ def test_read_tolerates_a_missing_file_and_torn_lines(
     assert "not JSON" in caplog.text
     assert session_log.has_code(path)
     assert not session_log.has_code(tmp_path / "other.jsonl")
+
+
+def test_review_and_skeleton_are_events_with_their_payload(tmp_path: Path) -> None:
+    path = tmp_path / "log.jsonl"
+    session_log.append(path, "review", cause="missing-idea", module="hashing")
+    session_log.append(path, "skeleton", unit="hashing")
+    review, skeleton = session_log.read(path)
+    assert (review["event"], review["cause"], review["module"]) == (
+        "review",
+        "missing-idea",
+        "hashing",
+    )
+    assert (skeleton["event"], skeleton["unit"]) == ("skeleton", "hashing")
+    assert datetime.fromisoformat(review["ts"]).tzinfo is not None
