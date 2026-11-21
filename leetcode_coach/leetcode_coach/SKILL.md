@@ -9,7 +9,7 @@ description: >
   on] AND whenever kuhy pastes a leetcode.com/problems/ URL without SOLVE:
   (hook leetcode_url_userprompt.sh tells you to). Ends with a post-mortem: property -> operation
   Anki cards generated from the toolbox, never the solution.
-argument-hint: "<leetcode URL or slug> [what you're stuck on]"
+argument-hint: "<leetcode URL or slug> [what you're stuck on] | review [slug]"
 ---
 
 # /leetcode — coach, don't solve
@@ -21,8 +21,8 @@ every "just do it" instinct for the rest of the session.
 
 ## 1. Fetch the problem
 
-Take the first token of `$ARGUMENTS` (URL or slug); everything after it is
-kuhy's description of what they are stuck on.
+First token `review`: follow `DOCS-review.md` here, not sections 1 to 5. Else
+it is the URL or slug, and the rest is what kuhy says they are stuck on.
 
 ```bash
 python3 ~/.claude/skills/leetcode/fetch_problem.py "<first token>"
@@ -243,7 +243,8 @@ enforces it from the next prompt on.
 
 The right client is `leetcode <url>` (print mode: the Stop hook can still
 withhold a reply; the TUI has already streamed it). `leetcode --local` runs
-offline on Ollama; everything above `## Model and client` is its system
-prompt. Clients, gates and the session log: `DOCS-clients.md` here.
+offline on Ollama; its system prompt is everything above this section. Docs:
+`DOCS-clients.md` (clients, gates, session log), `DOCS-how-to.md` (commands).
 
-The commands and the method as the status app shows them: `DOCS-how-to.md`.
+Skeleton sheets: only when kuhy asks, only after his first code, and one
+counts above H1. Rules: `DOCS-skeletons.md`; the command: `DOCS-review.md`.
