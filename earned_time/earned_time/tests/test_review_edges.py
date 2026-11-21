@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from earned_time import (
@@ -24,7 +26,7 @@ from earned_time.tests._review_rows import (
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    import pytest
 
 
 def _unsigned(row: dict[str, object]) -> dict[str, object]:
@@ -75,3 +77,18 @@ def test_junk_review_rows_are_skipped(tmp_path: Path, key_file: Path) -> None:
 def test_the_guard_ledger_shares_the_review_ledgers_home(tmp_path: Path) -> None:
     review_ledger = tmp_path / str(REVIEW.ledger)
     assert guard_ledger_for(review_ledger, REVIEW) == tmp_path / GUARD_LEDGER
+
+
+def test_a_review_ledger_off_its_path_cannot_check(
+    tmp_path: Path, key_file: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    home_with(tmp_path, [review()], [accepted()])
+    moved = tmp_path / "elsewhere.json"
+    moved.write_bytes((tmp_path / str(REVIEW.ledger)).read_bytes())
+    assert done_today(REVIEW, moved, key_file, now=evening()) is None
+    assert "cannot find the guard ledger" in caplog.text
+
+
+def test_a_shallow_path_has_no_guard() -> None:
+    assert guard_ledger_for(Path(str(REVIEW.ledger)), REVIEW) is None

@@ -141,15 +141,18 @@ def _firsts(rows: list[dict[str, object]]) -> dict[str, dict[str, object]]:
     return firsts
 
 
-def guard_ledger_for(ledger: Path, earner: Earner) -> Path:
+def guard_ledger_for(ledger: Path, earner: Earner) -> Path | None:
     """The guard ledger under the same home as ``ledger`` (``earner.ledger``).
 
     The consumer resolves only the review ledger (``home / earner.ledger``),
-    so the home is that path with ``earner.ledger``'s depth stripped: a test
-    that redirects the home redirects both ledgers.
+    so the home is that path with ``earner.ledger``'s parts stripped: a test
+    that redirects the home redirects both ledgers. ``None`` when ``ledger``
+    does not end in ``earner.ledger``: no home to find the guard under.
     """
-    depth = len(PurePosixPath(str(earner.ledger)).parts)
-    return ledger.parents[depth - 1] / GUARD_LEDGER
+    parts = PurePosixPath(str(earner.ledger)).parts
+    if ledger.parts[-len(parts) :] != parts or len(ledger.parts) <= len(parts):
+        return None
+    return ledger.parents[len(parts) - 1] / GUARD_LEDGER
 
 
 def _pays(row: dict[str, object], accepted: dict[str, list[float]]) -> bool:
@@ -188,7 +191,16 @@ def paid_reviews(
     if not today:
         return iter(())
     guard = replace(earner, label="LeetCode guard", missing_ledger_is_no=False)
-    guard_rows = read_rows(guard_ledger_for(ledger, earner), guard)
+    path = guard_ledger_for(ledger, earner)
+    if path is None:
+        _logger.warning(
+            "%s ledger %s is not at home/%s; cannot find the guard ledger",
+            earner.label,
+            ledger,
+            earner.ledger,
+        )
+        return None
+    guard_rows = read_rows(path, guard)
     if guard_rows is None:
         return None
     accepted = _accepted(guard_rows, key)
