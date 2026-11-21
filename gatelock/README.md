@@ -122,8 +122,11 @@ simultaneous starters see each other. An armed lock also steps back (`_stepback`
 when a strictly higher-ranked, live claim that locks at least as firmly appears
 later: it hides, releases the grab and its holder lock (the claim stays, so
 lower ranks keep queueing), waits windowless, and re-arms fully once nothing
-outranks it. `scripts/verify_all_lockers.py` checks this with five real
-processes on a private Xvfb.
+outranks it. `scripts/verify_all_lockers.py` checks this with six real
+processes on a private Xvfb. It also fails unless the locks come up in
+kuhy's order (2026-11-21: workout 200, book 175, tutor 150, diet 130,
+focus 128, LeetCode 125 last) and every installed locker's own rank
+constant matches that table (`scripts/locker_ranks.py`, runnable alone).
 
 ## Error and slow-wait reporting
 

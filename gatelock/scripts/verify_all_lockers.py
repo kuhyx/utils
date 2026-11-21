@@ -3,13 +3,14 @@
 # pylint: disable=missing-function-docstring,consider-using-with,import-error
 r"""All lockers at once, on a real X server: one lock at a time, each clickable.
 
-Starts the five lockers that fire together at login (real app names and ranks,
+Starts the six lockers that can fire together (real app names and ranks,
 the real ``Arbiter`` + ``wait_for_turn`` startup, one process each, a private
 ``GATELOCK_RUNTIME_DIR``) with a ``gcr-prompter`` grab helper started first, as
 on 2026-11-11. Asserts: never two locks on screen; once the prompt lets go the
 lone lock holds the grab; an XTEST click on its button fires its callback; when
-it closes the next one comes up the same way. The queue poll is 0.5 s (real:
-2 s) to fit the 60 s cap. Argument: launch order -- mixed, strong-first,
+it closes the next one comes up the same way; they come up in kuhy's order
+(``locker_ranks``) and every installed locker's rank matches it. The queue poll
+is 0.5 s (real: 2 s) to fit the 60 s cap. Argument: launch order -- mixed, strong-first,
 weak-first, or late-strong (screen_locker starts 3 s after the rest, once a
 weaker lock holds the grab). Xvfb only (XTEST); refuses ``:0``::
 
@@ -29,6 +30,7 @@ import tempfile
 import time
 from typing import TYPE_CHECKING, Final
 
+from locker_ranks import LOCKERS, firmness_defeats, order_holds, rank_drift
 from Xlib import X, display, error
 from Xlib.ext import xtest
 
@@ -36,16 +38,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 HERE: Final = Path(__file__).parent
-LOCKERS: Final = {  # app -> rank, as in each locker's own constants
-    "screen_locker": 200,
-    "leetcode_guard": 150,
-    "book_guard": 125,
-    "focus_guard": 120,
-    "diet_guard": 100,
-}
 _RANKED: Final = tuple(sorted(LOCKERS, key=lambda a: -LOCKERS[a]))
-ORDERS: Final = {  # launch order: how the five processes race to publish
-    "mixed": tuple(_RANKED[i] for i in (4, 1, 3, 0, 2)),
+ORDERS: Final = {  # launch order: how the six processes race to publish
+    "mixed": tuple(_RANKED[i] for i in (5, 1, 4, 0, 3, 2)),
     "strong-first": _RANKED,
     "weak-first": _RANKED[::-1],
     "late-strong": tuple(sorted(set(LOCKERS) - {"screen_locker"})),
@@ -217,6 +212,9 @@ def main(mode: str) -> int:
         helper.stdout is not None and helper.stdout.readline().strip() == "READY",
         "prompt holds the grab",
     )
+    check(order_holds(), "the table ranks workout > book > tutor > diet > leetcode")
+    drift, skipped = rank_drift()
+    check(not drift, f"installed ranks match the table {drift} (skipped: {skipped})")
     fleet = _Fleet(env, ORDERS[mode])
     run = _Run(fleet, _Screen())
     try:
@@ -228,14 +226,16 @@ def main(mode: str) -> int:
         if mode in LATE:
             late, at, hold = LATE[mode]
             run.pump(at - hold)
-            check("leetcode_guard" in fleet.armed, "a weaker lock is armed first")
+            check(_RANKED[1] in fleet.armed, "a weaker lock is armed first")
             fleet.launch(late)
-            gone = run.pump(SHOW_S, lambda: "leetcode_guard" not in run.screen.shown())
+            gone = run.pump(SHOW_S, lambda: _RANKED[1] not in run.screen.shown())
             check(gone, "the weaker lock stepped back")
+        weak = firmness_defeats(Path(env["GATELOCK_RUNTIME_DIR"]) / "claims")
+        check(not weak, f"no higher rank locks more weakly {weak}")
         order = _drive(run, check)
         check(not run.doubles, f"never two locks on screen (saw {run.doubles[:3]})")
         _say(f"order seen: {order}")
-        _say("rank order" if order == list(_RANKED) else "NOT rank order")
+        check(order == list(_RANKED), "the locks came up in rank order")
     finally:
         fleet.stop()
         if helper.stdin:
