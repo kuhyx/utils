@@ -48,7 +48,7 @@ Nothing loads over the network and nothing opens without a click.
 
 ```jsonc
 // package.json
-"@kuhyx/kuhy-credit": "github:kuhyx/utils#kuhy-credit-v0.3.1&path:kuhy_credit/web"
+"@kuhyx/kuhy-credit": "github:kuhyx/utils#kuhy-credit-v0.3.2&path:kuhy_credit/web"
 ```
 
 ```html
@@ -74,7 +74,7 @@ dependencies:
   kuhy_credit:
     git:
       url: https://github.com/kuhyx/utils
-      ref: kuhy-credit-v0.3.1
+      ref: kuhy-credit-v0.3.2
       path: kuhy_credit/flutter
 ```
 
@@ -91,7 +91,7 @@ app on Android). Back closes an open panel. Demo: `flutter/example`.
 
 ```bash
 cache="$(mktemp -d)"
-git clone --depth 1 --branch kuhy-credit-v0.3.1 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch kuhy-credit-v0.3.2 https://github.com/kuhyx/utils "$cache"
 cp -r "$cache/kuhy_credit/godot/addons/kuhy_credit" addons/
 ```
 
@@ -107,7 +107,7 @@ The script opens the site with `OS.shell_open`. Demo:
 ## Python / Tkinter
 
 ```bash
-pip install "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.1#subdirectory=kuhy_credit"
+pip install "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.2#subdirectory=kuhy_credit"
 ```
 
 ```python
@@ -128,7 +128,7 @@ vector TikZ, no image file) and makes it a link to the site. No words appear.
 ```bash
 # vendor the generated package from the tag, like the Godot addon
 cache="$(mktemp -d)"
-git clone --depth 1 --branch kuhy-credit-v0.3.1 https://github.com/kuhyx/utils "$cache"
+git clone --depth 1 --branch kuhy-credit-v0.3.2 https://github.com/kuhyx/utils "$cache"
 cp "$cache/kuhy_credit/latex/kuhy-credit.sty" kuhy-credit/
 TEXINPUTS="$PWD/kuhy-credit//:" pdflatex doc.tex
 ```
