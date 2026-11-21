@@ -21,9 +21,9 @@ randr = ["python-xlib==0.33"]
 # must not refuse to start over a missing dependency, and only the chain's
 # own CLI imports these (lazily). Pins match book-guard / leetcode-guard.
 evening = [
-    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.22.0#subdirectory=earned_time",
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time",
     "freedays @ git+https://github.com/kuhyx/utils@freedays-v0.4.3#subdirectory=freedays",
-    "sickdays @ git+https://github.com/kuhyx/utils@sickdays-v0.5.5#subdirectory=sickdays",
+    "sickdays @ git+https://github.com/kuhyx/utils@sickdays-v0.5.6#subdirectory=sickdays",
 ]
 
 [tool.setuptools.packages.find]
