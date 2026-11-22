@@ -106,13 +106,12 @@ def test_the_share_uses_the_ladder_rung_not_the_old_pay() -> None:
 
 
 def test_the_review_pays_a_share_of_its_top_up() -> None:
-    answers = {**NOTHING, "review": False}
-    shown = resolve(answers, DAY, progress={"review": Progress(1, 2)})
-    assert shown.term("review").shutdown_minutes == 10
-    paid = resolve(
-        {**NOTHING, "review": True}, DAY, progress={"review": Progress(1, 2)}
-    )
-    assert paid.term("review").shutdown_minutes == 20
+    half = {"review": Progress(1, 2)}
+    paid = resolve({**NOTHING, "review": True}, DAY, progress=half)
+    assert paid.term("review").shutdown_minutes == 10
+    # The review's own rule (test_review_progress.py): a no pays nothing.
+    unpaid = resolve({**NOTHING, "review": False}, DAY, progress=half)
+    assert unpaid.term("review").shutdown_minutes == 0
 
 
 def test_a_progress_for_an_earner_not_in_the_registry_is_ignored() -> None:

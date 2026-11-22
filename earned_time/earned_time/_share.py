@@ -8,15 +8,20 @@ share: the focus earner's minutes and the gates' signed progress alike.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Final
 
 from earned_time._ladder import shutdown_minutes_for
+from earned_time._resolution import Term
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from datetime import date
 
     from earned_time._policy import Earner
     from earned_time._progress import Progress
+
+_logger: Final = logging.getLogger(__name__)
 
 
 def share_minutes(full: int, done: int, target: int) -> int:
@@ -43,3 +48,40 @@ def shutdown_share(item: Earner, progress: Progress, day: date) -> int:
     return share_minutes(
         shutdown_minutes_for(item, day), progress.done, progress.target
     )
+
+
+def share_term(item: Earner, units: int | None, day: date, share: Progress) -> Term:
+    """``item``'s term on ``day`` when it is paid as a share of ``share``."""
+    return Term(
+        item,
+        units,
+        gaming_share(item, share),
+        shutdown_share(item, share, day),
+        share,
+    )
+
+
+def review_term(
+    item: Earner,
+    units: int | None,
+    day: date,
+    progress: Mapping[str, Progress] | None,
+) -> Term:
+    """The review's term from ``REVIEW_PROGRESS_FROM``: a credited review needs a row.
+
+    Only a credited review (a yes) pays, and then ``bonus * done // target`` of
+    the signed row, never more than the full bonus. A yes with no row pays 0:
+    a row that fails verification is no row, so it pays 0 too (fail closed,
+    logged). A no and ``None`` pay 0 whatever a row says, since the guard's
+    accepted submission, not the row, is the evidence a review happened.
+    """
+    share = (progress or {}).get(item.name) if units else None
+    if units and share is None:
+        _logger.warning(
+            "%s credited with no progress row on %s; it pays nothing",
+            item.label,
+            day,
+        )
+    if share is None:
+        return Term(item, units, 0, 0)
+    return share_term(item, units, day, share)

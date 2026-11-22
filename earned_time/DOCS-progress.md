@@ -82,13 +82,29 @@ The focus earner already paid N/M floored; it now calls the same arithmetic
 
 A bad row among good rows is skipped, not fatal.
 
+## The review: no row, no pay (from `REVIEW_PROGRESS_FROM`)
+
+kuhy's rule (2026-11-22): the review top-up pays in equal slices, `bonus * done
+// target`, the writer freezing the target at the day's first review. From
+`REVIEW_PROGRESS_FROM` (2026-11-24, the day after the 2026-11-23 release; a rule
+that lowers pay never lands on its deploy day) the review differs from the other
+earners:
+
+- a credited review (a yes) pays only by its row: `done` of `target` of 20
+  minutes, never more than 20; the gaming twin is 0 as ever, and a sick day adds
+  the same minutes on top of 20:00;
+- a credited review with no row pays **0**, not the flat 20, and logs a warning;
+- a row that fails verification (bad signature, edited, wrong day or source,
+  unreadable numbers) is no row, so it pays 0 too. This is deliberate: fail
+  closed, visible in the log, never a flat 20 for a row nobody can vouch for;
+- a no or `None` pays 0 whatever a row says: the guard's accepted submission, not
+  the row, is the evidence that a review happened (`DOCS-review.md`).
+
+Before `REVIEW_PROGRESS_FROM` the review pays as in 0.23.0 (a yes pays 20, a no
+0) and ignores every progress row.
+
 ## Not credits
 
 A `progress` row has `amount` 0 and its own kind. `done_today`, `credit_units`,
 `first_credit_at` and `maturity` never see it, so it cannot earn a bonus, mature
 a gate or start a penalty.
-
-## Open question
-
-What a paid review pays when no progress row exists is unchanged (the full 20
-minutes, today's rule); kuhy has not decided otherwise.

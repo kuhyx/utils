@@ -1,5 +1,8 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""The review top-up in the day (0.23.0): added last, capped, never a rung."""
+"""The review top-up in the day (0.23.0): added last, capped, never a rung.
+
+On ``REVIEW_FROM``, the day before ``REVIEW_PROGRESS_FROM``: the flat pay, no row.
+"""
 
 from __future__ import annotations
 
@@ -18,11 +21,14 @@ from earned_time import (
     shutdown_ceiling_for,
     shutdown_minutes_for,
 )
-from earned_time.tests._review_rows import DAY, accepted, home_with, review
+from earned_time.tests._review_rows import DAY as ROWS_DAY
+from earned_time.tests._review_rows import accepted, home_with, review
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+# The last day before REVIEW_PROGRESS_FROM: the flat 0.23.0 pay, no row needed.
+DAY = REVIEW_FROM
 NOTHING: dict[str, int | bool | None] = {
     "workout": 0,
     "leetcode": False,
@@ -118,6 +124,6 @@ def test_a_sick_day_before_unlimited_gaming_adds_it_too() -> None:
 
 def test_maturity_never_penalises_it(tmp_path: Path, key_file: Path) -> None:
     ledger = home_with(tmp_path, [review()], [accepted()])
-    verdict = maturity(REVIEW, ledger, key_file, DAY)
+    verdict = maturity(REVIEW, ledger, key_file, ROWS_DAY)
     assert verdict.penalty_start is None
     assert any("top-up" in reason for reason in verdict.reasons)

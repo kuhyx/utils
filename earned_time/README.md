@@ -126,8 +126,10 @@ and the rules are in [DOCS-review.md](DOCS-review.md).
 A gate signs "done N of target M for day D" and `resolve(..., progress=)` pays a
 no that share of a yes (`60 * 1 // 3 = 20`), for shutdown, gaming and sick
 days, from the day's last good row. A yes pays full and "could not check"
-nothing, as ever; with no row anywhere every output is 0.23.0's. The row, the
-reader and every fail-closed case are in [DOCS-progress.md](DOCS-progress.md).
+nothing, as ever; with no row anywhere every output is 0.23.0's, the review
+excepted. The row, the reader and every fail-closed case are in
+[DOCS-progress.md](DOCS-progress.md). The review differs from `REVIEW_PROGRESS_FROM` (2026-11-24): a credited review
+pays only by its row (`20 * done // target`), and with no verified row pays 0.
 
 ## Gate maturity (0.6.0)
 
@@ -166,7 +168,7 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
 - `progress_map(day, home, key_file, *, earners=None, gate_off=()) ->
   dict[str, Progress]`, `read_progress(earner, ledger, key_file, day, *,
   gate_off=False) -> Progress | None`, `Progress(done, target)`,
-  `Earner.progress_source`, `Term.progress` (0.24.0).
+  `Earner.progress_source`, `Term.progress`, `REVIEW_PROGRESS_FROM` (0.24.0).
 
 ## The workout ledger
 

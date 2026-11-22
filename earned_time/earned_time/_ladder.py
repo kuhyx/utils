@@ -55,6 +55,11 @@ ANKI_WAIVED_FROM: Final = date(2026, 10, 9)
 # screen-locker's late-credit rule shipped (46393fa, 2026-10-17): an 18:00
 # floor without it locked out a credit landing after the shutdown.
 UNIFIED_FROM: Final = date(2026, 10, 18)
+# From this day a credited LeetCode review with no verified progress row pays
+# nothing, and with one pays ``bonus * done // target`` (0.24.0). It lowers
+# pay, so it lands the day after the release (2026-11-23), never on it. Before
+# it the review pays exactly as in 0.23.0, a row or not.
+REVIEW_PROGRESS_FROM: Final = date(2026, 11, 24)
 _SLEEP_MINUTES: Final = 8 * 60
 _DAY_MINUTES: Final = 24 * 60
 

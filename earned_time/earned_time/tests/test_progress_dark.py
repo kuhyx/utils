@@ -5,6 +5,8 @@
 over a grid of answers, sick and leisure switches, produced by 0.23.0 itself
 (``_grid_dump.py``). The live oracle re-derives it from an installed 0.23.0
 when the interpreter has one, in a subprocess so ``sys.path`` stays untouched.
+The one exception is the review from ``REVIEW_PROGRESS_FROM``: a credited
+review with no row pays nothing, so the grid asks it only no or unknown there.
 """
 
 from __future__ import annotations

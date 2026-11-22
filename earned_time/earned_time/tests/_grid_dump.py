@@ -52,6 +52,11 @@ DAYS = tuple(
     sorted({*SPOTS, *(date(2026, 11, 14) + timedelta(days=n) for n in range(14))})
 )
 OPTIONS: tuple[int | None, ...] = (None, 0, 1, 60)
+# From this day a credited review with no progress row pays nothing, which is
+# not 0.23.0's answer (REVIEW_PROGRESS_FROM, a literal: 0.23.0 has no such name).
+# From it the review is only asked "no" and "could not check", which agree.
+REVIEW_PROGRESS_FROM = date(2026, 11, 24)
+REVIEW_OPTIONS: tuple[int | None, ...] = (None, 0)
 
 
 def _registry(mode: str, day: date) -> tuple[earned_time.Earner, ...]:
@@ -67,7 +72,11 @@ def _lines(mode: str, day: date, extra: dict[str, object]) -> list[str]:
     names = [e.name for e in registry]
     explicit = None if mode == "default" else registry
     out = [repr(earned_time.base_for(day, explicit))]
-    for values in itertools.product(OPTIONS, repeat=len(names)):
+    options = [
+        REVIEW_OPTIONS if name == "review" and day >= REVIEW_PROGRESS_FROM else OPTIONS
+        for name in names
+    ]
+    for values in itertools.product(*options):
         answers = dict(zip(names, values, strict=True))
         for sick, leisure in ((False, None), (True, None), (False, True)):
             res = earned_time.resolve(

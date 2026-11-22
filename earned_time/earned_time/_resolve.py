@@ -27,11 +27,12 @@ from typing import TYPE_CHECKING, Final
 
 from earned_time._floor import gaming_cut, is_penalised, shutdown_floor
 from earned_time._gaming import gaming_enforced
-from earned_time._ladder import shutdown_ceiling_for
+from earned_time._ladder import REVIEW_PROGRESS_FROM, shutdown_ceiling_for
 from earned_time._leisure import base_minutes, ceiling_minutes, is_leisure
 from earned_time._registry import all_earners, earners_for
 from earned_time._resolution import Base, Resolution, Term
-from earned_time._share import gaming_share, shutdown_share
+from earned_time._review import ReviewEarner
+from earned_time._share import review_term, share_term
 from earned_time._sick import sick_or
 
 if TYPE_CHECKING:
@@ -113,23 +114,24 @@ def _term(
     """``item``'s term on ``day``; no answer at all is logged and earns nothing.
 
     Progress pays only a no (``0``/``False``): a yes pays in full as ever and
-    ``None`` ("could not check") earns nothing, row or no row.
+    ``None`` ("could not check") earns nothing, row or no row. The review is
+    the exception (:func:`~earned_time._share.review_term`): from
+    ``REVIEW_PROGRESS_FROM`` only a yes pays, and only by its row; before it
+    progress is ignored (0.23.0).
     """
     if item.name not in answers:
         _logger.warning(
             "No answer for the %s earner; it earns nothing today", item.label
         )
     units = _units(answers.get(item.name))
+    if isinstance(item, ReviewEarner):
+        if day >= REVIEW_PROGRESS_FROM:
+            return review_term(item, units, day, progress)
+        progress = None
     no = units is not None and units < 1
     share = (progress or {}).get(item.name) if no else None
     if share is not None:
-        return Term(
-            item,
-            units,
-            gaming_share(item, share),
-            shutdown_share(item, share, day),
-            share,
-        )
+        return share_term(item, units, day, share)
     count = units or 0
     return Term(
         earner=item,
