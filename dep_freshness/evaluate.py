@@ -15,9 +15,10 @@ purpose:
 
 from __future__ import annotations
 
-from dep_freshness._tables import GITCOMMIT, MATRIX, TOOLCHAIN
+from dep_freshness._tables import GITCOMMIT, MATRIX, PACMAN_REPO, TOOLCHAIN
 from dep_freshness.constraints import lower_bound, satisfies
 from dep_freshness.models import Dep, Finding, Severity
+from dep_freshness.registries.pacman_repo import vercmp
 from dep_freshness.resolve import Answer
 from dep_freshness.versions import behind, google_api_key
 
@@ -44,6 +45,29 @@ def _commit(dep: Dep, heads: str) -> Finding | None:
         detail="no branch of the source repository points at this commit any "
         "more; a commit pin has no release to wait for",
     )
+
+
+def _pacman(dep: Dep, answer: str) -> Finding | None:
+    """A repo db lists ONE version per package; any other pin is undownloadable.
+
+    `answer` is `"<version> <sha256>"`. Compared with pacman's vercmp, so an
+    epoch outranks a bigger pkgver. The checksum goes into the detail so the
+    bump is a paste, and a right version with a wrong checksum is caught.
+    """
+    version, _, sha = answer.partition(" ")
+    fix = f"version={version}" + (f" sha256={sha}" if sha else "")
+    if not dep.pinned:
+        return Finding(dep, Severity.UNPINNED, version, detail=f"pin {fix}")
+    if vercmp(dep.pinned, version) != 0:
+        return Finding(dep, Severity.STALE, version, detail=f"the repo serves {fix}")
+    if sha and dep.locked and dep.locked != sha.lower():
+        return Finding(
+            dep,
+            Severity.LOCK_MISMATCH,
+            version,
+            detail=f"lock sha256 {dep.locked} != the repo's {sha}",
+        )
+    return None
 
 
 def _generation(dep: Dep, pin, latest: str) -> Finding | None:
@@ -130,6 +154,8 @@ def judge(dep: Dep, answer: Answer) -> Finding | None:
         return _toolchain(dep, latest)
     if dep.ecosystem == GITCOMMIT:
         return _commit(dep, latest)
+    if dep.ecosystem == PACMAN_REPO:
+        return _pacman(dep, latest)
     pin = google_api_key(dep.pinned or "")
     if pin is not None:
         return _generation(dep, pin, latest)

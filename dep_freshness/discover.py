@@ -19,6 +19,7 @@ from dep_freshness.parsers import (
     golang,
     gradle,
     javascript,
+    pacman_lock,
     pubspec,
     python,
     rust,
@@ -46,6 +47,7 @@ def is_manifest(path: Path) -> bool:
         or bool(_REQUIREMENTS.match(path.name))
         or workflow.is_workflow(path)
         or gradle.is_catalog(path)
+        or pacman_lock.is_lock(path)
     )
 
 
@@ -60,6 +62,8 @@ def parse_manifest(path: Path) -> list[Dep]:
         return workflow.parse(path)
     if gradle.is_catalog(path):
         return gradle.parse_catalog(path)
+    if pacman_lock.is_lock(path):
+        return pacman_lock.parse(path)
     return []
 
 

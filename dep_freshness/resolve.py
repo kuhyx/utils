@@ -18,6 +18,7 @@ from dep_freshness._tables import (
     MAVEN,
     MAX_WORKERS,
     NPM,
+    PACMAN_REPO,
     PUB,
     PYPI,
     TOOLCHAIN,
@@ -31,6 +32,7 @@ from dep_freshness.registries import (
     gomod,
     maven,
     npmjs,
+    pacman_repo,
     pub,
     pypi,
 )
@@ -46,6 +48,7 @@ _LOOKUP = {
     GITTAG: gittag.latest,
     MAVEN: maven.latest,
     GITCOMMIT: gitcommit.latest,
+    PACMAN_REPO: pacman_repo.latest,
 }
 
 

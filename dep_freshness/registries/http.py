@@ -112,6 +112,20 @@ def get_text(url: str, accept: str | None = None) -> str | None:
 
     Same contract as `get_json`; Maven metadata is XML, not JSON.
     """
+    body = get_bytes(url, accept)
+    if body is None:
+        return None
+    try:
+        return body.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise Offline(f"{url}: {exc}") from exc
+
+
+def get_bytes(url: str, accept: str | None = None) -> bytes | None:
+    """Fetch a raw body, or raise `Offline` / return None on 404.
+
+    Same contract as `get_json`; a pacman repo `.db` is a compressed tar.
+    """
     if not host_reachable(url):
         raise Offline(url)
     headers = {"User-Agent": USER_AGENT}
@@ -125,7 +139,7 @@ def get_text(url: str, accept: str | None = None) -> str | None:
         attempt += 1
         try:
             with urlopen(request, timeout=HTTP_TIMEOUT * attempt) as response:
-                return response.read().decode("utf-8")
+                return response.read()
         except HTTPError as exc:
             if exc.code == 404:
                 return None

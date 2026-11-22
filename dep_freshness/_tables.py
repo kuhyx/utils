@@ -23,6 +23,10 @@ MAVEN: Final = "maven"
 # wait for, so the only reading of "current" it admits is "at HEAD".
 GITCOMMIT: Final = "gitcommit"
 TOOLCHAIN: Final = "toolchain"
+# One package out of an Arch-style repo db (`<repo>.db`), pinned by a small
+# `key=value` lock file. Versions are `epoch:pkgver-pkgrel` and compare with
+# pacman's vercmp, never PEP 440 (see registries/pacman_repo.py).
+PACMAN_REPO: Final = "pacman-repo"
 # The constraint a workflow parser writes for a version MATRIX. Standing
 # decision (kuhy, 2026-08-28): one toolchain version per repo, always newest,
 # so a matrix is a finding to delete rather than a range to satisfy.
@@ -38,6 +42,7 @@ ECOSYSTEMS: Final = (
     MAVEN,
     GITCOMMIT,
     TOOLCHAIN,
+    PACMAN_REPO,
 )
 
 # --- Registry endpoints -----------------------------------------------------
@@ -134,6 +139,12 @@ MANIFEST_GLOBS: Final = (
     "gradle-wrapper.properties",
 )
 REQUIREMENTS_PATTERN: Final = r"^requirements.*\.txt$"
+# A pacman-repo lock has no fixed filename (`proton-native.lock` is one), so
+# it is recognised by content instead of a glob: a `*.lock` file whose first
+# few KB hold a `repo=` line ending in `.db`. The read is bounded because
+# `--all` sniffs every Cargo.lock and pubspec.lock too.
+PACMAN_LOCK_SUFFIX: Final = ".lock"
+PACMAN_LOCK_SNIFF_BYTES: Final = 4096
 
 # `.utils` is where every CI workflow checks the shared gate out, INSIDE the
 # repo being checked. Without it `--all` walks utils' own manifests and fails
