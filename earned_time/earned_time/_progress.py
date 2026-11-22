@@ -74,12 +74,12 @@ def read_progress(
 ) -> Progress | None:
     """``earner``'s signed progress for ``day``, or ``None``.
 
-    Over the rows that verify and match, the largest ``done`` and the largest
-    ``target`` (a replay or a lost row can only lower the share, never raise
-    it at one target). ``None`` for: no such row, a bad signature, another day
-    or source, bad integers, a zero target, an unreadable ledger or key
-    (logged), ``gate_off`` (the gate has no price today), or an earner with no
-    ``progress_source``.
+    Of the rows that verify and match, the last one in file order wins, and
+    ``done`` and ``target`` both come from it. A later row that fails
+    verification, is for another kind, source or day, or has unreadable numbers
+    is skipped, so the last good row wins. ``None`` for: no good row, an
+    unreadable ledger or key (logged), ``gate_off`` (the gate has no price
+    today), or an earner with no ``progress_source``.
     """
     source = earner.progress_source
     if gate_off or source is None:
@@ -88,14 +88,18 @@ def read_progress(
     rows = None if key is None else read_rows(ledger, earner)
     if key is None or rows is None:
         return None
-    facts = [
-        f
-        for r in rows
-        if isinstance(r, dict) and (f := _fact(r, source, day)) and verified(r, key)
-    ]
-    if not facts:
-        return None
-    return Progress(max(f.done for f in facts), max(f.target for f in facts))
+    # The last good row in file order wins, as one (done, target) pair: a gate
+    # can re-derive its target within a day, so mixing rows would pair a stale
+    # target with a new done. Nothing here reads created_at or device (the
+    # workout ledger writes neither).
+    for row in reversed(rows):
+        if (
+            isinstance(row, dict)
+            and (f := _fact(row, source, day))
+            and verified(row, key)
+        ):
+            return f
+    return None
 
 
 def progress_map(

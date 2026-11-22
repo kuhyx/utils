@@ -37,9 +37,14 @@ have none and never pay by share).
   (no int, float, sign, space, empty string or other script's digits);
 - `target` is at least 1.
 
-`done` is capped at `target`. Over the matching rows the largest `done` and the
-largest `target` win, so a replayed or deleted row can only lower the share
-while the target stays the same.
+`done` is capped at `target`. Among the matching rows that verify, the last one
+in file order wins, and `done` and `target` both come from that one row. A gate
+can re-derive its target within a day (book-guard does), so mixing rows would
+pair a stale target with a new done. The rule reads neither `created_at` nor
+`device` (the workout ledger writes neither). A later row that fails any check
+above is skipped, so the last good row wins; no good row is `None`. A signed
+row copied to the end of the file wins as it is: the key is the trust, not the
+position.
 
 `progress_map(day, home, key_file, *, earners=None, gate_off=())` does this for
 every earner of `earners_for(day)` (or the registry given) and returns

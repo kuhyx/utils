@@ -125,9 +125,9 @@ and the rules are in [DOCS-review.md](DOCS-review.md).
 
 A gate signs "done N of target M for day D" and `resolve(..., progress=)` pays a
 no that share of a yes (`60 * 1 // 3 = 20`), for shutdown, gaming and sick
-days. A yes pays full and "could not check" nothing, as ever; with no row
-anywhere every output is 0.23.0's. The row, the reader and every fail-closed
-case are in [DOCS-progress.md](DOCS-progress.md).
+days, from the day's last good row. A yes pays full and "could not check"
+nothing, as ever; with no row anywhere every output is 0.23.0's. The row, the
+reader and every fail-closed case are in [DOCS-progress.md](DOCS-progress.md).
 
 ## Gate maturity (0.6.0)
 

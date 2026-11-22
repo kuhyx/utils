@@ -63,3 +63,29 @@ def tampered(row: dict[str, object], **detail: object) -> dict[str, object]:
     old = row["detail"]
     assert isinstance(old, dict)
     return {**row, "detail": {**old, **detail}}
+
+
+def bare(
+    done: object = "1",
+    target: object = "3",
+    source: str = "workout",
+    day: date = DAY,
+) -> dict[str, object]:
+    """A signed progress row with no ``created_at`` and no ``device``.
+
+    The workout ledger writes rows like this; the reader must accept them.
+    """
+    return signed(
+        {
+            "kind": "progress",
+            "entry_id": f"progress:{day.isoformat()}:{done}:{target}",
+            "day": day.isoformat(),
+            "amount": 0,
+            "detail": {
+                "source": source,
+                "for_day": day.isoformat(),
+                "done": done,
+                "target": target,
+            },
+        }
+    )

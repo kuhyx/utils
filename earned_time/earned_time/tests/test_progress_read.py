@@ -119,12 +119,6 @@ def test_zero_done_is_a_valid_zero(read: Reader) -> None:
     assert read([progress(done="0", target="3")]) == Progress(0, 3)
 
 
-def test_the_max_done_and_the_max_target_win(read: Reader) -> None:
-    rows = [progress(done="1", target="3"), progress(done="2", target="4")]
-    assert read(rows) == Progress(2, 4)
-    assert read(rows[::-1]) == Progress(2, 4)
-
-
 def test_a_bad_row_beside_a_good_one_is_ignored(read: Reader) -> None:
     rows = [progress(done="x", target="3"), progress(done="2", target="3")]
     assert read(rows) == Progress(2, 3)
