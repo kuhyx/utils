@@ -150,6 +150,30 @@ void main() {
     );
 
     test(
+      'two instances on one file in one process never share a temp file',
+      () async {
+        // Regression (wake_alarm, 2026-11-22): a Flutter app's UI engine and
+        // a headless engine each hold a FileLogPersistence for the same log
+        // in one process, so one pid. Both wrote `<file>.<pid>.tmp`; the
+        // first rename moved it away and the other publish died with
+        // PathNotFoundException.
+        final file = File('${dir.path}/log.json');
+        final a = FileLogPersistence(file);
+        final b = FileLogPersistence(file);
+        await Future.wait([
+          for (var i = 0; i < 25; i++) ...[
+            a.write('{"a":$i}'),
+            b.write('{"b":$i}'),
+          ],
+        ]);
+        expect(await a.read(), anyOf('{"a":24}', '{"b":24}'));
+        expect(dir.listSync().map((e) => e.uri.pathSegments.last), [
+          'log.json',
+        ]);
+      },
+    );
+
+    test(
       'a failed write rejects its caller but does not block later writes',
       () async {
         final target = File('${dir.path}/log.json');
