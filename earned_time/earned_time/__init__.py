@@ -122,6 +122,7 @@ from earned_time._review import (
     paid_reviews,
     review_match,
 )
+from earned_time._share import term_for
 from earned_time._sick import SICK_SHUTDOWN_FLOOR_MINUTES, sick_shutdown_from
 
 __all__ = [
@@ -204,6 +205,7 @@ __all__ = [
     "shutdown_ceiling_for",
     "shutdown_minutes_for",
     "sick_shutdown_from",
+    "term_for",
     "today_window",
     "tutor_quota_for",
     "verified",

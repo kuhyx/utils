@@ -130,6 +130,8 @@ nothing, as ever; with no row anywhere every output is 0.23.0's, the review
 excepted. The row, the reader and every fail-closed case are in
 [DOCS-progress.md](DOCS-progress.md). The review differs from `REVIEW_PROGRESS_FROM` (2026-11-24): a credited review
 pays only by its row (`20 * done // target`), and with no verified row pays 0.
+One earner's pay for a day is `term_for(earner, day, *, answer, progress=None)`,
+the code `resolve` itself uses: consumers never re-derive a share.
 
 ## Gate maturity (0.6.0)
 
@@ -168,7 +170,8 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
 - `progress_map(day, home, key_file, *, earners=None, gate_off=()) ->
   dict[str, Progress]`, `read_progress(earner, ledger, key_file, day, *,
   gate_off=False) -> Progress | None`, `Progress(done, target)`,
-  `Earner.progress_source`, `Term.progress`, `REVIEW_PROGRESS_FROM` (0.24.0).
+  `Earner.progress_source`, `Term.progress`, `REVIEW_PROGRESS_FROM`,
+  `term_for(earner, day, *, answer, progress=None) -> Term` (0.24.0).
 
 ## The workout ledger
 

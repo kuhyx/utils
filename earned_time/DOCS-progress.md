@@ -103,6 +103,25 @@ earners:
 Before `REVIEW_PROGRESS_FROM` the review pays as in 0.23.0 (a yes pays 20, a no
 0) and ignores every progress row.
 
+## One derivation: `term_for`
+
+`term_for(earner, day, *, answer, progress=None) -> Term` is the only place an
+earner's pay for a day is derived, and `resolve` builds every one of its terms
+through it. A consumer that prices one earner (the screen-locker's live pass)
+reads the row with `read_progress` and calls it; it reads `shutdown_minutes`
+and `gaming_minutes` off the `Term`. **Consumers never re-derive a share**: the
+review's dated rule, the ladder rung, the floor and the cap at full all live
+here, and a local `full * done // target` goes stale the day a rule changes.
+
+```python
+fact = earned_time.read_progress(earner, ledger, key_file, day, gate_off=off)
+pay = earned_time.term_for(earner, day, answer=answer, progress=fact).shutdown_minutes
+```
+
+`answer` is the unit count (`True`/`False` are 1/0) or `None`; `progress` is the
+verified row or `None`. A test pins that the two always agree for every earner,
+answer, row and day either side of `REVIEW_PROGRESS_FROM`.
+
 ## Not credits
 
 A `progress` row has `amount` 0 and its own kind. `done_today`, `credit_units`,
