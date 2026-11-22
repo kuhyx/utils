@@ -36,6 +36,8 @@ python3 ~/.claude/skills/leetcode/fetch_problem.py "<first token>"
   never quote it to kuhy unasked.
 
 Default starter language is JavaScript (`--lang python3` etc. if kuhy asks).
+Then `python3 ~/.claude/skills/leetcode/history.py "<first token>"`: his own attempts,
+failed and accepted, with code. For you only: never paste it back; ask where it broke.
 
 ## 2. Open
 
@@ -214,8 +216,8 @@ the method appeared.
 ## 5d. Cold re-test
 
 `[cold re-test]` in the arguments (`leetcode --retest <slug>`, due +3 and
-+10 days after a solve) means kuhy solved this before; you have no history,
-so do not ask about the old code. In the opening, say plainly: **do NOT
++10 days after a solve) means kuhy solved this before; `history.py` has his old
+code, for you only: it is solved cold. In the opening, say plainly: **do NOT
 submit on LeetCode** -- a resubmission mints a gate credit. Then coach as
 usual, requirement list first, and judge by running the statement's examples
 locally with `node` (section 4). The normal exit and post-mortem (5, 5b)
@@ -234,12 +236,10 @@ Runs on **sonnet, opus or fable** as written. Haiku went in circles (~30
 micro-questions on an Easy, 2026-10-18); `model:` frontmatter is ignored for
 skills (2026-09-18), so only if you are haiku, the **first line** of your
 opening message is
-
 > Type `/model sonnet` now — learning sessions are gated to sonnet, opus or
 > fable; your next message is refused until you do (or send `keep model`).
 
-then continue with the opening. `hooks/leetcode_model_gate_userprompt.sh`
-enforces it from the next prompt on.
+then continue with the opening (`hooks/leetcode_model_gate_userprompt.sh`).
 
 The right client is `leetcode <url>` (print mode: the Stop hook can still
 withhold a reply; the TUI has already streamed it). `leetcode --local` runs
