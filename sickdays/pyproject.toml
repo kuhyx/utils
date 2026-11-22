@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sickdays"
-version = "0.5.8"
+version = "0.5.9"
 description = "Shared sick-day pool: per-date, uncapped, synced; every gate respects it"
 requires-python = ">=3.14"
 # Deliberately NOT gatelock (its __init__ imports tkinter); the HMAC lives in
@@ -13,8 +13,8 @@ requires-python = ">=3.14"
 # so the two packages can never form an import cycle.
 dependencies = [
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync",
-    "freedays @ git+https://github.com/kuhyx/utils@freedays-v0.4.3#subdirectory=freedays",
-    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.1#subdirectory=kuhy_credit",
+    "freedays @ git+https://github.com/kuhyx/utils@freedays-v0.4.4#subdirectory=freedays",
+    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.2#subdirectory=kuhy_credit",
 ]
 
 [project.scripts]
