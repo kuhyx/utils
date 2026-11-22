@@ -9,6 +9,7 @@ a reason no commit can fix, which is why that combination is an error.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -123,7 +124,9 @@ def test_a_transitive_entry_may_not_carry_an_expiry(tmp_path):
         load(tmp_path)
 
 
-@pytest.mark.parametrize("field", ["ecosystem", "package", "pinned", "reason", "blocked_by"])
+@pytest.mark.parametrize(
+    "field", ["ecosystem", "package", "pinned", "reason", "blocked_by"]
+)
 def test_every_required_field_is_required(tmp_path, field):
     # Blank the value rather than deleting the line: dropping `ecosystem:`
     # would also drop the `-` that makes the entry a list item, and the test
@@ -139,7 +142,10 @@ def test_every_required_field_is_required(tmp_path, field):
 
 def test_a_malformed_transitive_blocker_is_an_error(tmp_path):
     _allowlist(
-        tmp_path, TRANSITIVE.replace("transitive:firebase_core@4.2.0", "transitive:firebase_core")
+        tmp_path,
+        TRANSITIVE.replace(
+            "transitive:firebase_core@4.2.0", "transitive:firebase_core"
+        ),
     )
     with pytest.raises(AllowlistError, match="transitive:<package>@<version>"):
         load(tmp_path)
@@ -149,7 +155,8 @@ def test_a_bad_expiry_format_is_an_error(tmp_path):
     _allowlist(
         tmp_path,
         _discretionary(30).replace(
-            (date.today() + __import__("datetime").timedelta(days=30)).isoformat(), "next tuesday"
+            (date.today() + __import__("datetime").timedelta(days=30)).isoformat(),
+            "next tuesday",
         ),
     )
     with pytest.raises(AllowlistError, match="YYYY-MM-DD"):
@@ -184,7 +191,9 @@ def test_the_shared_allowlist_is_inherited(tmp_path, no_shared_allowlist):
     """A fleet-wide blocker must not have to be copied into forty repos."""
     no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
     entries = load(tmp_path)
-    assert [(e.ecosystem, e.package) for e in entries] == [("pub", "plugin_platform_interface")]
+    assert [(e.ecosystem, e.package) for e in entries] == [
+        ("pub", "plugin_platform_interface")
+    ]
 
 
 def test_a_repo_entry_overrides_the_shared_one(tmp_path, no_shared_allowlist):
@@ -201,10 +210,15 @@ def test_a_repo_entry_overrides_the_shared_one(tmp_path, no_shared_allowlist):
     assert entries[0].reason == "this repo has its own reason"
 
 
-def test_shared_and_repo_entries_for_different_packages_both_apply(tmp_path, no_shared_allowlist):
+def test_shared_and_repo_entries_for_different_packages_both_apply(
+    tmp_path, no_shared_allowlist
+):
     no_shared_allowlist.write_text(TRANSITIVE, encoding="utf-8")
     _allowlist(tmp_path, _discretionary(30))
-    assert {e.package for e in load(tmp_path)} == {"plugin_platform_interface", "abandoned"}
+    assert {e.package for e in load(tmp_path)} == {
+        "plugin_platform_interface",
+        "abandoned",
+    }
 
 
 def test_a_malformed_shared_allowlist_is_an_error(tmp_path, no_shared_allowlist):
@@ -217,5 +231,9 @@ def test_the_shared_path_defaults_to_the_gate_repo(monkeypatch):
     from dep_freshness.allowlist import shared_path
 
     monkeypatch.delenv("DEP_FRESHNESS_SHARED_ALLOWLIST", raising=False)
+    import dep_freshness
+
+    # The gate repo is whatever checkout holds the package (~/src/utils, a
+    # worktree, a snapshot), so compare paths, not the folder's name.
     assert shared_path().name == NAME
-    assert shared_path().parent.name == "utils"
+    assert shared_path().parent == Path(dep_freshness.__file__).resolve().parent.parent
