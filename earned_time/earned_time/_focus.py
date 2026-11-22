@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Final, Protocol
 from earned_time._ladder import shutdown_units_minutes
 from earned_time._match import focus_match
 from earned_time._policy import Earner
+from earned_time._share import share_minutes
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -53,7 +54,9 @@ class FocusEarner(Earner):
 
     def gaming_for(self, units: int) -> int:
         """Gaming minutes of ``units`` focused minutes, floored."""
-        return self.capped(units) * self.gaming_minutes // (self.max_units or 1)
+        return share_minutes(
+            self.gaming_minutes, self.capped(units), self.max_units or 1
+        )
 
     def shutdown_for(
         self,
@@ -62,7 +65,9 @@ class FocusEarner(Earner):
     ) -> int:
         """Shutdown minutes of ``units`` focused minutes, floored."""
         del day  # the base signature takes it; focus pay is the same every day
-        return self.capped(units) * self.shutdown_minutes // (self.max_units or 1)
+        return share_minutes(
+            self.shutdown_minutes, self.capped(units), self.max_units or 1
+        )
 
 
 def _active(day: date) -> _Project | None:

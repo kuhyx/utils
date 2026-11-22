@@ -25,18 +25,20 @@ from datetime import UTC, date, datetime
 import logging
 from typing import TYPE_CHECKING, Final
 
-from earned_time._focus import FocusEarner
+from earned_time._floor import gaming_cut, is_penalised, shutdown_floor
 from earned_time._gaming import gaming_enforced
-from earned_time._ladder import on_ladder, shutdown_ceiling_for
+from earned_time._ladder import shutdown_ceiling_for
 from earned_time._leisure import base_minutes, ceiling_minutes, is_leisure
-from earned_time._maturity import confirmed_start, penalty_start
-from earned_time._policy import SHUTDOWN_BASE_MINUTES, Earner
 from earned_time._registry import all_earners, earners_for
 from earned_time._resolution import Base, Resolution, Term
+from earned_time._share import gaming_share, shutdown_share
 from earned_time._sick import sick_or
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from earned_time._policy import Earner
+    from earned_time._progress import Progress
 
 _logger: Final = logging.getLogger(__name__)
 
@@ -45,56 +47,6 @@ Answer = int | bool | None
 
 def _today() -> date:
     return datetime.now(tz=UTC).astimezone().date()
-
-
-def _gaming_cut(item: Earner) -> int:
-    """What a penalty in force takes off the gaming base: all ``item`` can pay.
-
-    A focus earner cuts what the gates it replaced paid; it pays more (0.21.0).
-    """
-    if isinstance(item, FocusEarner):
-        return item.cut_gaming_minutes
-    return item.max_gaming_minutes
-
-
-def _penalised(
-    item: Earner, day: date, first_credits: Mapping[str, date | None] | None
-) -> bool:
-    """Whether ``item``'s cut is in force on ``day``.
-
-    Without ``first_credits``: ``penalty_from`` alone, as in 0.5.0. With it:
-    :func:`penalty_start` of the earner's first real credit (``None`` -- never
-    paid out, or could not check -- is not penalised unless ``confirmed_on``
-    is set: fail closed); an earner missing from it still waits for the day
-    after its ``confirmed_on``.
-    """
-    if first_credits is None:
-        return item.penalised_on(day)
-    start = (
-        penalty_start(item, first_credits[item.name])
-        if item.name in first_credits
-        else confirmed_start(item)
-    )
-    return start is not None and day >= start
-
-
-def _shutdown_floor(day: date, earners: tuple[Earner, ...], cut: list[Earner]) -> int:
-    """Shutdown of a day that earned nothing; ``cut``: the penalties in force.
-
-    On the ladder: the ceiling minus the most each earner can pay (all of a
-    capped earner's units), so doing everything lands exactly on the ceiling
-    -- but only a pure bonus (no ``penalty_from``) or an earner in ``cut``: a
-    gate whose penalty has not started cannot lower the floor (0.6.1), nor can
-    a top-up (0.23.0). Before it: the old base minus the penalties in force.
-    """
-    if on_ladder(day):
-        rungs = (
-            e for e in earners if not e.topup and (e.penalty_from is None or e in cut)
-        )
-        return shutdown_ceiling_for(day) - sum(
-            e.shutdown_for(e.max_units or 1, day) for e in rungs
-        )
-    return SHUTDOWN_BASE_MINUTES - sum(e.shutdown_minutes for e in cut)
 
 
 def base_for(
@@ -107,7 +59,7 @@ def base_for(
     """The floor for ``day`` (default today) under ``earners`` (default its own).
 
     Gaming: every penalty in force, the most each earner can pay, taken off
-    the gaming base. Shutdown: see :func:`_shutdown_floor` -- the two are
+    the gaming base. Shutdown: see ``_floor.shutdown_floor`` -- the two are
     derived separately so the ladder can never move a gaming minute.
     ``first_credits`` (per earner name) delays each penalty, and the ladder
     rung, to :func:`penalty_start`; omitted, 0.5.0's ``penalty_from`` applies.
@@ -128,11 +80,10 @@ def _base(
     *,
     on: bool,
 ) -> Base:
-    penalised = [e for e in registry if _penalised(e, target, first_credits)]
+    penalised = [e for e in registry if is_penalised(e, target, first_credits)]
     return Base(
-        gaming_minutes=base_minutes(leisure=on)
-        - sum(_gaming_cut(e) for e in penalised),
-        shutdown_minutes=_shutdown_floor(target, registry, penalised),
+        gaming_minutes=base_minutes(leisure=on) - sum(gaming_cut(e) for e in penalised),
+        shutdown_minutes=shutdown_floor(target, registry, penalised),
     )
 
 
@@ -153,13 +104,32 @@ def _check_registered(
         raise KeyError(msg)
 
 
-def _term(item: Earner, answers: Mapping[str, Answer], day: date) -> Term:
-    """``item``'s term on ``day``; no answer at all is logged and earns nothing."""
+def _term(
+    item: Earner,
+    answers: Mapping[str, Answer],
+    day: date,
+    progress: Mapping[str, Progress] | None,
+) -> Term:
+    """``item``'s term on ``day``; no answer at all is logged and earns nothing.
+
+    Progress pays only a no (``0``/``False``): a yes pays in full as ever and
+    ``None`` ("could not check") earns nothing, row or no row.
+    """
     if item.name not in answers:
         _logger.warning(
             "No answer for the %s earner; it earns nothing today", item.label
         )
     units = _units(answers.get(item.name))
+    no = units is not None and units < 1
+    share = (progress or {}).get(item.name) if no else None
+    if share is not None:
+        return Term(
+            item,
+            units,
+            gaming_share(item, share),
+            shutdown_share(item, share, day),
+            share,
+        )
     count = units or 0
     return Term(
         earner=item,
@@ -177,6 +147,7 @@ def resolve(
     first_credits: Mapping[str, date | None] | None = None,
     sick: bool = False,
     leisure: bool | None = None,
+    progress: Mapping[str, Progress] | None = None,
 ) -> Resolution:
     """Sum the base and every earned term, each capped at its ceiling.
 
@@ -205,6 +176,10 @@ def resolve(
             shutdown are unchanged. From ``GAMING_UNLIMITED_FROM`` (0.22.0)
             ``None`` is always the old base: read
             ``Resolution.gaming_enforced``, the budget is not a limit.
+        progress: Per earner name, its signed progress (0.24.0,
+            :func:`~earned_time.progress_map`). A term uses it only when its
+            answer is ``0``/``False``, and then pays that share of a yes; a
+            true answer pays full and ``None`` nothing. Omitted: 0.23.0 exactly.
 
     Returns:
         The resolution, with a term for every registered earner.
@@ -219,7 +194,7 @@ def resolve(
     # One switch-file read per resolve, so base and cap can never disagree.
     on = is_leisure(target, leisure=leisure)
     base = _base(target, registry, first_credits, on=on)
-    terms = [_term(item, answers, target) for item in registry]
+    terms = [_term(item, answers, target, progress) for item in registry]
     gaming = base.gaming_minutes + sum(t.gaming_minutes for t in terms)
     earned = min(
         shutdown_ceiling_for(target),

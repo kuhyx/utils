@@ -8,8 +8,8 @@ an hour; it asks :func:`earned_time.resolve` and applies the answer.
 **Penalty, then reward.** A gate with ``penalty_from`` lowers the base by
 exactly what it pays back, from that day on (never before the reward that
 pays for it: a same-day loss on 2026-09-26). Ceilings stay put. From
-``LADDER_FROM`` shutdown follows the sleep ladder (:mod:`earned_time._ladder`).
-The review top-up (``REVIEW``, 0.23.0) lives in :mod:`earned_time._review`.
+``LADDER_FROM`` shutdown follows the sleep ladder (:mod:`earned_time._ladder`);
+the review top-up (0.23.0) is in :mod:`earned_time._review`.
 
 **The registry is per day** (:func:`earners_for`). From ``TUTOR_FROM`` Anki
 is retired -- neither penalised nor paid -- and the tutor (``TUTOR``) is the
@@ -61,24 +61,23 @@ class Earner:
         label: Human name, for logs and reason strings.
         gaming_minutes: Gaming time the first unit earns.
         shutdown_minutes: How much later shutdown moves for the first unit.
-        kind: ``"flat"`` earns once per day from a yes/no answer;
-            ``"counted"`` earns per unit (the workout), and its live credit is
-            applied by the consumer that counts the units.
+        kind: ``"flat"`` earns once a day from a yes/no answer; ``"counted"``
+            per unit (the workout), its live credit applied by the consumer.
         extra_shutdown_minutes: Each further unit, for ``"counted"`` earners.
         extra_gaming_minutes: Gaming time each further unit earns
             (``"counted"``); the workout's are 0, the tutor's 1 (per minute).
         max_units: The most units one day can pay; ``None`` is unbounded.
         penalty_from: From this day the gaming base drops by the most the
-            earner can pay (:attr:`max_gaming_minutes`). ``None`` means a pure
-            bonus.
-        ledger: The gate's HMAC-signed ledger, relative to the home directory.
-            ``None`` means no shared reader: the consumer supplies the answer.
+            earner can pay (:attr:`max_gaming_minutes`); ``None``: a pure bonus.
+        ledger: The gate's HMAC-signed ledger, relative to the home directory;
+            ``None``: no shared reader, the consumer supplies the answer.
         match: Which verified ``credit`` rows count for today.
         missing_ledger_is_no: A ledger that does not exist yet is an honest
             "no" (the gate never ran), not a fault.
-        confirmed_on: The day kuhy confirmed a real working session; set by
-            hand, never derived. ``None`` keeps the gate "new"
-            (:func:`earned_time.maturity`).
+        confirmed_on: The day kuhy confirmed a real working session, by hand;
+            ``None`` keeps the gate "new" (:func:`earned_time.maturity`).
+        progress_source: ``detail.source`` of the gate's signed ``progress``
+            rows (0.24.0, ``_progress``); ``None``: the yes/no answer alone.
 
     ``shutdown_minutes`` and ``extra_shutdown_minutes`` are the pre-ladder
     values; from ``LADDER_FROM`` the earner's :class:`Rung` in ``LADDER``
@@ -98,6 +97,7 @@ class Earner:
     extra_gaming_minutes: int = 0
     max_units: int | None = None
     confirmed_on: date | None = None
+    progress_source: str | None = None
 
     @property
     def topup(self) -> bool:
@@ -106,7 +106,7 @@ class Earner:
 
     @property
     def evidence(self) -> RowEvidence | None:
-        """A reader that pays from all rows instead of ``match`` (``_review``)."""
+        """A reader that pays from all rows instead of ``match``."""
         return None
 
     def capped(self, units: int) -> int:
@@ -143,13 +143,13 @@ WORKOUT: Final = Earner(
     shutdown_minutes=2 * 60,
     kind="counted",
     extra_shutdown_minutes=60,
-    # screen-locker writes one signed row per credited unit (a verified
-    # RunnerUp TCX, or a rest day); ``credit_units`` counts them.
+    # One signed row per credited unit (a verified TCX, or a rest day).
     ledger=".local/share/workout_locker/ledger.json",
     match=workout_match,
     missing_ledger_is_no=True,
     # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 10, 1),
+    progress_source="workout",
 )
 LEETCODE: Final = Earner(
     name="leetcode",
@@ -160,6 +160,7 @@ LEETCODE: Final = Earner(
     match=leetcode_match,
     # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 8, 12),
+    progress_source="leetcode",
 )
 READING: Final = Earner(
     name="reading",
@@ -172,6 +173,7 @@ READING: Final = Earner(
     missing_ledger_is_no=True,
     # First verified credit, read off the real ledger (0.6.0, 2026-10-09).
     confirmed_on=date(2026, 10, 2),
+    progress_source="reading",
 )
 ANKI: Final = Earner(
     name="anki",
@@ -183,9 +185,8 @@ ANKI: Final = Earner(
     match=anki_match,
     missing_ledger_is_no=True,
 )
-# Same gate, same row shape: anki-guard's ``automation`` quota (the Automation
-# deck only) writes its own ledger, so the Anki day matcher applies unchanged.
-# Days before ``TUTOR_FROM`` only; from then on see TUTOR.
+# anki-guard's ``automation`` quota (its own ledger, same row shape): the Anki
+# day matcher applies unchanged. Days before ``TUTOR_FROM`` only; then TUTOR.
 AUTOMATION: Final = Earner(
     name="automation",
     label="Automation",
@@ -197,9 +198,8 @@ AUTOMATION: Final = Earner(
     missing_ledger_is_no=True,
 )
 
-# From ``TUTOR_FROM``: the tutor pays per active minute (0.8.0; a 0.7.0
-# 15-minute block row counts 15), up to 60 a day; Anki's 30 is folded in.
-# Named ``automation`` until 0.9.0 (rows carry no earner name).
+# From ``TUTOR_FROM``: the tutor pays per active minute (a 0.7.0 15-minute
+# block row counts 15), up to 60 a day; Anki's 30 is folded in.
 TUTOR: Final = Earner(
     name="tutor",
     label="Tutor",
@@ -214,9 +214,8 @@ TUTOR: Final = Earner(
     ledger=".local/share/tutor/ledger.json",
     match=tutor_match,
     missing_ledger_is_no=True,
-    # Confirmed by kuhy on 2026-10-10 before any block had paid out, dated the
-    # day before so the -60 gaming penalty applies on TUTOR_FROM itself
-    # (penalty starts at confirmed_on + 1).
+    # Confirmed 2026-10-10 before any block paid; dated a day early so the -60
+    # penalty applies on TUTOR_FROM itself (it starts at confirmed_on + 1).
     confirmed_on=date(2026, 10, 9),
 )
 

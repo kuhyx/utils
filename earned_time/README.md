@@ -92,33 +92,9 @@ penalty has started, the gaming base drops by the full 60
 done is 3 h / 18:50 and everything done is still 8 h / 23:00. Until then
 (given `first_credits`, see below) it costs nothing: 4 h / 19:50.
 
-**The tutor row contract (0.8.0, mixed-day safe).** `credit_units` sums what
-each counting row pays instead of counting rows (`_credits.row_units`, the
-per-matcher reader `_match.ROW_UNITS`):
-
-- `detail.minutes` (a positive JSON int, never a bool/float/string) is the
-  active minutes the row pays. A row **without** it is a 0.7.0 15-minute
-  block and pays 15 (`LEGACY_TUTOR_MINUTES`), so a day that mixes block rows
-  and minute rows sums both, and an all-block day resolves exactly as 0.7.0
-  did (min(15 n, 60) = 15 min(n, 4)). A row whose `minutes` is present but
-  invalid is refused by `tutor_match` (logged) and pays nothing anywhere.
-- An `entry_id` pays once; rows repeated under one id pay the **smallest**
-  of their counts, so a replay or a rewrite can never raise a credit.
-- What the writer ([kuhyx/tutor](https://github.com/kuhyx/tutor) `tutor/credit.py`) must guarantee: every
-  new row carries `detail.minutes`; one row per credited minute,
-  `entry_id = f"{session_id}-m{n}"` with `n` the session's n-th credited
-  active minute (deterministic, so a retry rewrites the same id; never the
-  `-b{n}` form); ids never cover overlapping minutes (no cumulative "total so
-  far" rows); `detail.ended_at` is when the last paid minute ended (it picks
-  the day, so a multi-minute row must never span local midnight); its own
-  daily cap sums minutes (block rows as 15) up to 60. N-minute rows (e.g.
-  every 5 minutes) are allowed under the same rules; each write fires
-  screen-locker's `earner-bonus.path`, so per-minute rows rewrite the
-  shutdown schedule once a minute.
-
-Days before `TUTOR_FROM` resolve on `EARNERS` exactly as before. Consumers must
-iterate `earners_for(day)`, never `EARNERS`; `resolve`/`base_for` default to
-it, and ignore answers for an earner of another day's registry.
+**The tutor row contract (0.8.0, mixed-day safe)** — `detail.minutes`, one row per
+credited minute, the legacy 15-minute block, an `entry_id` paying once and what
+the writer must guarantee: [DOCS-tutor.md](DOCS-tutor.md).
 
 **Gap waiver** (`ANKI_WAIVED_FROM`, 2026-10-09): no anki/automation earner.
 
@@ -145,6 +121,14 @@ From 2026-11-23 a finished, backed coach review adds 20 shutdown minutes once a
 day, capped at the ceiling; never a rung, never in the floor. The row contract
 and the rules are in [DOCS-review.md](DOCS-review.md).
 
+## Partial pay (0.24.0)
+
+A gate signs "done N of target M for day D" and `resolve(..., progress=)` pays a
+no that share of a yes (`60 * 1 // 3 = 20`), for shutdown, gaming and sick
+days. A yes pays full and "could not check" nothing, as ever; with no row
+anywhere every output is 0.23.0's. The row, the reader and every fail-closed
+case are in [DOCS-progress.md](DOCS-progress.md).
+
 ## Gate maturity (0.6.0)
 
 How far to trust a gate, computed from its ledger by `maturity()`, is in
@@ -153,7 +137,7 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
 ## API
 
 - `resolve(answers, day=None, earners=None, *, first_credits=None, sick=False,
-  leisure=None) -> Resolution` — the one sum. `sick_shutdown_from(paid_minutes,
+  leisure=None, progress=None) -> Resolution` — the one sum. `sick_shutdown_from(paid_minutes,
   day) -> int`. `base_for(day=None, earners=None, *, first_credits=None,
   leisure=None) -> Base` — the day's floors. `gaming_base_minutes_for(day)`,
   `gaming_ceiling_minutes_for(day) -> int` — the gaming base and cap.
@@ -179,6 +163,10 @@ How far to trust a gate, computed from its ledger by `maturity()`, is in
   `REVIEW_SOURCE`, `GUARD_LEDGER`, `ACCEPTED_LOOKBACK_DAYS`, `review_match`,
   `paid_reviews`, `guard_ledger_for(ledger, earner) -> Path | None`;
   `Earner.topup` and `Earner.evidence` (0.23.0).
+- `progress_map(day, home, key_file, *, earners=None, gate_off=()) ->
+  dict[str, Progress]`, `read_progress(earner, ledger, key_file, day, *,
+  gate_off=False) -> Progress | None`, `Progress(done, target)`,
+  `Earner.progress_source`, `Term.progress` (0.24.0).
 
 ## The workout ledger
 
@@ -242,7 +230,7 @@ Unbacked timer time pays 0 from 2026-11-08 (focus_project 0.10.0).
 ## Install
 
 ```console
-pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time"
+pip install --user --break-system-packages --no-deps "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.24.0#subdirectory=earned_time"
 ```
 
 The root `steam-backlog-enforcer.service` sets `HOME=/home/kuhy` and imports from

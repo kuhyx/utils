@@ -243,4 +243,5 @@ REVIEW: Final = ReviewEarner(
     ledger=REVIEW_LEDGER,
     match=review_match,
     missing_ledger_is_no=True,
+    progress_source="review",
 )

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from datetime import date
 
     from earned_time._policy import Earner
+    from earned_time._progress import Progress
 
 
 @dataclass(frozen=True)
@@ -39,12 +40,15 @@ class Term:
             "could not check" (and for no answer at all).
         gaming_minutes: Gaming minutes earned.
         shutdown_minutes: Shutdown minutes earned.
+        progress: The signed progress the pay is a share of (0.24.0): set only
+            when the answer was a no and a row paid; ``None`` otherwise.
     """
 
     earner: Earner
     answer: int | None
     gaming_minutes: int
     shutdown_minutes: int
+    progress: Progress | None = None
 
 
 @dataclass(frozen=True)

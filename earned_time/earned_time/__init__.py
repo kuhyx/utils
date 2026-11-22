@@ -26,6 +26,10 @@ A consumer's whole integration::
 gaming budget; shutdown is the only carrot. ``Resolution.gaming_enforced``
 carries it; a consumer that applies a budget lifts the limit on ``False``.
 
+``progress`` (0.24.0): a gate signs "done N of M"; ``progress_map(day, home,
+key_file)`` reads it, ``resolve(..., progress=...)`` pays a no that share of a
+yes (``DOCS-progress.md``). No row anywhere resolves exactly as 0.23.0.
+
 ``sick`` (0.11.0) only raises shutdown to at least 20:00; gaming is unchanged.
 ``leisure`` (0.16.0): ``None`` follows the switch file on ``day``, ``True``
 prices gaming with the leisure base and cap (the shadow budget), ``False``
@@ -101,6 +105,7 @@ from earned_time._policy import (
     Earner,
     earner,
 )
+from earned_time._progress import Progress, progress_map, read_progress
 from earned_time._quota import TUTOR_QUOTA_FROM, TUTOR_QUOTA_MINUTES, tutor_quota_for
 from earned_time._registry import all_earners, earners_for, registries
 from earned_time._resolve import Base, Resolution, Term, base_for, resolve
@@ -162,6 +167,7 @@ __all__ = [
     "FocusEarner",
     "Level",
     "Maturity",
+    "Progress",
     "Resolution",
     "Rung",
     "Term",
@@ -187,6 +193,8 @@ __all__ = [
     "on_ladder",
     "paid_reviews",
     "penalty_start",
+    "progress_map",
+    "read_progress",
     "real_credit",
     "registries",
     "resolve",
