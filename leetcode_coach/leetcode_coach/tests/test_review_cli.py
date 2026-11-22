@@ -73,16 +73,31 @@ def test_review_finish_logs_the_event_and_signs_a_row(
         "cause": "missing-idea",
         "module": "hashing",
     }
-    (row,) = _rows()
+    row, tally = _rows()
     assert (row["entry_id"], row["detail"]["cause"]) == (
         "review:two-sum",
         "missing-idea",
     )
+    assert tally["entry_id"] == f"progress:{row['day']}:1:1"
     assert progress.history("two-sum").solved == progress.local_today()
     assert capsys.readouterr().out.splitlines() == [
         "review logged: two-sum, cause missing-idea, module hashing",
         "ledger row: written",
         "card: build ONE property -> operation card now (DOCS-review.md step 6)",
+    ]
+
+
+def test_the_target_is_how_many_solves_are_flagged_when_the_review_is_finished(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_guard(tmp_path, monkeypatch, "two-sum", "3sum", "lru-cache")
+    assert review_cli.main(["review-finish", "two-sum", "--cause", "debugging"]) == 0
+    fake_guard(tmp_path, monkeypatch, "3sum")
+    assert review_cli.main(["review-finish", "3sum", "--cause", "debugging"]) == 0
+    day = _rows()[0]["day"]
+    assert [r["entry_id"] for r in _rows() if r["kind"] == "progress"] == [
+        f"progress:{day}:1:3",
+        f"progress:{day}:2:3",
     ]
 
 
@@ -196,10 +211,13 @@ def test_a_slug_with_a_row_gets_its_event_but_no_second_row(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     fake_guard(tmp_path, monkeypatch, "two-sum")
-    review_ledger.record("two-sum", "statement")
+    review_ledger.record("two-sum", "statement", due=1)
     assert review_cli.main(["review-finish", "two-sum", "--cause", "debugging"]) == 0
     assert [e["event"] for e in _events("two-sum")] == ["review"]
-    assert [r["detail"]["cause"] for r in _rows()] == ["statement"]
+    assert [r["detail"]["cause"] for r in _rows() if r["kind"] == "credit"] == [
+        "statement"
+    ]
+    assert len(_rows()) == 2
     assert "ledger row: already there, not written twice" in capsys.readouterr().out
 
 
@@ -217,4 +235,4 @@ def test_a_lost_event_is_reported_as_exactly_that(
     out = capsys.readouterr().out
     assert out.startswith("ledger row written, review event NOT logged (")
     assert "run the same command again" in out
-    assert len(_rows()) == 1
+    assert len(_rows()) == 2

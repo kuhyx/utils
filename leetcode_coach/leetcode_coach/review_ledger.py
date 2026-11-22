@@ -12,6 +12,11 @@ the coach does not depend on ``earned_time``;
 ``test_earned_time_verifies_the_row_and_signs_it_the_same`` holds the two
 together.
 
+Every credit row is written with a ``progress`` row in the same rename
+(`record`): the review's share of the day's bonus is ``done`` of ``target``
+(``earned_time`` 0.24.0, DOCS-progress.md). The target is frozen at the day's
+first review; the facts are read back from the signed rows, never stored apart.
+
 Fail closed: without a readable key, or over a ledger file that does not
 parse, `record` raises `LedgerError` and writes nothing. Each slug gets one row
 ever. The write is a rename over the target, so a crash leaves the old file.
@@ -39,6 +44,8 @@ VERSION: Final = 1
 """The guard ledger's ``_ledger_io._VERSION``."""
 SOURCE: Final = "leetcode-coach-review"
 ID_PREFIX: Final = "review:"
+PROGRESS_SOURCE: Final = "review"
+"""``earned_time``'s ``Earner.progress_source`` for the review top-up."""
 
 
 class LedgerError(RuntimeError):
@@ -99,29 +106,72 @@ def _write(entries: list[Any]) -> None:
         raise LedgerError(msg) from exc
 
 
-def record(slug: str, cause: str, *, now: datetime | None = None) -> bool:
-    """Sign and append the row for one finished review.
+def _signed(row: dict[str, Any], key: bytes) -> bool:
+    """True when `row` carries the signature `entry_signature` gives it."""
+    claim = row.get("hmac")
+    return isinstance(claim, str) and hmac.compare_digest(
+        claim, entry_signature(row, key)
+    )
 
-    Args:
-        slug: The reviewed problem.
-        cause: The one named cause.
-        now: The finish time, timezone-aware (default: now, local time).
 
-    Returns:
-        True when the row was written, False when the slug already had one.
+def _is_credit(row: dict[str, Any], day: str) -> bool:
+    detail = row.get("detail")
+    return (
+        row.get("kind") == "credit"
+        and row.get("day") == day
+        and isinstance(detail, dict)
+        and detail.get("source") == SOURCE
+    )
 
-    Raises:
-        LedgerError: no key, an unreadable ledger or a failed write; nothing
-            on disk changed.
-    """
-    key = _key()
-    entries = _entries()
-    entry_id = ID_PREFIX + slug
-    if any(isinstance(e, dict) and e.get("entry_id") == entry_id for e in entries):
-        return False
-    moment = now or datetime.now(tz=UTC).astimezone()
-    row: dict[str, object] = {
-        "entry_id": entry_id,
+
+def _fact(row: dict[str, Any], day: str) -> tuple[int, int] | None:
+    """``(done, target)`` of a progress row about `day` for the review source."""
+    detail = row.get("detail")
+    if row.get("kind") != "progress" or not isinstance(detail, dict):
+        return None
+    done, target = detail.get("done"), detail.get("target")
+    if (
+        detail.get("source") != PROGRESS_SOURCE
+        or detail.get("for_day") != day
+        or not all(
+            isinstance(v, str) and v.isascii() and v.isdigit() for v in (done, target)
+        )
+    ):
+        return None
+    return int(str(done)), int(str(target))
+
+
+def _progress_row(
+    rows: list[Any], key: bytes, day: str, due: int, moment: datetime
+) -> dict[str, object] | None:
+    """The row that makes the day's facts true, or None when they already are."""
+    signed = [r for r in rows if isinstance(r, dict) and _signed(r, key)]
+    facts = [f for r in signed if (f := _fact(r, day)) is not None]
+    paid = sum(1 for r in signed if _is_credit(r, day))
+    target = facts[0][1] if facts else max(due, paid, 1)
+    state = (min(paid, target), target)
+    if facts and facts[-1] == state:
+        return None
+    done = state[0]
+    return {
+        "entry_id": f"progress:{day}:{done}:{target}",
+        "kind": "progress",
+        "day": day,
+        "created_at": moment.isoformat(),
+        "amount": 0,
+        "device": "pc",
+        "detail": {
+            "source": PROGRESS_SOURCE,
+            "for_day": day,
+            "done": str(done),
+            "target": str(target),
+        },
+    }
+
+
+def _credit_row(slug: str, cause: str, moment: datetime) -> dict[str, object]:
+    return {
+        "entry_id": ID_PREFIX + slug,
         "kind": "credit",
         "day": moment.date().isoformat(),
         "created_at": moment.isoformat(),
@@ -134,6 +184,48 @@ def record(slug: str, cause: str, *, now: datetime | None = None) -> bool:
             "finished_at": str(int(moment.timestamp())),
         },
     }
-    row["hmac"] = entry_signature(row, key)
-    _write([*entries, row])
-    return True
+
+
+def record(slug: str, cause: str, *, due: int, now: datetime | None = None) -> bool:
+    """Sign and append the rows for one finished review: credit plus progress.
+
+    The progress row says "``done`` of ``target`` reviews for the day": ``done``
+    is the day's signed review credits, capped at ``target``, which is `due`
+    at the day's first progress row and never changes after it. Nothing is
+    appended for a state the last progress row already says, and a slug that
+    has its credit still gets the progress row it lacks (rows written before
+    this writer existed), with ``max(due, credits)`` as the target.
+
+    Args:
+        slug: The reviewed problem.
+        cause: The one named cause.
+        due: How many reviews are due right now, this one included.
+        now: The finish time, timezone-aware (default: now, local time).
+
+    Returns:
+        True when the credit row was written, False when the slug already had
+        one.
+
+    Raises:
+        LedgerError: no key, an unreadable ledger or a failed write; nothing
+            on disk changed, so neither row exists without the other.
+    """
+    key = _key()
+    entries = _entries()
+    moment = now or datetime.now(tz=UTC).astimezone()
+    entry_id = ID_PREFIX + slug
+    fresh = not any(
+        isinstance(e, dict) and e.get("entry_id") == entry_id for e in entries
+    )
+    new: list[dict[str, object]] = []
+    if fresh:
+        credit = _credit_row(slug, cause, moment)
+        credit["hmac"] = entry_signature(credit, key)
+        new.append(credit)
+    day = moment.date().isoformat()
+    if (tally := _progress_row([*entries, *new], key, day, due, moment)) is not None:
+        tally["hmac"] = entry_signature(tally, key)
+        new.append(tally)
+    if new:
+        _write([*entries, *new])
+    return fresh

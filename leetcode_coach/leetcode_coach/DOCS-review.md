@@ -59,6 +59,10 @@ taught. You find the one cause, log it, and that starts the cold re-test clock
    - exit 0, `review logged: ...` and `ledger row: written`: the solve is no
      longer flagged, and the re-test falls due 3 and 10 days from today
      (`leetcode --retest <slug>`).
+     The same write adds a `progress` row (`progress:<day>:<done>:<target>`),
+     so a review pays its share of the day's bonus: the target is how many
+     solves were flagged when that day's first review finished and does not
+     change after it.
    - `refused: ...` (exit 1): the slug is not flagged or an argument is
      wrong. Nothing was written.
    - `could not check: ...` (exit 2): nothing was written. Tell kuhy; do not

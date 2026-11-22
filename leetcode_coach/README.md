@@ -92,7 +92,11 @@ and +10 days), `cluster_progress()`, `next_new(...)`, `cluster_of(slug)`. A
 (`DOCS-review.md`). `review-finish` takes only a slug the guard flags now and
 writes one signed row per slug to
 `~/.local/share/leetcode-coach/review_ledger.json` (`review_ledger.record`),
-then the `review` event. It never touches the guard's ledger.
+then the `review` event. It never touches the guard's ledger. Each credit row
+is written with a `progress` row ("done N of target M", source `review`) in
+the same rename: the target is the number of flagged solves when the day's
+first review is finished and stays frozen that day, `done` is the day's signed
+review rows capped at it (`earned_time` 0.24.0 pays `bonus * done // target`).
 
 **Toolbox + cards.** `toolbox.load_safe() -> Toolbox` (`.entries`,
 `.properties`), `toolbox_cards.cards_for(names) -> [Card]` (property list ->

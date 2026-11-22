@@ -103,13 +103,13 @@ def review_finish(problem: str, cause: str, module: str | None) -> int:
         return _unchecked(exc, "; nothing written")
     if slug not in reviewable:
         return _refuse(f"{slug} is not flagged, {NOTHING}; nothing written")
-    return _record(slug, cause, module)
+    return _record(slug, cause, module, due=len(reviewable))
 
 
-def _record(slug: str, cause: str, module: str | None) -> int:
-    """Write the row, then the event, and say which of the two happened."""
+def _record(slug: str, cause: str, module: str | None, *, due: int) -> int:
+    """Write the rows, then the event, and say which of the two happened."""
     try:
-        fresh = review_ledger.record(slug, cause)
+        fresh = review_ledger.record(slug, cause, due=due)
     except review_ledger.LedgerError as exc:
         _LOG.warning("review of %s not recorded: %s", slug, exc)
         print(
