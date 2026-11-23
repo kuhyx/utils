@@ -4,7 +4,7 @@ description: >-
   half is the Python rtdb_relay next to this directory). Extracted from the
   tutor app; any app that talks to a PC worker over RTDB reuses it.
 publish_to: 'none'
-version: 0.2.1
+version: 0.2.2
 
 environment:
   sdk: ^3.13.5
@@ -13,12 +13,12 @@ dependencies:
   crdt_sync:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_dart-v0.14.1
+      ref: crdt_sync_dart-v0.14.2
       path: crdt_sync_dart
   crdt_sync_flutter:
     git:
       url: https://github.com/kuhyx/utils
-      ref: crdt_sync_flutter-v0.9.1
+      ref: crdt_sync_flutter-v0.9.2
       path: crdt_sync_flutter
   flutter:
     sdk: flutter

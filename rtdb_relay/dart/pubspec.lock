@@ -61,20 +61,20 @@ packages:
     dependency: "direct main"
     description:
       path: crdt_sync_dart
-      ref: "crdt_sync_dart-v0.14.1"
-      resolved-ref: edd0f7a7882cb1d3904932ba94faa282d08165df
+      ref: "crdt_sync_dart-v0.14.2"
+      resolved-ref: "171a7f8ae34cec78df17a680e42878ca0b97c137"
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.14.1"
+    version: "0.14.2"
   crdt_sync_flutter:
     dependency: "direct main"
     description:
       path: crdt_sync_flutter
-      ref: "crdt_sync_flutter-v0.9.1"
-      resolved-ref: "48dc28ad97b97c787aba4479c3ce51aade6e86b5"
+      ref: "crdt_sync_flutter-v0.9.2"
+      resolved-ref: "41af57870207f80a5bf571f15544a08fddcbe7bf"
       url: "https://github.com/kuhyx/utils"
     source: git
-    version: "0.9.1"
+    version: "0.9.2"
   crypto:
     dependency: transitive
     description:
