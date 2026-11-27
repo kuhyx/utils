@@ -21,3 +21,7 @@ overwrite it with `repo_contract/templates/check_repo_contract.shim.sh`.
 - coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests devstats/tests flutter_web_drive/tests repo_contract/tests unified-design-system/tests --cov=agent_ready --cov=devstats --cov=flutter_web_drive --cov=repo_contract --cov=conformance --cov=conformance_diff --cov-branch --cov-report=xml --cov-fail-under=100`
 - coverage-gaps: `coverage-gaps coverage.xml`
 - deploy: `git -C ~/src/utils pull --ff-only && ~/src/utils/scripts/deploy.sh` (installs the sickdays CLI + launcher from the live checkout, then exits 1 unless every released library's version tag is on origin and matches HEAD and the live `sickdays` runs the text-free checkout; `--verify-only` for the health check alone)
+
+## Rules
+
+- Offline-first: every app that syncs or shares data, whatever the transport, saves each write locally first (readable at once) and keeps all pulled data, details included (`~/.claude/rules/offline-first.instructions.md`; audit `DOCS-offline-first.md`). The `crdt_sync_dart` contract is in its README ("Offline-first contract"), check `cd crdt_sync_dart && dart test test/offline_first_test.dart`.

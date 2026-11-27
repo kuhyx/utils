@@ -173,6 +173,16 @@ the core stays web-safe. Querying is deliberately **not** in the library — a
 The Python side mirrors the on-disk format via `crdt_sync.dump_log`/`read_log`
 (load/save only; no reactive stream — that's a Dart/Flutter convenience).
 
+## Offline-first contract
+
+Apps on this library are offline-first: write user data to `LogStore` first
+and show it at once, never block the UI on the network. Run `syncLog` ticks
+in the background and treat a `RemoteSyncError` as "try later", never as a
+lost write. After every tick, `replaceAll` the merged result so pulled peer
+data is cached locally and stays readable offline. Load the store before
+`openSync` (crdt_sync_flutter): it may return null or hit the network, and
+never gates local data. `test/offline_first_test.dart` checks this contract.
+
 ## Development
 
 ```bash
