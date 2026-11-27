@@ -29,7 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
     cmp = sub.add_parser("compare", help="print kuhy's 30/90/300-day numbers beside the article's")
     cmp.add_argument("--root", action="append", type=Path, default=[],
-                     help="directory whose child repos are walked (repeatable; default ~/src)")
+                     help="directory (or repo) whose child repos are walked (repeatable; "
+                     "given roots replace the default ~/src)")
     cmp.add_argument("--email", action="append", default=[],
                      help=f"extra author email to count (repeatable; {DEFAULT_EMAIL} always counts)")
     cmp.add_argument("--by-repo", nargs="?", type=int, const=10, default=0, metavar="N",

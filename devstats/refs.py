@@ -1,9 +1,9 @@
 """Default-branch resolution from refs on disk (never fetches).
 
-The commits counted are the union of the local default branch and its
-`origin/` remote-tracking ref: work landed with `git push origin HEAD:main`
-from a worktree only moves the remote-tracking ref, while unpushed local work
-only moves the local one, and both are kuhy's output.
+Only the LOCAL default branch is counted (kuhy's spec: "read local refs
+only"). origin/HEAD only names the branch. When the `origin/` tracking ref is
+newer, the caller warns: work landed with `git push origin HEAD:main` from a
+worktree is then missing from the count until the checkout is pulled.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ class Ref:
 
 @dataclass(frozen=True)
 class DefaultRefs:
-    """The default branch name, the refs to log, and how stale the local tip is."""
+    """The default branch name, the local ref to log, and how stale it is."""
 
     branch: str | None
     log_refs: tuple[str, ...]
@@ -53,17 +53,14 @@ def tag_times(refs: dict[str, Ref]) -> list[tuple[str, int]]:
 
 
 def resolve(refs: dict[str, Ref]) -> DefaultRefs:
-    """origin/HEAD's branch, else main, else master; local and origin tips of it."""
+    """origin/HEAD's branch, else main, else master: the first that exists locally."""
     head = refs.get(_ORIGIN + "HEAD")
     candidates = [head.symref.removeprefix(_ORIGIN)] if head and head.symref else []
     for branch in (*candidates, "main", "master"):
         local, remote = refs.get("refs/heads/" + branch), refs.get(_ORIGIN + branch)
-        if local or remote:
-            log_refs = tuple(
-                n for n, r in (("refs/heads/" + branch, local), (_ORIGIN + branch, remote)) if r
-            )
+        if local:
             behind = None
-            if local and remote and local.sha != remote.sha and remote.ts > local.ts:
+            if remote and local.sha != remote.sha and remote.ts > local.ts:
                 behind = round((remote.ts - local.ts) / 86_400, 1)
-            return DefaultRefs(branch, log_refs, behind)
+            return DefaultRefs(branch, ("refs/heads/" + branch,), behind)
     return DefaultRefs(None, (), None)

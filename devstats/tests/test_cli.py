@@ -20,7 +20,7 @@ def src(make_repo, tmp_path: Path) -> Path:
     bot.commit({"bot.py": None}, NOW - 50 * DAY + 1)  # dates out of order on purpose: kept by --since
     bot.commit({"x.py": lines(10)}, NOW - 2 * DAY, email="ppolgon@gmail.com")
     bot.tag("v1", NOW - DAY, annotated=True)
-    bot.commit({"pushed.py": lines(3)}, NOW - DAY)  # pushed from a worktree: only origin has it
+    bot.commit({"pushed.py": lines(3)}, NOW - DAY)  # only origin has it: not counted (local refs only)
     run(bot.path, "update-ref", "refs/remotes/origin/main", "HEAD")
     run(bot.path, "update-ref", "refs/heads/main", "HEAD~1")  # local main behind origin
     run(bot.path, "worktree", "add", "-q", str(tmp_path / "src" / "sb-wt-a"), "-b", "wt")

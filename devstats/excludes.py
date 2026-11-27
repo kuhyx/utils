@@ -2,8 +2,10 @@
 
 One ordered constant, first match wins. A pattern ending in "/" matches any
 directory component of the path; any other pattern is a glob on the file name.
-Excluded directories come first so nothing inside node_modules/ or addons/ is
-rescued by a later rule; the code keeps come before the file excludes so
+Vendored/build directories come first so nothing inside node_modules/ or
+addons/ is rescued by a later rule; source files (by extension) are kept
+before the data/, assets/ and fixtures/ directory rules, so lib/data/*.dart
+and a fixtures/ fake binary in Python stay code; the code keeps come before the file excludes so
 package.json survives `*.json`; translation dirs come before `*.json` so
 locales/en.json counts as docs, like the article's "+800k translations and docs".
 
@@ -13,7 +15,7 @@ Judgment calls, calibrated on the 30-day top-40 churn list (2026-11-27):
 - Godot `addons/` is vendored (GUT, copies of dev_tools) except the source of
   kuhy's own addon under `godot_dev_tools/`; `*.tres` is data; `*.import`/`*.uid` are
   generated; `*.tscn` scenes stay code (authored structure).
-- `fixtures/` is test data; test code itself stays.
+- `fixtures/` is test data; test code (source extensions) inside it stays.
 """
 
 from __future__ import annotations
@@ -26,13 +28,12 @@ Bucket = Literal["code", "docs", "excluded"]
 RULES: tuple[tuple[Bucket, str], ...] = (
     # kuhy's own Godot addon source (utils/godot_dev_tools); games carry vendored copies
     ("code", "godot_dev_tools/"),
-    # vendored, generated and data directories (any depth)
+    # vendored and build-output directories (any depth): everything inside goes
     *(
         ("excluded", d)
         for d in (
             "node_modules/", "vendor/", "third_party/", "addons/", ".venv/", ".dart_tool/",
             "dist/", "build/", "generated/", "htmlcov/", "coverage/", "__snapshots__/",
-            "data/", "assets/", "fixtures/",
         )
     ),
     # config files that would otherwise fall under a data glob below
@@ -56,6 +57,14 @@ RULES: tuple[tuple[Bucket, str], ...] = (
                   "*_pb2.py", "*.min.js", "*.min.css", "*.map", "coverage.xml", "lcov.info",
                   "*.lcov", "*.import", "*.uid", "*.snap")
     ),
+    # source files stay code even inside the data dirs below (lib/data/*.dart)
+    *(
+        ("code", f)
+        for f in ("*.py", "*.dart", "*.ts", "*.tsx", "*.js", "*.jsx", "*.mjs", "*.gd", "*.go",
+                  "*.kt", "*.kts", "*.java", "*.sh", "*.c", "*.h", "*.cpp", "*.rs", "*.lua")
+    ),
+    # data and asset directories: whatever is not source in them is data
+    *(("excluded", d) for d in ("data/", "assets/", "fixtures/")),
     # data and assets
     *(
         ("excluded", f)

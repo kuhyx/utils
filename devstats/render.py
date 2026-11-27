@@ -98,9 +98,9 @@ Generated {date} by `python -m devstats compare --write` (utils/devstats).
 Article: {A.URL} (Cmdr, posted 2026-10-24).
 
 - kuhy: every repo under ~/src, each piece of work once (worktrees, clones
-  and rewritten copies folded in), commits on the default branch (local and
-  origin tips), `--no-merges`, authored by kuhy's address (agent-made commits
-  included). Committer date, local time.
+  and rewritten copies folded in), commits on the local default branch
+  (nothing read from origin/, nothing fetched), `--no-merges`, authored by
+  kuhy's address (agent-made commits included). Committer date, local time.
 - Net LoC = insertions − deletions of code paths. Docs/translations are left
   out of the headline like the article's; the "+docs" row adds them back.
 - Cmdr's figures are per calendar day; the baseline (194) is per day with a

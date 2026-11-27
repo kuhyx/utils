@@ -46,7 +46,11 @@ from devstats.excludes import RULES, classify
         ("tools/eval/data/reference.json", "excluded"),
         ("assets/audio/MANIFEST.json", "excluded"),
         ("tests/fixtures/run.tcx", "excluded"),
-        ("tests/fixtures/host/q.py", "excluded"),
+        ("tests/fixtures/host/q.py", "code"),
+        ("app/lib/data/repo.dart", "code"),
+        ("app/lib/data/repo.g.dart", "excluded"),
+        ("assets/fonts/Inter.ttf.txt", "excluded"),
+        ("web/build/main.js", "excluded"),
         ("games/chips/sea.tres", "excluded"),
         ("report.csv", "excluded"),
         # docs and translations

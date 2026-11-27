@@ -20,7 +20,7 @@ def test_origin_head_names_the_branch_and_both_tips_are_logged() -> None:
     }
     got = resolve(refs)
     assert got.branch == "trunk"
-    assert got.log_refs == ("refs/heads/trunk", "refs/remotes/origin/trunk")
+    assert got.log_refs == ("refs/heads/trunk",)
     assert got.behind_days == 2.5
 
 
@@ -31,9 +31,10 @@ def test_falls_back_to_main_then_master_without_origin() -> None:
     assert got.behind_days is None
 
 
-def test_origin_only_branch_is_still_counted() -> None:
-    got = resolve({"refs/remotes/origin/main": ref(1)})
-    assert got.log_refs == ("refs/remotes/origin/main",)
+def test_origin_only_branch_is_not_counted() -> None:
+    got = resolve({"refs/remotes/origin/HEAD": ref(0, symref="refs/remotes/origin/main"),
+                   "refs/remotes/origin/main": ref(1)})
+    assert (got.branch, got.log_refs) == (None, ())
 
 
 def test_no_default_branch() -> None:
