@@ -14,13 +14,13 @@ from .conftest import DAY, NOW, lines, run
 
 @pytest.fixture
 def src(make_repo, tmp_path: Path) -> Path:
-    """signal-bot + a worktree, a master-only repo, a collaborator, a stale ref."""
+    """signal-bot + a worktree, a master-only repo, a collaborator, a local main behind origin."""
     bot = make_repo("signal-bot")
     bot.commit({"bot.py": lines(100), "README.md": lines(40), "pnpm-lock.yaml": lines(500)}, NOW - DAY)
     bot.commit({"bot.py": None}, NOW - 50 * DAY + 1)  # dates out of order on purpose: kept by --since
     bot.commit({"x.py": lines(10)}, NOW - 2 * DAY, email="ppolgon@gmail.com")
     bot.tag("v1", NOW - DAY, annotated=True)
-    bot.commit({"pushed.py": lines(3)}, NOW - DAY)  # only origin has it: not counted (local refs only)
+    bot.commit({"pushed.py": lines(3)}, NOW - DAY + 60)  # only origin/main has it: counted all the same
     run(bot.path, "update-ref", "refs/remotes/origin/main", "HEAD")
     run(bot.path, "update-ref", "refs/heads/main", "HEAD~1")  # local main behind origin
     run(bot.path, "worktree", "add", "-q", str(tmp_path / "src" / "sb-wt-a"), "-b", "wt")
@@ -44,7 +44,7 @@ def test_compare_prints_all_windows_and_article_figures(src: Path, tmp_path: Pat
     for needle in ("30 d", "90 d", "300 d ≈ lifetime (10 mo)", "12,000", "9,700", "4,500", "×0.67", "194",
                    "160", "55", "+docs", "excluded", "tags/week", "repos with ≥1 tag", "÷ 194"):
         assert needle in out, needle
-    assert "signal-bot (main): default ref is 1.0 days behind its upstream tracking ref" in err
+    assert "signal-bot" not in err  # no "behind its upstream" warning any more
     assert "nobranch: no main/master/origin HEAD branch, skipped" in err
     assert not doc.exists()
     assert "signal-bot" not in out
@@ -61,6 +61,13 @@ def test_by_repo_folds_worktrees_and_write_has_no_repo_names(src: Path, tmp_path
     assert "pnpm-lock.yaml" in text  # the exclude list is printed
     for name in ("signal-bot", "sb-wt", "old", "nobranch"):
         assert f"| {name}" not in text
+
+
+def test_origin_only_commit_is_counted_once(src: Path, tmp_path: Path) -> None:
+    rc, out, _ = compare("--root", str(src), "--by-repo", doc=tmp_path / "d.md")
+    assert rc == 0
+    # bot.py, its deletion and pushed.py (origin-only); the worktree adds nothing
+    assert "| signal-bot | 103 | 3 | 3 | 3 |" in out
 
 
 def test_a_local_clone_changes_nothing_but_the_repo_list(src: Path, tmp_path: Path) -> None:
@@ -107,3 +114,11 @@ def test_module_entry_point(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Capt
         runpy.run_module("devstats", run_name="__main__")
     assert exc.value.code == 0
     assert "--by-repo" in capsys.readouterr().out
+
+
+def test_html_flag_writes_the_page_and_prints_its_path_last(src: Path, tmp_path: Path) -> None:
+    target = tmp_path / "deep" / "report.html"
+    rc, out, _ = compare("--root", str(src), "--html", str(target), doc=tmp_path / "d.md")
+    assert rc == 0
+    assert out.rstrip().endswith(f"report: {target}")
+    assert target.read_text().startswith("<!doctype html>")

@@ -4,9 +4,10 @@ Generated 2026-11-27 by `python -m devstats compare --write` (utils/devstats).
 Article: https://veszelovszki.com/a/tpe/ (Cmdr, posted 2026-10-24).
 
 - kuhy: every repo under ~/src, each piece of work once (worktrees, clones
-  and rewritten copies folded in), commits on the local default branch
-  (nothing read from origin/, nothing fetched), `--no-merges`, authored by
-  kuhy's address (agent-made commits included). Committer date, local time.
+  and rewritten copies folded in), commits on the local default branch plus
+  its `origin/` tracking ref as last fetched (each SHA once; nothing fetched
+  or pulled), `--no-merges`, authored by kuhy's address (agent-made commits
+  included). Committer date, local time.
 - Net LoC = insertions − deletions of code paths. Docs/translations are left
   out of the headline like the article's; the "+docs" row adds them back.
 - Cmdr's figures are per calendar day; the baseline (194) is per day with a
@@ -17,34 +18,34 @@ Article: https://veszelovszki.com/a/tpe/ (Cmdr, posted 2026-10-24).
 
 | window | row | kuhy net LoC/day | ins/day | del/day | Cmdr LoC/day |
 |---|---|---|---|---|---|
-| 30 d | raw | 24,639 | 34,238 | 9,599 | 12,000 |
-| 30 d | ×0.67 | 16,508 | 22,939 | 6,431 | 8,040 |
-| 30 d | +docs | 25,006 | 35,426 | 10,420 | — |
-| 90 d | raw | 19,191 | 24,082 | 4,890 | 9,700 |
-| 90 d | ×0.67 | 12,858 | 16,135 | 3,277 | 6,499 |
-| 90 d | +docs | 19,598 | 24,920 | 5,322 | — |
-| 300 d ≈ lifetime (10 mo) | raw | 7,568 | 11,044 | 3,475 | 4,500 |
-| 300 d ≈ lifetime (10 mo) | ×0.67 | 5,071 | 7,399 | 2,328 | 3,015 |
-| 300 d ≈ lifetime (10 mo) | +docs | 7,909 | 11,756 | 3,848 | — |
+| 30 d | raw | 26,280 | 36,348 | 10,068 | 12,000 |
+| 30 d | ×0.67 | 17,608 | 24,353 | 6,745 | 8,040 |
+| 30 d | +docs | 26,716 | 37,628 | 10,912 | — |
+| 90 d | raw | 19,733 | 24,779 | 5,046 | 9,700 |
+| 90 d | ×0.67 | 13,221 | 16,602 | 3,381 | 6,499 |
+| 90 d | +docs | 20,163 | 25,647 | 5,484 | — |
+| 300 d ≈ lifetime (10 mo) | raw | 7,733 | 11,255 | 3,522 | 4,500 |
+| 300 d ≈ lifetime (10 mo) | ×0.67 | 5,181 | 7,541 | 2,360 | 3,015 |
+| 300 d ≈ lifetime (10 mo) | +docs | 8,080 | 11,976 | 3,897 | — |
 
 ## Per active day vs the 194 LoC/workday baseline
 
 | window | active days | row | kuhy net LoC/active day | baseline LoC/workday | kuhy ÷ 194 | kuhy commits/active day | Cmdr commits/workday |
 |---|---|---|---|---|---|---|---|
-| 30 d | 24 | raw | 30,799 | 194 | 158.8× | 141 | 160 |
-| 30 d | 24 | ×0.67 | 20,635 | 194 | 106.4× |  |  |
-| 90 d | 77 | raw | 22,431 | 194 | 115.6× | 81 | — |
-| 90 d | 77 | ×0.67 | 15,029 | 194 | 77.5× |  |  |
-| 300 d ≈ lifetime (10 mo) | 181 | raw | 12,544 | 194 | 64.7× | 47 | 55 |
-| 300 d ≈ lifetime (10 mo) | 181 | ×0.67 | 8,405 | 194 | 43.3× |  |  |
+| 30 d | 24 | raw | 32,851 | 194 | 169.3× | 148 | 160 |
+| 30 d | 24 | ×0.67 | 22,010 | 194 | 113.5× |  |  |
+| 90 d | 77 | raw | 23,065 | 194 | 118.9× | 83 | — |
+| 90 d | 77 | ×0.67 | 15,453 | 194 | 79.7× |  |  |
+| 300 d ≈ lifetime (10 mo) | 181 | raw | 12,816 | 194 | 66.1× | 48 | 55 |
+| 300 d ≈ lifetime (10 mo) | 181 | ×0.67 | 8,587 | 194 | 44.3× |  |  |
 
 ## Totals
 
 | window | net code LoC | insertions | deletions | net +docs | excluded share | commits | tags | tags/week | Cmdr releases/week | repos with ≥1 tag |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 30 d | 739,179 | 1,027,137 | 287,958 | 750,168 | 23% | 3,391 | 726 | 169.4 | ~2 | 26 |
-| 90 d | 1,727,195 | 2,167,336 | 440,141 | 1,763,815 | 23% | 6,219 | 1227 | 95.4 | ~2 | 28 |
-| 300 d ≈ lifetime (10 mo) | 2,270,522 | 3,313,061 | 1,042,539 | 2,372,569 | 32% | 8,442 | 1662 | 38.8 | ~2 | 31 |
+| 30 d | 788,415 | 1,090,449 | 302,034 | 801,473 | 23% | 3,556 | 732 | 170.8 | ~2 | 26 |
+| 90 d | 1,775,992 | 2,230,132 | 454,140 | 1,814,652 | 23% | 6,383 | 1233 | 95.9 | ~2 | 28 |
+| 300 d ≈ lifetime (10 mo) | 2,319,758 | 3,376,373 | 1,056,615 | 2,423,874 | 32% | 8,607 | 1668 | 38.9 | ~2 | 31 |
 
 ## Exclude list (first match wins)
 

@@ -1,4 +1,4 @@
-"""`python -m devstats compare [--root DIR]... [--email ADDR]... [--by-repo [N]] [--write]`."""
+"""`python -m devstats compare [--root DIR]... [--email ADDR]... [--by-repo [N]] [--write] [--html PATH]`."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from typing import TextIO
 from devstats import article as A
 from devstats.aggregate import DAY, RepoData, Window, dedup, window_totals
 from devstats.discover import Repo, discover
+from devstats.html import page
 from devstats.numstat import read_commits
 from devstats.refs import list_refs, resolve, tag_times
 from devstats.render import by_repo, document, report
@@ -36,6 +37,8 @@ def build_parser() -> argparse.ArgumentParser:
     cmp.add_argument("--by-repo", nargs="?", type=int, const=10, default=0, metavar="N",
                      help="also print the top N repos (terminal only, default N=10)")
     cmp.add_argument("--write", action="store_true", help="rewrite devstats/DOCS-comparison.md")
+    cmp.add_argument("--html", type=Path, metavar="PATH",
+                     help="also write the report page (bar chart + tables) to PATH")
     return parser
 
 
@@ -46,12 +49,8 @@ def _collect(repo: Repo, emails: frozenset[str], since: int) -> tuple[RepoData, 
     tags = tuple(tag_times(refs))
     if default.branch is None:
         return RepoData(repo.name, (), tags), [f"{repo.name}: no main/master/origin HEAD branch, skipped"]
-    warnings = []
-    if default.behind_days is not None:
-        warnings.append(f"{repo.name} ({default.branch}): default ref is {default.behind_days} days "
-                        "behind its upstream tracking ref")
     commits = tuple(c for c in read_commits(repo.path, default.log_refs, since) if c.email in emails)
-    return RepoData(repo.name, commits, tags), warnings
+    return RepoData(repo.name, commits, tags), []
 
 
 def main(argv: Sequence[str] | None = None, *, now: float | None = None, out: TextIO = sys.stdout,
@@ -76,7 +75,12 @@ def main(argv: Sequence[str] | None = None, *, now: float | None = None, out: Te
     if args.by_repo:
         per_repo = [(d.name, [window_totals([d], days, now) for days in A.WINDOWS]) for d in data]
         print(by_repo(per_repo, args.by_repo), file=out)
+    date = datetime.fromtimestamp(now).date().isoformat()
     if args.write:
-        doc_path.write_text(document(windows, datetime.fromtimestamp(now).date().isoformat()))
+        doc_path.write_text(document(windows, date))
         print(f"wrote {doc_path}", file=out)
+    if args.html:
+        args.html.parent.mkdir(parents=True, exist_ok=True)
+        args.html.write_text(page(windows, date))
+        print(f"report: {args.html}", file=out)
     return 0

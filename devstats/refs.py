@@ -1,9 +1,12 @@
-"""Default-branch resolution from refs on disk (never fetches).
+"""Default-branch resolution from refs on disk (never fetches, never pulls).
 
-Only the LOCAL default branch is counted (kuhy's spec: "read local refs
-only"). origin/HEAD only names the branch. When the `origin/` tracking ref is
-newer, the caller warns: work landed with `git push origin HEAD:main` from a
-worktree is then missing from the count until the checkout is pulled.
+The local default branch is logged together with its `origin/` tracking ref
+when the two tips differ. Work landed with `git push origin HEAD:main` from a
+worktree sits only on the tracking ref until the checkout is pulled, and kuhy's
+live checkouts (tutor, todo) must not be pulled by a stats run. `git log` walks
+the union, so each SHA counts once and a diverged repo counts both sides.
+origin/HEAD only names the branch; a branch that exists only on origin/ is not
+counted (no local checkout of that work).
 """
 
 from __future__ import annotations
@@ -29,11 +32,10 @@ class Ref:
 
 @dataclass(frozen=True)
 class DefaultRefs:
-    """The default branch name, the local ref to log, and how stale it is."""
+    """The default branch name and the refs whose union is logged."""
 
     branch: str | None
     log_refs: tuple[str, ...]
-    behind_days: float | None
 
 
 def list_refs(repo: Path) -> dict[str, Ref]:
@@ -59,8 +61,6 @@ def resolve(refs: dict[str, Ref]) -> DefaultRefs:
     for branch in (*candidates, "main", "master"):
         local, remote = refs.get("refs/heads/" + branch), refs.get(_ORIGIN + branch)
         if local:
-            behind = None
-            if remote and local.sha != remote.sha and remote.ts > local.ts:
-                behind = round((remote.ts - local.ts) / 86_400, 1)
-            return DefaultRefs(branch, ("refs/heads/" + branch,), behind)
-    return DefaultRefs(None, (), None)
+            tracking = (_ORIGIN + branch,) if remote and remote.sha != local.sha else ()
+            return DefaultRefs(branch, ("refs/heads/" + branch, *tracking))
+    return DefaultRefs(None, ())

@@ -1,4 +1,4 @@
-"""Default-branch resolution and the stale-local-ref warning."""
+"""Default-branch resolution: the local branch plus its origin/ tracking ref."""
 
 from __future__ import annotations
 
@@ -20,15 +20,13 @@ def test_origin_head_names_the_branch_and_both_tips_are_logged() -> None:
     }
     got = resolve(refs)
     assert got.branch == "trunk"
-    assert got.log_refs == ("refs/heads/trunk",)
-    assert got.behind_days == 2.5
+    assert got.log_refs == ("refs/heads/trunk", "refs/remotes/origin/trunk")
 
 
 def test_falls_back_to_main_then_master_without_origin() -> None:
     assert resolve({"refs/heads/main": ref(1)}).log_refs == ("refs/heads/main",)
     got = resolve({"refs/heads/master": ref(1), "refs/heads/dev": ref(2)})
-    assert got.branch == "master"
-    assert got.behind_days is None
+    assert (got.branch, got.log_refs) == ("master", ("refs/heads/master",))
 
 
 def test_origin_only_branch_is_not_counted() -> None:
@@ -43,11 +41,11 @@ def test_no_default_branch() -> None:
     assert got.log_refs == ()
 
 
-def test_local_ahead_or_equal_is_not_behind() -> None:
+def test_equal_tips_log_once_any_difference_logs_both() -> None:
     same = {"refs/heads/main": ref(5, sha="a"), "refs/remotes/origin/main": ref(5, sha="a")}
     ahead = {"refs/heads/main": ref(9, sha="a"), "refs/remotes/origin/main": ref(5, sha="b")}
-    assert resolve(same).behind_days is None
-    assert resolve(ahead).behind_days is None
+    assert resolve(same).log_refs == ("refs/heads/main",)
+    assert resolve(ahead).log_refs == ("refs/heads/main", "refs/remotes/origin/main")
 
 
 def test_list_refs_reads_branches_remotes_and_tags(make_repo) -> None:
