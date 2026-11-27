@@ -176,3 +176,12 @@ Consume via a shallow fetch of the tag, then mount the addon folder:
 git clone --depth 1 --branch godot-dev-tools-v0.1.1 https://github.com/kuhyx/utils
 # link or copy godot_dev_tools/addons/dev_tools to res://addons/dev_tools
 ```
+
+## devstats/
+
+`python -m devstats compare` (from the repo root, `PYTHONPATH=.`): kuhy's net
+LoC/day, commits and tags over 30/90/300 days across every repo in ~/src
+(worktrees and rewritten copies counted once, lockfiles/generated/vendored/data
+dropped by `devstats/excludes.py`), printed beside the figures from
+https://veszelovszki.com/a/tpe/. `--by-repo [N]` adds a top-N table (terminal
+only); `--write` regenerates [`devstats/DOCS-comparison.md`](devstats/DOCS-comparison.md).

@@ -1,7 +1,7 @@
 # utils
 
 Monorepo of shared gates and libraries (app_errors, dep_freshness, file_length, md_naming,
-repo_contract, coverage_gaps, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory, game_recording,
+repo_contract, coverage_gaps, devstats, crdt-sync, gatelock, freedays, sickdays, earned_time, music_theory, game_recording,
 flutter_web_drive (headless Flutter-web E2E driver + MCP), ...).
 `godot_dev_tools/` is a Godot addon (GDScript): `godot_dev_tools/test.sh` runs its GUT tests.
 `kuhy_credit/` is the shared "Created by kuhy" credit, one implementation per stack (web, Flutter,
@@ -15,9 +15,9 @@ overwrite it with `repo_contract/templates/check_repo_contract.shim.sh`.
 ## Commands
 
 - run: n/a: collection of gates and libraries, no single entry point
-- test: `PYTHONPATH=. python -m pytest -q agent_ready/tests coverage_gaps/tests dep_freshness/tests file_length/tests flutter_web_drive/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests unified-design-system/tests`
+- test: `PYTHONPATH=. python -m pytest -q agent_ready/tests coverage_gaps/tests dep_freshness/tests devstats/tests file_length/tests flutter_web_drive/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests unified-design-system/tests`
 - test-changed: `scripts/test_changed.sh`
-- lint: `ruff check agent_ready coverage_gaps flutter_web_drive repo_contract`
-- coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests flutter_web_drive/tests repo_contract/tests unified-design-system/tests --cov=agent_ready --cov=flutter_web_drive --cov=repo_contract --cov=conformance --cov=conformance_diff --cov-branch --cov-report=xml --cov-fail-under=100`
+- lint: `ruff check agent_ready coverage_gaps devstats flutter_web_drive repo_contract`
+- coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests devstats/tests flutter_web_drive/tests repo_contract/tests unified-design-system/tests --cov=agent_ready --cov=devstats --cov=flutter_web_drive --cov=repo_contract --cov=conformance --cov=conformance_diff --cov-branch --cov-report=xml --cov-fail-under=100`
 - coverage-gaps: `coverage-gaps coverage.xml`
 - deploy: `git -C ~/src/utils pull --ff-only && ~/src/utils/scripts/deploy.sh` (installs the sickdays CLI + launcher from the live checkout, then exits 1 unless every released library's version tag is on origin and matches HEAD and the live `sickdays` runs the text-free checkout; `--verify-only` for the health check alone)

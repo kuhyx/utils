@@ -72,6 +72,14 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=100
 
+      # Its tests build throwaway repos with git, which the runner has.
+      - name: devstats — 100% branch coverage
+        run: |
+          PYTHONPATH=. python -m pytest devstats/tests -q \
+            --cov=devstats --cov-branch \
+            --cov-report=term-missing \
+            --cov-fail-under=100
+
       # gate_stamp.sh is the pre-push gate in every repo. Its tests drive real
       # pre-commit in throwaway repos, and the hook-id helper runs under
       # /usr/bin/python3 (the deployment interpreter), hence apt's PyYAML.
