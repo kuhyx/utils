@@ -29,6 +29,7 @@ def reporter(tmp_path: Path, clock: Clock) -> Reporter:
         build=5,
         version="0.3.0",
         clock=clock,
+        monotonic=clock,
     )
 
 
@@ -100,6 +101,20 @@ def test_slow_wait_over_threshold_is_written(
     assert entry["route"] == "coach"
     assert entry["still"] is False
     assert entry["error"] == "coach.load waited 2000 ms"
+
+
+def test_slow_wait_measures_monotonic_time(tmp_path: Path) -> None:
+    wall, mono = Clock(), Clock()
+    rep = Reporter(app="leetcode-guard", repo="r", spool=tmp_path, clock=wall, monotonic=mono)
+    with rep.wait("op"):
+        wall.t += 1.5  # a clock step, not a wait
+        mono.t += 0.2
+    assert spool_lines(tmp_path) == []
+    with rep.wait("op"):
+        mono.t += 1.2
+        wall.t -= 3.0  # stepped back: the wait is still 1.2 s
+    (entry,) = spool_lines(tmp_path)
+    assert entry["durationMs"] == 1200
 
 
 def test_fast_wait_writes_nothing(

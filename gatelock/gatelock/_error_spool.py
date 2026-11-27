@@ -84,7 +84,11 @@ class Reporter:
     version: str | None = None
     threshold: float = 1.0
     still_after: float = 5.0
+    #: Wall time: entry timestamps, ids and the rate-limit minutes.
     clock: Callable[[], float] = time.time
+    #: Elapsed time for waits. Never the wall clock: chrony stepped it 1.33 s
+    #: into a fresh lock on 2026-11-25 and that read as a 1.5 s freeze.
+    monotonic: Callable[[], float] = time.monotonic
     _guard: _Guard = field(default_factory=_Guard)
 
     def __post_init__(self) -> None:
@@ -184,7 +188,7 @@ class Reporter:
             self,
             operation,
             route,
-            self.clock(),
+            self.monotonic(),
             f"{int(self.clock() * 1000):x}-{self._guard.serial}",
         )
 
@@ -218,7 +222,7 @@ class SlowWait:
         self._timer.start()
 
     def _ms(self) -> int:
-        return round((self.reporter.clock() - self.started) * 1000)
+        return round((self.reporter.monotonic() - self.started) * 1000)
 
     def _still(self) -> None:
         if self._ended:

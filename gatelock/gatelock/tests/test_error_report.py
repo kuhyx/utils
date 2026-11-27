@@ -34,6 +34,7 @@ def reporter(tmp_path: Path, clock: Clock) -> Reporter:
         build=5,
         version="0.3.0",
         clock=clock,
+        monotonic=clock,
     )
 
 
@@ -122,6 +123,25 @@ def test_stall_watch_reports_a_frozen_loop(
     tick()
     (entry,) = spool_lines(tmp_path)
     assert entry["operation"] == "tk.mainloop"
+    assert entry["durationMs"] == 2500 - error_report.STALL_TICK_MS
+
+
+def test_stall_watch_ignores_a_wall_clock_step(tmp_path: Path) -> None:
+    # chrony stepped the wall clock +1.33 s 3 s into a lock (2026-11-25):
+    # lateness is monotonic time, so the step is not a freeze.
+    wall, mono = Clock(), Clock()
+    rep = Reporter(app="tk-app", repo="r", spool=tmp_path, clock=wall, monotonic=mono)
+    root = MagicMock()
+    error_report.watch_stalls(root, rep)
+    tick = root.after.call_args.args[1]
+    mono.t += 0.1
+    wall.t += 1.431
+    tick()
+    assert spool_lines(tmp_path, "tk-app") == []
+    mono.t += 2.5  # a real 2.5 s freeze is still reported
+    wall.t += 2.5
+    tick()
+    (entry,) = spool_lines(tmp_path, "tk-app")
     assert entry["durationMs"] == 2500 - error_report.STALL_TICK_MS
 
 

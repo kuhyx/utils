@@ -60,9 +60,11 @@ def _randr_display(*, outputs: dict[int, dict[str, object]]) -> MagicMock:
     """Build a fake Xlib display exposing ``outputs``."""
     display = MagicMock()
     root = MagicMock()
-    root.xrandr_get_screen_resources.return_value = _reply(
+    root.xrandr_get_screen_resources_current.return_value = _reply(
         config_timestamp=1, outputs=list(outputs)
     )
+    # The full probe re-polls every output (53 ms on NVIDIA, per tick): never.
+    root.xrandr_get_screen_resources.side_effect = AssertionError("full probe")
     root.xrandr_get_output_primary.return_value = _reply(output=1)
     display.screen.return_value.root = root
 

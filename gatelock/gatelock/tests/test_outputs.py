@@ -148,7 +148,13 @@ class TestScanXrandr:
     def test_success(self) -> None:
         """A clean run parses stdout."""
         completed = MagicMock(returncode=0, stdout=XRANDR_REAL, stderr="")
-        assert self._run(return_value=completed) is not None
+        with (
+            patch("gatelock._xrandr.shutil.which", return_value="/usr/bin/xrandr"),
+            patch("gatelock._xrandr.subprocess.run", return_value=completed) as run,
+        ):
+            assert real_scan_xrandr() is not None
+        # --current reads the server's state; --query re-probes every output.
+        assert run.call_args.args[0] == ["/usr/bin/xrandr", "--current"]
 
     def test_missing_binary(self) -> None:
         """xrandr not on PATH degrades rather than raising."""

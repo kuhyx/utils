@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Krzysztof Rudnicki
-"""Reading outputs by shelling out to `xrandr --query`.
+"""Reading outputs by shelling out to `xrandr --current`.
 
 Split from :mod:`gatelock._outputs`, which keeps the value types and the
 enumerator that picks a source. This is the fallback path: slower than the
@@ -77,7 +77,7 @@ def parse_xrandr_query(text: str) -> tuple[Output, ...]:
 
 
 def scan_xrandr() -> tuple[Output, ...] | None:
-    """Enumerate outputs by shelling out to ``xrandr --query``.
+    """Enumerate outputs by shelling out to ``xrandr --current``.
 
     Returns:
         The parsed outputs, or None if xrandr is missing, failed, timed out or
@@ -89,24 +89,24 @@ def scan_xrandr() -> tuple[Output, ...] | None:
         return None
     try:
         completed = subprocess.run(
-            [binary, "--query"],
+            [binary, "--current"],
             capture_output=True,
             text=True,
             timeout=_XRANDR_TIMEOUT_S,
             check=False,
         )
     except (subprocess.TimeoutExpired, OSError) as exc:
-        _logger.warning("xrandr --query failed to run: %s", exc)
+        _logger.warning("xrandr --current failed to run: %s", exc)
         return None
     if completed.returncode != 0:
         _logger.warning(
-            "xrandr --query exited %d: %s",
+            "xrandr --current exited %d: %s",
             completed.returncode,
             completed.stderr.strip(),
         )
         return None
     outputs = parse_xrandr_query(completed.stdout)
     if not outputs:
-        _logger.warning("xrandr --query produced no parseable output lines")
+        _logger.warning("xrandr --current produced no parseable output lines")
         return None
     return outputs

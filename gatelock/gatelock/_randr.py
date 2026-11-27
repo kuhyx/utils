@@ -42,8 +42,8 @@ if TYPE_CHECKING:
         output: int
 
     class _XRoot(Protocol):
-        def xrandr_get_screen_resources(self) -> _ScreenResources:
-            """Mirror ``root.xrandr_get_screen_resources()``."""
+        def xrandr_get_screen_resources_current(self) -> _ScreenResources:
+            """Mirror ``root.xrandr_get_screen_resources_current()``."""
 
         def xrandr_get_output_primary(self) -> _PrimaryReply:
             """Mirror ``root.xrandr_get_output_primary()``."""
@@ -124,7 +124,10 @@ class RandrBackend:
     def _scan(self) -> tuple[Output, ...]:
         """Enumerate outputs via RandR. Raises on any protocol problem."""
         root = self._display.screen().root
-        resources = root.xrandr_get_screen_resources()
+        # The cached server state, not a full re-probe of every output (53 ms
+        # vs 0.2 ms on NVIDIA, on the Tk thread every recovery tick). Hotplug
+        # still lands: the driver updates that state and sends the RandR event.
+        resources = root.xrandr_get_screen_resources_current()
         timestamp = resources.config_timestamp
         primary_id = self._primary_output_id(root)
 

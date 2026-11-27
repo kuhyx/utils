@@ -60,14 +60,16 @@ def watch_stalls(root: tk.Misc, reporter: Reporter) -> None:
 
     The operation is ``tk.mainloop``: a blocking call on the Tk thread.
     """
-    last = [reporter.clock()]
+    # Lateness is monotonic: a wall-clock step (NTP at login) is not a freeze.
+    last = [reporter.monotonic()]
 
     def tick() -> None:
-        now = reporter.clock()
+        now = reporter.monotonic()
         late = round((now - last[0]) * 1000) - STALL_TICK_MS
         last[0] = now
         if late > reporter.threshold * 1000:
-            reporter.slow("tk.mainloop", late, wait_id=f"stall-{int(now * 1000):x}")
+            stamp = int(reporter.clock() * 1000)
+            reporter.slow("tk.mainloop", late, wait_id=f"stall-{stamp:x}")
         with suppress(tk.TclError):  # the window is gone: the watch ends
             root.after(STALL_TICK_MS, tick)
 

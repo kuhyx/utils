@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gatelock"
-version = "0.16.1"
+version = "0.16.2"
 description = "Shared per-output lock-window + HMAC log-integrity backend for blocking-overlay apps"
 requires-python = ">=3.14"
 dependencies = []  # pure stdlib — tkinter is bundled with Python
@@ -21,7 +21,7 @@ randr = ["python-xlib==0.33"]
 # must not refuse to start over a missing dependency, and only the chain's
 # own CLI imports these (lazily). Pins match book-guard / leetcode-guard.
 evening = [
-    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time",
+    "earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.24.0#subdirectory=earned_time",
     "freedays @ git+https://github.com/kuhyx/utils@freedays-v0.4.4#subdirectory=freedays",
     "sickdays @ git+https://github.com/kuhyx/utils@sickdays-v0.5.9#subdirectory=sickdays",
 ]
