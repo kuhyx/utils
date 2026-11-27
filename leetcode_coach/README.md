@@ -28,7 +28,7 @@ Stdlib only unless noted. Import only what you need.
 | Review | `review_cli` (`/leetcode review`, skeleton sheets), `flagged` (guard CLI reader), `review_ledger` (the coach's own signed ledger) |
 | Content | `fetch_problem`, `toolbox.json`, `answer_key`, `clusters.json` |
 | Cards | `toolbox_cards`, `card_rules`, `make_cards` (needs genanki), `anki_connect` |
-| Models | `claude_cli` (haiku/sonnet via `claude -p`), `local_backend` (Ollama) |
+| Models | `claude_cli` (haiku/sonnet via `claude -p`), `local_backend` (Ollama), `omniroute_backend` (OmniRoute `free-best`), `free_chain` (OmniRoute, then Ollama) |
 | Relay | `relay.*`: state machine, grading, run-code, HTTP + RTDB (needs requests, crdt-sync) |
 | Clients | `leetcode_repl` (`leetcode` command), `cluster_cli`, `local_session`, `how_to` |
 
@@ -52,9 +52,9 @@ means paste it), `fetch_problem.render(q, lang) -> str` (markdown with
   refuse and show `note`; otherwise forward `sent` to the coach and show `note`
   if non-empty. Logs `req`, `req_check`, `code`, `reveal`.
 - `ask` (gate, `req_check.check`, `looks_like_code`, graders) is CLI-style `(args, prompt, **kw)`
-  (default: haiku, then Ollama) or a structured `(system, prompt, schema) -> dict`
+  (default: haiku, then the free chain) or a structured `(system, prompt, schema) -> dict`
   model function such as the tutor's `ask_model` (answers are labelled `via: "model"`;
-  any raise falls through to Ollama, then fails open to `unverified`).
+  any raise falls through to the free chain, then fails open to `unverified`).
 - `gate.refusal_note()`, `gate.code_seen()`, `gate.events()`, `gate.sql()`,
   `gate.leaks(reply, user_texts) -> [names]` (bounce and regenerate),
   `gate.after_reply(text) -> text without the rung marker` (logs `rung`).

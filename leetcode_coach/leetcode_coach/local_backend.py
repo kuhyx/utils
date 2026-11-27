@@ -49,6 +49,10 @@ class LocalReply:
     text: str
     seconds: float
     prompt_tokens: int
+    via: str = "ollama"
+    """Which rung answered: ``ollama`` or ``omniroute`` (``free_chain``)."""
+    model: str = MODEL
+    """The model that answered (an OmniRoute ``free-best`` member's own name)."""
 
 
 def strip_think(text: str) -> str:

@@ -1,9 +1,12 @@
-"""Run a /leetcode coaching loop on the local model.
+"""Run a /leetcode coaching loop without Claude.
 
-Entered by `leetcode --local`, or by the REPL mid-session when Claude reports a
-usage limit -- in which case `history` already holds the turns so far, so the
-local model picks up where Claude stopped instead of starting over. Its prints
-ARE the session (T201 exemption in pyproject.toml).
+Entered by `leetcode --local` (Ollama only), or by the REPL mid-session when
+Claude reports a usage limit (`free=True`: OmniRoute `free-best` first, Ollama
+only when the gateway fails, `free_chain`) -- in which case `history` already
+holds the turns so far, so the model picks up where Claude stopped instead of
+starting over. Every draft passes the same no-solution gate
+(`local_coach.respond`). Its prints ARE the session (T201 exemption in
+pyproject.toml).
 """
 
 from __future__ import annotations
@@ -14,7 +17,13 @@ import sys
 from typing import TYPE_CHECKING
 import urllib.error
 
-from leetcode_coach import local_backend, local_cards, local_coach
+from leetcode_coach import (
+    free_chain,
+    local_backend,
+    local_cards,
+    local_coach,
+    omniroute_backend,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -121,15 +130,80 @@ def _screen(gate: phase.PhaseGate | None, block: str) -> str | None:
     return sent
 
 
+class GpuRefusedError(ConnectionError):
+    """kuhy declined to load the local model: the chain has no rung left."""
+
+
+class OllamaAfterGpuCheck:
+    """The free chain's last rung: Ollama, once kuhy agrees to load it (asked once)."""
+
+    def __init__(self) -> None:
+        """Nothing asked yet."""
+        self.agreed = False
+
+    def __call__(
+        self, messages: list[dict[str, str]], *, timeout: float
+    ) -> local_backend.LocalReply:
+        """Announce the fall-through, check the GPU once, then ask Ollama."""
+        if not self.agreed:
+            print(f"[OmniRoute down: local {local_backend.MODEL} via Ollama]")
+            if not confirm_gpu():
+                print("[not loading the local model]")
+                msg = "local model declined"
+                raise GpuRefusedError(msg)
+            self.agreed = True
+        return local_backend.chat(messages, timeout=timeout)
+
+
+def free_chat(
+    rung: OllamaAfterGpuCheck,
+) -> Callable[[list[dict[str, str]]], local_backend.LocalReply]:
+    """One session's chat: OmniRoute, then ``rung``."""
+
+    def chat(messages: list[dict[str, str]]) -> local_backend.LocalReply:
+        return free_chain.chat(messages, rungs=(omniroute_backend.chat, rung))
+
+    return chat
+
+
+def _coach(
+    statement: str,
+    history: list[dict[str, str]],
+    gate: phase.PhaseGate | None,
+    *,
+    free: bool,
+) -> local_coach.LocalCoach | None:
+    """The coach, announced; ``None`` when kuhy declines the local model."""
+    if not free and not confirm_gpu():
+        print("[not loading the local model]")
+        return None
+    coach = local_coach.LocalCoach.start(statement, history)
+    if free:
+        coach.chat = free_chat(OllamaAfterGpuCheck())
+    if gate is not None:
+        gate.known = statement
+        coach.leak_guard = gate.leaks
+    label = (
+        f"free: {omniroute_backend.MODEL} via OmniRoute"
+        if free
+        else f"local: {local_backend.MODEL} via Ollama"
+    )
+    print(f"[{label}]\n\n...", flush=True)
+    return coach
+
+
 def run(
     problem: str,
     history: list[dict[str, str]],
     first: str,
     read: Callable[[], str | None],
     gate: phase.PhaseGate | None = None,
+    *,
+    free: bool = False,
 ) -> int:
-    """Coach locally until kuhy quits. `first` is sent before reading input.
+    """Coach without Claude until kuhy quits. `first` is sent before reading input.
 
+    `free` (the usage-limit hand-over) coaches on OmniRoute first, Ollama after.
     With a `gate`, every block passes the req-before-code phase gate first and
     every reply the toolbox leak check (`first` was screened by the caller).
     """
@@ -137,20 +211,18 @@ def run(
     if not statement:
         return 1
     try:
-        if not confirm_gpu():
-            print("[not loading the local model]")
+        coach = _coach(statement, history, gate, free=free)
+        if coach is None:
             return 1
-        coach = local_coach.LocalCoach.start(statement, history)
-        if gate is not None:
-            gate.known = statement
-            coach.leak_guard = gate.leaks
-        print(f"[local: {local_backend.MODEL} via Ollama]\n\n...", flush=True)
         show(coach.respond(first), coach, gate)
         while (block := read()) is not None and not is_quit(block):
             if (sent := _screen(gate, block)) is None:
                 continue
             print("\n...", flush=True)
             show(coach.respond(sent), coach, gate)
+    except GpuRefusedError:
+        print("[neither OmniRoute nor Ollama answered: try again later]")
+        return 1
     except (urllib.error.URLError, ConnectionError) as exc:
         _LOG.warning("Ollama is not reachable: %s", exc)
         print(f"[Ollama is not reachable at {local_backend.OLLAMA_URL}: {exc}]")

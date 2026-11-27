@@ -242,9 +242,9 @@ opening message is
 then continue with the opening (`hooks/leetcode_model_gate_userprompt.sh`).
 
 The right client is `leetcode <url>` (print mode: the Stop hook can still
-withhold a reply; the TUI has already streamed it). `leetcode --local` runs
-offline on Ollama; its system prompt is everything above this section. Docs:
-`DOCS-clients.md` (clients, gates, session log), `DOCS-how-to.md` (commands).
+withhold a reply; a usage limit moves it to OmniRoute, then Ollama). `--local`:
+Ollama only; `--free`: `claude-free` from /tmp. The local system prompt is all
+above this section. Docs: `DOCS-clients.md` (clients, gates), `DOCS-how-to.md`.
 
 Skeleton sheets: only when kuhy asks, only after his first code, and one
 counts above H1. Rules: `DOCS-skeletons.md`; the command: `DOCS-review.md`.

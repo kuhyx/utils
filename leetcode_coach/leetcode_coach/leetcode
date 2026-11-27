@@ -5,6 +5,11 @@
 # Print mode matters: the no-solution Stop gate can only withhold a reply
 # from a client that waits for hooks, and the interactive TUI streams first.
 #   leetcode <url-or-slug> [what you are stuck on...]
+#   leetcode --free <url-or-slug> [...]   interactive claude-free (OmniRoute
+#       free-best, no Claude quota) with the /leetcode skill, started in
+#       /tmp/leetcode-free: claude-free runs only from a public directory, and
+#       the free providers log prompts, so nothing private is in reach. One
+#       fixed dir, so Claude Code asks to trust it once, not every session.
 #
 # Symlinked from ~/.local/bin/leetcode. The package is found through
 # install.sh's editable install, like the Stop-hook shim; no PYTHONPATH here,
@@ -13,5 +18,25 @@
 # ============================================================================
 
 set -euo pipefail
+
+readonly CLAUDE_FREE="${LEETCODE_CLAUDE_FREE_BIN:-claude-free}"
+readonly FREE_DIR="${LEETCODE_FREE_DIR:-/tmp/leetcode-free}"
+
+run_free() {
+    [[ -e "${FREE_DIR}" || -L "${FREE_DIR}" ]] || mkdir -m 700 "${FREE_DIR}"
+    # /tmp is shared: never start in a dir someone else planted there.
+    [[ -O "${FREE_DIR}" && ! -L "${FREE_DIR}" ]] || {
+        echo "leetcode: ${FREE_DIR} is not a directory you own" >&2
+        exit 77
+    }
+    cd "${FREE_DIR}"
+    exec "${CLAUDE_FREE}" "/leetcode $*"
+}
+
+if [[ "${1:-}" == --free ]]; then
+    shift
+    [[ $# -gt 0 ]] || { echo "Usage: leetcode --free <url-or-slug> [stuck on...]" >&2; exit 64; }
+    run_free "$@"
+fi
 
 exec /usr/bin/python3 -P -m leetcode_coach.leetcode_repl "$@"

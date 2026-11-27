@@ -1,9 +1,10 @@
 """Judge kuhy's requirement list, and ambiguous code, on a cheap model.
 
 DOCS-coach-spec.md decision 5: a separate ``claude -p --model haiku`` call (the
-coaching session stays on opus), Ollama through `local_backend` when haiku
-is out of quota, errors or answers something that is not the JSON asked for,
-and when neither answers the gate fails OPEN: ``unverified``, kuhy continues.
+coaching session stays on opus), the free chain (`free_chain`: OmniRoute
+`free-best`, then Ollama) when haiku is out of quota, errors or answers
+something that is not the JSON asked for, and when neither answers the gate
+fails OPEN: ``unverified``, kuhy continues.
 
 The checker may only name *missing properties* from the toolbox vocabulary.
 That is enforced here, not trusted to the prompt: every ``missing`` item that
@@ -25,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 import urllib.error
 
-from leetcode_coach import claude_cli, local_backend
+from leetcode_coach import claude_cli, free_chain, local_backend
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -36,7 +37,8 @@ _LOG = logging.getLogger(__name__)
 
 HAIKU_TIMEOUT_S = 50.0
 LOCAL_TIMEOUT_S = 200.0
-"""Ollama's share of a check: with haiku's 50 s it fits the relay's 280 s cap."""
+"""The free chain's share of a check (both rungs together, ``free_chain``):
+with haiku's 50 s it fits the relay's 280 s cap."""
 HAIKU_ARGS = [
     "--model",
     "haiku",
@@ -175,7 +177,7 @@ def ask_models[T](
     ask: Callable[..., dict[str, Any]] | None,
     schema: dict[str, Any] | None = None,
 ) -> tuple[T, str] | None:
-    """The first validated answer and who gave it, then Ollama.
+    """The first validated answer and who gave it, then the free chain.
 
     `ask` is the CLI-style ``(args, prompt, **kw)`` (default: haiku) or a
     structured ``(system, prompt, schema) -> dict`` model function.
@@ -189,7 +191,7 @@ def ask_models[T](
     if got is not None:
         return got, via
     try:
-        local = local_backend.chat(
+        local = free_chain.chat(
             [
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
@@ -197,10 +199,10 @@ def ask_models[T](
             timeout=LOCAL_TIMEOUT_S,
         )
     except (urllib.error.URLError, OSError, local_backend.ContextOverflowError) as exc:
-        _LOG.warning("Ollama could not answer the check either: %s", exc)
+        _LOG.warning("the free models could not answer the check either: %s", exc)
         return None
     got = validate(extract_json(local.text))
-    return None if got is None else (got, "ollama")
+    return None if got is None else (got, local.via)
 
 
 def check(

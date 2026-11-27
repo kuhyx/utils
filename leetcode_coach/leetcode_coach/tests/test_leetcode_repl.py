@@ -69,7 +69,7 @@ def test_limit_mid_session_falls_back_with_history(
     assert capsys.readouterr().out == (
         "Restated. What feels unclear?\n\n...\n"
         "[You've hit your session limit · resets 8pm (Europe/Warsaw) "
-        "-- continuing locally]\n"
+        "-- continuing on the free models]\n"
     )
 
 
@@ -82,7 +82,7 @@ def test_limit_on_the_first_turn_starts_locally(
     assert leetcode_repl.run_claude("sonnet", ["two-sum"]) == 0
     assert handed["history"] == []
     assert "not said" in handed["first"]
-    assert capsys.readouterr().out == "[usage limit -- switching to local model]\n"
+    assert capsys.readouterr().out == "[usage limit -- switching to the free models]\n"
 
 
 def test_session_loop_until_quit_and_missing_session(
@@ -177,6 +177,61 @@ def test_launcher_runs_the_package_repl() -> None:
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.startswith("Usage: leetcode [--local]")
+
+
+def _fake_free(tmp_path: Path) -> dict[str, str]:
+    fake = tmp_path / "claude-free"
+    fake.write_text('#!/bin/bash\nprintf "%s\\n" "$PWD" "$@"\n', encoding="utf-8")
+    fake.chmod(0o755)
+    return {**os.environ, "LEETCODE_CLAUDE_FREE_BIN": str(fake)}
+
+
+def test_launcher_free_starts_claude_free_in_its_tmp_dir(tmp_path: Path) -> None:
+    """``leetcode --free two-sum``: claude-free, /leetcode loaded, cwd in /tmp."""
+    env = {**_fake_free(tmp_path), "LEETCODE_FREE_DIR": str(tmp_path / "free")}
+    proc = subprocess.run(
+        [str(LAUNCHER), "--free", "two-sum", "maps"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.splitlines() == [
+        str(tmp_path / "free"),
+        "/leetcode two-sum maps",
+    ]
+    assert (tmp_path / "free").stat().st_mode & 0o777 == 0o700
+
+
+def test_launcher_free_defaults_to_tmp() -> None:
+    """The shared temp root itself, not $TMPDIR: claude-free's gate allows it only."""
+    body = LAUNCHER.read_text(encoding="utf-8")
+    assert "LEETCODE_FREE_DIR:-" + str(Path("/") / "tmp" / "leetcode-free") in body
+
+
+def test_launcher_free_refuses_a_planted_dir(tmp_path: Path) -> None:
+    """A symlink (someone else's dir in shared /tmp) is never entered."""
+    (tmp_path / "elsewhere").mkdir()
+    (tmp_path / "free").symlink_to(tmp_path / "elsewhere")
+    env = {**_fake_free(tmp_path), "LEETCODE_FREE_DIR": str(tmp_path / "free")}
+    proc = subprocess.run(
+        [str(LAUNCHER), "--free", "two-sum"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    assert proc.returncode == 77
+    assert proc.stdout == ""
+
+
+def test_launcher_free_needs_a_problem() -> None:
+    proc = subprocess.run(
+        [str(LAUNCHER), "--free"], capture_output=True, text=True, check=False
+    )
+    assert proc.returncode == 64
+    assert "Usage: leetcode --free" in proc.stderr
 
 
 def test_launcher_does_not_leak_pythonpath_into_the_session() -> None:

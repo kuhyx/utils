@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "leetcode-coach"
-version = "0.1.6"
+version = "0.1.7"
 description = "The /leetcode coach as a library: phase gate, leak and stop gates, session log, grading, cards, relay"
 requires-python = ">=3.14"
 # Everything below loads lazily (rtdb, make_cards, relay.__main__): importing
@@ -68,7 +68,9 @@ unfixable = []
 # --unsafe-fixes, so without these entries the fixer deletes those prints and
 # still exits 0. Their tests assert on stdout.
 "leetcode_coach/leetcode_repl.py" = ["T201"]
-"leetcode_coach/local_session.py" = ["T201"]
+# T201: its prints ARE the session. PLR0913: run() is the REPL's whole hand-over
+# (problem, history, first block, reader, gate, free).
+"leetcode_coach/local_session.py" = ["T201", "PLR0913"]
 "leetcode_coach/make_cards.py" = ["T201"]
 "leetcode_coach/fetch_problem.py" = ["S310", "T201"]
 "leetcode_coach/history.py" = ["T201"]
@@ -97,6 +99,8 @@ unfixable = []
 "leetcode_coach/relay/phone.py" = ["PLR0913"]
 "leetcode_coach/relay/graders.py" = ["PLR0913"]
 "leetcode_coach/local_backend.py" = ["S310"]
+# S310: the gateway URL is checked to be loopback http before urlopen.
+"leetcode_coach/omniroute_backend.py" = ["S310"]
 "leetcode_coach/guard_bridge.py" = ["D101", "D102", "D103"]
 "leetcode_coach/shape.py" = ["D103"]
 "leetcode_coach/gate_notes.py" = ["D103"]

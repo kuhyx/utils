@@ -16,7 +16,7 @@ import logging
 import threading
 from typing import TYPE_CHECKING, Any, Final
 
-from leetcode_coach import answer_key, claude_cli, local_backend, toolbox
+from leetcode_coach import answer_key, claude_cli, free_chain, local_backend, toolbox
 from leetcode_coach.relay import config, grading, protocol, runcode, steps, turns
 from leetcode_coach.relay.chat import REQUEST_CAP_S, CoachChat
 from leetcode_coach.relay.errors import CoachError
@@ -45,7 +45,7 @@ class Deps:
 
     state_dir: Path = field(default_factory=config.state_dir)
     ask: Callable[..., dict[str, Any]] = claude_cli.ask
-    local_chat: Callable[..., local_backend.LocalReply] = local_backend.chat
+    local_chat: Callable[..., local_backend.LocalReply] = free_chain.chat
     fetch: Callable[[str], tuple[str, str] | None] = turns.fetch_statement
     probe: AcceptedProbe = field(default_factory=AcceptedProbe)
     run_code: Callable[[str, str], dict[str, Any]] = runcode.run

@@ -12,8 +12,10 @@ sent before an accepted ``req:`` list is refused here and never reaches the
 model. Replies lose their ``<!-- rung:Hn -->`` marker (logged) before printing.
 
 When Claude answers with its usage-limit message (`claude_cli.is_limit_hit`)
-the session continues on the local model (`local_session.py`) with the
-conversation so far and the same gate; `--local` starts there.
+the session continues on the free models (`local_session.py`, `free=True`:
+OmniRoute `free-best`, then Ollama) with the conversation so far and the same
+gate; `--local` starts on Ollama alone. `--free` starts `claude-free` itself
+(the launcher, from a fresh /tmp dir).
 
 Input: a block ends on an empty line (paste code, then press Enter twice).
 `quit` or Ctrl-D leaves. `reveal` is passed through like any other message.
@@ -70,8 +72,10 @@ def run_claude(model: str, problem: list[str]) -> int:
     opener = local_session.opening_message(problem[1:])
     first = ask(["--model", model], "/leetcode " + " ".join(problem))
     if is_limit_hit(first):
-        print(f"[{first.get('result', 'usage limit')} -- switching to local model]")
-        return local_session.run(problem[0], [], opener, read_block, gate=gate)
+        print(f"[{first.get('result', 'usage limit')} -- switching to the free models]")
+        return local_session.run(
+            problem[0], [], opener, read_block, gate=gate, free=True
+        )
     session = first.get("session_id")
     print(gate.after_reply(str(first.get("result", ""))))
     if not session:
@@ -89,8 +93,11 @@ def run_claude(model: str, problem: list[str]) -> int:
         print("\n...", flush=True)
         reply = ask(["--model", model, "--resume", session], sent)
         if is_limit_hit(reply):
-            print(f"[{reply.get('result', 'usage limit')} -- continuing locally]")
-            return local_session.run(problem[0], history, sent, read_block, gate=gate)
+            why = reply.get("result", "usage limit")
+            print(f"[{why} -- continuing on the free models]")
+            return local_session.run(
+                problem[0], history, sent, read_block, gate=gate, free=True
+            )
         print(gate.after_reply(str(reply.get("result", ""))))
         history += [
             {"role": "user", "content": sent},
@@ -117,6 +124,7 @@ def main(argv: list[str]) -> int:
         print("Usage: leetcode [--local] <url-or-slug> [what you are stuck on...]")
         print("  LEETCODE_MODEL=sonnet|fable leetcode ...   (default: opus)")
         print("  --local   coach on the local Ollama model (free, offline)")
+        print("  --free    interactive claude-free (OmniRoute free models), from /tmp")
         print("  leetcode due | --cluster <name> | --retest <slug>   (--dry-run)")
         print("  leetcode report   req-before-code, max rung, reveal per problem")
         return 0

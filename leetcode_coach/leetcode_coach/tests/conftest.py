@@ -1,6 +1,7 @@
 """Keep every coach test off the real machine.
 
 No session log under ~/.local, no real `claude` binary, no Ollama on :11434,
+no OmniRoute on :20128 (a dead port and a scratch key),
 no cluster leaking in from the shell, and the gates (`toolbox.load_safe`) on
 the small fixture toolbox, so a reviewed edit of the real `toolbox.json` cannot
 flip a leak test. `toolbox.load` (cards, clusters) still reads the real file.
@@ -22,6 +23,7 @@ import pytest
 from leetcode_coach import (
     flagged,
     local_backend,
+    omniroute_backend,
     progress,
     review_cli,
     review_ledger,
@@ -62,6 +64,9 @@ def _hermetic_coach(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator
     monkeypatch.setenv(session_log.LOG_ENV, "")
     monkeypatch.setenv("LEETCODE_CLAUDE_BIN", str(tmp_path / "no-such-claude"))
     monkeypatch.setattr(local_backend, "OLLAMA_URL", DEAD_OLLAMA)
+    monkeypatch.setenv(omniroute_backend.URL_ENV, DEAD_OLLAMA)
+    monkeypatch.setattr(omniroute_backend, "KEY_FILE", tmp_path / "omniroute-key")
+    (tmp_path / "omniroute-key").write_text("test-key\n", encoding="utf-8")
     real = toolbox.load_safe
 
     def fixture_toolbox(path: Path | None = None) -> toolbox.Toolbox:

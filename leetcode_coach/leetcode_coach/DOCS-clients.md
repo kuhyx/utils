@@ -11,10 +11,16 @@ toolbox name, but the TUI has already streamed it (2026-09-21: the blocked
 `for` loop was visible above the rewrite); print mode waits. TUI: best-effort.
 
 **Offline / out of quota.** `leetcode --local <url>` coaches on
-`qwen3:30b-a3b-instruct-2507` via Ollama, and the REPL switches there by
-itself, history intact, on "You've hit your ... limit". With no hooks there,
-`local_coach.py` runs the same detectors on every draft; three leaky drafts
-are withheld. Everything above `## Model and client` is its system prompt,
+`qwen3:30b-a3b-instruct-2507` via Ollama. On "You've hit your ... limit" the
+REPL, the relay coach and the graders switch by themselves, history intact, to
+the free chain (`free_chain.py`, kuhy 2026-11-27): OmniRoute `free-best` on
+127.0.0.1:20128 (`omniroute_backend.py`, Bearer key from
+`~/.config/omniroute/api_key`), then Ollama when the gateway is down, empty or
+too small for the prompt. One timeout covers the whole chain. With no hooks
+there, `local_coach.py` runs the same detectors on every draft, whichever
+rung wrote it; three leaky drafts are withheld. `leetcode --free <url>` runs
+interactive `claude-free` with this skill from a fresh `/tmp` dir (the free
+providers log prompts; nothing private is in reach there). Everything above `## Model and client` is its system prompt,
 minus section 1. `python3 -m leetcode_coach.eval_local`: acceptance run.
 
 ## The req-before-code gate (DOCS-coach-spec.md decisions 4-8)
@@ -22,7 +28,8 @@ minus section 1. `python3 -m leetcode_coach.eval_local`: acceptance run.
 Both REPL paths run `phase.PhaseGate` on every block kuhy sends:
 
 - `req: ...` is the requirement list. `req_check` judges it on
-  `claude -p --model haiku` (no tools, hooks or session file), then on Ollama,
+  `claude -p --model haiku` (no tools, hooks or session file), then on the
+  free chain (OmniRoute, then Ollama),
   and fails OPEN (`unverified`) when neither answers. It may only name
   missing properties from the `toolbox.json` vocabulary; anything else it says
   is dropped before kuhy sees it.

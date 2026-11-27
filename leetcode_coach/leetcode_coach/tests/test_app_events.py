@@ -166,7 +166,9 @@ def test_ask_models_is_public_and_bounds_the_local_call(
 
     got = req_check.ask_models("sys", "p", lambda o: o, limit)
     assert got == ({"ok": 1}, "ollama")
-    assert seen == [req_check.LOCAL_TIMEOUT_S]
+    # The free chain's dead gateway rung spent a moment of the shared budget.
+    assert len(seen) == 1
+    assert req_check.LOCAL_TIMEOUT_S - 5 < seen[0] <= req_check.LOCAL_TIMEOUT_S
     assert req_check.LOCAL_TIMEOUT_S + req_check.HAIKU_TIMEOUT_S < 280
 
 

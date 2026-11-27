@@ -23,7 +23,13 @@ import time
 from typing import TYPE_CHECKING, Any, Final
 import urllib.error
 
-from leetcode_coach import claude_cli, local_backend, local_cards, local_coach
+from leetcode_coach import (
+    claude_cli,
+    free_chain,
+    local_backend,
+    local_cards,
+    local_coach,
+)
 from leetcode_coach.relay.errors import CoachError
 
 if TYPE_CHECKING:
@@ -60,9 +66,9 @@ class CoachChat:
     def __init__(
         self,
         ask: Callable[..., dict[str, Any]] = claude_cli.ask,
-        local_chat: Callable[..., local_backend.LocalReply] = local_backend.chat,
+        local_chat: Callable[..., local_backend.LocalReply] = free_chain.chat,
     ) -> None:
-        """Bind the claude call and the local model (both injectable)."""
+        """Bind the claude call and the free chain (OmniRoute, then Ollama)."""
         self._ask = ask
         self._local_chat = local_chat
         self.monotonic: Callable[[], float] = time.monotonic
