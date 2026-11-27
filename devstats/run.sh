@@ -49,7 +49,7 @@ check_python() {
 
 # Capped (2 GiB, 10 % CPU, idle IO) when kuhy's capped.sh exists, plain otherwise.
 run_devstats() {
-    local cmd=(env "PYTHONPATH=$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m devstats compare "$@")
+    local cmd=(env "PYTHONPATH=$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -P -m devstats compare "$@")
     if [[ -x "$CAPPED" ]]; then
         "$CAPPED" "${cmd[@]}"
     else

@@ -6,7 +6,7 @@ import re
 from html import unescape
 
 from devstats.aggregate import Window
-from devstats.html import CMDR, KUHY, chart, page
+from devstats.report_html import CMDR, KUHY, chart, page
 from devstats.render import report
 
 

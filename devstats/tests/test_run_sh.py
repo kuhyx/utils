@@ -23,12 +23,12 @@ RUN_SH = Path(__file__).resolve().parents[1] / "run.sh"
 BASE_TOOLS = ("bash", "realpath", "dirname", "mkdir", "cat", "setsid", "env")
 
 
-def run_sh(*args: str, path: str | None = None) -> subprocess.CompletedProcess[str]:
-    """Run run.sh from an unrelated cwd, optionally with a replaced PATH."""
+def run_sh(*args: str, path: str | None = None, cwd: Path | str = "/") -> subprocess.CompletedProcess[str]:
+    """Run run.sh from an unrelated cwd (or `cwd`), optionally with a replaced PATH."""
     env = dict(os.environ)
     if path is not None:
         env["PATH"] = path
-    return subprocess.run([str(RUN_SH), *args], cwd="/", env=env, capture_output=True, text=True,
+    return subprocess.run([str(RUN_SH), *args], cwd=cwd, env=env, capture_output=True, text=True,
                           check=False, timeout=50)
 
 
@@ -54,6 +54,13 @@ def test_run_prints_tables_writes_report_and_no_warnings(src: Path) -> None:
     page = report_path().read_text()
     assert page.startswith("<!doctype html>")
     assert 'class="chart"' in page
+
+
+def test_run_from_inside_the_package_dir(src: Path) -> None:
+    """`python -m` from devstats/ must not let a package module shadow the stdlib."""
+    proc = run_sh("--no-open", "--root", str(src), cwd=RUN_SH.parent)
+    assert proc.returncode == 0, proc.stderr
+    assert report_path().read_text().startswith("<!doctype html>")
 
 
 def test_empty_root_exits_2_and_writes_no_report(tmp_path: Path) -> None:

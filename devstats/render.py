@@ -1,7 +1,7 @@
 """Tables of kuhy beside the article, plus the optional per-repo breakdown.
 
 The `*_rows` builders return (head, rows) of plain cell strings; the markdown
-here and the HTML page in `devstats.html` both render those, so the page and
+here and the HTML page in `devstats.report_html` both render those, so the page and
 the terminal always show the same numbers.
 """
 

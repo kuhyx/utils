@@ -14,7 +14,7 @@ from typing import TextIO
 from devstats import article as A
 from devstats.aggregate import DAY, RepoData, Window, dedup, window_totals
 from devstats.discover import Repo, discover
-from devstats.html import page
+from devstats.report_html import page
 from devstats.numstat import read_commits
 from devstats.refs import list_refs, resolve, tag_times
 from devstats.render import by_repo, document, report
