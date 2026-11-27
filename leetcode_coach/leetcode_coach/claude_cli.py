@@ -8,6 +8,7 @@ checker treats it as "haiku did not answer" and falls back.
 The signal for a spent plan is the synthetic reply "You've hit your session
 limit · resets 3pm (Europe/Warsaw)" (error rate_limit, HTTP 429), as recorded
 in real transcripts on 2026-09-26.
+Claude Code's banners ("5-hour limit reached", "Weekly limit reached") count too.
 """
 
 from __future__ import annotations
@@ -23,7 +24,11 @@ from typing import Any
 
 _LOG = logging.getLogger(__name__)
 
-LIMIT_RE = re.compile(r"hit your (?:\w+ )?limit|usage limit reached", re.IGNORECASE)
+LIMIT_RE = re.compile(
+    r"hit your (?:\w+ )?limit"
+    r"|(?:usage|session|weekly|daily|opus|sonnet|\d+-hour) limit reached",
+    re.IGNORECASE,
+)
 RATE_LIMIT_STATUS = 429
 
 

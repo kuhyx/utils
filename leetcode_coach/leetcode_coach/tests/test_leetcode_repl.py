@@ -24,6 +24,10 @@ LAUNCHER = Path(leetcode_repl.__file__).with_name("leetcode")
         ({"result": "You\u2019ve hit your weekly limit · resets Mon"}, True),
         ({"result": "", "api_error_status": 429}, True),
         ({"result": "x", "_stderr": "Claude AI usage limit reached|1790427600"}, True),
+        ({"result": "5-hour limit reached ∙ resets 2am"}, True),
+        ({"result": "Weekly limit reached ∙ resets Mon 9am"}, True),
+        ({"result": "Opus weekly limit reached"}, True),
+        ({"result": "Python's recursion limit reached 1000 frames"}, False),
         ({"result": "Does your loop hit every element?"}, False),
     ],
 )

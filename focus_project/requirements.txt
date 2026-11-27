@@ -2,7 +2,7 @@
 # floor is satisfied by anything newer, so it tells a checker nothing
 # about whether this repo is actually current.
 bandit[toml]==1.9.4
-earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time
+earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.24.0#subdirectory=earned_time
 mypy==2.4.1
 pre-commit==4.7.0
 pylint==4.1.4

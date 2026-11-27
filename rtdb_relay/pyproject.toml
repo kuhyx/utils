@@ -5,7 +5,7 @@ description = "Sealed request relay over Firebase RTDB: PC worker (Python) + Flu
 requires-python = ">=3.14"
 dependencies = [
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync",
-    "httpx==0.28.1",
+    "httpx==0.29.0",
 ]
 
 # Ship the library and its tests (consumers run the contract vectors).

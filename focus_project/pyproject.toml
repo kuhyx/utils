@@ -8,7 +8,7 @@ version = "0.10.0"
 description = "Time-boxed focus projects: replace chosen gates, pay a daily-minutes gate"
 requires-python = ">=3.14"
 # Stdlib only on purpose: guards import it from the system python.
-dependencies = ["earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.23.0#subdirectory=earned_time"]
+dependencies = ["earned-time @ git+https://github.com/kuhyx/utils@earned-time-v0.24.0#subdirectory=earned_time"]
 
 [tool.setuptools.packages.find]
 include = ["focus_project*"]
