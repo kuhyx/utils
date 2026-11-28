@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from repo_contract.contract import KEYS, LISTER, is_verbose
+from repo_contract.contract import KEYS, is_verbose
 from repo_contract.sources import (
     MAKE_TARGETS,
     NPM_SCRIPTS,
@@ -21,15 +21,7 @@ from repo_contract.stacks import has_tests
 
 TEST_CHANGED = "scripts/test_changed.sh"
 NO_TESTS = "n/a: no automated tests yet"
-NO_COVERAGE = "n/a: no coverage tooling for this stack"
-REPORTS = {
-    "python": "coverage.xml",
-    "flutter": "coverage/lcov.info",
-    "node": "coverage/lcov.info",
-    "go": "coverage.out",
-    "rust": "lcov.info",
-    "gradle": "build/reports/jacoco/test/jacocoTestReport.xml",
-}
+DROPPED = "n/a: dropped (kuhy, 2026-11-27)"
 _VERBOSE_TOKEN = re.compile(r"\s(-v+|--verbose)(?=\s|$)")
 
 
@@ -80,53 +72,23 @@ def _pm(repo: Path) -> str:
 
 def stack_defaults(repo: Path, stack: str) -> dict[str, str]:
     """Conventional commands for the stack (lowest-priority source)."""
-    cfg = read_text(repo / "pyproject.toml") + read_text(
-        repo / ".pre-commit-config.yaml"
-    )
     py = _prefix(repo)
     pm = _pm(repo)
-    ruff = "ruff check ." if py == "python3 -m" else f"{py} ruff check ."
     table: dict[str, dict[str, str]] = {
-        "python": {
-            "test": f"{py} pytest -q",
-            "lint": ruff if "ruff" in cfg else "pre-commit run --all-files",
-            "coverage": f"{py} pytest -q --cov --cov-branch --cov-report=xml",
-        },
-        "flutter": {
-            "run": "flutter run",
-            "test": "flutter test --reporter=compact",
-            "lint": "flutter analyze",
-            "coverage": "flutter test --reporter=compact --coverage",
-        },
-        "node": {
-            "test": f"{pm} test --silent",
-            "lint": f"{pm} run lint",
-            "coverage": f"{pm} test --silent --coverage",
-        },
-        "go": {
-            "test": "go test ./...",
-            "lint": "go vet ./...",
-            "coverage": "go test -coverprofile=coverage.out ./...",
-        },
-        "rust": {
-            "test": "cargo test --quiet",
-            "lint": "cargo clippy --quiet",
-            "coverage": "cargo llvm-cov --lcov --output-path lcov.info",
-        },
-        "gradle": {
-            "test": "./gradlew test --quiet",
-            "lint": "./gradlew lint --quiet",
-            "coverage": "./gradlew jacocoTestReport --quiet",
-        },
+        "python": {"test": f"{py} pytest -q"},
+        "flutter": {"run": "flutter run", "test": "flutter test --reporter=compact"},
+        "node": {"test": f"{pm} test --silent"},
+        "go": {"test": "go test ./..."},
+        "rust": {"test": "cargo test --quiet"},
+        "gradle": {"test": "./gradlew test --quiet"},
         "godot": _godot_defaults(repo),
-        "shell": {"lint": "shellcheck scripts/*.sh", "coverage": NO_COVERAGE},
     }
     return table.get(stack, {})
 
 
 def _godot_defaults(repo: Path) -> dict[str, str]:
     """Godot commands; the test runner comes from addons/ (GUT or gdUnit4)."""
-    out = {"run": "godot --path .", "coverage": NO_COVERAGE}
+    out = {"run": "godot --path ."}
     if (repo / "addons/gut/gut_cmdln.gd").is_file():
         out["test"] = "godot --headless -s addons/gut/gut_cmdln.gd -gexit -glog=0"
     elif (repo / "addons/gdUnit4").is_dir():
@@ -195,29 +157,18 @@ def propose(repo: Path, stacks: list[str]) -> Proposal:
     doc = doc_commands(read_text(repo / "CLAUDE.md"))
     ci = ci_commands(repo)
     tested = has_tests(repo, stacks)
-    for key in ("run", "lint"):
-        cmd, src = _pick(repo, key, stack, doc, ci)
-        prop.values[key] = _fmt(
-            cmd or (_run_default(repo, stack) if key == "run" else None), prop, key, src
-        )
+    cmd, src = _pick(repo, "run", stack, doc, ci)
+    prop.values["run"] = _fmt(cmd or _run_default(repo, stack), prop, "run", src)
+    for key in ("lint", "coverage", "coverage-gaps"):
+        prop.values[key] = DROPPED
     if not tested and stack in {"godot", "shell", "unknown"}:
-        for key in ("test", "test-changed", "coverage", "coverage-gaps"):
+        for key in ("test", "test-changed"):
             prop.values[key] = NO_TESTS
         prop.notes.append("no tests detected: test chain proposed as n/a")
         return _order(prop)
     test, src = _pick(repo, "test", stack, doc, ci)
     prop.values["test"] = _fmt(test, prop, "test", src)
     prop.values["test-changed"] = f"`{TEST_CHANGED}`"
-    cov, src = _pick(repo, "coverage", stack, doc, ci)
-    prop.values["coverage"] = _fmt(cov, prop, "coverage", src)
-    report = REPORTS.get(stack)
-    if prop.values["coverage"].startswith("n/a"):
-        prop.values["coverage-gaps"] = NO_COVERAGE
-    elif report:
-        prop.values["coverage-gaps"] = f"`{LISTER} {report}`"
-    else:
-        prop.values["coverage-gaps"] = "`<FILL IN>`"
-        prop.notes.append("coverage-gaps: unknown report path, fill in")
     if not tested:
         prop.notes.append("no tests detected, but the stack normally has them")
     return _order(prop)

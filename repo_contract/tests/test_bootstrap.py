@@ -105,4 +105,4 @@ def test_write_new_claude_md(repo: Path) -> None:
     write(repo, "project.godot")
     assert main(["--repo", str(repo), "--write"]) == 0
     assert (repo / "CLAUDE.md").is_file()
-    assert violations(repo)[0] == ["'- lint:' still holds a placeholder: <FILL IN>"]
+    assert violations(repo)[0] == []

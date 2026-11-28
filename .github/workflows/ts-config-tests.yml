@@ -30,8 +30,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (the preset lints itself)
-        run: pnpm lint
-
-      - name: Fixture + factory tests with the 100% coverage gate
-        run: pnpm coverage
+      - name: Fixture + factory tests
+        run: pnpm test

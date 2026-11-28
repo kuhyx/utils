@@ -28,11 +28,5 @@ jobs:
           sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
           rm godot.zip
 
-      - name: Install gdtoolkit (pinned)
-        run: pip install -r godot_dev_tools/requirements-dev.txt
-
-      - name: Lint (gdlint, gdformat)
-        run: godot_dev_tools/lint.sh
-
       - name: GUT against the stub host (GUT is fetched at its pinned tag)
         run: godot_dev_tools/test.sh

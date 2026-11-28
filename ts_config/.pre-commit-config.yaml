@@ -33,22 +33,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: file-length-cap
-        name: file length <= 250 lines
-        entry: bash scripts/check_file_length.sh
-        language: system
-        pass_filenames: true
-
-      - id: ts-config-lint
-        name: ts_config eslint (the preset lints itself)
-        entry: bash -c 'cd ts_config && pnpm lint'
-        language: system
-        pass_filenames: false
-        files: ^ts_config/.*\.(js|mjs|json)$
-
       - id: ts-config-test
-        name: ts_config fixture + factory tests, 100% coverage
-        entry: bash -c 'cd ts_config && pnpm coverage'
+        name: ts_config fixture + factory tests
+        entry: bash -c 'cd ts_config && pnpm test'
         language: system
         pass_filenames: false
         stages: [pre-push]

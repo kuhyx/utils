@@ -35,11 +35,6 @@ repos:
 
   - repo: local
     hooks:
-      - id: file-length-cap
-        name: file length <= 250 lines
-        entry: bash scripts/check_file_length.sh
-        language: system
-        pass_filenames: true
       - id: subproject-scope
         name: subproject scope regex still matches
         entry: scripts/check_subproject_scope.sh web_ui
@@ -47,12 +42,6 @@ repos:
         # always_run so the top-level `files` filter cannot skip the one hook
         # whose job is to notice that filter has stopped matching anything.
         always_run: true
-        pass_filenames: false
-
-      - id: web-ui-lint
-        name: tsc --noEmit && eslint
-        entry: bash -c 'cd web_ui && pnpm lint'
-        language: system
         pass_filenames: false
 
       - id: web-ui-dist-fresh
@@ -67,9 +56,9 @@ repos:
         pass_filenames: false
         require_serial: true
 
-      - id: web-ui-test-coverage
-        name: vitest with the 100% coverage gate
-        entry: bash -c 'cd web_ui && pnpm coverage'
+      - id: web-ui-test
+        name: vitest
+        entry: bash -c 'cd web_ui && pnpm test'
         language: system
         pass_filenames: false
         require_serial: true

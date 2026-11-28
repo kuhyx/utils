@@ -40,5 +40,5 @@ jobs:
 
       # No display needed: freedays draws nothing. It is policy, a JSON file
       # and a CLI.
-      - name: Run tests with coverage
+      - name: Run tests
         run: python -m pytest -v

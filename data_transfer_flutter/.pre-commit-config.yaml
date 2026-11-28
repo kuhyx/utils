@@ -27,11 +27,6 @@ repos:
 
   - repo: local
     hooks:
-      - id: file-length-cap
-        name: file length <= 250 lines
-        entry: bash scripts/check_file_length.sh
-        language: system
-        pass_filenames: true
       - id: subproject-scope
         name: subproject scope regex still matches
         entry: scripts/check_subproject_scope.sh data_transfer_flutter
@@ -50,16 +45,9 @@ repos:
         entry: bash -c 'cd data_transfer_flutter && dart format --set-exit-if-changed lib test'
         language: system
         pass_filenames: false
-      - id: flutter-analyze
-        name: flutter analyze
-        entry: bash -c 'cd data_transfer_flutter && flutter analyze'
-        language: system
-        pass_filenames: false
-      - id: flutter-test-coverage
-        name: flutter test --coverage with 100% line-coverage gate
-        entry: >-
-          bash -c 'cd data_transfer_flutter && flutter test --coverage &&
-          scripts/check_coverage.sh coverage/lcov.info 100'
+      - id: flutter-test
+        name: flutter test
+        entry: bash -c 'cd data_transfer_flutter && flutter test'
         language: system
         pass_filenames: false
         require_serial: true

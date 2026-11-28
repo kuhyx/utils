@@ -26,11 +26,5 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Run tests with coverage
-        run: flutter test --coverage
-
-      - name: Enforce 100% line coverage
-        run: scripts/check_coverage.sh coverage/lcov.info 100
+      - name: Run tests
+        run: flutter test

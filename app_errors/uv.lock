@@ -26,7 +26,7 @@ test = [
 requires-dist = [
     { name = "crdt-sync", git = "https://github.com/kuhyx/utils?subdirectory=crdt-sync&rev=crdt-sync-v0.11.1" },
     { name = "jsonschema", marker = "extra == 'test'", specifier = "==4.26.0" },
-    { name = "kuhy-credit", git = "https://github.com/kuhyx/utils?subdirectory=kuhy_credit&rev=kuhy-credit-v0.3.1" },
+    { name = "kuhy-credit", git = "https://github.com/kuhyx/utils?subdirectory=kuhy_credit&rev=kuhy-credit-v0.3.2" },
     { name = "pytest", marker = "extra == 'test'", specifier = "==9.2.0" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = "==7.1.0" },
 ]
@@ -400,8 +400,8 @@ wheels = [
 
 [[package]]
 name = "kuhy-credit"
-version = "0.3.1"
-source = { git = "https://github.com/kuhyx/utils?subdirectory=kuhy_credit&rev=kuhy-credit-v0.3.1#2352c177232a4b4594573a3b1126697ef32851f7" }
+version = "0.3.2"
+source = { git = "https://github.com/kuhyx/utils?subdirectory=kuhy_credit&rev=kuhy-credit-v0.3.2#adeb40f68e1d6c701da43e396fc46bffa3ef10c7" }
 
 [[package]]
 name = "packaging"

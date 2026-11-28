@@ -32,5 +32,5 @@ jobs:
 
       # No display needed: earned_time is stdlib-only policy, imported
       # headless by the root gaming daemon.
-      - name: Run tests with coverage
+      - name: Run tests
         run: python -m pytest -v

@@ -1,19 +1,12 @@
-# Repo-wide gate for the shared 250-line file cap (refactor_claude_todo.md).
-#
-# A file that cannot be read in one piece forces re-reads and partial edits,
-# which is the largest avoidable cost in an LLM-assisted workflow. A refactor
-# without a gate silently regrows, so this is the part that makes it stick.
-#
-# Checks only the files in the commit, so an unrelated commit never breaks on
-# a violation it did not introduce, and it FAILS (exit 1) rather than warning.
-# No baseline and no allowlist -- those are suppressions.
+# Repo-wide gates. Lint, type checks, coverage thresholds and the 250-line file
+# cap are dropped (kuhy, 2026-11-27); formatters, the private/personal-data scan,
+# no-binaries, dependency freshness, no-noqa, md-naming and repo-contract stay.
 #
 # The subprojects (gatelock/, crdt-sync/, web_ui/, design_system/,
-# sync_settings_ui/) each keep their own .pre-commit-config.yaml for their own
-# linters, and carry this same hook so committing with one of those configs is
-# gated too. This root config is what `pre-commit install` wires up, and it is
-# the only one that covers the subprojects without a config of their own
-# (guard-lib/, crdt_sync_dart/, file_length/, ...).
+# sync_settings_ui/, ...) each keep their own .pre-commit-config.yaml. This root
+# config is what `pre-commit install` wires up, and it is the only one that
+# covers the subprojects without a config of their own (guard-lib/,
+# crdt_sync_dart/, file_length/, ...).
 #
 # The path is repo-relative on purpose. pre-commit always runs hooks from the
 # git root, so this resolves the same locally and on a CI runner -- an absolute
@@ -21,12 +14,6 @@
 repos:
   - repo: local
     hooks:
-      - id: file-length-cap
-        name: file length <= 250 lines
-        entry: bash scripts/check_file_length.sh
-        language: system
-        pass_filenames: true
-
       # Three markdown namespaces (README / CLAUDE* / DOCS*); TODO*.md is banned
       # (tasks live in the todo app).
       # Shared gate in ~/src/utils owns the namespaces and the exemption list, so

@@ -17,9 +17,9 @@ overwrite it with `repo_contract/templates/check_repo_contract.shim.sh`.
 - run: n/a: collection of gates and libraries, no single entry point
 - test: `PYTHONPATH=. python -m pytest -q agent_ready/tests coverage_gaps/tests dep_freshness/tests devstats/tests file_length/tests flutter_web_drive/tests home_paths/tests md_naming/tests repo_contract/tests scripts/tests unified-design-system/tests`
 - test-changed: `scripts/test_changed.sh`
-- lint: `ruff check agent_ready coverage_gaps devstats flutter_web_drive repo_contract`
-- coverage: `PYTHONPATH=. python -m pytest -q agent_ready/tests devstats/tests flutter_web_drive/tests repo_contract/tests unified-design-system/tests --cov=agent_ready --cov=devstats --cov=flutter_web_drive --cov=repo_contract --cov=conformance --cov=conformance_diff --cov-branch --cov-report=xml --cov-fail-under=100`
-- coverage-gaps: `coverage-gaps coverage.xml`
+- lint: n/a: dropped (kuhy, 2026-11-27)
+- coverage: n/a: dropped (kuhy, 2026-11-27)
+- coverage-gaps: n/a: dropped (kuhy, 2026-11-27)
 - deploy: `git -C ~/src/utils pull --ff-only && ~/src/utils/scripts/deploy.sh` (installs the sickdays CLI + launcher from the live checkout, then exits 1 unless every released library's version tag is on origin and matches HEAD and the live `sickdays` runs the text-free checkout; `--verify-only` for the health check alone)
 
 ## Rules

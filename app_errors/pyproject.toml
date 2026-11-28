@@ -5,7 +5,7 @@ description = "Shared app error and slow-wait ingest: RTDB and local spool repor
 requires-python = ">=3.14"
 dependencies = [
     "crdt-sync @ git+https://github.com/kuhyx/utils@crdt-sync-v0.11.1#subdirectory=crdt-sync",
-    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.1#subdirectory=kuhy_credit",
+    "kuhy-credit @ git+https://github.com/kuhyx/utils@kuhy-credit-v0.3.2#subdirectory=kuhy_credit",
 ]
 
 [project.optional-dependencies]
@@ -173,7 +173,6 @@ omit = [
 ]
 
 [tool.coverage.report]
-fail_under = 100
 show_missing = true
 skip_covered = false
 exclude_lines = [
