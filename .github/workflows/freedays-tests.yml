@@ -36,7 +36,7 @@ jobs:
         run: pip install ../crdt-sync
 
       - name: Install dependencies
-        run: pip install -r requirements.txt && pip install --no-deps -e .
+        run: pip install --no-deps ../kuhy_credit && pip install -r requirements.txt && pip install --no-deps -e .
 
       # No display needed: freedays draws nothing. It is policy, a JSON file
       # and a CLI.

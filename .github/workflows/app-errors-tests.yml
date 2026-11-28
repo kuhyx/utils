@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: app_errors/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt && pip install --no-deps -e .
+        run: pip install --no-deps ../kuhy_credit && pip install -r requirements.txt && pip install --no-deps -e .
 
       - name: Run tests
         run: python -m pytest -v

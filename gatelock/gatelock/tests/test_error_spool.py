@@ -105,7 +105,9 @@ def test_slow_wait_over_threshold_is_written(
 
 def test_slow_wait_measures_monotonic_time(tmp_path: Path) -> None:
     wall, mono = Clock(), Clock()
-    rep = Reporter(app="leetcode-guard", repo="r", spool=tmp_path, clock=wall, monotonic=mono)
+    rep = Reporter(
+        app="leetcode-guard", repo="r", spool=tmp_path, clock=wall, monotonic=mono
+    )
     with rep.wait("op"):
         wall.t += 1.5  # a clock step, not a wait
         mono.t += 0.2

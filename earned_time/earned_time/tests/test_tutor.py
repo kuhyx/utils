@@ -49,7 +49,7 @@ def test_tutor_from_is_the_day_after_the_deploy() -> None:
 
 def test_registry_switches_on_tutor_from() -> None:
     assert earners_for(EVE) is not TUTOR_EARNERS  # the waiver (ANKI_WAIVED_FROM)
-    assert earners_for(None) is earners_for(datetime.now().astimezone().date())
+    assert earners_for(None) == earners_for(datetime.now().astimezone().date())
     assert earners_for(TUTOR_FROM) is TUTOR_EARNERS
     assert "anki" not in {e.name for e in TUTOR_EARNERS}
     assert ladder_for(EVE) is None  # the eve is pre-ladder

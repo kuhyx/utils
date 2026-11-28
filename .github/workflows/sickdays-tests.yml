@@ -33,7 +33,7 @@ jobs:
       # importing it pulls in tkinter, and this job has no display precisely
       # because sickdays must work without one.
       - name: Install the sibling packages
-        run: pip install ../crdt-sync && pip install --no-deps ../freedays
+        run: pip install ../crdt-sync && pip install --no-deps ../freedays ../kuhy_credit
 
       - name: Install dependencies
         run: pip install -r requirements.txt && pip install --no-deps -e .
